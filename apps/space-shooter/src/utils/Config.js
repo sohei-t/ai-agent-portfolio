@@ -13,8 +13,8 @@ const Config = {
     speed: 5,
     fireRate: 300,
     maxLives: 3,
-    width: 45,
-    height: 38
+    width: 60,
+    height: 50
   },
   enemies: {
     rows: 5,
