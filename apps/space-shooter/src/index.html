@@ -108,6 +108,14 @@
       const performanceMonitor = new PerformanceMonitor();
       const inputHandler = new InputHandler();
 
+      // Load player spaceship image
+      const playerImage = new Image();
+      playerImage.src = 'assets/player_ship.svg';
+      let playerImageLoaded = false;
+      playerImage.onload = () => {
+        playerImageLoaded = true;
+      };
+
       // Initialize game entities
       const player = new Player(800, 600);
       const enemyGrid = new EnemyGrid(800, 600);
@@ -368,8 +376,14 @@
           // Render game
           // Render player
           const ctx = canvas.ctx;
-          ctx.fillStyle = '#00ffff';
-          ctx.fillRect(player.x, player.y, player.width, player.height);
+          if (playerImageLoaded) {
+            // Draw the spaceship image
+            ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+          } else {
+            // Fallback to rectangle if image not loaded
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+          }
 
           // Render enemies
           enemyGrid.getAliveEnemies().forEach(enemy => {
