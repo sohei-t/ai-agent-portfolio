@@ -116,6 +116,20 @@
         playerImageLoaded = true;
       };
 
+      // Load enemy images
+      const enemyImages = [];
+      const enemyImageLoaded = [false, false, false];
+
+      // Load three types of enemy images
+      for (let i = 0; i < 3; i++) {
+        enemyImages[i] = new Image();
+        enemyImages[i].src = `assets/enemy_${i + 1}.svg`;  // enemy_1.svg, enemy_2.svg, enemy_3.svg
+        const index = i;
+        enemyImages[i].onload = () => {
+          enemyImageLoaded[index] = true;
+        };
+      }
+
       // Initialize game entities
       const player = new Player(800, 600);
       const enemyGrid = new EnemyGrid(800, 600);
@@ -387,8 +401,15 @@
 
           // Render enemies
           enemyGrid.getAliveEnemies().forEach(enemy => {
-            ctx.fillStyle = Config.colors.enemyTypes[enemy.type % 3];
-            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            const enemyTypeIndex = enemy.type % 3;
+            if (enemyImageLoaded[enemyTypeIndex]) {
+              // Draw enemy image
+              ctx.drawImage(enemyImages[enemyTypeIndex], enemy.x, enemy.y, enemy.width, enemy.height);
+            } else {
+              // Fallback to colored rectangle if image not loaded
+              ctx.fillStyle = Config.colors.enemyTypes[enemyTypeIndex];
+              ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            }
           });
 
           // Render shields
