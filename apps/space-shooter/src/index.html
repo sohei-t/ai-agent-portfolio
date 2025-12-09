@@ -123,9 +123,8 @@
       // Load three types of enemy images
       for (let i = 0; i < 3; i++) {
         enemyImages[i] = new Image();
-        // Use PNG for enemy_1, SVG for others as fallback
-        const extension = (i === 0) ? 'png' : 'svg';
-        enemyImages[i].src = `assets/enemy_${i + 1}.${extension}`;
+        // Use PNG for all enemy images
+        enemyImages[i].src = `assets/enemy_${i + 1}.png`;
         const index = i;
         enemyImages[i].onload = () => {
           enemyImageLoaded[index] = true;
