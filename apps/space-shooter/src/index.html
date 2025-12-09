@@ -160,6 +160,75 @@
       let wave = 1;
       let lives = 3;
       let isPaused = false;
+
+      // Add touch/click handler for menu
+      let menuTouchStart = false;
+      canvasElement.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameState === 'MENU') {
+          menuTouchStart = true;
+        }
+      });
+
+      canvasElement.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (gameState === 'MENU' && menuTouchStart) {
+          // Trigger START when tapping on menu
+          if (menu.getSelectedOption() === 'START') {
+            gameState = 'PLAYING';
+            enemyGrid.init();
+            scoreSystem.reset();
+            player.reset();
+            lives = player.lives;
+            wave = 1;
+            soundSystem.playStart();
+          }
+        } else if (gameState === 'GAME_OVER') {
+          // Handle retry on game over screen
+          if (gameOverScreen.getSelectedOption() === 'RESTART') {
+            gameState = 'PLAYING';
+            player.reset();
+            enemyGrid.init();
+            scoreSystem.reset();
+            powerUpSystem.clear();
+            lives = player.lives;
+            wave = 1;
+            bullets.length = 0;
+            enemyBullets.length = 0;
+            powerUps.length = 0;
+          }
+        }
+        menuTouchStart = false;
+      });
+
+      // Also add mouse click support for desktop
+      canvasElement.addEventListener('click', (e) => {
+        if (gameState === 'MENU') {
+          if (menu.getSelectedOption() === 'START') {
+            gameState = 'PLAYING';
+            enemyGrid.init();
+            scoreSystem.reset();
+            player.reset();
+            lives = player.lives;
+            wave = 1;
+            soundSystem.playStart();
+          }
+        } else if (gameState === 'GAME_OVER') {
+          // Handle retry on game over screen
+          if (gameOverScreen.getSelectedOption() === 'RESTART') {
+            gameState = 'PLAYING';
+            player.reset();
+            enemyGrid.init();
+            scoreSystem.reset();
+            powerUpSystem.clear();
+            lives = player.lives;
+            wave = 1;
+            bullets.length = 0;
+            enemyBullets.length = 0;
+            powerUps.length = 0;
+          }
+        }
+      });
       let ufoActive = false;
       let ufoSound = null;  // Store UFO sound to stop it later
 
