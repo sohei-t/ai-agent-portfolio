@@ -8,8 +8,8 @@ class Enemy {
   constructor(x, y, type) {
     this.x = x;
     this.y = y;
-    this.width = 30;
-    this.height = 30;
+    this.width = 40;
+    this.height = 40;
     this.speed = Config.enemies.speed;
     this.direction = 1; // 1 = right, -1 = left
     this.type = type; // 0, 1, or 2
@@ -61,19 +61,19 @@ class EnemyGrid {
   init() {
     this.enemies = [];
     // Calculate grid width: (cols - 1) * spacing + enemy width
-    const gridWidth = (this.cols - 1) * 40 + 30;
+    const gridWidth = (this.cols - 1) * 50 + 40;
     const startX = (this.canvasWidth - gridWidth) / 2;
     const startY = 50;
 
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
         this.enemies.push({
-          x: startX + col * 40,
-          y: startY + row * 40,
+          x: startX + col * 50,
+          y: startY + row * 50,
           row,
           col,
-          width: 30,
-          height: 30,
+          width: 40,
+          height: 40,
           type: row % 3,
           isAlive: true,
           direction: this.direction,

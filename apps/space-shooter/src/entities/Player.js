@@ -6,7 +6,7 @@
 class Player {
   constructor(canvasWidth, canvasHeight) {
     this.x = canvasWidth / 2;
-    this.y = canvasHeight - 60;
+    this.y = canvasHeight - 70;
     this.position = { x: this.x, y: this.y }; // Add position object for compatibility
     this.width = Config.player.width;
     this.height = Config.player.height;
@@ -76,7 +76,7 @@ class Player {
 
   reset() {
     this.x = this.canvasWidth / 2;
-    this.y = this.canvasHeight - 60;
+    this.y = this.canvasHeight - 70;
     this.position.x = this.x;
     this.position.y = this.y;
     this.lives = this.maxLives;

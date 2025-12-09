@@ -6,8 +6,8 @@
 class UFO {
   constructor(canvasWidth) {
     this.canvasWidth = canvasWidth;
-    this.width = 40;
-    this.height = 20;
+    this.width = 60;
+    this.height = 30;
     this.y = 40; // Appears at top of screen
     this.speed = 3;
     this.isActive = false;
