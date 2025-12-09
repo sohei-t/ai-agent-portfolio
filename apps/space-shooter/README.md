@@ -9,8 +9,8 @@
 **[🎮 ゲームをプレイする](https://sohei-t.github.io/ai-agent-portfolio/apps/space-shooter/src/index.html)**
 
 ### 📖 詳細な解説
-- **[🌟 ビジュアル概要解説を見る](https://sohei-t.github.io/ai-agent-portfolio/apps/space-shooter/docs/overview.html)**
-- **[🎵 音声解説を聴く](./docs/slides_audio.mp3)** ※GitHubでダウンロード可能
+- **[🎯 ゲーム詳細解説を見る](https://sohei-t.github.io/ai-agent-portfolio/apps/space-shooter/docs/about.html)**
+- **[🎵 音声解説を聴く](./docs/explanation.mp3)** ※GitHubでダウンロード可能
 
 ## ✨ ゲームの特徴
 
@@ -66,8 +66,8 @@ npx http-server .
 ## 📖 ドキュメント
 
 - 📄 [技術仕様書](./spec.md)
-- 🌟 [ビジュアル概要解説](https://sohei-t.github.io/ai-agent-portfolio/apps/space-shooter/docs/overview.html)
-- 🔊 [音声解説](./docs/slides_audio.mp3)
+- 🎯 [ゲーム詳細解説](https://sohei-t.github.io/ai-agent-portfolio/apps/space-shooter/docs/about.html)
+- 🔊 [音声解説](./docs/explanation.mp3)
 - 🧪 [テストコード](./tests/)
 
 ## 📊 更新履歴
