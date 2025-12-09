@@ -49,6 +49,64 @@
       font-size: 24px;
       text-shadow: 0 0 10px #0ff;
     }
+
+    /* Mobile Touch Controls */
+    .touch-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: none;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px), (pointer: coarse) {
+      .touch-controls {
+        display: block;
+      }
+    }
+
+    .touch-btn {
+      position: absolute;
+      background: rgba(0, 255, 255, 0.3);
+      border: 2px solid #00ffff;
+      color: #00ffff;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 15px;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      text-align: center;
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: auto;
+      touch-action: none;
+    }
+
+    .touch-btn:active {
+      background: rgba(0, 255, 255, 0.6);
+      transform: scale(1.1);
+    }
+
+    .touch-left {
+      left: 20px;
+      bottom: 0;
+    }
+
+    .touch-right {
+      left: 100px;
+      bottom: 0;
+    }
+
+    .touch-fire {
+      right: 20px;
+      bottom: 0;
+      width: 80px;
+      height: 80px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
@@ -58,6 +116,13 @@
   <div id="gameInfo">
     <div>FPS: <span id="fps">60</span></div>
     <div>Quality: <span id="quality">high</span></div>
+  </div>
+
+  <!-- Mobile Touch Controls -->
+  <div id="touchControls" class="touch-controls">
+    <button id="touchLeft" class="touch-btn touch-left">◀</button>
+    <button id="touchRight" class="touch-btn touch-right">▶</button>
+    <button id="touchFire" class="touch-btn touch-fire">FIRE</button>
   </div>
 
   <!-- Utils -->
@@ -168,6 +233,56 @@
           menuTouchStart = true;
         }
       });
+
+      // Setup touch controls for mobile
+      const setupTouchButtons = () => {
+        const touchLeft = document.getElementById('touchLeft');
+        const touchRight = document.getElementById('touchRight');
+        const touchFire = document.getElementById('touchFire');
+
+        let leftPressed = false;
+        let rightPressed = false;
+        let firePressed = false;
+
+        // Left button
+        touchLeft.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          leftPressed = true;
+        });
+        touchLeft.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          leftPressed = false;
+        });
+
+        // Right button
+        touchRight.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          rightPressed = true;
+        });
+        touchRight.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          rightPressed = false;
+        });
+
+        // Fire button
+        touchFire.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          firePressed = true;
+        });
+        touchFire.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          firePressed = false;
+        });
+
+        // Return touch state getter
+        return {
+          isLeftPressed: () => leftPressed,
+          isRightPressed: () => rightPressed,
+          isFirePressed: () => firePressed
+        };
+      };
+
+      const touchControls = setupTouchButtons();
 
       canvasElement.addEventListener('touchend', (e) => {
         e.preventDefault();
@@ -283,11 +398,11 @@
           }
 
           if (!isPaused) {
-            // Update player
-            if (inputHandler.isLeft()) player.moveLeft();
-            if (inputHandler.isRight()) player.moveRight();
+            // Update player (keyboard and touch controls)
+            if (inputHandler.isLeft() || touchControls.isLeftPressed()) player.moveLeft();
+            if (inputHandler.isRight() || touchControls.isRightPressed()) player.moveRight();
 
-            if (inputHandler.isSpace() && player.canShoot(Date.now())) {
+            if ((inputHandler.isSpace() || touchControls.isFirePressed()) && player.canShoot(Date.now())) {
               if (player.shoot(Date.now())) {
                 // Create bullet at player position
                 const bullet = new Bullet(
