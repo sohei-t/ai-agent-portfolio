@@ -110,7 +110,7 @@
 
       // Load player spaceship image
       const playerImage = new Image();
-      playerImage.src = 'assets/player_ship.svg';
+      playerImage.src = 'assets/player_ship.png';
       let playerImageLoaded = false;
       playerImage.onload = () => {
         playerImageLoaded = true;
@@ -123,7 +123,9 @@
       // Load three types of enemy images
       for (let i = 0; i < 3; i++) {
         enemyImages[i] = new Image();
-        enemyImages[i].src = `assets/enemy_${i + 1}.svg`;  // enemy_1.svg, enemy_2.svg, enemy_3.svg
+        // Use PNG for enemy_1, SVG for others as fallback
+        const extension = (i === 0) ? 'png' : 'svg';
+        enemyImages[i].src = `assets/enemy_${i + 1}.${extension}`;
         const index = i;
         enemyImages[i].onload = () => {
           enemyImageLoaded[index] = true;
