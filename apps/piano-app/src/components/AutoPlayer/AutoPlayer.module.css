@@ -1,0 +1,235 @@
+/**
+ * Auto Player Styles
+ */
+
+.autoPlayer {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 800px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  text-align: center;
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.songSelector,
+.speedControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  white-space: nowrap;
+}
+
+.select {
+  padding: 8px 32px 8px 12px;
+  font-size: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.select:hover:not(:disabled) {
+  border-color: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.select:focus {
+  outline: none;
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+.select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.playButton {
+  padding: 10px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.playButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+}
+
+.playButton:active {
+  transform: translateY(0);
+}
+
+.playButton.playing {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.nowPlaying {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-primary, #333);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.playingIndicator {
+  font-size: 20px;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-4px); }
+  75% { transform: translateY(2px); }
+}
+
+/* Drum Controls */
+.drumControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  cursor: pointer;
+}
+
+/* Theme variations */
+[data-theme="dark"] .autoPlayer {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .title,
+[data-theme="dark"] .nowPlaying {
+  color: #fff;
+}
+
+[data-theme="dark"] .label {
+  color: #ccc;
+}
+
+[data-theme="dark"] .select {
+  background: #2a2a2a;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .select:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="ocean"] .autoPlayer {
+  background: linear-gradient(135deg, rgba(0, 119, 190, 0.1), rgba(0, 180, 216, 0.1));
+}
+
+[data-theme="sunset"] .autoPlayer {
+  background: linear-gradient(135deg, rgba(255, 94, 77, 0.1), rgba(255, 154, 0, 0.1));
+}
+
+[data-theme="forest"] .autoPlayer {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(139, 195, 74, 0.1));
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .autoPlayer {
+    padding: 16px;
+    margin: 16px;
+  }
+
+  .controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .songSelector,
+  .speedControl {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .select {
+    flex: 1;
+  }
+
+  .playButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 16px;
+  }
+
+  .label {
+    font-size: 12px;
+  }
+
+  .select {
+    font-size: 12px;
+    padding: 6px 28px 6px 10px;
+  }
+
+  .playButton {
+    font-size: 14px;
+    padding: 8px 20px;
+  }
+}

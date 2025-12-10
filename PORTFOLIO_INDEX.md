@@ -31,3 +31,15 @@
 - **[詳細を見る](./apps/space-shooter/README.md)**
 
 ---
+
+### Piano App
+
+- **slug**: `piano-app`
+- **パス**: `apps/piano-app/`
+- **最終更新**: 2025-12-10
+- **概要**: インタラクティブなピアノ演奏Webアプリケーション
+- **技術**: React 18, Web Audio API, CSS Modules, Vite
+- **特徴**: 18種類の楽器音源、録音機能、ドラムマシン、自動演奏機能搭載
+- **[詳細を見る](./apps/piano-app/README.md)**
+
+---

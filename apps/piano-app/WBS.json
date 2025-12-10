@@ -1,0 +1,333 @@
+{
+  "project": {
+    "name": "スマホピアノアプリ (Smartphone Piano App)",
+    "description": "Webベースのピアノ演奏アプリケーション。レスポンシブデザイン、Web Audio API、React実装",
+    "start_date": "2024-12-09",
+    "estimated_duration": "5 days",
+    "critical_path": ["T001", "T002", "T003", "T004A", "T006", "T007A", "T007B", "T008", "T013", "T014", "T015", "T016", "T017", "T018", "T020", "T021"]
+  },
+  "tasks": [
+    {
+      "id": "T001",
+      "name": "要件定義",
+      "description": "ピアノアプリの要件を明確化（完了済み）",
+      "agent": "requirements_analyst",
+      "dependencies": [],
+      "estimated_hours": 1,
+      "status": "completed",
+      "output": "REQUIREMENTS.md",
+      "priority": "high",
+      "parallel_group": null
+    },
+    {
+      "id": "T002",
+      "name": "WBS作成",
+      "description": "タスク分解と依存関係定義",
+      "agent": "planner",
+      "dependencies": ["T001"],
+      "estimated_hours": 1,
+      "status": "in_progress",
+      "output": "WBS.json",
+      "priority": "high",
+      "parallel_group": null
+    },
+    {
+      "id": "T003",
+      "name": "アーキテクチャ設計",
+      "description": "Reactコンポーネント設計、Web Audio API統合設計",
+      "agent": "architect",
+      "dependencies": ["T001"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "ARCHITECTURE.md",
+      "priority": "high",
+      "parallel_group": null
+    },
+    {
+      "id": "T004A",
+      "name": "ユニットテストコード作成",
+      "description": "Jest/React Testing Library、audioEngine/Piano/Key/Controls単体テスト",
+      "agent": "test_designer",
+      "dependencies": ["T001", "T003"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "tests/unit/",
+      "priority": "high",
+      "parallel_group": "test_design"
+    },
+    {
+      "id": "T004B",
+      "name": "E2Eテストコード作成",
+      "description": "Playwright統合テスト、ユーザーシナリオテスト",
+      "agent": "test_designer",
+      "dependencies": ["T001", "T003"],
+      "estimated_hours": 1.5,
+      "status": "pending",
+      "output": "tests/e2e/",
+      "priority": "high",
+      "parallel_group": "test_design"
+    },
+    {
+      "id": "T005",
+      "name": "開発環境セットアップ",
+      "description": "Vite/React/Jest/Playwright環境構築、package.json作成",
+      "agent": "frontend_dev",
+      "dependencies": ["T003"],
+      "estimated_hours": 1,
+      "status": "pending",
+      "output": "package.json, vite.config.js, jest.config.js",
+      "priority": "high",
+      "parallel_group": "setup"
+    },
+    {
+      "id": "T006",
+      "name": "Web Audio Engine実装",
+      "description": "AudioContext、Oscillator、Gain制御、iOS Safari対応",
+      "agent": "frontend_dev",
+      "dependencies": ["T004A", "T005"],
+      "estimated_hours": 3,
+      "status": "pending",
+      "output": "src/utils/audioEngine.js, src/utils/noteFrequencies.js",
+      "priority": "critical",
+      "parallel_group": "core"
+    },
+    {
+      "id": "T007A",
+      "name": "Key鍵盤コンポーネント実装",
+      "description": "Key.jsx、個別鍵盤UI、タッチイベント、視覚フィードバック",
+      "agent": "frontend_dev",
+      "dependencies": ["T004A", "T005"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "src/components/Key/Key.jsx, src/components/Key/Key.module.css",
+      "priority": "critical",
+      "parallel_group": "core"
+    },
+    {
+      "id": "T007B",
+      "name": "Pianoコンテナコンポーネント実装",
+      "description": "Piano.jsx、鍵盤配列生成、レスポンシブロジック（12-30鍵）",
+      "agent": "frontend_dev",
+      "dependencies": ["T007A", "T006"],
+      "estimated_hours": 2.5,
+      "status": "pending",
+      "output": "src/components/Piano/Piano.jsx, src/components/Piano/Piano.module.css",
+      "priority": "critical",
+      "parallel_group": null
+    },
+    {
+      "id": "T008",
+      "name": "オクターブ切り替え実装",
+      "description": "OctaveSelector.jsx、C3-C7範囲切り替え",
+      "agent": "frontend_dev",
+      "dependencies": ["T006", "T007B"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "src/components/Controls/OctaveSelector.jsx",
+      "priority": "high",
+      "parallel_group": "controls"
+    },
+    {
+      "id": "T009",
+      "name": "音量調整実装",
+      "description": "VolumeControl.jsx、スライダー、ミュート機能",
+      "agent": "frontend_dev",
+      "dependencies": ["T006"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "src/components/Controls/VolumeControl.jsx",
+      "priority": "medium",
+      "parallel_group": "controls_early"
+    },
+    {
+      "id": "T010",
+      "name": "テーマシステム実装",
+      "description": "ThemeSelector.jsx、CSS Variables、3テーマ（Classic/Modern/Neon）",
+      "agent": "frontend_dev",
+      "dependencies": ["T007B"],
+      "estimated_hours": 3,
+      "status": "pending",
+      "output": "src/components/Controls/ThemeSelector.jsx, src/themes.css",
+      "priority": "medium",
+      "parallel_group": "controls"
+    },
+    {
+      "id": "T011",
+      "name": "音名表示切り替え実装",
+      "description": "日本語/英語/非表示切り替え、LocalStorage保存",
+      "agent": "frontend_dev",
+      "dependencies": ["T007B"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "src/components/Controls/NoteLabelToggle.jsx",
+      "priority": "medium",
+      "parallel_group": "controls"
+    },
+    {
+      "id": "T012",
+      "name": "キーボード操作実装",
+      "description": "useKeyboard.js Hook、QWERTY配列対応",
+      "agent": "frontend_dev",
+      "dependencies": ["T006", "T007B"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "src/hooks/useKeyboard.js",
+      "priority": "medium",
+      "parallel_group": "controls"
+    },
+    {
+      "id": "T013",
+      "name": "メインApp統合",
+      "description": "App.jsx、全コンポーネント統合、状態管理",
+      "agent": "frontend_dev",
+      "dependencies": ["T008", "T009", "T010", "T011", "T012"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "src/App.jsx, src/main.jsx",
+      "priority": "high",
+      "parallel_group": null
+    },
+    {
+      "id": "T014",
+      "name": "単体テスト実行・修正",
+      "description": "Jestテスト実行、カバレッジ80%以上達成",
+      "agent": "fixer",
+      "dependencies": ["T013"],
+      "estimated_hours": 3,
+      "status": "pending",
+      "output": "test-results/unit/",
+      "priority": "critical",
+      "parallel_group": "testing"
+    },
+    {
+      "id": "T015",
+      "name": "E2Eテスト実行・修正",
+      "description": "Playwrightテスト実行、全機能動作確認",
+      "agent": "fixer",
+      "dependencies": ["T014"],
+      "estimated_hours": 3,
+      "status": "pending",
+      "output": "test-results/e2e/",
+      "priority": "critical",
+      "parallel_group": "testing"
+    },
+    {
+      "id": "T016",
+      "name": "品質評価",
+      "description": "パフォーマンス、可読性、セキュリティ評価",
+      "agent": "evaluator",
+      "dependencies": ["T015"],
+      "estimated_hours": 2,
+      "status": "pending",
+      "output": "EVALUATION_REPORT.md",
+      "priority": "high",
+      "parallel_group": null
+    },
+    {
+      "id": "T017",
+      "name": "改善実施",
+      "description": "評価結果に基づくコード改善（最大3回）",
+      "agent": "fixer",
+      "dependencies": ["T016"],
+      "estimated_hours": 4,
+      "status": "pending",
+      "output": "改善されたソースコード",
+      "priority": "medium",
+      "parallel_group": null
+    },
+    {
+      "id": "T018",
+      "name": "ドキュメント生成",
+      "description": "README.md、about.html、audio_script.txt、generate_audio_gcp.js作成",
+      "agent": "documenter",
+      "dependencies": ["T017"],
+      "estimated_hours": 1,
+      "status": "pending",
+      "output": "README.md, about.html, audio_script.txt, generate_audio_gcp.js",
+      "priority": "high",
+      "parallel_group": "finalization"
+    },
+    {
+      "id": "T019",
+      "name": "起動スクリプト生成",
+      "description": "launch_app.command作成、実行権限付与",
+      "agent": "launcher_creator",
+      "dependencies": ["T017"],
+      "estimated_hours": 0.5,
+      "status": "pending",
+      "output": "launch_app.command",
+      "priority": "high",
+      "parallel_group": "finalization"
+    },
+    {
+      "id": "T020",
+      "name": "音声ファイル生成",
+      "description": "explanation.mp3生成（GCP Text-to-Speech）",
+      "agent": "audio_generator",
+      "dependencies": ["T018"],
+      "estimated_hours": 0.5,
+      "status": "pending",
+      "output": "explanation.mp3",
+      "priority": "high",
+      "parallel_group": "finalization"
+    },
+    {
+      "id": "T021",
+      "name": "最終レビュー",
+      "description": "品質確認、すべての成功基準達成確認",
+      "agent": "reviewer",
+      "dependencies": ["T018", "T019", "T020"],
+      "estimated_hours": 1,
+      "status": "pending",
+      "output": "REVIEW_REPORT.md",
+      "priority": "high",
+      "parallel_group": null
+    }
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "計画完了",
+      "tasks": ["T001", "T002", "T003", "T004A", "T004B"],
+      "target_date": "Day 1"
+    },
+    {
+      "id": "M2",
+      "name": "コア機能実装完了",
+      "tasks": ["T005", "T006", "T007A", "T007B"],
+      "target_date": "Day 2"
+    },
+    {
+      "id": "M3",
+      "name": "UI/UX機能実装完了",
+      "tasks": ["T008", "T009", "T010", "T011", "T012", "T013"],
+      "target_date": "Day 3"
+    },
+    {
+      "id": "M4",
+      "name": "テスト合格",
+      "tasks": ["T014", "T015"],
+      "target_date": "Day 4"
+    },
+    {
+      "id": "M5",
+      "name": "品質改善完了",
+      "tasks": ["T016", "T017"],
+      "target_date": "Day 4"
+    },
+    {
+      "id": "M6",
+      "name": "リリース準備完了",
+      "tasks": ["T018", "T019", "T020", "T021"],
+      "target_date": "Day 5"
+    }
+  ],
+  "execution_rules": {
+    "max_parallel_tasks": 4,
+    "check_interval_seconds": 30,
+    "timeout_hours": 24,
+    "retry_on_failure": true,
+    "auto_escalate": true,
+    "parallel_efficiency_target": 0.7
+  }
+}

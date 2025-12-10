@@ -1,0 +1,64 @@
+/**
+ * Key Component Styles (CSS Module)
+ */
+
+.key {
+  position: relative;
+  border: 1px solid var(--key-border);
+  transition: all 0.1s ease;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.5rem;
+}
+
+/* White keys */
+.whiteKey {
+  background: var(--key-white);
+  color: var(--label-color);
+  box-shadow: var(--key-shadow);
+  z-index: 1;
+}
+
+.whiteKey:active,
+.whiteKey[data-pressed="true"] {
+  background: var(--key-white-pressed);
+  box-shadow: var(--key-pressed-shadow);
+  transform: translateY(2px);
+}
+
+/* Black keys */
+.blackKey {
+  background: var(--key-black);
+  color: var(--label-color-black-key);
+  box-shadow: var(--key-shadow);
+  z-index: 2;
+}
+
+.blackKey:active,
+.blackKey[data-pressed="true"] {
+  background: var(--key-black-pressed);
+  box-shadow: var(--key-pressed-shadow);
+  transform: translateY(2px);
+}
+
+/* Note labels */
+.noteLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Neon theme glow effect */
+[data-theme="neon"] .key {
+  box-shadow: var(--glow-effect);
+}
+
+/* Accessibility */
+.key:focus-visible {
+  outline: 2px solid var(--text-color);
+  outline-offset: -2px;
+}
