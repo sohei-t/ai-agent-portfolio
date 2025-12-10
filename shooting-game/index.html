@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self';">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self';">
   <title>Vertical Scrolling Shooter</title>
   <meta name="description" content="A browser-based vertical scrolling shooting game">
   <meta name="theme-color" content="#000000">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <!-- favicon.svg は必要に応じて追加 -->
   <style>
     * {
       margin: 0;
@@ -174,6 +174,6 @@
   </div>
 
   <!-- Game Entry Point -->
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
