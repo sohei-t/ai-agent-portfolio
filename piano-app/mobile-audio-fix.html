@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano App - モバイル音声修正テスト</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .status-item {
+            margin: 10px 0;
+        }
+        .test-button {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .test-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #51cf66;
+            background: rgba(0, 255, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .piano-key {
+            display: inline-block;
+            width: 60px;
+            height: 200px;
+            background: white;
+            border: 2px solid #333;
+            margin: 2px;
+            cursor: pointer;
+            transition: background 0.1s;
+            vertical-align: top;
+        }
+        .piano-key.black {
+            background: #333;
+            height: 130px;
+            width: 40px;
+            margin-left: -22px;
+            margin-right: -22px;
+            z-index: 10;
+            position: relative;
+        }
+        .piano-key:active, .piano-key.active {
+            background: #ddd;
+        }
+        .piano-key.black:active, .piano-key.black.active {
+            background: #555;
+        }
+        .keyboard-container {
+            text-align: center;
+            margin: 30px 0;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .instructions h3 {
+            margin-top: 0;
+        }
+        .instructions ol {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎹 Piano App モバイル音声テスト</h1>
+
+        <div class="instructions">
+            <h3>📱 モバイルでの音声問題について</h3>
+            <p>モバイルブラウザでは、自動再生ポリシーのため、ユーザーの操作なしに音声を再生できません。</p>
+            <ol>
+                <li>下の「音声を有効化」ボタンをタップしてください</li>
+                <li>初回のタップで AudioContext が初期化されます</li>
+                <li>その後、ピアノの鍵盤をタップして音を鳴らしてください</li>
+            </ol>
+        </div>
+
+        <div class="status">
+            <h3>システム状態</h3>
+            <div class="status-item">AudioContext: <span id="audioContextStatus">未初期化</span></div>
+            <div class="status-item">状態: <span id="contextState">未確認</span></div>
+            <div class="status-item">サンプルレート: <span id="sampleRate">-</span></div>
+            <div class="status-item">デバイス: <span id="deviceInfo">-</span></div>
+        </div>
+
+        <button class="test-button" id="initButton">🔊 音声を有効化</button>
+        <button class="test-button" id="testButton" disabled>🎵 テスト音を再生</button>
+
+        <div id="messages"></div>
+
+        <div class="keyboard-container">
+            <div class="piano-key" data-note="C4"></div>
+            <div class="piano-key black" data-note="C#4"></div>
+            <div class="piano-key" data-note="D4"></div>
+            <div class="piano-key black" data-note="D#4"></div>
+            <div class="piano-key" data-note="E4"></div>
+            <div class="piano-key" data-note="F4"></div>
+            <div class="piano-key black" data-note="F#4"></div>
+            <div class="piano-key" data-note="G4"></div>
+            <div class="piano-key black" data-note="G#4"></div>
+            <div class="piano-key" data-note="A4"></div>
+            <div class="piano-key black" data-note="A#4"></div>
+            <div class="piano-key" data-note="B4"></div>
+            <div class="piano-key" data-note="C5"></div>
+        </div>
+    </div>
+
+    <script>
+        // モバイル対応の音声エンジン
+        class MobileAudioEngine {
+            constructor() {
+                this.audioContext = null;
+                this.isInitialized = false;
+                this.gainNode = null;
+                this.noteFrequencies = {
+                    'C4': 261.63,
+                    'C#4': 277.18,
+                    'D4': 293.66,
+                    'D#4': 311.13,
+                    'E4': 329.63,
+                    'F4': 349.23,
+                    'F#4': 369.99,
+                    'G4': 392.00,
+                    'G#4': 415.30,
+                    'A4': 440.00,
+                    'A#4': 466.16,
+                    'B4': 493.88,
+                    'C5': 523.25
+                };
+            }
+
+            async initialize() {
+                try {
+                    // AudioContext の作成（ベンダープレフィックス対応）
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) {
+                        throw new Error('Web Audio API がサポートされていません');
+                    }
+
+                    // 新しい AudioContext を作成
+                    this.audioContext = new AudioContext();
+
+                    // iOS Safari 対応: suspended 状態の場合は resume
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                        this.log('AudioContext resumed successfully', 'success');
+                    }
+
+                    // グローバルゲインノードを作成
+                    this.gainNode = this.audioContext.createGain();
+                    this.gainNode.gain.value = 0.3;
+                    this.gainNode.connect(this.audioContext.destination);
+
+                    this.isInitialized = true;
+                    this.updateStatus();
+                    this.log('音声システムを初期化しました', 'success');
+
+                    // iOS用の無音再生（互換性向上）
+                    if (this.isIOS()) {
+                        this.playSilent();
+                    }
+
+                    return true;
+                } catch (error) {
+                    this.log(`初期化エラー: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+
+            isIOS() {
+                return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            }
+
+            playSilent() {
+                // iOS用の無音再生で音声を有効化
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.value = 0.001; // ほぼ無音
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                oscillator.frequency.value = 440;
+                oscillator.start();
+                oscillator.stop(this.audioContext.currentTime + 0.01);
+            }
+
+            playNote(frequency, duration = 0.3) {
+                if (!this.isInitialized || !this.audioContext) {
+                    this.log('音声システムが初期化されていません', 'error');
+                    return;
+                }
+
+                try {
+                    const now = this.audioContext.currentTime;
+
+                    // オシレーター作成
+                    const oscillator = this.audioContext.createOscillator();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(frequency, now);
+
+                    // エンベロープ用のゲインノード
+                    const envelope = this.audioContext.createGain();
+                    envelope.gain.setValueAtTime(0, now);
+                    envelope.gain.linearRampToValueAtTime(0.3, now + 0.01); // Attack
+                    envelope.gain.exponentialRampToValueAtTime(0.2, now + 0.1); // Decay
+                    envelope.gain.exponentialRampToValueAtTime(0.01, now + duration); // Release
+
+                    // 接続
+                    oscillator.connect(envelope);
+                    envelope.connect(this.gainNode);
+
+                    // 再生
+                    oscillator.start(now);
+                    oscillator.stop(now + duration);
+
+                    // メモリクリーンアップ
+                    oscillator.onended = () => {
+                        oscillator.disconnect();
+                        envelope.disconnect();
+                    };
+
+                } catch (error) {
+                    this.log(`音声再生エラー: ${error.message}`, 'error');
+                }
+            }
+
+            playTestSound() {
+                this.playNote(440, 0.5); // A4音を0.5秒再生
+                this.log('テスト音 (A4 = 440Hz) を再生しました', 'success');
+            }
+
+            updateStatus() {
+                const statusEl = document.getElementById('audioContextStatus');
+                const stateEl = document.getElementById('contextState');
+                const sampleRateEl = document.getElementById('sampleRate');
+
+                if (this.audioContext) {
+                    statusEl.textContent = '初期化済み';
+                    statusEl.style.color = '#51cf66';
+                    stateEl.textContent = this.audioContext.state;
+                    stateEl.style.color = this.audioContext.state === 'running' ? '#51cf66' : '#ff6b6b';
+                    sampleRateEl.textContent = `${this.audioContext.sampleRate} Hz`;
+                } else {
+                    statusEl.textContent = '未初期化';
+                    statusEl.style.color = '#ff6b6b';
+                    stateEl.textContent = '未確認';
+                    sampleRateEl.textContent = '-';
+                }
+            }
+
+            log(message, type = 'info') {
+                const messagesEl = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+                messageDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                messagesEl.insertBefore(messageDiv, messagesEl.firstChild);
+
+                // 古いメッセージを削除
+                while (messagesEl.children.length > 5) {
+                    messagesEl.removeChild(messagesEl.lastChild);
+                }
+            }
+        }
+
+        // グローバル音声エンジンインスタンス
+        const audioEngine = new MobileAudioEngine();
+
+        // デバイス情報を表示
+        document.getElementById('deviceInfo').textContent =
+            `${navigator.userAgent.match(/iPhone|iPad|iPod|Android/i)?.[0] || 'Desktop'} - ${navigator.platform}`;
+
+        // 初期化ボタン
+        document.getElementById('initButton').addEventListener('click', async () => {
+            const button = document.getElementById('initButton');
+            button.disabled = true;
+            button.textContent = '初期化中...';
+
+            const success = await audioEngine.initialize();
+
+            if (success) {
+                button.textContent = '✅ 初期化完了';
+                document.getElementById('testButton').disabled = false;
+
+                // ピアノキーを有効化
+                document.querySelectorAll('.piano-key').forEach(key => {
+                    key.style.opacity = '1';
+                });
+            } else {
+                button.textContent = '❌ 初期化失敗 (再試行)';
+                button.disabled = false;
+            }
+        });
+
+        // テスト音ボタン
+        document.getElementById('testButton').addEventListener('click', () => {
+            audioEngine.playTestSound();
+        });
+
+        // ピアノキーのイベント
+        document.querySelectorAll('.piano-key').forEach(key => {
+            // 初期状態では半透明に
+            key.style.opacity = '0.5';
+
+            // タッチイベント（モバイル対応）
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (!audioEngine.isInitialized) {
+                    audioEngine.log('先に音声を有効化してください', 'error');
+                    return;
+                }
+                key.classList.add('active');
+                const note = key.dataset.note;
+                const frequency = audioEngine.noteFrequencies[note];
+                audioEngine.playNote(frequency);
+                audioEngine.log(`${note} (${frequency.toFixed(2)} Hz) を再生`, 'success');
+            });
+
+            key.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                key.classList.remove('active');
+            });
+
+            // マウスイベント（デスクトップ対応）
+            key.addEventListener('mousedown', (e) => {
+                if (!audioEngine.isInitialized) {
+                    audioEngine.log('先に音声を有効化してください', 'error');
+                    return;
+                }
+                key.classList.add('active');
+                const note = key.dataset.note;
+                const frequency = audioEngine.noteFrequencies[note];
+                audioEngine.playNote(frequency);
+                audioEngine.log(`${note} (${frequency.toFixed(2)} Hz) を再生`, 'success');
+            });
+
+            key.addEventListener('mouseup', () => {
+                key.classList.remove('active');
+            });
+
+            key.addEventListener('mouseleave', () => {
+                key.classList.remove('active');
+            });
+        });
+
+        // ページ表示時の状態確認
+        window.addEventListener('load', () => {
+            audioEngine.updateStatus();
+            audioEngine.log('ページを読み込みました。音声を有効化してください。', 'info');
+        });
+
+        // バックグラウンド/フォアグラウンド切り替え時の処理
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && audioEngine.audioContext) {
+                if (audioEngine.audioContext.state === 'suspended') {
+                    audioEngine.audioContext.resume().then(() => {
+                        audioEngine.log('AudioContext を再開しました', 'success');
+                        audioEngine.updateStatus();
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>

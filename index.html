@@ -3,148 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Agent Portfolio - sohei-t</title>
+    <title>AI Agent Portfolio</title>
     <style>
-        * {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: #fff;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 40px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .portfolio-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            padding: 20px 0;
-        }
-        
-        .app-card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 25px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .app-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        
-        .app-card h2 {
-            margin-bottom: 15px;
-            font-size: 1.5rem;
-            color: #fff;
-        }
-        
-        .app-card p {
-            margin-bottom: 20px;
-            opacity: 0.9;
-            line-height: 1.6;
-        }
-        
-        .app-links {
             display: flex;
-            gap: 15px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
-        
-        .app-link {
-            display: inline-block;
-            padding: 10px 20px;
-            background: rgba(255,255,255,0.2);
-            color: #fff;
-            text-decoration: none;
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 90%;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .projects {
+            display: grid;
+            gap: 1.5rem;
+        }
+        .project {
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            transition: background 0.3s ease;
-            font-weight: 500;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        
-        .app-link:hover {
-            background: rgba(255,255,255,0.3);
+        .project:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        
-        .tech-stack {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255,255,255,0.2);
+        .project h2 {
+            margin-top: 0;
+            color: #667eea;
         }
-        
-        .tech-tag {
-            display: inline-block;
-            padding: 5px 10px;
-            margin: 5px 5px 5px 0;
-            background: rgba(255,255,255,0.15);
-            border-radius: 20px;
-            font-size: 0.85rem;
+        .project-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
         }
-
-        .emoji {
-            font-size: 2rem;
-            margin-bottom: 15px;
-            display: block;
+        .project-links a {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.2s;
         }
-        
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .portfolio-grid {
-                grid-template-columns: 1fr;
-            }
+        .project-links a:hover {
+            background: #764ba2;
+        }
+        .project-links a.secondary {
+            background: #6c757d;
+        }
+        .project-links a.secondary:hover {
+            background: #5a6268;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🚀 AI Agent Portfolio</h1>
-        <div class="portfolio-grid">
-            
-            <!-- Space Shooter Game -->
-            <div class="app-card">
-                <span class="emoji">🎮</span>
-                <h2>Space Shooter Game</h2>
-                <p>クラシックなインベーダーゲームにモダンな要素を加えたHTML5シューティングゲーム。UFO機能、ステージクリア演出、スマホ対応タッチコントロール付き。</p>
-                <div class="app-links">
-                    <a href="apps/space-shooter/src/index.html" class="app-link">🎯 Play Game</a>
-                    <a href="apps/space-shooter/README.md" class="app-link">📖 Docs</a>
-                </div>
-                <div class="tech-stack">
-                    <span class="tech-tag">JavaScript</span>
-                    <span class="tech-tag">HTML5 Canvas</span>
-                    <span class="tech-tag">Web Audio API</span>
-                    <span class="tech-tag">Responsive</span>
+        <div class="projects">
+            <div class="project">
+                <h2>🎮 Space Invaders Game</h2>
+                <p>A classic Space Invaders-style shooting game built with pure JavaScript and HTML5 Canvas. Features include responsive design, touch controls, power-ups, and dynamic sound effects.</p>
+                <div class="project-links">
+                    <a href="./Invaders-game/index.html">Play Game</a>
+                    <a href="./Invaders-game/about.html" class="secondary">About</a>
+                    <a href="https://github.com/sohei-t/ai-agent-portfolio/tree/main/Invaders-game" class="secondary">Source Code</a>
                 </div>
             </div>
-            
-            <!-- More apps will be added here -->
-            
-        </div>
-        
-        <div style="text-align: center; margin-top: 60px; opacity: 0.8;">
-            <p>Created with Claude Code AI Agent</p>
-            <p>© 2024 sohei-t</p>
+
+            <div class="project">
+                <h2>🎹 Piano App</h2>
+                <p>Interactive piano application with virtual keyboard and audio synthesis.</p>
+                <div class="project-links">
+                    <a href="./piano-app/">Open App</a>
+                </div>
+            </div>
+
+            <div class="project">
+                <h2>🚀 Shooting Game</h2>
+                <p>Another shooting game variant with different gameplay mechanics.</p>
+                <div class="project-links">
+                    <a href="./shooting-game/">Play Game</a>
+                </div>
+            </div>
         </div>
     </div>
 </body>
