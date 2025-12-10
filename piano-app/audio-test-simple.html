@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンプル音声テスト</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 30px;
+            font-size: 20px;
+            margin: 20px 0;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+        }
+        button:active {
+            background: #45a049;
+        }
+        #status {
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔊 シンプル音声テスト</h1>
+
+    <div class="warning">
+        <strong>⚠️ 重要:</strong><br>
+        1. サイレントモードをOFFにしてください<br>
+        2. 音量を上げてください<br>
+        3. イヤホンを使うとより確実です
+    </div>
+
+    <button id="playBtn">🎵 タップして音を再生</button>
+
+    <div id="status">
+        <h3>ステータス</h3>
+        <div id="message">待機中...</div>
+    </div>
+
+    <h3>📝 デバッグ情報</h3>
+    <pre id="debug"></pre>
+
+    <script>
+        // デバッグ情報表示
+        const debugInfo = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            maxTouchPoints: navigator.maxTouchPoints,
+            vendor: navigator.vendor
+        };
+        document.getElementById('debug').textContent = JSON.stringify(debugInfo, null, 2);
+
+        let audioContext = null;
+        const button = document.getElementById('playBtn');
+        const message = document.getElementById('message');
+
+        // より簡単な音声再生関数
+        function playSimpleSound() {
+            try {
+                // AudioContextを作成（まだなければ）
+                if (!audioContext) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioContextClass();
+                    message.textContent = 'AudioContext作成: ' + audioContext.state;
+                }
+
+                // サスペンド状態なら再開
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        message.textContent = 'AudioContext再開成功';
+                        createAndPlayTone();
+                    });
+                } else {
+                    createAndPlayTone();
+                }
+            } catch (error) {
+                message.textContent = 'エラー: ' + error.message;
+                console.error(error);
+            }
+        }
+
+        function createAndPlayTone() {
+            const now = audioContext.currentTime;
+
+            // オシレーター作成
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            // 設定
+            oscillator.frequency.value = 440; // A4音
+            gainNode.gain.value = 0.3;
+
+            // 接続
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // 再生
+            oscillator.start(now);
+            oscillator.stop(now + 0.5);
+
+            message.textContent = '✅ 音を再生しました (440Hz, 0.5秒)';
+
+            // 状態を更新
+            setTimeout(() => {
+                message.textContent = `AudioContext状態: ${audioContext.state}, サンプルレート: ${audioContext.sampleRate}Hz`;
+            }, 600);
+        }
+
+        // ボタンクリック時の処理
+        button.addEventListener('click', playSimpleSound);
+
+        // タッチイベントも追加（モバイル対応）
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            playSimpleSound();
+        });
+    </script>
+</body>
+</html>
