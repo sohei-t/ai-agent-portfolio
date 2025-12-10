@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS サイレントモード対応ピアノ</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .alert {
+            background: #ff6b6b;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #51cf66;
+        }
+        .info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            font-size: 18px;
+            margin: 15px 0;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        .piano-keys {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        .key {
+            width: 50px;
+            height: 150px;
+            background: white;
+            border: 2px solid #333;
+            margin: 2px;
+            cursor: pointer;
+            color: black;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            font-size: 12px;
+        }
+        .key.black {
+            background: #333;
+            height: 100px;
+            width: 35px;
+            margin-left: -20px;
+            margin-right: -20px;
+            z-index: 10;
+            position: relative;
+            color: white;
+        }
+        .key:active {
+            background: #ddd;
+        }
+        .key.black:active {
+            background: #555;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        /* 隠しaudio要素 */
+        audio {
+            position: absolute;
+            left: -9999px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎹 iOS サイレントモード対応テスト</h1>
+
+        <div class="alert">
+            <strong>⚠️ iPhoneのサイレントモードがONの場合：</strong><br>
+            本体左側面のスイッチでオレンジ色が見える場合、音が鳴りません。<br>
+            スイッチを切り替えてオレンジ色が見えない状態にしてください。
+        </div>
+
+        <div class="info">
+            <strong>🎧 イヤホンでは音が鳴る理由：</strong><br>
+            iOSの仕様で、サイレントモード時でもイヤホンには音が出力されます。
+        </div>
+
+        <button id="initBtn">🔊 音声を初期化（必須）</button>
+        <button id="testWebAudio">Web Audio APIでテスト</button>
+        <button id="testHtmlAudio">HTML Audioでテスト（サイレントモード対応）</button>
+
+        <div class="status" id="status">待機中...</div>
+
+        <div class="piano-keys">
+            <div class="key" data-note="C" data-freq="261.63">C</div>
+            <div class="key black" data-note="C#" data-freq="277.18">C#</div>
+            <div class="key" data-note="D" data-freq="293.66">D</div>
+            <div class="key black" data-note="D#" data-freq="311.13">D#</div>
+            <div class="key" data-note="E" data-freq="329.63">E</div>
+            <div class="key" data-note="F" data-freq="349.23">F</div>
+            <div class="key black" data-note="F#" data-freq="369.99">F#</div>
+            <div class="key" data-note="G" data-freq="392.00">G</div>
+        </div>
+
+        <!-- 隠しaudio要素（サイレントモード対策用） -->
+        <audio id="silentAudio" playsinline></audio>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let isInitialized = false;
+        const statusEl = document.getElementById('status');
+
+        // 音声バッファを事前に作成
+        let audioBuffers = {};
+
+        function updateStatus(msg, isSuccess = false) {
+            statusEl.textContent = msg;
+            statusEl.style.background = isSuccess ? 'rgba(81, 207, 102, 0.3)' : 'rgba(0, 0, 0, 0.3)';
+        }
+
+        // 初期化
+        document.getElementById('initBtn').addEventListener('click', async () => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+
+                // iOS対策: resume
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                // 無音を再生してアクティベート（iOS対策）
+                const buffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start();
+
+                isInitialized = true;
+                updateStatus('✅ 初期化完了', true);
+
+                // 音声バッファを事前作成
+                createAudioBuffers();
+
+                // HTML Audio要素も初期化
+                initHtmlAudio();
+
+            } catch (error) {
+                updateStatus('❌ エラー: ' + error.message);
+            }
+        });
+
+        // Web Audio API テスト
+        document.getElementById('testWebAudio').addEventListener('click', () => {
+            if (!audioContext) {
+                updateStatus('先に初期化してください');
+                return;
+            }
+            playWebAudio(440);
+            updateStatus('Web Audio API: 440Hz (サイレントモード時は鳴らない)');
+        });
+
+        function playWebAudio(frequency) {
+            if (!audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        // HTML Audio テスト（サイレントモード対応）
+        document.getElementById('testHtmlAudio').addEventListener('click', () => {
+            playHtmlAudio(440);
+            updateStatus('HTML Audio: 440Hz (サイレントモードでも試行)');
+        });
+
+        function playHtmlAudio(frequency) {
+            try {
+                // WAVデータを動的生成
+                const sampleRate = 44100;
+                const duration = 0.3;
+                const samples = sampleRate * duration;
+
+                const buffer = new ArrayBuffer(44 + samples * 2);
+                const view = new DataView(buffer);
+
+                // WAVヘッダー
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + samples * 2, true);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeString(36, 'data');
+                view.setUint32(40, samples * 2, true);
+
+                // サイン波生成
+                for (let i = 0; i < samples; i++) {
+                    const t = i / sampleRate;
+                    const value = Math.sin(2 * Math.PI * frequency * t) * 0.3;
+                    const sample = Math.max(-1, Math.min(1, value)) * 32767;
+                    view.setInt16(44 + i * 2, sample, true);
+                }
+
+                const blob = new Blob([buffer], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+
+                const audio = new Audio(url);
+                audio.volume = 0.5;
+
+                // iOS対策属性
+                audio.setAttribute('playsinline', '');
+
+                // 再生試行
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        updateStatus('HTML Audio再生エラー: ' + error.message);
+                    });
+                }
+
+            } catch (error) {
+                updateStatus('エラー: ' + error.message);
+            }
+        }
+
+        // HTML Audio初期化（サイレントモード対策）
+        function initHtmlAudio() {
+            const audio = document.getElementById('silentAudio');
+
+            // 無音WAVを作成
+            const sampleRate = 44100;
+            const buffer = new ArrayBuffer(44 + 100);
+            const view = new DataView(buffer);
+
+            // 最小限のWAVヘッダー
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + 100, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, 100, true);
+
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+
+            audio.src = url;
+            audio.volume = 0.001;
+            audio.play().catch(() => {});
+        }
+
+        // ピアノキーのイベント
+        document.querySelectorAll('.key').forEach(key => {
+            key.addEventListener('click', () => {
+                if (!isInitialized) {
+                    updateStatus('先に初期化してください');
+                    return;
+                }
+                const freq = parseFloat(key.dataset.freq);
+                const note = key.dataset.note;
+
+                // 両方の方法で再生を試みる
+                playWebAudio(freq);
+                playHtmlAudio(freq);
+
+                updateStatus(`${note} (${freq}Hz) を再生`);
+            });
+        });
+
+        // 音声バッファ作成
+        function createAudioBuffers() {
+            if (!audioContext) return;
+
+            const frequencies = [261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00];
+
+            frequencies.forEach(freq => {
+                const sampleRate = audioContext.sampleRate;
+                const duration = 0.3;
+                const samples = sampleRate * duration;
+
+                const buffer = audioContext.createBuffer(1, samples, sampleRate);
+                const data = buffer.getChannelData(0);
+
+                for (let i = 0; i < samples; i++) {
+                    const t = i / sampleRate;
+                    data[i] = Math.sin(2 * Math.PI * freq * t) * 0.3;
+                }
+
+                audioBuffers[freq] = buffer;
+            });
+        }
+
+        updateStatus('初期化ボタンを押してください');
+    </script>
+</body>
+</html>
