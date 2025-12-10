@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Piano App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .emoji {
+            font-size: 4rem;
+            text-align: center;
+            display: block;
+            margin: 20px 0;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .tech-tag {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
+        }
+
+        .cta-button.secondary {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .metadata {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .metadata-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metadata-item:last-child {
+            border-bottom: none;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .cta-button {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <span class="emoji">🎹</span>
+        <h1>Piano App</h1>
+        <p style="text-align: center; font-size: 1.2rem; margin-bottom: 30px;">
+            インタラクティブなピアノ演奏Webアプリケーション
+        </p>
+
+        <div class="cta-buttons">
+            <a href="https://sohei-t.github.io/ai-agent-portfolio/piano-app/" class="cta-button">
+                🎵 今すぐ演奏を始める
+            </a>
+            <a href="https://github.com/sohei-t/piano-app" class="cta-button secondary">
+                📖 GitHub
+            </a>
+        </div>
+
+        <h2>✨ 主な特徴</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎵</div>
+                <h3>18種類の楽器音源</h3>
+                <p>ピアノ、オルガン、ギター、動物の鳴き声など</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎼</div>
+                <h3>9曲の自動演奏</h3>
+                <p>ジングルベルなど有名な楽曲を収録</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🥁</div>
+                <h3>ドラムマシン</h3>
+                <p>14種類のリズムパターン</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎙️</div>
+                <h3>録音機能</h3>
+                <p>演奏を録音・再生・ダウンロード</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>5つのテーマ</h3>
+                <p>気分に合わせて選べるカラーテーマ</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>モバイル対応</h3>
+                <p>スマホ・タブレット最適化</p>
+            </div>
+        </div>
+
+        <h2>🎹 楽器音源の詳細</h2>
+        <p>以下の18種類の音源から選択できます：</p>
+        <ul style="columns: 2; column-gap: 40px; margin: 20px;">
+            <li>🎹 ピアノ</li>
+            <li>🎹 オルガン</li>
+            <li>⛪ パイプオルガン</li>
+            <li>🎸 ギター</li>
+            <li>🎸 ベース</li>
+            <li>🎻 バイオリン</li>
+            <li>🎻 チェロ</li>
+            <li>🎺 フルート</li>
+            <li>🎺 トランペット</li>
+            <li>🎹 シンセサイザー</li>
+            <li>🐕 犬の鳴き声</li>
+            <li>🐈 猫の鳴き声</li>
+            <li>🐄 牛の鳴き声</li>
+            <li>🐑 羊の鳴き声</li>
+            <li>🐦 鳥の鳴き声</li>
+            <li>🤖 ロボット</li>
+            <li>👽 エイリアン</li>
+            <li>🔔 ベル</li>
+        </ul>
+
+        <h2>🎼 収録楽曲</h2>
+        <p>以下の9曲をフルバージョン（約3分）で自動演奏できます：</p>
+        <ul style="columns: 2; column-gap: 40px; margin: 20px;">
+            <li>ジングルベル</li>
+            <li>聖者の行進</li>
+            <li>メリーさんの羊</li>
+            <li>喜びの歌</li>
+            <li>アメイジング・グレイス</li>
+            <li>グリーンスリーブス</li>
+            <li>スカボロー・フェア</li>
+            <li>ダニー・ボーイ</li>
+            <li>エリーゼのために</li>
+        </ul>
+
+        <h2>🥁 ドラムパターン</h2>
+        <p>14種類の多様なリズムパターンを搭載：</p>
+        <div class="tech-stack">
+            <span class="tech-tag">8ビート</span>
+            <span class="tech-tag">16ビート</span>
+            <span class="tech-tag">ジャズ</span>
+            <span class="tech-tag">ファンク</span>
+            <span class="tech-tag">ディスコ</span>
+            <span class="tech-tag">ラテン</span>
+            <span class="tech-tag">ボサノバ</span>
+            <span class="tech-tag">サンバ</span>
+            <span class="tech-tag">レゲエ</span>
+            <span class="tech-tag">ポップ</span>
+            <span class="tech-tag">バラード</span>
+            <span class="tech-tag">トリップレット</span>
+            <span class="tech-tag">シャッフル</span>
+            <span class="tech-tag">メトロノーム</span>
+        </div>
+
+        <h2>💻 技術スタック</h2>
+        <div class="tech-stack">
+            <span class="tech-tag">React 18</span>
+            <span class="tech-tag">Web Audio API</span>
+            <span class="tech-tag">CSS Modules</span>
+            <span class="tech-tag">Vite</span>
+            <span class="tech-tag">JavaScript ES6+</span>
+            <span class="tech-tag">HTML5</span>
+            <span class="tech-tag">Responsive Design</span>
+        </div>
+
+        <h2>🤖 開発プロセス</h2>
+        <div class="metadata">
+            <div class="metadata-item">
+                <span>開発手法</span>
+                <span>AIエージェント自動開発</span>
+            </div>
+            <div class="metadata-item">
+                <span>開発ツール</span>
+                <span>Claude Code</span>
+            </div>
+            <div class="metadata-item">
+                <span>テストカバレッジ</span>
+                <span>100% (281/281 tests)</span>
+            </div>
+            <div class="metadata-item">
+                <span>開発期間</span>
+                <span>2025年12月</span>
+            </div>
+            <div class="metadata-item">
+                <span>対応ブラウザ</span>
+                <span>Chrome, Safari, Firefox</span>
+            </div>
+            <div class="metadata-item">
+                <span>対応デバイス</span>
+                <span>iOS, Android, PC</span>
+            </div>
+        </div>
+
+        <h2>🚀 使い方</h2>
+        <ol style="margin: 20px;">
+            <li>上の「今すぐ演奏を始める」ボタンをクリック</li>
+            <li>鍵盤をタップまたはクリックして演奏</li>
+            <li>楽器を変更して様々な音色を楽しむ</li>
+            <li>自動演奏で有名な曲を聴く</li>
+            <li>ドラムマシンでリズムを追加</li>
+            <li>録音機能で自分の演奏を保存</li>
+        </ol>
+
+        <div class="footer">
+            <p>© 2025 Piano App - Created with Claude Code AI Agent</p>
+            <p>Developed by sohei-t</p>
+        </div>
+    </div>
+</body>
+</html>

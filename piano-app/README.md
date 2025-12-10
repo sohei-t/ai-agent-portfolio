@@ -6,8 +6,8 @@
 
 | リンク | 説明 |
 |--------|------|
-| **[🎵 アプリを開く](https://sohei-t.github.io/piano-app/)** | Piano Appを今すぐ使う（スマホ対応） |
-| **[📖 詳細情報](https://sohei-t.github.io/piano-app/about.html)** | アプリの詳細な説明と機能一覧 |
+| **[🎵 アプリを開く](https://sohei-t.github.io/ai-agent-portfolio/piano-app/)** | Piano Appを今すぐ使う（スマホ対応） |
+| **[📖 詳細情報](https://sohei-t.github.io/ai-agent-portfolio/piano-app/about.html)** | アプリの詳細な説明と機能一覧 |
 | **[💻 ソースコード](https://github.com/sohei-t/piano-app)** | GitHubリポジトリ |
 
 ## 特徴
@@ -51,8 +51,8 @@ npm run preview
 ### 🌐 公開URL
 このアプリはGitHub Pagesで公開されています：
 
-- **メインアプリ**: https://sohei-t.github.io/piano-app/
-- **About（詳細説明）**: https://sohei-t.github.io/piano-app/about.html
+- **メインアプリ**: https://sohei-t.github.io/ai-agent-portfolio/piano-app/
+- **About（詳細説明）**: https://sohei-t.github.io/ai-agent-portfolio/piano-app/about.html
 
 スマートフォンのブラウザでアクセスして、すぐにピアノ演奏を楽しめます！
 
