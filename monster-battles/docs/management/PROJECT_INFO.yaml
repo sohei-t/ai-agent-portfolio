@@ -1,0 +1,68 @@
+project_name: "Dungeon Battles - Vertical Scrolling RPG"
+project_type: "game"
+game_genre: "vertical_scrolling_rpg"
+architecture_standard: "component_based"
+development_type: "Portfolio App"
+
+description: |
+  縦スクロール型ダンジョンRPG。廃墟ダンジョンを探索し、
+  敵と1対1でリアルタイムバトルを行いながら進み、
+  最終的にボスを倒すことが目的のアクションRPG。
+
+technical_specs:
+  rendering: "HTML5 Canvas"
+  platform: "Web (PC & Mobile)"
+  controls:
+    pc:
+      - "Arrow Keys: Movement"
+      - "Space: Normal Attack"
+      - "B: Magic Attack"
+    mobile:
+      - "Virtual Joystick: Movement"
+      - "Attack Button: Normal Attack"
+      - "Magic Button: Magic Attack"
+
+game_structure:
+  stages: 5
+  stage_list:
+    - "Stage 1: enemy_1.png (HP:30)"
+    - "Stage 2: enemy_2.png (HP:50)"
+    - "Stage 3: enemy_3.png (HP:70)"
+    - "Stage 4: enemy_4.png (HP:90)"
+    - "Boss: boss_1.png (HP:300)"
+
+player_stats:
+  hp: 100
+  mp: 50
+  attack: 10
+  magic_attack: 20
+  magic_cost: 10
+
+assets:
+  player: "player_ship.png"
+  enemies:
+    - "enemy_1.png"
+    - "enemy_2.png"
+    - "enemy_3.png"
+    - "enemy_4.png"
+  boss: "boss_1.png"
+
+features:
+  - "Real-time battle system"
+  - "Item system (HP/MP recovery)"
+  - "Drop system (weapon/magic upgrade)"
+  - "Effect system (attack/death effects)"
+  - "Score system with bonuses"
+  - "Continue system (3 times)"
+  - "Responsive design"
+
+priority_implementation_order:
+  1: "Basic movement and attack system"
+  2: "Enemy AI and combat"
+  3: "Stage progression system"
+  4: "Item system"
+  5: "Boss battle and summon feature"
+  6: "Effects and visual enhancements"
+  7: "Score and continue system"
+
+created_at: "2025-12-11"
