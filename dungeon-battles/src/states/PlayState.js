@@ -823,16 +823,17 @@ export class PlayState {
         ctx.fillRect(barX, barY, 15, 5);
       }
 
-      // Show options count and status
+      // Show options count and status (moved down to avoid shield bar overlap)
       if (this.player.options.length > 0) {
         ctx.fillStyle = '#FFD700';
         ctx.font = '14px Arial';
-        ctx.fillText(`Options: ${this.player.options.length}`, 20, 90);
+        const optionY = this.player.hasShield && this.player.shieldHP > 0 ? 115 : 90; // Move down if shield is active
+        ctx.fillText(`Options: ${this.player.options.length}`, 20, optionY);
 
         // Show option levels
         this.player.options.forEach((option, index) => {
           const optX = 100 + index * 25;
-          const optY = 90;
+          const optY = optionY;
           ctx.fillStyle = '#FFD700';
           ctx.font = '12px Arial';
           ctx.fillText(`L${option.weaponLevel}`, optX, optY);
@@ -1078,6 +1079,7 @@ export class PlayState {
     // Reset to stage 1 but keep player stats and score
     this.stage = 1;
     this.enemiesDefeated = 0;
+    this.enemiesPerStage = 10 + (this.loopCount * 2); // Reset enemy count for new loop (10→12→14...)
     this.isStageClearing = false;
     this.stageClearTimer = 0;
     this.isBossStage = false;
