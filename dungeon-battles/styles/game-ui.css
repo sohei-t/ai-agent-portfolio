@@ -69,7 +69,27 @@ body {
   image-rendering: pixelated;
 }
 
-/* Responsive canvas */
+/* Desktop - Large screen display */
+@media (min-width: 1440px) {
+  #game-canvas {
+    width: 1200px !important;
+    height: 800px !important;
+    border: 3px solid var(--color-primary);
+    box-shadow: 0 0 50px rgba(255, 170, 0, 0.5);
+  }
+}
+
+/* Desktop - Medium screen display */
+@media (min-width: 769px) and (max-width: 1439px) {
+  #game-canvas {
+    width: 90vw !important;
+    height: calc(90vw * 0.67) !important; /* Maintain 3:2 aspect ratio */
+    max-width: 1200px;
+    max-height: 800px;
+  }
+}
+
+/* Mobile - Responsive canvas */
 @media (max-width: 768px) {
   #game-canvas {
     width: 100vw !important;

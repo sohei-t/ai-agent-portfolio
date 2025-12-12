@@ -6,30 +6,30 @@
 export const GameConfig = {
   // Canvas settings
   canvas: {
-    width: 800,
-    height: 600,
+    width: 1200,  // Increased from 800
+    height: 800,  // Increased from 600
     backgroundColor: '#1a1a2e'
   },
 
-  // Mobile controls
+  // Mobile controls (positions adjusted for larger canvas)
   mobileControls: {
     enabled: true,
     virtualJoystick: {
-      position: { x: 100, y: 500 },
-      radius: 50,
+      position: { x: 150, y: 650 },  // Adjusted for larger screen
+      radius: 60,  // Slightly larger for better visibility
       opacity: 0.6
     },
     attackButton: {
       enabled: true,
-      position: { x: 700, y: 500 },
-      size: 60,
+      position: { x: 1050, y: 650 },  // Adjusted for larger screen
+      size: 70,  // Slightly larger
       label: 'ATK',
       opacity: 0.6
     },
     magicButton: {
       enabled: true,
-      position: { x: 650, y: 420 },
-      size: 60,
+      position: { x: 970, y: 560 },  // Adjusted for larger screen
+      size: 70,  // Slightly larger
       label: 'MAG',
       opacity: 0.6
     }
@@ -47,11 +47,11 @@ export const GameConfig = {
     quadTreeMaxLevels: 5
   },
 
-  // Player
+  // Player (size increased for larger screen)
   player: {
-    width: 48,
-    height: 48,
-    speed: 200,
+    width: 56,  // Increased from 48
+    height: 56,  // Increased from 48
+    speed: 250,  // Increased for larger play area
     maxHp: 100,
     maxMp: 100,
     attackPower: 10,

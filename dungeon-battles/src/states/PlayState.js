@@ -395,7 +395,7 @@ export class PlayState {
 
       if (currentCount < this.minMinionCount) {
         // Spawn 1 new minion when count drops below minimum
-        const x = Math.random() * 700 + 50;
+        const x = Math.random() * 1000 + 100;  // Adjusted for 1200px width
         const y = -30; // Spawn from top
         const enemy = new Enemy(x, y, type, this.difficulty);
 
@@ -429,9 +429,9 @@ export class PlayState {
     const bossesToSpawn = this.loopCount > 0 ? 2 : 1; // 2 bosses after first loop
 
     for (let i = 0; i < bossesToSpawn; i++) {
-      // Boss starts at top-right (700, 100)
-      const x = i === 0 ? 700 : 500; // First at top-right, second more centered if multiple
-      const boss = new Enemy(x, 100, 'dragon', this.difficulty);
+      // Boss starts at top-right (adjusted for 1200px width)
+      const x = i === 0 ? 1000 : 700; // First at top-right, second more centered if multiple
+      const boss = new Enemy(x, 150, 'dragon', this.difficulty);
       this.enemies.push(boss);
     }
 
@@ -477,7 +477,7 @@ export class PlayState {
     const enemyPool = stageEnemies[Math.min(this.stage - 1, stageEnemies.length - 1)];
     type = enemyPool[Math.floor(Math.random() * enemyPool.length)];
 
-    const x = Math.random() * 700 + 50; // Random x position
+    const x = Math.random() * 1000 + 100; // Random x position (adjusted for 1200px width)
     const enemy = new Enemy(x, -30, type, this.difficulty); // Start above screen
 
     // Scale enemy stats based on stage, loop, and difficulty

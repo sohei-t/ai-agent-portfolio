@@ -149,10 +149,10 @@ export class Enemy {
         // Boss starts at top-right and waits (less time each encounter)
         this.initialWaitTimer = Math.max(5.0 - (bossCount * 0.5), 2.0);
         this.hasStartedMoving = false;
-        // Set initial position to top-right
+        // Set initial position to top-right (adjusted for 1200px width)
         if (this.x === 0 && this.y === 0) {
-          this.x = 700;
-          this.y = 100;
+          this.x = 1000;
+          this.y = 150;
         }
 
         // Increment boss count for next encounter
@@ -203,19 +203,19 @@ export class Enemy {
         }
       }
 
-      // Boss movement pattern - reduced movement range (1/2 of original)
+      // Boss movement pattern - adjusted for 1200x800 screen
       this.moveAngle += deltaTime * 2;
-      const centerX = 400;
-      const centerY = 200;
-      const radiusX = 100;  // Reduced from 200 to 100 (half)
-      const radiusY = 50;   // Reduced from 100 to 50 (half)
+      const centerX = 600;  // Center of 1200px width
+      const centerY = 250;  // Upper area of 800px height
+      const radiusX = 150;  // Adjusted for larger screen
+      const radiusY = 75;   // Adjusted for larger screen
 
       this.x = centerX + Math.cos(this.moveAngle) * radiusX;
       this.y = centerY + Math.sin(this.moveAngle * 0.7) * radiusY;
 
-      // Keep boss on screen
-      this.x = Math.max(this.width/2, Math.min(800 - this.width/2, this.x));
-      this.y = Math.max(this.height/2, Math.min(300, this.y));
+      // Keep boss on screen (adjusted for 1200x800)
+      this.x = Math.max(this.width/2, Math.min(1200 - this.width/2, this.x));
+      this.y = Math.max(this.height/2, Math.min(400, this.y));
     } else {
       // Normal enemy movement
       this.y += this.vy * deltaTime;
