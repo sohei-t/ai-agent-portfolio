@@ -1,5 +1,7 @@
 # Dungeon Battles - 縦スクロール・ダンジョンRPG
 
+🎮 **[ライブデモはこちら](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/)**
+
 AI生成による本格的な縦スクロール型アクションRPG。廃墟ダンジョンを探索し、敵と1対1でリアルタイムバトルを行いながら進み、最終的にボスを倒すことが目的です。
 
 ## 🎮 ゲーム概要
