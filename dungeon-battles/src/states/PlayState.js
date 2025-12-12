@@ -184,8 +184,20 @@ export class PlayState {
       if (this.isBossStage) {
         const bosses = this.enemies.filter(e => e.isBoss);
         if (bosses.length === 0 && this.bossesDefeated >= this.bossCount && this.bossVictoryTimer === 0) {
-          // Boss defeated! Victory animation will trigger new loop
+          // Boss defeated! Start victory animation
           console.log(`[PlayState] Boss defeated! Victory sequence starting...`);
+          this.bossVictoryTimer = 5.0; // 5 seconds victory animation
+
+          // Create explosion effects for boss defeat
+          this.bossExplosionEffects = [];
+          for (let i = 0; i < 10; i++) {
+            this.bossExplosionEffects.push({
+              x: 400 + (Math.random() - 0.5) * 300,
+              y: 200 + (Math.random() - 0.5) * 200,
+              radius: 0,
+              timer: i * 0.2 // Staggered explosions
+            });
+          }
           return;
         }
       }

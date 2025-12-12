@@ -127,7 +127,7 @@ export class Enemy {
         const bossCount = this.getBossEncounterCount();
         const difficultyMultiplier = 1 + (bossCount * 0.15); // 15% harder each time
 
-        this.hp = Math.min(500 * difficultyMultiplier, 1000); // Max 1000 HP
+        this.hp = Math.min(1000 * difficultyMultiplier, 2000); // Max 2000 HP (doubled from 500 to 1000 base)
         this.maxHP = this.hp;
         this.damage = Math.min(50 * difficultyMultiplier, 100); // Max 100 damage
         this.score = 1000 * difficultyMultiplier;
