@@ -53,7 +53,8 @@ export class PlayState {
 
     // Item spawn tracking
     this.stageItemsSpawned = {
-      mp: false  // MP is still limited to once per stage
+      mp: false,  // MP is still limited to once per stage
+      shield: false  // Shield also limited to once per stage
     };
     this.hpItemTimer = 0;
     this.hpItemInterval = 60.0; // HP recovery every 1 minute (60 seconds) - increased frequency
@@ -146,6 +147,26 @@ export class PlayState {
   update(deltaTime) {
     if (!this.initialized) {
       this.init();
+    }
+
+    // Handle boss intro animation (pause game during intro)
+    if (this.bossIntroTimer > 0) {
+      this.bossIntroTimer -= deltaTime;
+      if (this.bossIntroTimer <= 0) {
+        this.bossIntroTimer = 0;
+        this.bossIntroPhase = null;
+        // Start boss stage after intro with 1 second delay
+        if (this.stage === this.maxStages && !this.isBossStage) {
+          // Use a small delay before actually starting boss battle
+          setTimeout(() => {
+            this.isBossStage = true;
+            console.log('[PlayState] Boss stage starting after intro + 1 second delay!');
+            // Spawn boss only after intro is completely done
+            this.spawnBoss();
+          }, 1000);
+        }
+      }
+      return; // Don't update game logic during boss intro
     }
 
     // Handle stage clearing
@@ -258,7 +279,9 @@ export class PlayState {
           mp: this.player.mp,
           maxMP: this.player.maxMP,
           attackPower: this.player.attackPower,
-          magicPower: this.player.magicPower
+          magicPower: this.player.magicPower,
+          hasShield: this.player.hasShield,
+          shieldHP: this.player.shieldHP
         };
         this.gameCore.gameState.currentStage = this.stage;
       }
@@ -376,45 +399,58 @@ export class PlayState {
   }
 
   /**
+   * Spawn boss and initial minions for boss stage
+   */
+  spawnBoss() {
+    if (this.stage !== 5 || this.bossesDefeated > 0) {
+      console.log('[PlayState] Cannot spawn boss - not in boss stage or boss already spawned');
+      return;
+    }
+
+    console.log('[PlayState] Spawning boss and minions!');
+    this.bossesDefeated = 0;
+
+    // Clear any remaining enemies
+    this.enemies = [];
+
+    // Spawn bosses based on loop count
+    const bossesToSpawn = this.loopCount > 0 ? 2 : 1; // 2 bosses after first loop
+
+    for (let i = 0; i < bossesToSpawn; i++) {
+      // Boss starts at top-right (700, 100)
+      const x = i === 0 ? 700 : 500; // First at top-right, second more centered if multiple
+      const boss = new Enemy(x, 100, 'dragon', this.difficulty);
+      this.enemies.push(boss);
+    }
+
+    this.bossCount = bossesToSpawn;
+    console.log(`[PlayState] Boss stage started with ${bossesToSpawn} boss(es)!`);
+
+    // Spawn initial minions (1 of each type)
+    const types = ['slime', 'goblin', 'skeleton', 'demon'];
+    types.forEach(type => {
+      const x = Math.random() * 700 + 50;
+      const y = Math.random() * 200 + 50;
+      const enemy = new Enemy(x, y, type, this.difficulty);
+
+      // Make minions stronger in boss stage
+      enemy.hp *= 1.5;
+      enemy.maxHP *= 1.5;
+      enemy.damage = Math.floor(enemy.damage * 1.3);
+
+      this.enemies.push(enemy);
+    });
+  }
+
+  /**
    * Spawn enemy
    */
   spawnEnemy() {
     let type;
 
-    // Stage 5 is boss stage - special spawning
-    if (this.stage === 5 && !this.isBossStage) {
-      // Initial boss stage setup
-      this.isBossStage = true;
-      this.bossesDefeated = 0;
-
-      // Spawn bosses based on loop count
-      const bossesToSpawn = this.loopCount > 0 ? 2 : 1; // 2 bosses after first loop
-
-      for (let i = 0; i < bossesToSpawn; i++) {
-        // Boss starts at top-right (700, 100)
-        const x = i === 0 ? 700 : 500; // First at top-right, second more centered if multiple
-        const boss = new Enemy(x, 100, 'dragon', this.difficulty);
-        this.enemies.push(boss);
-      }
-
-      this.bossCount = bossesToSpawn;
-      console.log(`[PlayState] Boss stage started with ${bossesToSpawn} boss(es)!`);
-
-      // Spawn initial minions (1 of each type)
-      const types = ['slime', 'goblin', 'skeleton', 'demon'];
-      types.forEach(type => {
-        const x = Math.random() * 700 + 50;
-        const y = Math.random() * 200 + 50;
-        const enemy = new Enemy(x, y, type, this.difficulty);
-
-        // Make minions stronger in boss stage
-        enemy.hp *= 1.5;
-        enemy.maxHP *= 1.5;
-        enemy.damage = Math.floor(enemy.damage * 1.3);
-
-        this.enemies.push(enemy);
-      });
-
+    // Stage 5 is boss stage - don't spawn normal enemies during boss intro
+    if (this.stage === 5) {
+      // Boss spawning is now handled separately via spawnBoss() after intro
       return;
     }
 
@@ -468,14 +504,15 @@ export class PlayState {
 
     // Special boss stage intro
     if (this.stage === this.maxStages) {
-      this.bossIntroTimer = 4.0; // 4 seconds of boss intro
-      this.bossIntroPhase = 'warning';
+      this.bossIntroTimer = 3.0; // 3 seconds of boss intro
+      this.bossIntroPhase = 'title';
       console.log('[PlayState] Starting Boss Stage Intro!');
     }
 
     // Reset item spawn flags for new stage
     this.stageItemsSpawned = {
-      mp: false  // Only MP is limited per stage
+      mp: false,  // MP is limited per stage
+      shield: false  // Shield also limited to once per stage
     };
 
     // Restore some player HP and MP between stages
@@ -558,14 +595,11 @@ export class PlayState {
       this.weaponItemInterval = 15 + Math.random() * 10; // 15-25 seconds - increased frequency
     }
 
-    // Spawn shield items regularly (especially useful for boss fights)
-    this.shieldItemTimer += deltaTime;
-    if (this.shieldItemTimer >= this.shieldItemInterval) {
+    // Spawn shield item once per stage (after 5 enemies defeated, similar timing to MP)
+    if (!this.stageItemsSpawned.shield && this.enemiesDefeated >= 5) {
       this.spawnItem('shield', Math.random() * 600 + 100, Math.random() * 400 + 100);
-      this.shieldItemTimer = 0;
-      console.log('[PlayState] Shield item spawned');
-      // Randomize next spawn interval (more frequent)
-      this.shieldItemInterval = 20 + Math.random() * 10; // 20-30 seconds
+      this.stageItemsSpawned.shield = true;
+      console.log('[PlayState] Shield item spawned (once per stage)');
     }
   }
 
@@ -821,15 +855,21 @@ export class PlayState {
     if (this.bossIntroTimer > 0) {
       ctx.save();
 
-      // Dark overlay
-      ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * (this.bossIntroTimer / 4.0)})`;
+      // Full screen dark overlay
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-      if (this.bossIntroPhase === 'warning') {
-        // Warning phase - red flashing
-        const flash = Math.sin(Date.now() * 0.01) * 0.5 + 0.5;
-        ctx.fillStyle = `rgba(255, 0, 0, ${flash * 0.5})`;
+      if (this.bossIntroPhase === 'title') {
+        // Red flashing background
+        const flash = Math.sin(Date.now() * 0.01) * 0.3 + 0.2;
+        ctx.fillStyle = `rgba(255, 0, 0, ${flash})`;
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        // Animated scale
+        const scale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+        ctx.save();
+        ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.scale(scale, scale);
 
         // Warning text
         ctx.fillStyle = '#FF0000';
@@ -837,38 +877,31 @@ export class PlayState {
         ctx.textAlign = 'center';
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
-        ctx.strokeText('⚠ WARNING ⚠', ctx.canvas.width / 2, ctx.canvas.height / 2);
-        ctx.fillText('⚠ WARNING ⚠', ctx.canvas.width / 2, ctx.canvas.height / 2);
-
-        ctx.font = 'bold 36px Arial';
-        ctx.fillStyle = '#FFFF00';
-        ctx.fillText('BOSS APPROACHING!', ctx.canvas.width / 2, ctx.canvas.height / 2 + 60);
-      } else if (this.bossIntroPhase === 'entrance') {
-        // Boss entrance phase
-        const scale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
-        ctx.save();
-        ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
-        ctx.scale(scale, scale);
+        ctx.strokeText('⚠ WARNING ⚠', 0, -60);
+        ctx.fillText('⚠ WARNING ⚠', 0, -60);
 
         // Boss title
-        ctx.fillStyle = '#FF0000';
-        ctx.font = 'bold 96px Arial';
-        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 84px Arial';
         ctx.shadowColor = '#FF0000';
         ctx.shadowBlur = 20;
-        ctx.fillText('BOSS BATTLE', 0, 0);
+        ctx.strokeText('BOSS BATTLE', 0, 20);
+        ctx.fillText('BOSS BATTLE', 0, 20);
 
         // Subtitle
         ctx.font = 'bold 48px Arial';
         ctx.fillStyle = '#FFD700';
-        ctx.fillText('DRAGON LORD', 0, 60);
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 15;
+        ctx.fillText('DRAGON LORD', 0, 80);
 
         ctx.restore();
 
-        // Lightning effects
+        // Lightning effect occasionally
         if (Math.random() < 0.1) {
           ctx.strokeStyle = '#00FFFF';
           ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.7;
           ctx.beginPath();
           const startX = Math.random() * ctx.canvas.width;
           ctx.moveTo(startX, 0);

@@ -23,6 +23,8 @@ export class HUD {
       hpCritical: '#ff0000',
       mp: '#00aaff',
       mpLow: '#ffaa00',
+      shield: '#00ffff',
+      shieldLow: '#88ddff',
       text: '#ffffff',
       textShadow: '#000000',
       barBg: '#333333',
@@ -76,9 +78,10 @@ export class HUD {
   render(ctx, gameState) {
     ctx.save();
 
-    // Top-left: HP and MP bars
+    // Top-left: HP, MP, and Shield bars
     this.renderHealthBar(ctx, gameState.player);
     this.renderManaBar(ctx, gameState.player);
+    this.renderShieldBar(ctx, gameState.player);
 
     // Top-right: Score
     this.renderScore(ctx, gameState.score);
@@ -175,6 +178,49 @@ export class HUD {
     // MP text
     const mpText = `${Math.ceil(player.mp)} / ${player.maxMP}`;
     this.renderText(ctx, mpText, x + this.barWidth / 2, y + this.barHeight / 2 + 5, this.fontBold, this.colors.text, 'center');
+  }
+
+  /**
+   * Render shield bar
+   */
+  renderShieldBar(ctx, player) {
+    // Only render if player has shield
+    if (!player.hasShield || player.shieldHP <= 0) {
+      return;
+    }
+
+    const x = 20;
+    const y = 80;
+    const maxShieldHP = 30; // Shield max HP is 30 (3 normal hits)
+    const shieldPercent = Math.max(0, player.shieldHP / maxShieldHP);
+
+    // Label with shield emoji
+    this.renderText(ctx, '🛡 SHIELD', x, y - 5, this.fontBold, this.colors.text);
+
+    // Bar background
+    ctx.fillStyle = this.colors.barBg;
+    ctx.fillRect(x, y, this.barWidth, this.barHeight);
+
+    // Shield bar (cyan color)
+    let barColor = this.colors.shield;
+    if (shieldPercent < 0.3) {
+      barColor = this.colors.shieldLow;
+    }
+
+    ctx.fillStyle = barColor;
+    ctx.fillRect(x, y, this.barWidth * shieldPercent, this.barHeight);
+
+    // Border with glow effect
+    ctx.strokeStyle = this.colors.shield;
+    ctx.lineWidth = this.barBorderWidth;
+    ctx.shadowColor = this.colors.shield;
+    ctx.shadowBlur = 5;
+    ctx.strokeRect(x, y, this.barWidth, this.barHeight);
+    ctx.shadowBlur = 0;
+
+    // Shield HP text
+    const shieldText = `${Math.ceil(player.shieldHP)} / ${maxShieldHP}`;
+    this.renderText(ctx, shieldText, x + this.barWidth / 2, y + this.barHeight / 2 + 5, this.fontBold, this.colors.text, 'center');
   }
 
   /**
