@@ -34,8 +34,8 @@ export class Bullet {
     this.x += this.vx * deltaTime;
     this.y += this.vy * deltaTime;
 
-    // Remove if off screen
-    if (this.y < -50 || this.y > 650 || this.x < -50 || this.x > 850) {
+    // Remove if off screen (adjusted for 1200x800)
+    if (this.y < -50 || this.y > 850 || this.x < -50 || this.x > 1250) {
       this.alive = false;
     }
   }

@@ -577,7 +577,7 @@ export class PlayState {
     // Spawn HP recovery item every 1 minute (unlimited)
     this.hpItemTimer += deltaTime;
     if (this.hpItemTimer >= this.hpItemInterval) {
-      this.spawnItem('hp_recovery', Math.random() * 600 + 100, Math.random() * 200 + 200);
+      this.spawnItem('hp_recovery', Math.random() * 1000 + 100, Math.random() * 400 + 200);
       this.hpItemTimer = 0;
       console.log('[PlayState] HP recovery item spawned (1-minute interval)');
     }
@@ -591,7 +591,7 @@ export class PlayState {
     // Spawn speed-up items randomly
     this.speedItemTimer += deltaTime;
     if (this.speedItemTimer >= this.speedItemInterval) {
-      this.spawnItem('speed_up', Math.random() * 600 + 100, Math.random() * 400 + 100);
+      this.spawnItem('speed_up', Math.random() * 1000 + 100, Math.random() * 600 + 100);
       this.speedItemTimer = 0;
       // Randomize next spawn interval
       this.speedItemInterval = 10 + Math.random() * 10; // 10-20 seconds
@@ -600,7 +600,7 @@ export class PlayState {
     // Spawn weapon upgrade items regularly
     this.weaponItemTimer += deltaTime;
     if (this.weaponItemTimer >= this.weaponItemInterval) {
-      this.spawnItem('weapon_upgrade', Math.random() * 600 + 100, Math.random() * 400 + 100);
+      this.spawnItem('weapon_upgrade', Math.random() * 1000 + 100, Math.random() * 600 + 100);
       this.weaponItemTimer = 0;
       console.log('[PlayState] Weapon upgrade item spawned');
       // Randomize next spawn interval
@@ -609,7 +609,7 @@ export class PlayState {
 
     // Spawn shield item once per stage (after 5 enemies defeated, similar timing to MP)
     if (!this.stageItemsSpawned.shield && this.enemiesDefeated >= 5) {
-      this.spawnItem('shield', Math.random() * 600 + 100, Math.random() * 400 + 100);
+      this.spawnItem('shield', Math.random() * 1000 + 100, Math.random() * 600 + 100);
       this.stageItemsSpawned.shield = true;
       console.log('[PlayState] Shield item spawned (once per stage)');
     }

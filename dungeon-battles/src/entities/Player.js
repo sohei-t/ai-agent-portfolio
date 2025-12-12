@@ -149,9 +149,9 @@ export class Player {
       }
     }
 
-    // Keep player on screen
-    this.x = Math.max(this.width/2, Math.min(800 - this.width/2, this.x));
-    this.y = Math.max(this.height/2, Math.min(600 - this.height/2, this.y));
+    // Keep player on screen (adjusted for 1200x800)
+    this.x = Math.max(this.width/2, Math.min(1200 - this.width/2, this.x));
+    this.y = Math.max(this.height/2, Math.min(800 - this.height/2, this.y));
 
     return bullets;
   }

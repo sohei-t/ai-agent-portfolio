@@ -251,8 +251,8 @@ export class Enemy {
       }
     }
 
-    // Remove normal enemies if off screen (boss never leaves)
-    if (!this.isBoss && this.y > 650) {
+    // Remove normal enemies if off screen (boss never leaves) - adjusted for 800px height
+    if (!this.isBoss && this.y > 850) {
       this.alive = false;
     }
 
