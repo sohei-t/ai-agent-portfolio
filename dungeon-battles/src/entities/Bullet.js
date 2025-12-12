@@ -45,26 +45,74 @@ export class Bullet {
 
     ctx.save();
 
-    // Draw bullet as a glowing rectangle
-    ctx.fillStyle = this.color;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 10;
+    // Special rendering for laser beams
+    if (this.isBeam) {
+      // Create gradient for beam effect
+      const gradient = ctx.createLinearGradient(
+        this.x - this.width/2, this.y,
+        this.x + this.width/2, this.y
+      );
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      gradient.addColorStop(0.2, this.color);
+      gradient.addColorStop(0.5, '#FFFFFF');
+      gradient.addColorStop(0.8, this.color);
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
 
-    ctx.fillRect(
-      this.x - this.width/2,
-      this.y - this.height/2,
-      this.width,
-      this.height
-    );
+      // Glow effect
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 20;
 
-    // Draw core (brighter center)
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(
-      this.x - this.width/4,
-      this.y - this.height/4,
-      this.width/2,
-      this.height/2
-    );
+      // Draw beam
+      ctx.fillStyle = gradient;
+      ctx.fillRect(
+        this.x - this.width/2,
+        this.y - this.height/2,
+        this.width,
+        this.height
+      );
+
+      // Draw bright core line
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(this.x - this.width/2, this.y);
+      ctx.lineTo(this.x + this.width/2, this.y);
+      ctx.stroke();
+
+      // Add energy particles
+      const particleCount = 3;
+      for (let i = 0; i < particleCount; i++) {
+        const particleX = this.x - this.width/2 + (this.width * i / particleCount) + Math.random() * 10;
+        const particleY = this.y + (Math.random() - 0.5) * this.height;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.globalAlpha = Math.random();
+        ctx.beginPath();
+        ctx.arc(particleX, particleY, 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // Normal bullet rendering
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 10;
+
+      ctx.fillRect(
+        this.x - this.width/2,
+        this.y - this.height/2,
+        this.width,
+        this.height
+      );
+
+      // Draw core (brighter center)
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(
+        this.x - this.width/4,
+        this.y - this.height/4,
+        this.width/2,
+        this.height/2
+      );
+    }
 
     ctx.restore();
   }

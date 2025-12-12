@@ -41,6 +41,16 @@ export class PlayState {
     };
     this.minMinionCount = 1; // Respawn when below this count (keep 1 of each type)
 
+    // Boss stage special effects
+    this.bossIntroTimer = 0;
+    this.bossIntroPhase = null; // 'warning', 'entrance', null
+    this.bossVictoryTimer = 0;
+    this.bossExplosionEffects = [];
+
+    // New loop animation
+    this.newLoopTimer = 0;
+    this.newLoopMessage = '';
+
     // Item spawn tracking
     this.stageItemsSpawned = {
       mp: false  // MP is still limited to once per stage
@@ -152,11 +162,9 @@ export class PlayState {
       // Boss stage clear conditions
       if (this.isBossStage) {
         const bosses = this.enemies.filter(e => e.isBoss);
-        if (bosses.length === 0 && this.bossesDefeated >= this.bossCount) {
-          // Boss defeated! Start new loop
-          this.loopCount++;
-          console.log(`[PlayState] Boss defeated! Starting loop ${this.loopCount + 1}`);
-          this.startNewLoop();
+        if (bosses.length === 0 && this.bossesDefeated >= this.bossCount && this.bossVictoryTimer === 0) {
+          // Boss defeated! Victory animation will trigger new loop
+          console.log(`[PlayState] Boss defeated! Victory sequence starting...`);
           return;
         }
       }
@@ -457,6 +465,13 @@ export class PlayState {
     this.enemiesDefeated = 0;
     this.isStageClearing = false;
     this.stageClearTimer = 0;
+
+    // Special boss stage intro
+    if (this.stage === this.maxStages) {
+      this.bossIntroTimer = 4.0; // 4 seconds of boss intro
+      this.bossIntroPhase = 'warning';
+      console.log('[PlayState] Starting Boss Stage Intro!');
+    }
 
     // Reset item spawn flags for new stage
     this.stageItemsSpawned = {
@@ -802,6 +817,186 @@ export class PlayState {
       ctx.fillText(`Proceeding to Stage ${this.stage + 1}...`, ctx.canvas.width / 2, ctx.canvas.height / 2 + 50);
     }
 
+    // Boss intro animation
+    if (this.bossIntroTimer > 0) {
+      ctx.save();
+
+      // Dark overlay
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * (this.bossIntroTimer / 4.0)})`;
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      if (this.bossIntroPhase === 'warning') {
+        // Warning phase - red flashing
+        const flash = Math.sin(Date.now() * 0.01) * 0.5 + 0.5;
+        ctx.fillStyle = `rgba(255, 0, 0, ${flash * 0.5})`;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        // Warning text
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 72px Arial';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText('⚠ WARNING ⚠', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.fillText('⚠ WARNING ⚠', ctx.canvas.width / 2, ctx.canvas.height / 2);
+
+        ctx.font = 'bold 36px Arial';
+        ctx.fillStyle = '#FFFF00';
+        ctx.fillText('BOSS APPROACHING!', ctx.canvas.width / 2, ctx.canvas.height / 2 + 60);
+      } else if (this.bossIntroPhase === 'entrance') {
+        // Boss entrance phase
+        const scale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+        ctx.save();
+        ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.scale(scale, scale);
+
+        // Boss title
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 96px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#FF0000';
+        ctx.shadowBlur = 20;
+        ctx.fillText('BOSS BATTLE', 0, 0);
+
+        // Subtitle
+        ctx.font = 'bold 48px Arial';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText('DRAGON LORD', 0, 60);
+
+        ctx.restore();
+
+        // Lightning effects
+        if (Math.random() < 0.1) {
+          ctx.strokeStyle = '#00FFFF';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          const startX = Math.random() * ctx.canvas.width;
+          ctx.moveTo(startX, 0);
+          for (let i = 0; i < 5; i++) {
+            const nextX = startX + (Math.random() - 0.5) * 100;
+            const nextY = (i + 1) * (ctx.canvas.height / 5);
+            ctx.lineTo(nextX, nextY);
+          }
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // Boss victory animation
+    if (this.bossVictoryTimer > 0) {
+      ctx.save();
+
+      // Dark overlay
+      ctx.fillStyle = `rgba(0, 0, 20, ${0.8})`;
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      // Explosion effects
+      this.bossExplosionEffects.forEach((effect, index) => {
+        if (effect.timer <= 0) {
+          effect.radius += 300 * (1/60); // Expand rapidly
+
+          // Draw explosion
+          const gradient = ctx.createRadialGradient(
+            effect.x, effect.y, 0,
+            effect.x, effect.y, effect.radius
+          );
+          gradient.addColorStop(0, 'rgba(255, 255, 0, 0.8)');
+          gradient.addColorStop(0.4, 'rgba(255, 128, 0, 0.5)');
+          gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        effect.timer -= 1/60;
+      });
+
+      // Victory text (after explosions start)
+      if (this.bossVictoryTimer < 4) {
+        const scale = 1 + Math.sin(Date.now() * 0.01) * 0.2;
+        ctx.save();
+        ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.scale(scale, scale);
+
+        // Victory text with rainbow effect
+        const hue = (Date.now() * 0.1) % 360;
+        ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+        ctx.font = 'bold 84px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = `hsl(${hue}, 100%, 50%)`;
+        ctx.shadowBlur = 30;
+        ctx.fillText('VICTORY!', 0, 0);
+
+        ctx.font = 'bold 36px Arial';
+        ctx.fillStyle = '#FFD700';
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 20;
+        ctx.fillText('DRAGON DEFEATED!', 0, 60);
+
+        // Score bonus
+        ctx.font = '28px Arial';
+        ctx.fillStyle = '#00FF00';
+        ctx.fillText(`+${this.gameCore.scoreManager.getScore()} POINTS`, 0, 100);
+
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      // Update victory timer
+      this.bossVictoryTimer -= 1/60;
+      if (this.bossVictoryTimer <= 0) {
+        // Continue to next loop instead of game over
+        this.startNewLoop();
+      }
+    }
+
+    // New loop message animation
+    if (this.newLoopTimer > 0) {
+      ctx.save();
+
+      // Dark overlay
+      ctx.fillStyle = `rgba(0, 0, 50, ${0.7 * (this.newLoopTimer / 3.0)})`;
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      // Animated text
+      const scale = 1 + Math.sin(Date.now() * 0.01) * 0.1;
+      ctx.save();
+      ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+      ctx.scale(scale, scale);
+
+      // Loop number with golden glow
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 72px Arial';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 30;
+      ctx.fillText(this.newLoopMessage, 0, 0);
+
+      // Subtitle
+      ctx.font = 'bold 32px Arial';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowColor = '#FFFFFF';
+      ctx.shadowBlur = 10;
+      ctx.fillText('NEW CHALLENGE AWAITS', 0, 60);
+
+      // Difficulty increase warning
+      ctx.font = '24px Arial';
+      ctx.fillStyle = '#FF6B6B';
+      const difficultyIncrease = Math.floor(this.loopCount * 25);
+      ctx.fillText(`Difficulty +${difficultyIncrease}%`, 0, 100);
+
+      ctx.restore();
+
+      // Update timer
+      this.newLoopTimer -= 1/60;
+
+      ctx.restore();
+    }
+
     // Draw magic effect
     if (this.magicEffect && this.magicEffect.active) {
       ctx.save();
@@ -827,6 +1022,59 @@ export class PlayState {
   }
 
   /**
+   * Start a new loop after boss defeat
+   */
+  startNewLoop() {
+    console.log('[PlayState] Starting new loop! Loop count:', this.loopCount + 1);
+
+    // Increment loop counter for difficulty scaling
+    this.loopCount++;
+
+    // Reset to stage 1 but keep player stats and score
+    this.stage = 1;
+    this.enemiesDefeated = 0;
+    this.isStageClearing = false;
+    this.stageClearTimer = 0;
+    this.isBossStage = false;
+    this.bossesDefeated = 0;
+    this.bossVictoryTimer = 0;
+    this.bossExplosionEffects = [];
+    this.bossIntroTimer = 0;
+    this.bossIntroPhase = null;
+
+    // Clear current enemies and bullets
+    this.enemies = [];
+    this.bullets = [];
+    this.items = [];
+
+    // Reset minion counts
+    this.minionCounts = {
+      slime: 0,
+      goblin: 0,
+      skeleton: 0,
+      demon: 0
+    };
+
+    // Reset item spawn timers
+    this.stageItemsSpawned = {
+      mp: false
+    };
+    this.shieldItemTimer = 10.0;
+
+    // Give player bonus HP/MP for completing a loop
+    if (this.player) {
+      this.player.heal(50);  // Bonus HP
+      this.player.restoreMP(30);  // Bonus MP
+      console.log('[PlayState] Loop bonus: +50 HP, +30 MP');
+    }
+
+    // Show loop message with animation
+    this.newLoopTimer = 3.0; // 3 seconds to show new loop message
+    this.newLoopMessage = `LOOP ${this.loopCount}`;
+    console.log(`[PlayState] Entering Loop ${this.loopCount + 1} - Difficulty increased!`);
+  }
+
+  /**
    * Reset state
    */
   reset() {
@@ -840,5 +1088,6 @@ export class PlayState {
     this.isStageClearing = false;
     this.stageClearTimer = 0;
     this.shieldItemTimer = 10.0; // Start shield item spawn soon after game reset
+    this.loopCount = 0; // Reset loop count on full reset
   }
 }

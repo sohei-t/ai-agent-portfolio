@@ -349,10 +349,11 @@ export class Enemy {
       'enemy'
     );
 
-    // Make laser bigger and red
-    laser.width = 16;  // Increased from 12
-    laser.height = 40; // Increased from 30
-    laser.color = '#FF0000'; // Red laser
+    // Make laser look like a proper beam (horizontal rectangle)
+    laser.width = 60;  // Wide horizontal beam
+    laser.height = 8;  // Thin height for beam effect
+    laser.color = '#00FFFF'; // Cyan laser (contrasts better with dark background)
+    laser.isBeam = true; // Flag for special rendering
 
     bullets.push(laser);
 
@@ -374,9 +375,10 @@ export class Enemy {
           this.damage * (isRageMode ? 1 : 0.7),
           'enemy'
         );
-        spreadLaser.width = isRageMode ? 12 : 10;
-        spreadLaser.height = isRageMode ? 30 : 25;
-        spreadLaser.color = isRageMode ? '#FF4444' : '#FF6666'; // Shades of red
+        spreadLaser.width = isRageMode ? 45 : 40;  // Slightly smaller than main beam
+        spreadLaser.height = 6;  // Thin for beam effect
+        spreadLaser.color = isRageMode ? '#FF00FF' : '#9966FF'; // Purple/magenta variants
+        spreadLaser.isBeam = true;
 
         bullets.push(spreadLaser);
       }

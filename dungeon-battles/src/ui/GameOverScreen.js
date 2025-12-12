@@ -34,6 +34,10 @@ export class GameOverScreen {
     this.fadeAlpha = 0;
     this.fadeSpeed = 0.5;
 
+    // Game over display timer
+    this.displayTimer = 5.0; // 5 seconds display time
+    this.canInteract = false; // Can't interact during display
+
     // High score
     this.highScore = this.loadHighScore();
     this.newHighScore = false;
@@ -46,6 +50,14 @@ export class GameOverScreen {
     // Fade in animation
     if (this.fadeAlpha < 1.0) {
       this.fadeAlpha = Math.min(1.0, this.fadeAlpha + this.fadeSpeed * deltaTime);
+    }
+
+    // Update display timer
+    if (this.displayTimer > 0) {
+      this.displayTimer -= deltaTime;
+      if (this.displayTimer <= 0) {
+        this.canInteract = true;
+      }
     }
 
     // Update continue button state
