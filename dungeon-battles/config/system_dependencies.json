@@ -1,0 +1,527 @@
+{
+  "version": "1.0",
+  "description": "System dependency and initialization order configuration for Dungeon Battles",
+  "architecture": "component_based",
+  "systemGraph": {
+    "nodes": [
+      {
+        "id": "AssetLoader",
+        "layer": "utility",
+        "dependencies": [],
+        "dependents": ["InputSystem", "RenderSystem", "EffectSystem"]
+      },
+      {
+        "id": "InputSystem",
+        "layer": "system",
+        "dependencies": ["AssetLoader"],
+        "dependents": ["Player", "DebugSystem"]
+      },
+      {
+        "id": "PhysicsSystem",
+        "layer": "system",
+        "dependencies": [],
+        "dependents": ["CollisionSystem"]
+      },
+      {
+        "id": "CollisionSystem",
+        "layer": "system",
+        "dependencies": ["PhysicsSystem", "QuadTree"],
+        "dependents": ["PlayState"]
+      },
+      {
+        "id": "RenderSystem",
+        "layer": "system",
+        "dependencies": ["AssetLoader", "Camera"],
+        "dependents": ["GameCore"]
+      },
+      {
+        "id": "EffectSystem",
+        "layer": "system",
+        "dependencies": ["AssetLoader", "ObjectPool"],
+        "dependents": ["CollisionSystem", "PlayState"]
+      },
+      {
+        "id": "DebugSystem",
+        "layer": "system",
+        "dependencies": ["InputSystem"],
+        "dependents": ["GameCore"]
+      },
+      {
+        "id": "EntityManager",
+        "layer": "core",
+        "dependencies": [],
+        "dependents": ["GameCore", "PlayState"]
+      },
+      {
+        "id": "StateManager",
+        "layer": "core",
+        "dependencies": ["InputSystem", "RenderSystem"],
+        "dependents": ["GameCore"]
+      },
+      {
+        "id": "ObjectPool",
+        "layer": "utility",
+        "dependencies": [],
+        "dependents": ["EffectSystem", "GameCore"]
+      },
+      {
+        "id": "QuadTree",
+        "layer": "utility",
+        "dependencies": [],
+        "dependents": ["CollisionSystem"]
+      },
+      {
+        "id": "Camera",
+        "layer": "utility",
+        "dependencies": [],
+        "dependents": ["RenderSystem"]
+      },
+      {
+        "id": "VirtualJoystick",
+        "layer": "utility",
+        "dependencies": [],
+        "dependents": ["InputSystem"]
+      },
+      {
+        "id": "PerformanceMonitor",
+        "layer": "utility",
+        "dependencies": [],
+        "dependents": ["GameCore", "DebugSystem"]
+      },
+      {
+        "id": "GameCore",
+        "layer": "core",
+        "dependencies": [
+          "EntityManager",
+          "StateManager",
+          "InputSystem",
+          "PhysicsSystem",
+          "CollisionSystem",
+          "RenderSystem",
+          "EffectSystem",
+          "DebugSystem",
+          "ObjectPool",
+          "PerformanceMonitor"
+        ],
+        "dependents": []
+      }
+    ],
+    "edges": [
+      {
+        "from": "GameCore",
+        "to": "EntityManager",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "StateManager",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "InputSystem",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "PhysicsSystem",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "CollisionSystem",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "RenderSystem",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "EffectSystem",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "DebugSystem",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "ObjectPool",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "GameCore",
+        "to": "PerformanceMonitor",
+        "type": "composition",
+        "required": true
+      },
+      {
+        "from": "CollisionSystem",
+        "to": "QuadTree",
+        "type": "aggregation",
+        "required": true
+      },
+      {
+        "from": "RenderSystem",
+        "to": "Camera",
+        "type": "aggregation",
+        "required": true
+      },
+      {
+        "from": "InputSystem",
+        "to": "VirtualJoystick",
+        "type": "aggregation",
+        "required": false
+      },
+      {
+        "from": "EffectSystem",
+        "to": "ObjectPool",
+        "type": "association",
+        "required": true
+      }
+    ]
+  },
+  "initializationOrder": [
+    {
+      "priority": 1,
+      "phase": "asset_loading",
+      "systems": [
+        {
+          "name": "AssetLoader",
+          "async": true,
+          "critical": true,
+          "description": "Load all images, sounds, and data files"
+        }
+      ]
+    },
+    {
+      "priority": 2,
+      "phase": "utility_setup",
+      "systems": [
+        {
+          "name": "QuadTree",
+          "async": false,
+          "critical": true,
+          "description": "Initialize spatial partitioning structure"
+        },
+        {
+          "name": "Camera",
+          "async": false,
+          "critical": true,
+          "description": "Setup camera and viewport"
+        },
+        {
+          "name": "VirtualJoystick",
+          "async": false,
+          "critical": false,
+          "description": "Initialize mobile controls"
+        },
+        {
+          "name": "ObjectPool",
+          "async": false,
+          "critical": true,
+          "description": "Pre-allocate object pools"
+        },
+        {
+          "name": "PerformanceMonitor",
+          "async": false,
+          "critical": false,
+          "description": "Initialize performance tracking"
+        }
+      ]
+    },
+    {
+      "priority": 3,
+      "phase": "input_system",
+      "systems": [
+        {
+          "name": "InputSystem",
+          "async": false,
+          "critical": true,
+          "description": "Setup input handlers and virtual joystick"
+        }
+      ]
+    },
+    {
+      "priority": 4,
+      "phase": "collision_system",
+      "systems": [
+        {
+          "name": "CollisionSystem",
+          "async": false,
+          "critical": true,
+          "description": "Initialize collision detection and register collision pairs",
+          "postInit": "registerCollisionPairs"
+        }
+      ]
+    },
+    {
+      "priority": 5,
+      "phase": "game_systems",
+      "systems": [
+        {
+          "name": "PhysicsSystem",
+          "async": false,
+          "critical": true,
+          "description": "Initialize physics engine"
+        },
+        {
+          "name": "EffectSystem",
+          "async": false,
+          "critical": false,
+          "description": "Initialize effect system and register effects"
+        },
+        {
+          "name": "RenderSystem",
+          "async": false,
+          "critical": true,
+          "description": "Initialize rendering pipeline and layers"
+        }
+      ]
+    },
+    {
+      "priority": 6,
+      "phase": "debug_system",
+      "systems": [
+        {
+          "name": "DebugSystem",
+          "async": false,
+          "critical": false,
+          "description": "Setup debug tools and keyboard shortcuts"
+        }
+      ]
+    },
+    {
+      "priority": 7,
+      "phase": "core_managers",
+      "systems": [
+        {
+          "name": "EntityManager",
+          "async": false,
+          "critical": true,
+          "description": "Initialize entity management"
+        },
+        {
+          "name": "StateManager",
+          "async": false,
+          "critical": true,
+          "description": "Initialize game states and set initial state"
+        }
+      ]
+    }
+  ],
+  "updateOrder": [
+    {
+      "order": 1,
+      "system": "InputSystem",
+      "description": "Capture and process all input"
+    },
+    {
+      "order": 2,
+      "system": "StateManager",
+      "description": "Update current game state (delegates to active state)"
+    },
+    {
+      "order": 3,
+      "system": "EntityManager",
+      "description": "Update all entities (movement, AI, timers)"
+    },
+    {
+      "order": 4,
+      "system": "PhysicsSystem",
+      "description": "Apply velocity, gravity, and physics"
+    },
+    {
+      "order": 5,
+      "system": "CollisionSystem",
+      "description": "Detect collisions and trigger responses"
+    },
+    {
+      "order": 6,
+      "system": "EffectSystem",
+      "description": "Update particles and visual effects"
+    },
+    {
+      "order": 7,
+      "system": "PerformanceMonitor",
+      "description": "Track performance metrics"
+    }
+  ],
+  "renderOrder": [
+    {
+      "order": 1,
+      "system": "RenderSystem",
+      "method": "clear",
+      "description": "Clear canvas"
+    },
+    {
+      "order": 2,
+      "system": "RenderSystem",
+      "method": "renderBackground",
+      "description": "Draw background layers with parallax"
+    },
+    {
+      "order": 3,
+      "system": "RenderSystem",
+      "method": "renderEntities",
+      "description": "Draw all entities sorted by zIndex"
+    },
+    {
+      "order": 4,
+      "system": "EffectSystem",
+      "method": "render",
+      "description": "Draw particles and effects"
+    },
+    {
+      "order": 5,
+      "system": "RenderSystem",
+      "method": "renderUI",
+      "description": "Draw HUD (HP, MP, score)"
+    },
+    {
+      "order": 6,
+      "system": "DebugSystem",
+      "method": "render",
+      "description": "Draw debug information (FPS, collision boxes)"
+    }
+  ],
+  "collisionPairRegistration": {
+    "timing": "after_collision_system_init",
+    "pairs": [
+      {
+        "typeA": "player",
+        "typeB": "enemy",
+        "handler": "onPlayerEnemyCollision",
+        "description": "Player touches enemy - player takes damage and gains brief invincibility"
+      },
+      {
+        "typeA": "player-bullet",
+        "typeB": "enemy",
+        "handler": "onPlayerBulletEnemyCollision",
+        "description": "Player's bullet hits enemy - enemy takes damage, bullet destroyed, spawn hit effect"
+      },
+      {
+        "typeA": "enemy-bullet",
+        "typeB": "player",
+        "handler": "onEnemyBulletPlayerCollision",
+        "description": "Enemy bullet hits player - player takes damage, bullet destroyed, spawn hit effect"
+      },
+      {
+        "typeA": "player",
+        "typeB": "item",
+        "handler": "onPlayerItemCollision",
+        "description": "Player collects item - apply item effect (HP/MP recovery), destroy item, spawn collect effect"
+      },
+      {
+        "typeA": "player",
+        "typeB": "powerup",
+        "handler": "onPlayerPowerupCollision",
+        "description": "Player collects powerup - increase stats, destroy powerup, spawn powerup effect"
+      }
+    ]
+  },
+  "circularDependencyPrevention": {
+    "rules": [
+      "GameCore owns all systems, systems do not reference GameCore",
+      "Systems communicate via EntityManager or event callbacks",
+      "Entities do not reference systems directly",
+      "Use dependency injection to pass required references",
+      "Avoid global variables"
+    ],
+    "violations": []
+  },
+  "errorHandling": {
+    "failureStrategies": {
+      "AssetLoader": {
+        "strategy": "halt",
+        "reason": "Cannot run game without assets"
+      },
+      "CollisionSystem": {
+        "strategy": "halt",
+        "reason": "Core gameplay mechanic"
+      },
+      "RenderSystem": {
+        "strategy": "halt",
+        "reason": "Cannot display game"
+      },
+      "InputSystem": {
+        "strategy": "halt",
+        "reason": "Cannot control game"
+      },
+      "EffectSystem": {
+        "strategy": "degrade",
+        "fallback": "disable_effects",
+        "reason": "Non-critical visual enhancement"
+      },
+      "DebugSystem": {
+        "strategy": "degrade",
+        "fallback": "disable_debug",
+        "reason": "Optional development tool"
+      },
+      "PerformanceMonitor": {
+        "strategy": "degrade",
+        "fallback": "disable_monitoring",
+        "reason": "Optional performance tracking"
+      }
+    }
+  },
+  "communicationPatterns": {
+    "input_to_entities": {
+      "pattern": "poll",
+      "description": "Entities check InputSystem.isKeyDown() during their update"
+    },
+    "collision_responses": {
+      "pattern": "callback",
+      "description": "CollisionSystem invokes registered callbacks when collision detected"
+    },
+    "state_transitions": {
+      "pattern": "command",
+      "description": "States call StateManager.changeState() to switch states"
+    },
+    "effect_spawning": {
+      "pattern": "factory",
+      "description": "Entities call EffectSystem.spawn() to create effects"
+    }
+  },
+  "performance": {
+    "criticalPaths": [
+      "InputSystem → EntityManager → PhysicsSystem → CollisionSystem",
+      "CollisionSystem → EffectSystem"
+    ],
+    "optimizations": {
+      "collision": "QuadTree spatial partitioning reduces checks from O(n²) to O(n log n)",
+      "rendering": "zIndex sorting and layer caching",
+      "memory": "Object pools eliminate allocation/deallocation overhead",
+      "particles": "Pooled particles reused instead of created/destroyed"
+    },
+    "bottlenecks": [
+      {
+        "system": "CollisionSystem",
+        "condition": "Many entities (>100)",
+        "mitigation": "QuadTree, limit max entities"
+      },
+      {
+        "system": "RenderSystem",
+        "condition": "Complex rendering",
+        "mitigation": "Layer caching, viewport culling"
+      },
+      {
+        "system": "EffectSystem",
+        "condition": "Many particles (>500)",
+        "mitigation": "Object pool, lifetime management"
+      }
+    ]
+  }
+}

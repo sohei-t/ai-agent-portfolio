@@ -1,0 +1,588 @@
+#!/usr/bin/env python3
+"""
+🚀 GitHub ポートフォリオ公開スクリプト
+Phase 6で使用：プロジェクト全体（DELIVERYフォルダ含む）をGitHubに公開
+"""
+
+import os
+import sys
+import subprocess
+import json
+import yaml
+from pathlib import Path
+from datetime import datetime
+
+class GitHubPortfolioPublisher:
+    """GitHubポートフォリオ公開クラス"""
+
+    def __init__(self, project_path):
+        self.project_path = Path(project_path)
+        self.project_name = self.project_path.name
+        self.project_info = self._load_project_info()
+
+    def _load_project_info(self):
+        """PROJECT_INFO.yamlを読み込み"""
+        info_file = self.project_path / "PROJECT_INFO.yaml"
+        if info_file.exists():
+            with open(info_file, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f)
+        return {
+            "project_name": self.project_name,
+            "development_type": "Portfolio App",
+            "database_type": "SQLite",
+            "cost": "$0"
+        }
+
+    def _run_command(self, cmd, cwd=None):
+        """コマンド実行"""
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=cwd or self.project_path,
+                capture_output=True,
+                text=True,
+                shell=True
+            )
+            if result.returncode != 0:
+                print(f"❌ エラー: {result.stderr}")
+                return False
+            return result.stdout.strip()
+        except Exception as e:
+            print(f"❌ コマンド実行エラー: {e}")
+            return False
+
+    def check_prerequisites(self):
+        """前提条件チェック"""
+        print("\n📋 前提条件チェック中...")
+
+        # 1. Portfolio Appかチェック
+        dev_type = self.project_info.get("development_type", "")
+        if "Client" in dev_type:
+            print("ℹ️ Client用プロジェクトのためGitHub公開をスキップします")
+            return False
+
+        # 2. DELIVERYフォルダの存在チェック
+        delivery_path = self.project_path / "DELIVERY"
+        if not delivery_path.exists():
+            print("⚠️ DELIVERYフォルダが見つかりません")
+            print("  Phase 5.5を先に実行してください")
+            return False
+
+        # 3. gh CLIの確認
+        gh_check = self._run_command("gh --version")
+        if not gh_check:
+            print("❌ GitHub CLI (gh) がインストールされていません")
+            print("  brew install gh または https://cli.github.com/")
+            return False
+
+        # 4. gh認証状態確認
+        auth_check = self._run_command("gh auth status")
+        if not auth_check:
+            print("⚠️ GitHub認証が必要です")
+            print("  実行: gh auth login")
+            return False
+
+        print("✅ 前提条件チェック完了")
+        return True
+
+    def create_gitignore(self):
+        """適切な.gitignore作成"""
+        gitignore_path = self.project_path / ".gitignore"
+        if not gitignore_path.exists():
+            gitignore_content = """# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.local
+*.env
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Credentials
+credentials/
+secrets/
+*.pem
+*.key
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
+.cache/
+"""
+            with open(gitignore_path, 'w') as f:
+                f.write(gitignore_content)
+            print("✅ .gitignore 作成完了")
+
+    def detect_tech_stack(self):
+        """技術スタックを自動検出"""
+        tech_stack = []
+
+        # package.json から検出
+        package_json = self.project_path / "package.json"
+        if package_json.exists():
+            with open(package_json, 'r') as f:
+                pkg = json.load(f)
+                deps = list(pkg.get('dependencies', {}).keys())
+                dev_deps = list(pkg.get('devDependencies', {}).keys())
+
+                if 'react' in deps: tech_stack.append('React')
+                if 'vue' in deps: tech_stack.append('Vue')
+                if 'express' in deps: tech_stack.append('Express')
+                if 'next' in deps: tech_stack.append('Next.js')
+                if 'typescript' in dev_deps: tech_stack.append('TypeScript')
+                if 'jest' in dev_deps: tech_stack.append('Jest')
+
+        # requirements.txt から検出
+        requirements_txt = self.project_path / "requirements.txt"
+        if requirements_txt.exists():
+            tech_stack.append('Python')
+            with open(requirements_txt, 'r') as f:
+                content = f.read().lower()
+                if 'flask' in content: tech_stack.append('Flask')
+                if 'django' in content: tech_stack.append('Django')
+                if 'fastapi' in content: tech_stack.append('FastAPI')
+                if 'pytest' in content: tech_stack.append('pytest')
+
+        # その他の検出
+        if (self.project_path / "Dockerfile").exists():
+            tech_stack.append('Docker')
+
+        return tech_stack
+
+    def update_root_readme(self, github_pages_url=None):
+        """ルートREADME.mdを更新（デモリンク付き）"""
+        tech_stack = self.detect_tech_stack()
+        tech_stack_str = ", ".join(tech_stack) if tech_stack else "Node.js, JavaScript"
+
+        app_name = self.project_info.get("project_name", self.project_name)
+
+        # GitHub usernameとrepo nameを取得
+        username = self._run_command("gh api user --jq .login")
+        if not username:
+            username = "{username}"
+
+        repo_name = f"portfolio-{app_name.lower().replace(' ', '-').replace('_', '-')}"
+
+        # GitHub Pages URLを構築
+        if not github_pages_url:
+            github_pages_url = f"https://{username}.github.io/{repo_name}"
+
+        readme_content = f"""# {app_name}
+
+AI-generated full-stack application with comprehensive documentation.
+
+## 🎯 Live Demo & Visual Preview
+
+<div align="center">
+
+### 🌐 [Live Demo App]({github_pages_url}/)
+### 📱 [Visual About Page]({github_pages_url}/about.html)
+### 📊 [Project Summary]({github_pages_url}/DELIVERY/summary.html)
+
+<br>
+
+<a href="{github_pages_url}/about.html">
+  <img src="https://img.shields.io/badge/View-Visual_Preview-blue?style=for-the-badge&logo=html5" alt="Visual Preview">
+</a>
+<a href="{github_pages_url}/">
+  <img src="https://img.shields.io/badge/Try-Live_Demo-green?style=for-the-badge&logo=vercel" alt="Live Demo">
+</a>
+<a href="{github_pages_url}/DELIVERY/summary.html">
+  <img src="https://img.shields.io/badge/Browse-Documentation-orange?style=for-the-badge&logo=readthedocs" alt="Documentation">
+</a>
+
+</div>
+
+## 🚀 Quick Start
+
+### Option 1: View Online
+- **🌐 Live Demo**: [{github_pages_url}/]({github_pages_url}/)
+- **📱 About Page**: [{github_pages_url}/about.html]({github_pages_url}/about.html)
+- **📊 Documentation**: [{github_pages_url}/DELIVERY/summary.html]({github_pages_url}/DELIVERY/summary.html)
+
+### Option 2: Run Locally
+1. Clone this repository
+2. Double-click `DELIVERY/launch_app.command`
+3. Or run `npm install && npm start`
+
+## 📸 Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <a href="{github_pages_url}/about.html">
+          <img src="https://via.placeholder.com/400x300.png?text=About+Page" alt="About Page" width="400">
+        </a>
+        <br>
+        <b>About Page</b>
+      </td>
+      <td align="center">
+        <a href="{github_pages_url}/">
+          <img src="https://via.placeholder.com/400x300.png?text=Live+App" alt="Live App" width="400">
+        </a>
+        <br>
+        <b>Live Application</b>
+      </td>
+    </tr>
+  </table>
+</div>
+
+## 📦 DELIVERY Folder
+
+The `DELIVERY/` folder contains all essential files:
+- `summary.html` - Project overview with all documentation
+- `launch_app.command` - One-click application launcher
+- `docs/` - Design documents, test reports, and management files
+  - `design/` - Architecture, requirements, API specifications
+  - `test/` - Test plans, coverage reports, test results
+  - `management/` - Project management documents
+
+## 🛠 Technical Stack
+
+{tech_stack_str}
+
+## 📊 Portfolio
+
+This project demonstrates:
+- Full-stack development capabilities
+- Test-driven development (see `tests/` and `DELIVERY/docs/test/`)
+- Comprehensive documentation (see `DELIVERY/docs/design/`)
+- AI-assisted development workflow
+
+## 🔧 Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## 📄 Documentation
+
+- **Requirements**: `DELIVERY/docs/design/requirements.md`
+- **Architecture**: `DELIVERY/docs/design/architecture.md`
+- **API Spec**: `DELIVERY/docs/design/api_spec.yaml`
+- **Test Plan**: `DELIVERY/docs/test/test_plan.md`
+- **Coverage Report**: `DELIVERY/docs/test/coverage_report.html`
+
+---
+
+Generated with [Claude Code](https://github.com/anthropics/claude-code) and [git-worktree-agent](https://github.com/tsujike/git-worktree-agent)
+"""
+
+        readme_path = self.project_path / "README_GITHUB.md"
+        with open(readme_path, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+
+        # 既存のREADME.mdをバックアップ
+        orig_readme = self.project_path / "README.md"
+        if orig_readme.exists() and not (self.project_path / "README_ORIGINAL.md").exists():
+            self._run_command("mv README.md README_ORIGINAL.md")
+
+        # 新しいREADMEを配置
+        self._run_command("mv README_GITHUB.md README.md")
+        print("✅ README.md 更新完了")
+
+    def git_init_and_commit(self):
+        """Git初期化とコミット"""
+        print("\n📦 Gitリポジトリ初期化中...")
+
+        # .git がすでにある場合の処理
+        if (self.project_path / ".git").exists():
+            print("ℹ️ 既存のGitリポジトリを使用")
+        else:
+            self._run_command("git init")
+            print("✅ Git初期化完了")
+
+        # 全ファイルを追加
+        self._run_command("git add .")
+
+        # コミットメッセージ作成
+        app_name = self.project_info.get("project_name", self.project_name)
+        commit_msg = f"""feat: {app_name} - AI-generated full-stack application with documentation
+
+- Full implementation with tests
+- DELIVERY folder with organized documentation
+- Design docs, test reports, and management files
+- Generated by Claude Code with git-worktree-agent"""
+
+        # コミット
+        commit_result = self._run_command(f'git commit -m "{commit_msg}"')
+        if commit_result:
+            print("✅ Gitコミット完了")
+        else:
+            print("ℹ️ 変更なし、またはすでにコミット済み")
+
+        return True
+
+    def create_github_repo(self):
+        """GitHubリポジトリ作成とpush"""
+        print("\n🚀 GitHubリポジトリ作成中...")
+
+        # リポジトリ名を生成（portfolio-プレフィックス付き）
+        app_name = self.project_info.get("project_name", self.project_name)
+        repo_name = f"portfolio-{app_name.lower().replace(' ', '-').replace('_', '-')}"
+
+        # 説明文
+        description = f"AI-generated {app_name} with full documentation and test coverage"
+
+        # リポジトリ作成コマンド
+        create_cmd = f'gh repo create {repo_name} --public --description "{description}" --source . --remote origin --push'
+
+        print(f"📝 リポジトリ名: {repo_name}")
+        result = self._run_command(create_cmd)
+
+        if result:
+            print("✅ GitHubリポジトリ作成・push完了")
+
+            # URLを取得
+            repo_url = f"https://github.com/$(gh api user --jq .login)/{repo_name}"
+
+            return {
+                "success": True,
+                "repo_name": repo_name,
+                "repo_url": repo_url
+            }
+        else:
+            # すでに存在する場合は更新をpush
+            print("ℹ️ リポジトリが既に存在する可能性があります")
+            push_result = self._run_command("git push origin main --force")
+            if push_result is not False:
+                print("✅ 更新をpush完了")
+                return {
+                    "success": True,
+                    "repo_name": repo_name,
+                    "repo_url": f"https://github.com/$(gh api user --jq .login)/{repo_name}"
+                }
+            return {"success": False}
+
+    def setup_github_pages(self, repo_name):
+        """GitHub Pages設定（改善版）"""
+        print("\n🌐 GitHub Pages設定中...")
+
+        # 1. index.html作成（アプリのエントリポイント or リダイレクト）
+        index_path = self.project_path / "index.html"
+        if not index_path.exists():
+            # about.htmlへのリダイレクトを設定
+            index_content = """<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0;url=about.html">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <p>Redirecting to <a href="about.html">About Page</a>...</p>
+</body>
+</html>"""
+            with open(index_path, 'w', encoding='utf-8') as f:
+                f.write(index_content)
+            print("✅ index.html作成（about.htmlへリダイレクト）")
+
+        # 2. .nojekyll ファイル作成（Jekyll無効化）
+        nojekyll_path = self.project_path / ".nojekyll"
+        if not nojekyll_path.exists():
+            nojekyll_path.touch()
+            print("✅ .nojekyll作成")
+
+        # 3. GitHub Pages用の静的ファイル整理
+        self._prepare_static_files()
+
+        # 4. 変更をコミット・push
+        self._run_command("git add -A")
+        self._run_command('git commit -m "Setup GitHub Pages with live demo"')
+        self._run_command("git push origin main")
+
+        # 5. GitHub Pages API設定
+        owner = self._run_command("gh api user --jq .login")
+        if owner:
+            # まず現在の状態確認
+            check_cmd = f"gh api repos/{owner}/{repo_name}/pages --silent"
+            check_result = self._run_command(check_cmd)
+
+            if check_result:
+                print("✅ GitHub Pages既に有効")
+                return f"https://{owner}.github.io/{repo_name}"
+            else:
+                # 新規有効化
+                pages_cmd = f'''gh api repos/{owner}/{repo_name}/pages \
+                    --method POST \
+                    -H "Accept: application/vnd.github+json" \
+                    -f source[branch]=main \
+                    -f source[path]=/'''
+
+                pages_result = self._run_command(pages_cmd)
+                if pages_result:
+                    print("✅ GitHub Pages有効化成功")
+                    print("⏳ 公開まで数分かかる場合があります")
+                    return f"https://{owner}.github.io/{repo_name}"
+                else:
+                    print("ℹ️ GitHub Pages自動設定に失敗しました")
+                    print("  手動で設定してください：")
+                    print(f"  1. https://github.com/{owner}/{repo_name}/settings/pages")
+                    print("  2. Source: Deploy from a branch")
+                    print("  3. Branch: main, Folder: / (root)")
+                    print("  4. Save をクリック")
+                    return f"https://{owner}.github.io/{repo_name}"
+        return None
+
+    def _prepare_static_files(self):
+        """静的ファイルの準備（Node.jsアプリをビルド等）"""
+        package_json = self.project_path / "package.json"
+        if package_json.exists():
+            # package.jsonからbuildスクリプトの有無確認
+            with open(package_json, 'r') as f:
+                pkg = json.load(f)
+                scripts = pkg.get('scripts', {})
+
+                # buildスクリプトがある場合は実行
+                if 'build' in scripts:
+                    print("🔨 アプリケーションをビルド中...")
+                    build_result = self._run_command("npm run build")
+                    if build_result:
+                        print("✅ ビルド完了")
+
+                        # distやbuildフォルダの内容をルートにコピー（GitHub Pages用）
+                        if (self.project_path / "dist").exists():
+                            self._run_command("cp -r dist/* .")
+                        elif (self.project_path / "build").exists():
+                            self._run_command("cp -r build/* .")
+
+    def display_completion(self, result):
+        """完了メッセージ表示（改善版）"""
+        if not result.get("success"):
+            print("\n❌ GitHub公開に失敗しました")
+            return
+
+        # GitHub usernameを取得
+        username = self._run_command("gh api user --jq .login")
+        if not username:
+            username = "{username}"
+
+        repo_name = result.get("repo_name", "portfolio-app")
+        pages_url = result.get("pages_url", f"https://{username}.github.io/{repo_name}")
+
+        print(f"""
+========================================
+🎉 GitHubポートフォリオ公開完了！
+========================================
+
+📦 リポジトリURL:
+https://github.com/{username}/{repo_name}
+
+🌐 ライブデモ（GitHub Pages）:
+{pages_url}/
+{pages_url}/about.html
+{pages_url}/DELIVERY/summary.html
+
+📊 DELIVERY確認:
+https://github.com/{username}/{repo_name}/tree/main/DELIVERY
+
+📄 ドキュメント:
+https://github.com/{username}/{repo_name}/tree/main/DELIVERY/docs
+
+✨ ポートフォリオの特徴:
+- 🌐 ライブデモ: 実際に動作するアプリを体験可能
+- 📱 ビジュアル: about.htmlで視覚的にアピール
+- 📚 ソースコード: 実装力を証明
+- 🧪 tests/: テスト駆動開発の証明
+- 📐 DELIVERY/docs/design/: 設計力を証明
+- ✅ DELIVERY/docs/test/: 品質意識を証明
+
+📝 次のステップ:
+1. 数分待ってGitHub Pagesが有効になるのを確認
+2. {pages_url}/ にアクセスして動作確認
+3. LinkedInやポートフォリオサイトにリンク追加
+
+⚡ すぐに確認:
+- ビジュアル説明: {pages_url}/about.html
+- プロジェクトサマリー: {pages_url}/DELIVERY/summary.html
+
+========================================
+        """)
+
+    def publish(self):
+        """メイン実行関数"""
+        print("\n" + "="*60)
+        print("🚀 Phase 6: GitHubポートフォリオ公開開始")
+        print("="*60)
+
+        # 1. 前提条件チェック
+        if not self.check_prerequisites():
+            return False
+
+        # 2. .gitignore作成
+        self.create_gitignore()
+
+        # 3. Git初期化とコミット
+        if not self.git_init_and_commit():
+            return False
+
+        # 4. GitHubリポジトリ作成とpush
+        result = self.create_github_repo()
+
+        # 5. GitHub Pages設定（改善版・自動）
+        if result.get("success"):
+            pages_url = self.setup_github_pages(result.get("repo_name"))
+            if pages_url:
+                result["pages_url"] = pages_url
+
+                # 6. README.md更新（GitHub Pages URLを含む）
+                self.update_root_readme(pages_url)
+
+                # 7. READMEの更新をpush
+                self._run_command("git add README.md")
+                self._run_command('git commit -m "Update README with live demo links"')
+                self._run_command("git push origin main")
+
+        # 8. 完了メッセージ
+        self.display_completion(result)
+
+        return result.get("success", False)
+
+
+def main():
+    """コマンドライン実行用"""
+    if len(sys.argv) > 1:
+        project_path = sys.argv[1]
+    else:
+        project_path = os.getcwd()
+
+    publisher = GitHubPortfolioPublisher(project_path)
+    success = publisher.publish()
+
+    sys.exit(0 if success else 1)
+
+
+if __name__ == "__main__":
+    main()

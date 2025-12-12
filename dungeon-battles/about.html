@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Battles - 縦スクロールアクションRPG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease;
+        }
+
+        h1 {
+            font-size: 4rem;
+            background: linear-gradient(45deg, #FFD700, #FF6B6B, #4ECDC4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: #4ECDC4;
+            margin-bottom: 30px;
+        }
+
+        .game-preview {
+            text-align: center;
+            margin: 40px 0;
+            animation: fadeIn 1.5s ease;
+        }
+
+        .preview-container {
+            display: inline-block;
+            position: relative;
+            border: 3px solid #4ECDC4;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(78, 205, 196, 0.3);
+        }
+
+        .preview-container canvas {
+            display: block;
+            background: #0a0e27;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 60px 0;
+            animation: fadeInUp 1.5s ease;
+        }
+
+        .feature-card {
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 15px;
+            background: linear-gradient(45deg, #FFD700, #FF6B6B, #4ECDC4);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(78, 205, 196, 0.3);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card h3 {
+            color: #FFD700;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-card .icon {
+            font-size: 1.8rem;
+        }
+
+        .feature-card ul {
+            list-style: none;
+            color: #cbd5e1;
+            line-height: 1.8;
+        }
+
+        .feature-card li {
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .feature-card li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #4ECDC4;
+        }
+
+        .controls {
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 15px;
+            padding: 40px;
+            margin: 60px 0;
+            animation: fadeIn 2s ease;
+        }
+
+        .controls h2 {
+            color: #FFD700;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            border: 1px solid #334155;
+        }
+
+        .key {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .action {
+            color: #cbd5e1;
+            flex: 1;
+        }
+
+        .play-button {
+            display: inline-block;
+            padding: 20px 60px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .play-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        .tech-stack {
+            text-align: center;
+            margin: 60px 0;
+            padding: 30px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 15px;
+        }
+
+        .tech-stack h3 {
+            color: #4ECDC4;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .tech-badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .badge {
+            padding: 8px 20px;
+            background: rgba(78, 205, 196, 0.2);
+            border: 1px solid #4ECDC4;
+            border-radius: 20px;
+            color: #4ECDC4;
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .boss-section {
+            background: linear-gradient(135deg, rgba(139, 0, 139, 0.2), rgba(255, 0, 0, 0.2));
+            border: 2px solid #FF0000;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px 0;
+            animation: bossPulse 3s infinite;
+        }
+
+        @keyframes bossPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255, 0, 0, 0.8);
+            }
+        }
+
+        .weapon-progression {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00FFFF;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .difficulty-modes {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+
+        .difficulty {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .easy {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00FF00;
+        }
+
+        .normal {
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid #FFFF00;
+        }
+
+        .hard {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid #FF4444;
+        }
+
+        .audio-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 15px;
+        }
+
+        audio {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 DUNGEON BATTLES 🎮</h1>
+            <p class="tagline">縦スクロール型アクションRPG - 究極のボスバトルに挑戦！</p>
+        </header>
+
+        <div class="game-preview">
+            <div class="preview-container">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="index.html" class="play-button">🚀 今すぐプレイ！</a>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3><span class="icon">⚔️</span> バトルシステム</h3>
+                <ul>
+                    <li>6段階の武器レベルアップシステム</li>
+                    <li>最大4体のオプション（分身）追加</li>
+                    <li>全方向攻撃（12発同時発射）</li>
+                    <li>魔法攻撃で画面クリア＆弾消し</li>
+                    <li>HP連動武器ダウングレードシステム</li>
+                    <li>リアルタイム弾幕シューティング</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3><span class="icon">🎯</span> ゲームプレイ</h3>
+                <ul>
+                    <li>5ステージ + ボスバトル</li>
+                    <li>無限ループで難易度上昇</li>
+                    <li>3つの難易度モード選択</li>
+                    <li>スコアシステム＆コンボ機能</li>
+                    <li>多彩なアイテム収集</li>
+                    <li>サウンドエフェクト搭載</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="boss-section">
+            <h2 style="text-align: center; color: #FF0000; margin-bottom: 30px;">
+                🐲 最終ボス：ドラゴン 🐲
+            </h2>
+            <div class="features">
+                <div class="feature-card" style="background: rgba(139, 0, 139, 0.3);">
+                    <h3><span class="icon">💀</span> ボス特性</h3>
+                    <ul>
+                        <li>HP: 10,000（超耐久力）</li>
+                        <li>ダメージ: 50（即死級）</li>
+                        <li>レーザービーム3方向同時発射</li>
+                        <li>2.5秒間の無敵モード（5秒周期）</li>
+                        <li>魔法攻撃完全無効</li>
+                        <li>開始5秒間の待機時間（右上に出現）</li>
+                    </ul>
+                </div>
+                <div class="feature-card" style="background: rgba(255, 0, 0, 0.2);">
+                    <h3><span class="icon">👾</span> ミニオンシステム</h3>
+                    <ul>
+                        <li>スライム、ゴブリン、スケルトン、デーモン</li>
+                        <li>各種族1体ずつ常時配置</li>
+                        <li>倒されると上から自動補充</li>
+                        <li>ボスステージで1.5倍強化</li>
+                        <li>全方向攻撃（ハードモード）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="weapon-progression">
+            <h2 style="text-align: center; color: #00FFFF; margin-bottom: 20px;">
+                🔫 武器進化システム
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div>
+                    <h4 style="color: #FFD700; margin-bottom: 10px;">メイン武器</h4>
+                    <ol style="color: #cbd5e1; line-height: 1.8; padding-left: 20px;">
+                        <li>Level 1: シングルショット</li>
+                        <li>Level 2: 2-WAY拡散</li>
+                        <li>Level 3: 前方3-WAY</li>
+                        <li>Level 4: 前方＋右3-WAY</li>
+                        <li>Level 5: 前方＋右＋左3-WAY</li>
+                        <li>Level 6: 全方向12連射！</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 style="color: #FFD700; margin-bottom: 10px;">オプション（分身）</h4>
+                    <ol style="color: #cbd5e1; line-height: 1.8; padding-left: 20px;">
+                        <li>メイン武器MAX後に追加</li>
+                        <li>最大4体まで装備可能</li>
+                        <li>各オプション個別にレベルアップ</li>
+                        <li>プレイヤーの周りを回転</li>
+                        <li>装備時プレイヤーが赤く発光</li>
+                        <li>独立した攻撃パターン</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3><span class="icon">💎</span> アイテムシステム</h3>
+                <ul>
+                    <li>HP回復（1分毎に出現）</li>
+                    <li>MP回復（ステージ毎1回）</li>
+                    <li>スピードブースト（1.2倍速/5秒）</li>
+                    <li>武器強化（15-25秒毎に出現）</li>
+                    <li>自動収集システム</li>
+                    <li>アイテム取得時サウンドエフェクト</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3><span class="icon">🎵</span> サウンドシステム</h3>
+                <ul>
+                    <li>プレイヤービーム音（高音）</li>
+                    <li>エネミービーム音（低音）</li>
+                    <li>ヒット音エフェクト</li>
+                    <li>爆発音エフェクト</li>
+                    <li>アイテム取得音</li>
+                    <li>Web Audio API使用</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="difficulty-modes">
+            <div class="difficulty easy">
+                <h3 style="color: #00FF00;">EASY</h3>
+                <p>HP: 150</p>
+                <p>MP: 75</p>
+                <p>敵数: 少</p>
+                <p>初心者向け</p>
+            </div>
+            <div class="difficulty normal">
+                <h3 style="color: #FFFF00;">NORMAL</h3>
+                <p>HP: 100</p>
+                <p>MP: 50</p>
+                <p>敵数: 標準</p>
+                <p>バランス型</p>
+            </div>
+            <div class="difficulty hard">
+                <h3 style="color: #FF4444;">HARD</h3>
+                <p>HP: 75</p>
+                <p>MP: 40</p>
+                <p>全方向攻撃</p>
+                <p>上級者向け</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h2>🎮 操作方法</h2>
+            <div class="control-grid">
+                <div class="control-item">
+                    <span class="key">↑↓←→</span>
+                    <span class="action">移動（8方向）</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">W A S D</span>
+                    <span class="action">移動（代替キー）</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">SPACE</span>
+                    <span class="action">通常攻撃</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">X</span>
+                    <span class="action">魔法攻撃（MP10消費・弾消し）</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">P</span>
+                    <span class="action">ポーズ</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">R</span>
+                    <span class="action">リスタート</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="audio-section">
+            <h3 style="color: #4ECDC4;">🔊 プロジェクト解説音声</h3>
+            <audio controls>
+                <source src="explanation.mp3" type="audio/mpeg">
+                お使いのブラウザは音声再生に対応していません。
+            </audio>
+        </div>
+
+        <div class="tech-stack">
+            <h3>🛠️ 使用技術</h3>
+            <div class="tech-badges">
+                <span class="badge">HTML5 Canvas</span>
+                <span class="badge">JavaScript ES6+</span>
+                <span class="badge">Web Audio API</span>
+                <span class="badge">CSS3 Animations</span>
+                <span class="badge">Module System</span>
+                <span class="badge">Entity-Component Pattern</span>
+                <span class="badge">Collision Detection</span>
+                <span class="badge">Particle System</span>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 60px 0;">
+            <a href="index.html" class="play-button">🎮 START GAME 🎮</a>
+        </div>
+    </div>
+
+    <script>
+        // Simple demo animation for the preview canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let frame = 0;
+
+        function drawDemo() {
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid effect
+            ctx.strokeStyle = '#1a1a3e';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+
+            const offset = (frame * 0.5) % 50;
+            for (let i = -50; i < canvas.height + 50; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i + offset);
+                ctx.lineTo(canvas.width, i + offset);
+                ctx.stroke();
+            }
+
+            // Player ship with red glow when options present
+            ctx.save();
+            const playerX = canvas.width / 2;
+            const playerY = canvas.height - 100;
+
+            // Red glow effect
+            ctx.shadowColor = '#FF0000';
+            ctx.shadowBlur = 20 + Math.sin(frame * 0.05) * 10;
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(playerX - 20, playerY - 20, 40, 40);
+            ctx.restore();
+
+            // Options (clones)
+            ctx.save();
+            for (let i = 0; i < 4; i++) {
+                const angle = (frame * 0.03) + (i * Math.PI / 2);
+                const optionX = playerX + Math.cos(angle) * 60;
+                const optionY = playerY + Math.sin(angle) * 60;
+                ctx.fillStyle = '#00AAFF';
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(optionX - 15, optionY - 15, 30, 30);
+            }
+            ctx.restore();
+
+            // Boss Dragon
+            ctx.save();
+            ctx.shadowColor = '#FF0000';
+            ctx.shadowBlur = 30 + Math.sin(frame * 0.05) * 10;
+            ctx.fillStyle = '#FF0000';
+            const bossX = 700; // Top-right position
+            const bossY = 100;
+            ctx.fillRect(bossX - 50, bossY - 50, 100, 100);
+
+            // Boss HP bar
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(bossX - 60, bossY - 70, 120, 10);
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(bossX - 60, bossY - 70, 120 * 0.8, 10);
+            ctx.restore();
+
+            // Minions (1 of each type)
+            const minionColors = ['#FF6B6B', '#FFA500', '#CCCCCC', '#8B008B'];
+            for (let i = 0; i < 4; i++) {
+                ctx.fillStyle = minionColors[i];
+                const minionY = 200 + Math.sin(frame * 0.02 + i) * 50;
+                ctx.fillRect(150 + i * 150, minionY, 25, 25);
+            }
+
+            // Bullets
+            ctx.save();
+            ctx.shadowBlur = 10;
+            for (let i = 0; i < 8; i++) {
+                const bulletY = ((frame * 3 + i * 80) % (canvas.height + 100)) - 50;
+                ctx.fillStyle = '#FFFF00';
+                ctx.shadowColor = '#FFFF00';
+                ctx.fillRect(100 + i * 90, bulletY, 8, 20);
+            }
+            ctx.restore();
+
+            // Title text
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('DUNGEON BATTLES', canvas.width / 2, 50);
+
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#4ECDC4';
+            ctx.fillText('Boss HP: 10,000', canvas.width / 2, 80);
+
+            frame++;
+            requestAnimationFrame(drawDemo);
+        }
+
+        drawDemo();
+    </script>
+</body>
+</html>

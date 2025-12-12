@@ -1,0 +1,469 @@
+{
+  "version": "1.0",
+  "totalStages": 5,
+  "stages": [
+    {
+      "id": 1,
+      "name": "Entrance Guardian",
+      "description": "The first trial of the dungeon. A simple guardian blocks your path.",
+      "difficulty": "easy",
+      "enemy": {
+        "type": "enemy_1",
+        "sprite": "enemy_1.png",
+        "hp": 30,
+        "startPosition": {
+          "x": 400,
+          "y": 150
+        },
+        "ai": {
+          "movePattern": "hover",
+          "moveParams": {
+            "amplitude": 100,
+            "frequency": 1.0,
+            "centerY": 150
+          },
+          "attackPattern": "linear",
+          "attackParams": {
+            "direction": "down",
+            "bulletCount": 1,
+            "spread": 0
+          }
+        }
+      },
+      "items": [
+        {
+          "type": "hp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        },
+        {
+          "type": "mp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        }
+      ],
+      "background": {
+        "theme": "dungeon_entrance",
+        "scrollSpeed": 20,
+        "layers": [
+          {
+            "name": "far_background",
+            "parallaxSpeed": 0.3
+          },
+          {
+            "name": "mid_pillars",
+            "parallaxSpeed": 0.6
+          },
+          {
+            "name": "near_debris",
+            "parallaxSpeed": 1.0
+          }
+        ]
+      },
+      "music": {
+        "track": "stage_1_theme",
+        "tempo": "moderate"
+      },
+      "completion": {
+        "condition": "enemy_defeated",
+        "reward": {
+          "baseScore": 100,
+          "noDamageBonus": 100
+        },
+        "nextStage": 2
+      }
+    },
+    {
+      "id": 2,
+      "name": "Corridor Defender",
+      "description": "Deeper into the dungeon. The defender uses spread shots to cover more area.",
+      "difficulty": "medium",
+      "enemy": {
+        "type": "enemy_2",
+        "sprite": "enemy_2.png",
+        "hp": 50,
+        "startPosition": {
+          "x": 400,
+          "y": 150
+        },
+        "ai": {
+          "movePattern": "horizontal_wave",
+          "moveParams": {
+            "amplitude": 150,
+            "frequency": 0.8,
+            "centerY": 150,
+            "horizontalSpeed": 75
+          },
+          "attackPattern": "spread_2way",
+          "attackParams": {
+            "bulletCount": 2,
+            "spread": 45,
+            "alternating": true
+          }
+        }
+      },
+      "items": [
+        {
+          "type": "hp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        },
+        {
+          "type": "mp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        }
+      ],
+      "background": {
+        "theme": "dungeon_corridor",
+        "scrollSpeed": 25,
+        "layers": [
+          {
+            "name": "far_background",
+            "parallaxSpeed": 0.3
+          },
+          {
+            "name": "mid_pillars",
+            "parallaxSpeed": 0.6
+          },
+          {
+            "name": "near_debris",
+            "parallaxSpeed": 1.0
+          }
+        ]
+      },
+      "music": {
+        "track": "stage_2_theme",
+        "tempo": "moderate"
+      },
+      "completion": {
+        "condition": "enemy_defeated",
+        "reward": {
+          "baseScore": 200,
+          "noDamageBonus": 100
+        },
+        "nextStage": 3
+      }
+    },
+    {
+      "id": 3,
+      "name": "Chamber Hunter",
+      "description": "A dangerous foe that tracks your movement with homing projectiles.",
+      "difficulty": "medium_hard",
+      "enemy": {
+        "type": "enemy_3",
+        "sprite": "enemy_3.png",
+        "hp": 70,
+        "startPosition": {
+          "x": 400,
+          "y": 150
+        },
+        "ai": {
+          "movePattern": "circle",
+          "moveParams": {
+            "radius": 120,
+            "angularSpeed": 1.2,
+            "centerX": 400,
+            "centerY": 150
+          },
+          "attackPattern": "homing",
+          "attackParams": {
+            "bulletCount": 1,
+            "homingStrength": 0.1,
+            "targetType": "player"
+          }
+        }
+      },
+      "items": [
+        {
+          "type": "hp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        },
+        {
+          "type": "mp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        }
+      ],
+      "background": {
+        "theme": "dungeon_chamber",
+        "scrollSpeed": 30,
+        "layers": [
+          {
+            "name": "far_background",
+            "parallaxSpeed": 0.3
+          },
+          {
+            "name": "mid_pillars",
+            "parallaxSpeed": 0.6
+          },
+          {
+            "name": "near_debris",
+            "parallaxSpeed": 1.0
+          }
+        ]
+      },
+      "music": {
+        "track": "stage_3_theme",
+        "tempo": "fast"
+      },
+      "completion": {
+        "condition": "enemy_defeated",
+        "reward": {
+          "baseScore": 300,
+          "noDamageBonus": 100
+        },
+        "nextStage": 4
+      }
+    },
+    {
+      "id": 4,
+      "name": "Hall Sentinel",
+      "description": "Elite guardian with phase-changing attacks. Prepare for a tough battle.",
+      "difficulty": "hard",
+      "enemy": {
+        "type": "enemy_4",
+        "sprite": "enemy_4.png",
+        "hp": 90,
+        "startPosition": {
+          "x": 400,
+          "y": 150
+        },
+        "ai": {
+          "movePattern": "aggressive",
+          "moveParams": {
+            "chaseSpeed": 125,
+            "retreatDistance": 100,
+            "attackDistance": 150
+          },
+          "attackPattern": "composite",
+          "attackParams": {
+            "phases": [
+              {
+                "hpThreshold": 45,
+                "pattern": "spiral",
+                "bulletCount": 5,
+                "rotationSpeed": 2.0
+              },
+              {
+                "hpThreshold": 0,
+                "pattern": "burst_linear",
+                "bulletCount": 8,
+                "directions": [0, 45, 90, 135, 180, 225, 270, 315]
+              }
+            ]
+          }
+        }
+      },
+      "items": [
+        {
+          "type": "hp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        },
+        {
+          "type": "mp_potion",
+          "spawnTiming": "random",
+          "spawnDelay": {
+            "min": 5,
+            "max": 15
+          },
+          "position": "random"
+        }
+      ],
+      "background": {
+        "theme": "dungeon_hall",
+        "scrollSpeed": 35,
+        "layers": [
+          {
+            "name": "far_background",
+            "parallaxSpeed": 0.3
+          },
+          {
+            "name": "mid_pillars",
+            "parallaxSpeed": 0.6
+          },
+          {
+            "name": "near_debris",
+            "parallaxSpeed": 1.0
+          }
+        ]
+      },
+      "music": {
+        "track": "stage_4_theme",
+        "tempo": "fast"
+      },
+      "completion": {
+        "condition": "enemy_defeated",
+        "reward": {
+          "baseScore": 400,
+          "noDamageBonus": 100
+        },
+        "nextStage": 5
+      }
+    },
+    {
+      "id": 5,
+      "name": "Dungeon Lord",
+      "description": "The master of the dungeon. Defeat this ancient evil to claim victory!",
+      "difficulty": "very_hard",
+      "boss": true,
+      "enemy": {
+        "type": "boss_1",
+        "sprite": "boss_1.png",
+        "hp": 300,
+        "startPosition": {
+          "x": 400,
+          "y": 120
+        },
+        "ai": {
+          "movePattern": "boss_complex",
+          "moveParams": {
+            "patterns": ["sweep", "circle", "charge"],
+            "patternSwitchInterval": 8,
+            "baseSpeed": 150
+          },
+          "attackPattern": "boss_multi",
+          "attackParams": {
+            "phases": [
+              {
+                "hpThreshold": 200,
+                "patterns": ["radial_8way", "laser_sweep"],
+                "patternInterval": 5,
+                "cycleMode": "alternate"
+              },
+              {
+                "hpThreshold": 100,
+                "patterns": ["radial_8way", "laser_sweep", "homing_triple"],
+                "patternInterval": 4,
+                "cycleMode": "random"
+              },
+              {
+                "hpThreshold": 0,
+                "patterns": ["radial_8way", "laser_sweep", "homing_triple", "wave"],
+                "patternInterval": 3,
+                "cycleMode": "random",
+                "speedMultiplier": 1.5
+              }
+            ],
+            "summon": {
+              "enabled": true,
+              "interval": 30,
+              "minionCount": 2,
+              "minionType": "minion",
+              "spawnPositions": [
+                {"x": 200, "y": 100},
+                {"x": 600, "y": 100}
+              ]
+            }
+          }
+        }
+      },
+      "items": [
+        {
+          "type": "hp_potion",
+          "spawnTiming": "health_threshold",
+          "spawnCondition": {
+            "bossHP": 150
+          },
+          "position": {"x": 400, "y": 300}
+        },
+        {
+          "type": "mp_potion",
+          "spawnTiming": "health_threshold",
+          "spawnCondition": {
+            "bossHP": 100
+          },
+          "position": {"x": 400, "y": 300}
+        }
+      ],
+      "background": {
+        "theme": "throne_room",
+        "scrollSpeed": 10,
+        "layers": [
+          {
+            "name": "far_throne",
+            "parallaxSpeed": 0.2
+          },
+          {
+            "name": "mid_columns",
+            "parallaxSpeed": 0.5
+          },
+          {
+            "name": "near_floor",
+            "parallaxSpeed": 0.8
+          }
+        ],
+        "specialEffects": [
+          "lightning_flashes",
+          "dark_mist"
+        ]
+      },
+      "music": {
+        "track": "boss_theme",
+        "tempo": "epic",
+        "intensity": "high"
+      },
+      "completion": {
+        "condition": "boss_defeated",
+        "reward": {
+          "baseScore": 1000,
+          "noDamageBonus": 500
+        },
+        "nextStage": "victory"
+      }
+    }
+  ],
+  "globalSettings": {
+    "scrollTrigger": "enemy_defeated",
+    "scrollDuration": 2.0,
+    "stageTransitionEffect": "vertical_pan",
+    "itemSpawnArea": {
+      "minX": 100,
+      "maxX": 700,
+      "minY": 200,
+      "maxY": 500
+    },
+    "difficultyScaling": {
+      "enabled": false,
+      "adaptiveDifficulty": false
+    }
+  },
+  "victoryCondition": {
+    "type": "all_stages_clear",
+    "requiredStages": [1, 2, 3, 4, 5]
+  },
+  "defeatCondition": {
+    "type": "no_continues",
+    "maxContinues": 3
+  }
+}
