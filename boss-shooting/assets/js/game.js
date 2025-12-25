@@ -213,7 +213,7 @@ class Game {
                 this.boss.update(dt);
 
                 // 3分間タイマー処理（最終ステージ以外）
-                if (this.stage < 10) {  // 最終ステージ（10）以外
+                if (this.stage < 10 && !this.bossTimeoutProcessing) {  // 最終ステージ（10）以外、かつ処理中でない
                     if (!this.bossStageStartTime) {
                         this.bossStageStartTime = Date.now();
                     }
@@ -222,20 +222,21 @@ class Game {
                     const timeLimit = 180000; // 3分 = 180秒 = 180000ミリ秒
 
                     if (elapsedTime >= timeLimit) {
-                        // 3分経過でステージクリア
+                        // 3分経過でステージクリア（一度だけ実行）
+                        this.bossTimeoutProcessing = true;
                         console.log('3分経過 - ステージクリア！');
-                        this.showMessage('TIME UP! STAGE CLEAR!', 3000);
 
                         // ボスを撤退させる
                         if (this.boss && !this.boss.destroyed) {
                             this.boss.movePattern = 'leaving';
                         }
 
-                        // ステージクリア処理
+                        // ステージクリア処理（onBossDefeatedを呼ぶ）
                         setTimeout(() => {
                             this.boss = null;
                             this.bossStageStartTime = null;
-                            this.onStageClear();
+                            this.bossTimeoutProcessing = false;  // リセット
+                            this.onBossDefeated();  // 既存のボス撃破処理を使用
                         }, 2000);
                     }
                 }
@@ -614,7 +615,10 @@ class Game {
         if (this.processingBossDefeat) return;
         this.processingBossDefeat = true;
 
-        this.createExplosion(this.boss.x, this.boss.y, 'large');
+        // ボスが存在する場合は爆発エフェクト
+        if (this.boss) {
+            this.createExplosion(this.boss.x, this.boss.y, 'large');
+        }
         this.addScore(20000);
 
         document.getElementById('bossHealth').style.display = 'none';
