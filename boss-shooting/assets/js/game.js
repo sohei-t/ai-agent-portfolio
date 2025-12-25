@@ -219,12 +219,12 @@ class Game {
                     }
 
                     const elapsedTime = Date.now() - this.bossStageStartTime;
-                    const timeLimit = 180000; // 3分 = 180秒 = 180000ミリ秒
+                    const timeLimit = 10000; // テスト用: 10秒（本番は180000ミリ秒）
 
                     if (elapsedTime >= timeLimit) {
-                        // 3分経過でステージクリア（一度だけ実行）
+                        // タイムアップでステージクリア（一度だけ実行）
                         this.bossTimeoutProcessing = true;
-                        console.log('3分経過 - ステージクリア！');
+                        console.log('タイムアップ - ステージクリア！');
 
                         // ボスを撤退させる
                         if (this.boss && !this.boss.destroyed) {
