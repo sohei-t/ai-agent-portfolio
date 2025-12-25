@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+        <g transform="translate(64.0,64.0)">
+            <!-- 本体 -->
+            <polygon fill="#ff6600" points="0,-40 28,-28 40,0 28,28 0,40 -28,28 -40,0 -28,-28"
+                     stroke="white" stroke-width="2"/>
+            <!-- 装飾パーツ -->
+            <circle cx="-30" cy="-30" r="8" fill="#ffaa00" stroke="white"/>
+            <circle cx="30" cy="-30" r="8" fill="#ffaa00" stroke="white"/>
+            <circle cx="-30" cy="30" r="8" fill="#ffaa00" stroke="white"/>
+            <circle cx="30" cy="30" r="8" fill="#ffaa00" stroke="white"/>
+            <!-- コア -->
+            <circle cx="0" cy="0" r="10" fill="white" opacity="0.8"/>
+            <circle cx="0" cy="0" r="6" fill="#ff6600"/>
+        </g>
+    </svg>
