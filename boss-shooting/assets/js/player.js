@@ -93,6 +93,14 @@ class Player {
             fire: false
         };
 
+        // 武器レベル管理（MAXアイテム除外用）
+        this.weaponLevels = {
+            default: 1,  // 青色武器（初期レベル1）
+            green: 0,    // 緑色武器
+            purple: 0,   // 紫色武器
+            yellow: 0    // 黄色武器
+        };
+
         // 武器インジケーターの初期化
         setTimeout(() => this.updateWeaponIndicators(), 0);
 
@@ -783,6 +791,7 @@ class Player {
             case 'weapon_default':
                 const oldDefaultLevel = this.weapons.default.level;
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
+                this.weaponLevels.default = this.weapons.default.level;  // weaponLevelsも更新
                 if (this.weapons.default.level > oldDefaultLevel) {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
@@ -795,11 +804,13 @@ class Player {
                 if (!this.weapons.green.equipped) {
                     this.weapons.green.equipped = true;
                     this.weapons.green.level = 1;
+                    this.weaponLevels.green = 1;  // weaponLevelsも更新
                     this.triggerWeaponLevelUpEffect('green');
                     this.updateWeaponIndicators();
                 } else {
                     const oldLevel = this.weapons.green.level;
                     this.weapons.green.level = Math.min(10, this.weapons.green.level + 1);
+                    this.weaponLevels.green = this.weapons.green.level;  // weaponLevelsも更新
                     if (this.weapons.green.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('green');
                         this.updateWeaponIndicators();
@@ -813,11 +824,13 @@ class Player {
                 if (!this.weapons.purple.equipped) {
                     this.weapons.purple.equipped = true;
                     this.weapons.purple.level = 1;
+                    this.weaponLevels.purple = 1;  // weaponLevelsも更新
                     this.triggerWeaponLevelUpEffect('purple');
                     this.updateWeaponIndicators();
                 } else {
                     const oldLevel = this.weapons.purple.level;
                     this.weapons.purple.level = Math.min(10, this.weapons.purple.level + 1);
+                    this.weaponLevels.purple = this.weapons.purple.level;  // weaponLevelsも更新
                     if (this.weapons.purple.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('purple');
                         this.updateWeaponIndicators();
@@ -831,11 +844,13 @@ class Player {
                 if (!this.weapons.yellow.equipped) {
                     this.weapons.yellow.equipped = true;
                     this.weapons.yellow.level = 1;
+                    this.weaponLevels.yellow = 1;  // weaponLevelsも更新
                     this.triggerWeaponLevelUpEffect('yellow');
                     this.updateWeaponIndicators();
                 } else {
                     const oldLevel = this.weapons.yellow.level;
                     this.weapons.yellow.level = Math.min(10, this.weapons.yellow.level + 1);
+                    this.weaponLevels.yellow = this.weapons.yellow.level;  // weaponLevelsも更新
                     if (this.weapons.yellow.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('yellow');
                         this.updateWeaponIndicators();

@@ -55,7 +55,7 @@ class Game {
             weapon_yellow: false
         };
         this.stageItemTimer = 0;  // ステージ開始からの経過時間
-        this.nextItemSpawnTime = 30;  // デバッグ用：0.5秒後に最初のアイテム
+        this.nextItemSpawnTime = 600;  // 10秒後に最初のアイテム
         this.itemSpawnOrder = ['weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'];
         this.currentItemIndex = 0;
 
@@ -161,13 +161,8 @@ class Game {
                     this.addScore(enemy.scoreValue);
                     this.createExplosion(enemy.x, enemy.y, 'small');
 
-                    // デバッグ用：高確率でアイテムドロップ
-                    if (Math.random() < 0.5) {  // 50%の確率
-                        const dropTypes = [
-                            'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow',
-                            'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'  // 武器を多めに
-                        ];
-                        const itemType = dropTypes[Math.floor(Math.random() * dropTypes.length)];
+                    // 通常のアイテムドロップ率
+                    if (Math.random() < 0.1) {  // 10%の確率
                         this.spawnPowerup(enemy.x, enemy.y, false);
                     }
                 }
@@ -313,7 +308,7 @@ class Game {
 
                 // 次のアイテムまでの時間をランダムに設定（10-30秒）
                 this.stageItemTimer = 0;
-                this.nextItemSpawnTime = 30 + Math.random() * 60;  // デバッグ用：0.5-1.5秒間隔
+                this.nextItemSpawnTime = 600 + Math.random() * 600;  // 10-20秒間隔
             }
         }
 
