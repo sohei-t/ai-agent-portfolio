@@ -266,11 +266,34 @@ class Game {
 
             // 定期的にランダムアイテムを出現させる
             if (this.stageItemTimer >= this.nextItemSpawnTime) {
-                // ランダムにアイテムタイプを選択
-                const itemTypes = [
-                    'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow',
-                    'heart', 'bomb', 'shield', 'speed', 'power', 'score', 'option'
-                ];
+                // MAXでない武器のみをリストに追加
+                const itemTypes = [];
+
+                // 各武器のレベルをチェック
+                if (this.player) {
+                    if (this.player.weaponLevels.default < 10) {
+                        itemTypes.push('weapon_default');
+                    }
+                    if (this.player.weaponLevels.green < 10) {
+                        itemTypes.push('weapon_green');
+                    }
+                    if (this.player.weaponLevels.purple < 10) {
+                        itemTypes.push('weapon_purple');
+                    }
+                    if (this.player.weaponLevels.yellow < 10) {
+                        itemTypes.push('weapon_yellow');
+                    }
+                }
+
+                // その他のアイテムは常に追加
+                itemTypes.push('heart', 'bomb', 'shield', 'speed', 'power', 'score', 'option');
+
+                // 武器アイテムがない場合は他のアイテムを増やす
+                if (itemTypes.length === 7) {  // 武器が全てMAXの場合
+                    // 回復・ボム・シールドの出現率を上げる
+                    itemTypes.push('heart', 'bomb', 'shield');
+                }
+
                 const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
 
                 // 画面上部のランダムな位置に出現
@@ -540,24 +563,56 @@ class Game {
         if (typeof Powerup !== 'undefined') {
             let type;
 
-            // 有効なアイテムタイプのみ使用（4色の武器システム復活）
-            const validItemTypes = [
-                'weapon_default', 'weapon_default', 'weapon_default',  // 青武器（水色・四角）
-                'weapon_green', 'weapon_green',  // 緑武器（緑・四角）
-                'weapon_purple', 'weapon_purple',  // 紫武器（紫・四角）
-                'weapon_yellow', 'weapon_yellow',  // 黄武器（黄・四角）
-                'item-bomb', 'item-bomb',  // ボム（赤・爆弾型）
-                'item-life', 'item-life',  // ライフ（赤・ハート型）
-                'shield'  // シールド（赤・盾型）
-            ];
+            // MAXでない武器のみをリストに追加
+            const validItemTypes = [];
+
+            // 各武器のレベルをチェック（MAXでない武器のみ追加）
+            if (this.player) {
+                if (this.player.weaponLevels.default < 10) {
+                    validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');  // 青武器（3枚）
+                }
+                if (this.player.weaponLevels.green < 10) {
+                    validItemTypes.push('weapon_green', 'weapon_green');  // 緑武器（2枚）
+                }
+                if (this.player.weaponLevels.purple < 10) {
+                    validItemTypes.push('weapon_purple', 'weapon_purple');  // 紫武器（2枚）
+                }
+                if (this.player.weaponLevels.yellow < 10) {
+                    validItemTypes.push('weapon_yellow', 'weapon_yellow');  // 黄武器（2枚）
+                }
+            }
+
+            // その他のアイテムは常に追加
+            validItemTypes.push('item-bomb', 'item-bomb');  // ボム（2枚）
+            validItemTypes.push('item-life', 'item-life');  // ライフ（2枚）
+            validItemTypes.push('shield');  // シールド（1枚）
 
             if (forceWeapon) {
-                // ボス戦中は武器アイテムを優先
-                const weaponTypes = ['weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'];
-                type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                // ボス戦中は武器アイテムを優先（MAXでない武器のみ）
+                const weaponTypes = [];
+                if (this.player) {
+                    if (this.player.weaponLevels.default < 10) weaponTypes.push('weapon_default');
+                    if (this.player.weaponLevels.green < 10) weaponTypes.push('weapon_green');
+                    if (this.player.weaponLevels.purple < 10) weaponTypes.push('weapon_purple');
+                    if (this.player.weaponLevels.yellow < 10) weaponTypes.push('weapon_yellow');
+                }
+
+                // MAXでない武器がある場合はそれを出現
+                if (weaponTypes.length > 0) {
+                    type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                } else {
+                    // 全武器MAXの場合は他のアイテムから選択
+                    const otherTypes = ['item-bomb', 'item-life', 'shield'];
+                    type = otherTypes[Math.floor(Math.random() * otherTypes.length)];
+                }
             } else {
-                // 通常時：ランダムに選択
-                type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];
+                // 通常時：ランダムに選択（ただし出現可能なもののみ）
+                if (validItemTypes.length > 0) {
+                    type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];
+                } else {
+                    // 何もない場合は生命力アイテム
+                    type = 'item-life';
+                }
             }
 
             const powerup = new Powerup(x, y, type);

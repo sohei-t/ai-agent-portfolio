@@ -15,8 +15,9 @@ function checkCollisions(game) {
                     // ダメージ処理
                     enemy.takeDamage(bullet.power);
 
+                    // 超強力武器（ドラゴンブレス）とチャージレーザーは貫通
                     // 貫通弾でない場合は弾を削除
-                    if (!bullet.penetrating) {
+                    if (!bullet.penetrating && bullet.type !== 'ultimate_dragon') {
                         game.bullets.splice(i, 1);
                         break;
                     }
@@ -60,6 +61,18 @@ function checkCollisions(game) {
                 const enemyBullet = game.bullets[j];
 
                 if (enemyBullet && enemyBullet.owner === 'enemy') {
+                    // 超強力武器（ultimate_dragon, ultimate_omni）は全ての敵弾を相殺
+                    if (playerBullet.type === 'ultimate_dragon' || playerBullet.type === 'ultimate_omni') {
+                        if (isColliding(playerBullet, enemyBullet)) {
+                            // 敵弾を破壊（超強力武器は貫通）
+                            if (game.createExplosion) {
+                                game.createExplosion(enemyBullet.x, enemyBullet.y, 'small');
+                            }
+                            game.bullets.splice(j, 1);
+                        }
+                        continue; // 超強力武器は次の敵弾もチェック
+                    }
+
                     // レーザー（大型赤色弾）のみ相殺不可
                     // ホーミング弾は相殺可能に変更
                     if (enemyBullet.type === 'laser') {

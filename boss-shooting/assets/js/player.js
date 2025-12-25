@@ -1016,7 +1016,7 @@ class Player {
     }
 
     fireUltimateWeapon() {
-        // 超強力武器の発射（ドラゴンブレス）
+        // 超強力武器の発射（ドラゴンブレス + 全方位ビーム）
         if (!this.ultimateWeaponUnlocked) return;
 
         const now = Date.now();
@@ -1024,7 +1024,56 @@ class Player {
         if (now - this.lastUltimateFire < 50) return; // 超高速連射
         this.lastUltimateFire = now;
 
-        // ドラゴン型の巨大ビーム
+        // 1. 全方位ビーム（青色MAX時の効果を継続）
+        const directions = 16; // 16方向
+        for (let i = 0; i < directions; i++) {
+            const angle = (Math.PI * 2 / directions) * i;
+            const speed = 15;
+
+            const omniBeam = {
+                x: this.x,
+                y: this.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                width: 20,
+                height: 20,
+                power: 10,  // 全方位ビームのダメージ
+                damage: 10,
+                owner: 'player',
+                type: 'ultimate_omni',  // 全方位ビームタイプ
+                color: '#00ffff',
+                penetrating: true,  // 貫通
+
+                update(dt) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                },
+
+                render(ctx) {
+                    ctx.save();
+                    ctx.fillStyle = this.color;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                },
+
+                getHitbox() {
+                    return {
+                        x: this.x - this.width / 2,
+                        y: this.y - this.height / 2,
+                        width: this.width,
+                        height: this.height
+                    };
+                }
+            };
+
+            this.game.bullets.push(omniBeam);
+        }
+
+        // 2. ドラゴン型の巨大ビーム（前方超火力）
         const bullet = {
             x: this.x,
             y: this.y - 30,
@@ -1032,11 +1081,12 @@ class Player {
             vy: -20,
             width: 80,  // 巨大
             height: 100,
+            power: 50,  // 超高ダメージ
             damage: 50,  // 超高ダメージ
             owner: 'player',
             type: 'ultimate_dragon',
             color: '#ff00ff',
-            piercing: true,  // 貫通
+            penetrating: true,  // 貫通
 
             update(dt) {
                 this.y += this.vy;
