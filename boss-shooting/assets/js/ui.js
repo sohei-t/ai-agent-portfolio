@@ -45,15 +45,15 @@ function updateUI(game) {
     if (bossTimerElement) {
         if (game.boss && game.stage < 10 && game.bossStageStartTime) {
             const elapsedTime = Date.now() - game.bossStageStartTime;
-            const timeLimit = 180000; // 3分
+            const timeLimit = 10000; // テスト用: 10秒（本番は180000）
             const remainingTime = Math.max(0, timeLimit - elapsedTime);
 
             const minutes = Math.floor(remainingTime / 60000);
             const seconds = Math.floor((remainingTime % 60000) / 1000);
 
             let timerColor = '#00ff00';  // 緑
-            if (remainingTime <= 30000) timerColor = '#ff0000';  // 30秒以下は赤
-            else if (remainingTime <= 60000) timerColor = '#ffaa00';  // 1分以下は黄色
+            if (remainingTime <= 3000) timerColor = '#ff0000';  // 3秒以下は赤
+            else if (remainingTime <= 5000) timerColor = '#ffaa00';  // 5秒以下は黄色
 
             bossTimerElement.innerHTML = `<span style="color: ${timerColor}; font-size: 20px; font-weight: bold;">TIME: ${minutes}:${seconds.toString().padStart(2, '0')}</span>`;
             bossTimerElement.style.display = 'block';
