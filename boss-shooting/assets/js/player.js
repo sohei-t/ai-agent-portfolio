@@ -765,7 +765,15 @@ class Player {
 
     powerUp(type) {
         switch (type) {
-            // デフォルト武器レベルアップ
+            // 武器レベルアップ（統合版）
+            case 'weapon_level':
+                // 現在のweapon.levelを上げる
+                this.weapon.level = Math.min(10, this.weapon.level + 1);
+                this.triggerWeaponLevelUpEffect('default');
+                this.updateWeaponIndicators();
+                break;
+
+            // デフォルト武器レベルアップ（後方互換性のため残す）
             case 'weapon_default':
                 const oldDefaultLevel = this.weapons.default.level;
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
@@ -857,6 +865,15 @@ class Player {
                 }
                 break;
 
+            // シールド追加
+            case 'shield':
+                this.shield = Math.min(this.shield + 1, 3); // 最大3枚のシールド
+                console.log('シールド獲得！現在のシールド:', this.shield);
+                if (this.game && this.game.createExplosion) {
+                    this.game.createExplosion(this.x, this.y, 'shield');
+                }
+                break;
+
             // オプション機体追加
             case 'option':
                 if (this.options.length < this.maxOptions) {
@@ -936,13 +953,95 @@ class Player {
         console.log(`爆弾発動！レベル${bombLevel} ダメージ:${damage}`);
 
         // 画面全体のフラッシュエフェクト
-        if (typeof createScreenFlash === 'function') {
-            createScreenFlash();
-        }
+        this.createBombEffect();
+
+        // 画面全体に稲妻エフェクト
+        this.createLightningEffect();
 
         if (typeof playSFX === 'function') {
             playSFX('bomb');
         }
+    }
+
+    createBombEffect() {
+        // 画面全体を白くフラッシュ
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+        let flashIntensity = 1.0;
+        let flashCount = 0;
+        const maxFlashes = 3;
+
+        const flashInterval = setInterval(() => {
+            if (flashCount >= maxFlashes) {
+                clearInterval(flashInterval);
+                return;
+            }
+
+            // 画面全体を白でオーバーレイ
+            ctx.save();
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            flashIntensity *= 0.5; // 段々薄くなる
+            flashCount++;
+        }, 50); // 50msごとにフラッシュ
+    }
+
+    createLightningEffect() {
+        // 稲妻エフェクトを画面に追加
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+        const lightning = [];
+
+        // ランダムな稲妻を生成
+        for (let i = 0; i < 5; i++) {
+            const startX = Math.random() * canvas.width;
+            const startY = 0;
+            const endX = startX + (Math.random() - 0.5) * 200;
+            const endY = canvas.height;
+
+            lightning.push({ startX, startY, endX, endY, life: 10 });
+        }
+
+        // 稲妻を描画
+        const drawLightning = () => {
+            lightning.forEach((bolt, index) => {
+                if (bolt.life <= 0) {
+                    lightning.splice(index, 1);
+                    return;
+                }
+
+                ctx.save();
+                ctx.strokeStyle = `rgba(255, 255, 255, ${bolt.life / 10})`;
+                ctx.lineWidth = Math.random() * 3 + 2;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#00ffff';
+
+                ctx.beginPath();
+                ctx.moveTo(bolt.startX, bolt.startY);
+
+                // ジグザグパス
+                const segments = 8;
+                for (let j = 1; j <= segments; j++) {
+                    const progress = j / segments;
+                    const x = bolt.startX + (bolt.endX - bolt.startX) * progress + (Math.random() - 0.5) * 40;
+                    const y = bolt.startY + (bolt.endY - bolt.startY) * progress;
+                    ctx.lineTo(x, y);
+                }
+
+                ctx.stroke();
+                ctx.restore();
+
+                bolt.life--;
+            });
+
+            if (lightning.length > 0) {
+                requestAnimationFrame(drawLightning);
+            }
+        };
+
+        drawLightning();
     }
 
     render(ctx) {

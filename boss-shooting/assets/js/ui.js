@@ -45,17 +45,33 @@ function updateUI(game) {
     if (bossTimerElement) {
         if (game.boss && game.stage < 10 && game.bossStageStartTime) {
             const elapsedTime = Date.now() - game.bossStageStartTime;
-            const timeLimit = 10000; // テスト用: 10秒（本番は180000）
+            const timeLimit = 180000; // 3分（180秒）
             const remainingTime = Math.max(0, timeLimit - elapsedTime);
 
             const minutes = Math.floor(remainingTime / 60000);
             const seconds = Math.floor((remainingTime % 60000) / 1000);
 
             let timerColor = '#00ff00';  // 緑
-            if (remainingTime <= 3000) timerColor = '#ff0000';  // 3秒以下は赤
-            else if (remainingTime <= 5000) timerColor = '#ffaa00';  // 5秒以下は黄色
+            if (remainingTime <= 30000) timerColor = '#ff0000';  // 30秒以下は赤
+            else if (remainingTime <= 60000) timerColor = '#ffaa00';  // 60秒以下は黄色
 
-            bossTimerElement.innerHTML = `<span style="color: ${timerColor}; font-size: 20px; font-weight: bold;">TIME: ${minutes}:${seconds.toString().padStart(2, '0')}</span>`;
+            // 視認性を高めるために大きくて目立つ表示
+            bossTimerElement.innerHTML = `
+                <div style="
+                    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(50,0,0,0.8));
+                    border: 2px solid ${timerColor};
+                    border-radius: 8px;
+                    padding: 8px 15px;
+                    box-shadow: 0 0 20px ${timerColor};
+                ">
+                    <span style="color: #ffff00; font-size: 14px; display: block; margin-bottom: 2px;">
+                        🛡️ 3分耐えればクリア！
+                    </span>
+                    <span style="color: ${timerColor}; font-size: 28px; font-weight: bold; text-shadow: 0 0 10px ${timerColor};">
+                        ⏰ ${minutes}:${seconds.toString().padStart(2, '0')}
+                    </span>
+                </div>
+            `;
             bossTimerElement.style.display = 'block';
         } else if (game.boss && game.stage >= 10) {
             // 最終ステージはタイマーなし

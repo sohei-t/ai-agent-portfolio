@@ -29,48 +29,67 @@ class Powerup {
 
     setupType() {
         const types = {
-            // デフォルト武器レベルアップ（水色）
+            // 武器レベルアップ（青色・四角）- 統合版
+            'weapon_level': {
+                color: '#00ffff',
+                shape: 'square',
+                icon: 'W',
+                description: 'Weapon Level Up'
+            },
+            // ボムアイテム（赤色・爆弾マーク）
+            'item-bomb': {
+                color: '#ff0066',
+                shape: 'bomb',
+                icon: '💣',
+                description: 'Bomb +1'
+            },
+            // HP回復（赤色・ハート）
+            'item-life': {
+                color: '#ff0066',
+                shape: 'heart',
+                icon: '❤',
+                description: 'Life +1'
+            },
+            // シールド（赤色・盾形）
+            'shield': {
+                color: '#ff0066',
+                shape: 'shield',
+                icon: '🛡',
+                description: 'Shield'
+            },
+
+            // 以下は後方互換性のため残す（使わない）
             weapon_default: {
                 color: '#00ffff',
-                icon: 'B',
-                description: 'Beam Level Up'
-            },
-            // 緑武器レベルアップ
-            weapon_green: {
-                color: '#00ff00',
-                icon: 'S',
-                description: 'Spread Level Up'
-            },
-            // 紫武器レベルアップ
-            weapon_purple: {
-                color: '#ff00ff',
-                icon: 'L',
-                description: 'Laser Level Up'
-            },
-            // 黄色武器レベルアップ
-            weapon_yellow: {
-                color: '#ffff00',
+                shape: 'square',
                 icon: 'W',
-                description: 'Wave Level Up'
+                description: 'Weapon Level Up'
             },
-            // HP回復（ハートマーク）
-            heart: {
-                color: '#ff0066',
-                icon: '❤',
-                description: 'HP Recovery'
-            },
-            // オプション機体
-            option: {
+            weapon_green: {
                 color: '#00ffff',
-                icon: 'O',
-                description: 'Option Unit'
+                shape: 'square',
+                icon: 'W',
+                description: 'Weapon Level Up'
+            },
+            weapon_purple: {
+                color: '#00ffff',
+                shape: 'square',
+                icon: 'W',
+                description: 'Weapon Level Up'
+            },
+            weapon_yellow: {
+                color: '#00ffff',
+                shape: 'square',
+                icon: 'W',
+                description: 'Weapon Level Up'
             }
         };
 
-        const config = types[this.type] || types.weapon_default;
+        const config = types[this.type] || types.weapon_level;
         this.color = config.color;
         this.icon = config.icon;
         this.description = config.description;
+        this.shape = config.shape || 'square';
     }
 
     update(dt) {
@@ -145,17 +164,13 @@ class Powerup {
         ctx.lineWidth = 2;
         ctx.globalAlpha = glowIntensity;
 
-        // アイテムタイプ別の形状描画
-        switch (this.type) {
-            case 'weapon':
-                // 稲妻型（攻撃的な形状）
+        // アイテムタイプ別の形状描画（shapeプロパティを優先）
+        const shapeType = this.shape || this.type;
+        switch (shapeType) {
+            case 'square':
+                // 四角形（武器アイテム用）
                 ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(-this.width / 4, -this.height / 6);
-                ctx.lineTo(this.width / 6, -this.height / 6);
-                ctx.lineTo(-this.width / 6, this.height / 6);
-                ctx.lineTo(this.width / 4, this.height / 6);
-                ctx.lineTo(0, this.height / 2);
+                ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
                 ctx.closePath();
                 break;
 

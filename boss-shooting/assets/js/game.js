@@ -219,7 +219,7 @@ class Game {
                     }
 
                     const elapsedTime = Date.now() - this.bossStageStartTime;
-                    const timeLimit = 10000; // テスト用: 10秒（本番は180000ミリ秒）
+                    const timeLimit = 180000; // 3分（180秒）
 
                     if (elapsedTime >= timeLimit) {
                         // タイムアップでステージクリア（一度だけ実行）
@@ -533,23 +533,17 @@ class Game {
         if (typeof Powerup !== 'undefined') {
             let type;
 
-            // 有効なアイテムタイプのみ使用
+            // 有効なアイテムタイプのみ使用（シンプル化）
             const validItemTypes = [
-                'weapon_default', 'weapon_default', 'weapon_default',  // 青武器（多め）
-                'weapon_green', 'weapon_green',  // 緑武器
-                'weapon_purple', 'weapon_purple',  // 紫武器
-                'weapon_yellow', 'weapon_yellow',  // 黄武器
-                'item-life', 'item-life',  // 残機増加（ハート）
-                'item-bomb', 'item-bomb',  // 爆弾レベルアップ
+                'weapon_level', 'weapon_level', 'weapon_level', 'weapon_level',  // 武器レベルアップ（青・四角）
+                'item-bomb', 'item-bomb',  // ボム（赤・爆弾型）
+                'item-life', 'item-life',  // ライフ（赤・ハート型）
+                'shield'  // シールド（赤・盾型）
             ];
 
             if (forceWeapon) {
                 // ボス戦中は武器アイテムを優先
-                const weaponTypes = [
-                    'weapon_default', 'weapon_default', 'weapon_default',
-                    'weapon_green', 'weapon_purple', 'weapon_yellow'
-                ];
-                type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                type = 'weapon_level';
             } else {
                 // 通常時：ランダムに選択
                 type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];
