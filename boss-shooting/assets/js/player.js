@@ -228,6 +228,12 @@ class Player {
     fire() {
         const now = Date.now();
 
+        // 超強力武器が解放されている場合は優先的に発射
+        if (this.ultimateWeaponUnlocked) {
+            this.fireUltimateWeapon();
+            return;
+        }
+
         // 装備中の全武器から発射（新システム）
         if (typeof WeaponSystems !== 'undefined') {
             // 各武器を個別の発射間隔で管理
@@ -780,6 +786,7 @@ class Player {
                 if (this.weapons.default.level > oldDefaultLevel) {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
+                    this.checkUltimateWeapon();
                 }
                 break;
 
@@ -796,6 +803,7 @@ class Player {
                     if (this.weapons.green.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('green');
                         this.updateWeaponIndicators();
+                        this.checkUltimateWeapon();
                     }
                 }
                 break;
@@ -813,6 +821,7 @@ class Player {
                     if (this.weapons.purple.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('purple');
                         this.updateWeaponIndicators();
+                        this.checkUltimateWeapon();
                     }
                 }
                 break;
@@ -830,6 +839,7 @@ class Player {
                     if (this.weapons.yellow.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('yellow');
                         this.updateWeaponIndicators();
+                        this.checkUltimateWeapon();
                     }
                 }
                 break;
@@ -961,6 +971,152 @@ class Player {
         if (typeof playSFX === 'function') {
             playSFX('bomb');
         }
+    }
+
+    checkUltimateWeapon() {
+        // 全武器がMAX(レベル10)かチェック
+        const allMaxLevel =
+            this.weapons.default.level >= 10 &&
+            this.weapons.green.equipped && this.weapons.green.level >= 10 &&
+            this.weapons.purple.equipped && this.weapons.purple.level >= 10 &&
+            this.weapons.yellow.equipped && this.weapons.yellow.level >= 10;
+
+        if (allMaxLevel && !this.ultimateWeaponUnlocked) {
+            this.ultimateWeaponUnlocked = true;
+            console.log('🔥🔥🔥 ULTIMATE WEAPON UNLOCKED! 🔥🔥🔥');
+
+            // 画面全体にエフェクト
+            this.createUltimateUnlockEffect();
+        }
+    }
+
+    createUltimateUnlockEffect() {
+        // 超強力武器解放時のエフェクト
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+
+        // 虹色のフラッシュ
+        let flashCount = 0;
+        const colors = ['#ff0000', '#ff7700', '#ffff00', '#00ff00', '#0099ff', '#ff00ff'];
+
+        const flashInterval = setInterval(() => {
+            if (flashCount >= 6) {
+                clearInterval(flashInterval);
+                return;
+            }
+
+            ctx.save();
+            ctx.fillStyle = colors[flashCount % colors.length];
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            flashCount++;
+        }, 100);
+    }
+
+    fireUltimateWeapon() {
+        // 超強力武器の発射（ドラゴンブレス）
+        if (!this.ultimateWeaponUnlocked) return;
+
+        const now = Date.now();
+        if (now - this.lastUltimateFire < 50) return; // 超高速連射
+        this.lastUltimateFire = now;
+
+        // ドラゴン型の巨大ビーム
+        const bullet = {
+            x: this.x,
+            y: this.y - 30,
+            vx: 0,
+            vy: -20,
+            width: 80,  // 巨大
+            height: 100,
+            damage: 50,  // 超高ダメージ
+            owner: 'player',
+            type: 'ultimate_dragon',
+            color: '#ff00ff',
+            piercing: true,  // 貫通
+
+            update(dt) {
+                this.y += this.vy;
+                // 炎のエフェクトを追加
+                this.createFlameParticles();
+            },
+
+            createFlameParticles() {
+                // 炎のパーティクル
+                if (Math.random() < 0.8) {
+                    const particle = {
+                        x: this.x + (Math.random() - 0.5) * this.width,
+                        y: this.y + this.height / 2,
+                        vx: (Math.random() - 0.5) * 5,
+                        vy: Math.random() * 3 + 2,
+                        size: Math.random() * 10 + 5,
+                        color: Math.random() > 0.5 ? '#ff6600' : '#ffaa00',
+                        life: 30
+                    };
+                    if (this.game && this.game.particles) {
+                        this.game.particles.push(particle);
+                    }
+                }
+            },
+
+            render(ctx) {
+                ctx.save();
+
+                // ドラゴンの頭部
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = this.color;
+
+                // 本体（ドラゴンの形）
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.width/2, this.y + this.height/3);
+                ctx.quadraticCurveTo(this.x - this.width/3, this.y + this.height/2,
+                                     this.x - this.width/4, this.y + this.height);
+                ctx.lineTo(this.x + this.width/4, this.y + this.height);
+                ctx.quadraticCurveTo(this.x + this.width/3, this.y + this.height/2,
+                                     this.x + this.width/2, this.y + this.height/3);
+                ctx.closePath();
+                ctx.fill();
+
+                // 目
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(this.x - 15, this.y + 20, 5, 0, Math.PI * 2);
+                ctx.arc(this.x + 15, this.y + 20, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 炎のブレス
+                const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y - 100);
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 0.8)');
+                gradient.addColorStop(0.5, 'rgba(255, 165, 0, 0.6)');
+                gradient.addColorStop(1, 'rgba(255, 255, 0, 0.3)');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - 40, this.y - 100);
+                ctx.lineTo(this.x + 40, this.y - 100);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            },
+
+            getHitbox() {
+                return {
+                    x: this.x - this.width / 2,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height
+                };
+            }
+        };
+
+        bullet.game = this.game;
+        this.game.bullets.push(bullet);
     }
 
     createBombEffect() {

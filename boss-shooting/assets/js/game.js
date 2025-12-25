@@ -533,9 +533,12 @@ class Game {
         if (typeof Powerup !== 'undefined') {
             let type;
 
-            // 有効なアイテムタイプのみ使用（シンプル化）
+            // 有効なアイテムタイプのみ使用（4色の武器システム復活）
             const validItemTypes = [
-                'weapon_level', 'weapon_level', 'weapon_level', 'weapon_level',  // 武器レベルアップ（青・四角）
+                'weapon_default', 'weapon_default', 'weapon_default',  // 青武器（水色・四角）
+                'weapon_green', 'weapon_green',  // 緑武器（緑・四角）
+                'weapon_purple', 'weapon_purple',  // 紫武器（紫・四角）
+                'weapon_yellow', 'weapon_yellow',  // 黄武器（黄・四角）
                 'item-bomb', 'item-bomb',  // ボム（赤・爆弾型）
                 'item-life', 'item-life',  // ライフ（赤・ハート型）
                 'shield'  // シールド（赤・盾型）
@@ -543,7 +546,8 @@ class Game {
 
             if (forceWeapon) {
                 // ボス戦中は武器アイテムを優先
-                type = 'weapon_level';
+                const weaponTypes = ['weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'];
+                type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
             } else {
                 // 通常時：ランダムに選択
                 type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];

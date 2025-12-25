@@ -58,30 +58,30 @@ class Powerup {
                 description: 'Shield'
             },
 
-            // 以下は後方互換性のため残す（使わない）
+            // 4色の武器システム
             weapon_default: {
-                color: '#00ffff',
+                color: '#00ffff',  // 水色
                 shape: 'square',
-                icon: 'W',
-                description: 'Weapon Level Up'
+                icon: 'B',
+                description: 'Beam Level Up'
             },
             weapon_green: {
-                color: '#00ffff',
+                color: '#00ff00',  // 緑
                 shape: 'square',
-                icon: 'W',
-                description: 'Weapon Level Up'
+                icon: 'S',
+                description: 'Spread Level Up'
             },
             weapon_purple: {
-                color: '#00ffff',
+                color: '#ff00ff',  // 紫
                 shape: 'square',
-                icon: 'W',
-                description: 'Weapon Level Up'
+                icon: 'L',
+                description: 'Laser Level Up'
             },
             weapon_yellow: {
-                color: '#00ffff',
+                color: '#ffff00',  // 黄色
                 shape: 'square',
                 icon: 'W',
-                description: 'Weapon Level Up'
+                description: 'Wave Level Up'
             }
         };
 
