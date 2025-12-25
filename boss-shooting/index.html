@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Space Odyssey - Boss Shooting Game</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect fill='%23000' width='16' height='16'/><polygon fill='%2300ffff' points='8,2 4,14 8,11 12,14'/></svg>"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: white;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+        }
+
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #gameCanvas {
+            background: #000;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .ui-element {
+            position: absolute;
+            pointer-events: auto;
+        }
+
+        #score {
+            top: 40px;
+            left: 10px;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+
+        #lives {
+            top: 40px;
+            right: 10px;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+
+        #weaponLevel {
+            bottom: 150px;
+            left: 10px;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+
+        #bombs {
+            bottom: 150px;
+            right: 10px;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+
+        /* 武器レベルインジケーター */
+        .weapon-indicators {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            border-radius: 10px;
+        }
+
+        .weapon-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 5px;
+            min-width: 60px;
+            transition: all 0.3s;
+        }
+
+        .weapon-indicator.inactive {
+            opacity: 0.3;
+            filter: grayscale(0.7);
+        }
+
+        #weapon-default {
+            background: linear-gradient(135deg, #00ffff, #0099cc);
+            box-shadow: 0 2px 10px rgba(0, 255, 255, 0.5);
+        }
+
+        #weapon-green {
+            background: linear-gradient(135deg, #00ff00, #009900);
+            box-shadow: 0 2px 10px rgba(0, 255, 0, 0.5);
+        }
+
+        #weapon-purple {
+            background: linear-gradient(135deg, #ff00ff, #990099);
+            box-shadow: 0 2px 10px rgba(255, 0, 255, 0.5);
+        }
+
+        #weapon-yellow {
+            background: linear-gradient(135deg, #ffff00, #cc9900);
+            box-shadow: 0 2px 10px rgba(255, 255, 0, 0.5);
+        }
+
+        .weapon-indicator .weapon-name {
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            margin-bottom: 4px;
+        }
+
+        .weapon-indicator .weapon-level {
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        #bossHealth {
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff0000;
+            display: none;
+        }
+
+        #bossHealthBar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff6600);
+            transition: width 0.3s;
+            width: 100%;
+        }
+
+        #virtualJoystick {
+            bottom: 60px;
+            left: 20px;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: none;
+            touch-action: none;
+            z-index: 1000;
+            position: fixed;
+        }
+
+        #joystickKnob {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        #controlModeToggle {
+            bottom: 60px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffff;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: none;
+            border-radius: 5px;
+            z-index: 1000;
+            position: fixed;
+            font-weight: bold;
+        }
+
+        #titleScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, #000428 0%, #004e92 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #titleScreen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0, 255, 255, 0.5);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 3px 3px 6px rgba(0, 255, 255, 0.5); }
+            50% { text-shadow: 3px 3px 20px rgba(0, 255, 255, 0.8); }
+        }
+
+        .menu-button {
+            margin: 10px;
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            border: none;
+            color: #000;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .menu-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 255, 255, 0.5);
+        }
+
+        #difficultySelect {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, #000428 0%, #004e92 100%);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .difficulty-button {
+            margin: 10px;
+            padding: 15px 40px;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 200px;
+            transition: transform 0.2s;
+        }
+
+        .difficulty-button.easy {
+            background: linear-gradient(90deg, #56ab2f, #a8e063);
+        }
+
+        .difficulty-button.normal {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .difficulty-button.hard {
+            background: linear-gradient(90deg, #f093fb, #f5576c);
+        }
+
+        .difficulty-button.expert {
+            background: linear-gradient(90deg, #fa709a, #fee140);
+        }
+
+        #itemGuideScreen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, #000428 0%, #004e92 100%);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        #itemGuideScreen h2 {
+            color: #00ffff;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+
+        #itemGuideScreen h3 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        #itemGuideScreen p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            gap: 10px;
+        }
+
+        .item-row canvas {
+            display: inline-block;
+            vertical-align: middle;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        #gameOverScreen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 998;
+        }
+
+        #gameOverScreen h2 {
+            font-size: 48px;
+            color: #ff0000;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(255, 0, 0, 0.5);
+        }
+
+        #pauseIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: white;
+            display: none;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            z-index: 500;
+        }
+
+        /* スマホ用の調整 */
+        @media (max-width: 768px) {
+            #titleScreen h1 {
+                font-size: 28px;
+            }
+
+            .menu-button {
+                font-size: 14px;
+                padding: 10px 25px;
+            }
+        }
+
+        /* 横向き対応 */
+        @media (orientation: landscape) and (max-height: 600px) {
+            #virtualJoystick {
+                bottom: 10px;
+                left: 10px;
+                width: 80px;
+                height: 80px;
+            }
+
+            #controlModeToggle {
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+
+        /* 点滅アニメーション（残機が少ない時用） */
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .blinking {
+            animation: blink 0.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui">
+            <div id="score" class="ui-element">SCORE: 0</div>
+            <div id="lives" class="ui-element">❤️❤️❤️</div>
+            <div id="playerHp" class="ui-element">HP: ████████████████████ 100%</div>
+            <div id="bossTimer" class="ui-element" style="display: none;">TIME: 3:00</div>
+            <!-- 武器レベルインジケーター -->
+            <div id="weaponIndicators" class="ui-element weapon-indicators">
+                <div class="weapon-indicator" id="weapon-default" data-weapon="default">
+                    <span class="weapon-name">BEAM</span>
+                    <span class="weapon-level">LV1</span>
+                </div>
+                <div class="weapon-indicator inactive" id="weapon-green" data-weapon="green">
+                    <span class="weapon-name">SPREAD</span>
+                    <span class="weapon-level">--</span>
+                </div>
+                <div class="weapon-indicator inactive" id="weapon-purple" data-weapon="purple">
+                    <span class="weapon-name">LASER</span>
+                    <span class="weapon-level">--</span>
+                </div>
+                <div class="weapon-indicator inactive" id="weapon-yellow" data-weapon="yellow">
+                    <span class="weapon-name">WAVE</span>
+                    <span class="weapon-level">--</span>
+                </div>
+            </div>
+            <div id="chargeIndicator" class="ui-element" style="display: none;">CHARGE: ▯▯▯▯▯▯▯▯▯▯▯▯▯▯▯ 0%</div>
+            <div id="bombs" class="ui-element">💣 x3</div>
+
+            <div id="bossHealth" class="ui-element">
+                <div id="bossHealthBar"></div>
+            </div>
+
+            <div id="virtualJoystick" class="ui-element">
+                <div id="joystickKnob"></div>
+            </div>
+
+            <button id="controlModeToggle" class="ui-element" onclick="toggleControlMode()">🕹️ ジョイスティック</button>
+        </div>
+
+        <div id="pauseIndicator">PAUSED</div>
+
+        <div id="titleScreen">
+            <h1>SPACE ODYSSEY</h1>
+            <button class="menu-button" onclick="showDifficulty()">START GAME</button>
+            <button class="menu-button" onclick="showSettings()">SETTINGS</button>
+            <button class="menu-button" onclick="showHighScores()">HIGH SCORES</button>
+            <button class="menu-button" onclick="showAchievements()">ACHIEVEMENTS</button>
+            <button class="menu-button" onclick="showItemGuide()">ITEM GUIDE</button>
+        </div>
+
+        <div id="difficultySelect">
+            <h2>SELECT DIFFICULTY</h2>
+            <button class="difficulty-button easy" onclick="startGame('easy')">EASY<br>Enemy HP -30%, Life 5</button>
+            <button class="difficulty-button normal" onclick="startGame('normal')">NORMAL<br>Standard, Life 3</button>
+            <button class="difficulty-button hard" onclick="startGame('hard')">HARD<br>Enemy HP +50%, Life 2</button>
+            <button class="difficulty-button expert" onclick="startGame('expert')">EXPERT<br>Enemy HP +100%, Life 1</button>
+            <button class="menu-button" onclick="backToTitle()">BACK</button>
+        </div>
+
+        <div id="itemGuideScreen">
+            <h2>ITEM GUIDE</h2>
+            <div style="max-height: 60vh; overflow-y: auto; text-align: left; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; width: 80%; max-width: 600px;">
+                <h3 style="color: #00ffff;">基本パワーアップ</h3>
+                <div class="item-row"><canvas id="item-weapon" width="30" height="30"></canvas> <span style="color: #ffff00;">黄色 (Weapon)</span> - 武器レベルアップ (最大LV5)</div>
+                <div class="item-row"><canvas id="item-life" width="30" height="30"></canvas> <span style="color: #ff0066;">赤 (Life)</span> - ライフ+1</div>
+                <div class="item-row"><canvas id="item-bomb" width="30" height="30"></canvas> <span style="color: #ff6600;">オレンジ (Bomb)</span> - ボム+1 (画面内の敵弾消去＋ダメージ)</div>
+                <div class="item-row"><canvas id="item-shield" width="30" height="30"></canvas> <span style="color: #00ffff;">水色 (Shield)</span> - シールド (一回攻撃を防ぐ)</div>
+
+                <h3 style="color: #00ffff;">ブースト系 (10秒間)</h3>
+                <div class="item-row"><canvas id="item-speed" width="30" height="30"></canvas> <span style="color: #00ff00;">緑 (Speed)</span> - 移動速度アップ</div>
+                <div class="item-row"><canvas id="item-power" width="30" height="30"></canvas> <span style="color: #ff00ff;">紫 (Power)</span> - 攻撃力1.5倍</div>
+                <div class="item-row"><canvas id="item-score" width="30" height="30"></canvas> <span style="color: #ffaa00;">金 (Score)</span> - スコア2倍</div>
+
+                <h3 style="color: #00ffff;">武器タイプ</h3>
+                <div class="item-row"><canvas id="item-spread" width="30" height="30"></canvas> <span style="color: #ff9900;">🔥 Spread</span> - 拡散弾 (広範囲攻撃)</div>
+                <div class="item-row"><canvas id="item-laser" width="30" height="30"></canvas> <span style="color: #00ff99;">⚔️ Laser</span> - レーザー (貫通)</div>
+                <div class="item-row"><canvas id="item-homing" width="30" height="30"></canvas> <span style="color: #9900ff;">🎯 Homing</span> - ホーミングミサイル (追尾)</div>
+                <div class="item-row"><canvas id="item-wave" width="30" height="30"></canvas> <span style="color: #00ccff;">〰️ Wave</span> - ウェーブ砲 (波状攻撃)</div>
+
+                <h3 style="color: #00ffff;">特殊アイテム</h3>
+                <div class="item-row"><canvas id="item-option" width="30" height="30"></canvas> <span style="color: #00ffff;">◎ Option</span> - オプション追加</div>
+                <div class="item-row"><canvas id="item-phoenix" width="30" height="30"></canvas> <span style="color: #ff6600;">🔥 Phoenix</span> - フェニックス召喚</div>
+                <div class="item-row"><canvas id="item-dragon" width="30" height="30"></canvas> <span style="color: #00ff00;">🐉 Dragon</span> - ドラゴン召喚</div>
+                <div class="item-row"><canvas id="item-thunder" width="30" height="30"></canvas> <span style="color: #ffff00;">⚡ Thunder</span> - 雷神召喚</div>
+                <div class="item-row"><canvas id="item-mega" width="30" height="30"></canvas> <span style="color: #ff00ff;">💠 Mega Laser</span> - メガレーザー</div>
+                <div class="item-row"><canvas id="item-combine" width="30" height="30"></canvas> <span style="color: #ffffff;">⚔️ Combine</span> - 合体モード</div>
+
+                <h3 style="color: #00ffff;">操作方法</h3>
+                <p>移動: 矢印キー / WASD</p>
+                <p>ショット: Z / Space (押し続けで連射)</p>
+                <p>ボム: X / B</p>
+                <p>ポーズ: P / Escape</p>
+                <p>チャージショット: Z長押し後リリース</p>
+            </div>
+            <button class="menu-button" onclick="backToTitle()">BACK</button>
+        </div>
+
+        <div id="gameOverScreen">
+            <h2>GAME OVER</h2>
+            <p style="font-size: 24px; margin: 20px;">FINAL SCORE: <span id="finalScore">0</span></p>
+            <p style="font-size: 18px; margin: 10px;">STAGE: <span id="finalStage">1</span></p>
+            <button class="menu-button" onclick="retryGame()">RETRY</button>
+            <button class="menu-button" onclick="backToTitle()">TITLE</button>
+        </div>
+    </div>
+
+    <script src="assets/js/game.js?v=2.1"></script>
+    <script src="assets/js/player.js?v=2.1"></script>
+    <script src="assets/js/enemy.js?v=2.1"></script>
+    <script src="assets/js/bullet.js?v=2.1"></script>
+    <script src="assets/js/stage.js?v=2.1"></script>
+    <script src="assets/js/ui.js?v=2.1"></script>
+    <script src="assets/js/input.js?v=2.1"></script>
+    <script src="assets/js/collision.js?v=2.1"></script>
+    <script src="assets/js/save.js?v=2.1"></script>
+    <script src="assets/js/gyro.js?v=2.1"></script>
+    <script src="assets/js/joystick.js?v=2.1"></script>
+    <script src="assets/js/effects.js?v=2.1"></script>
+    <script src="assets/js/audio.js?v=2.1"></script>
+    <script src="assets/js/particles.js?v=2.1"></script>
+    <script src="assets/js/powerups.js?v=2.1"></script>
+    <script src="assets/js/weapon_systems.js?v=1.0"></script>
+    <script src="assets/js/boss_movement.js?v=1.0"></script>
+    <script src="assets/js/boss.js?v=2.2"></script>
+    <script src="assets/js/boss_warning.js?v=2.2"></script>
+    <script src="assets/js/stage_clear.js?v=2.2"></script>
+    <script src="assets/js/special_weapons.js?v=2.2"></script>
+</body>
+</html>
