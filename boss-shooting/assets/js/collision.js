@@ -163,6 +163,7 @@ function checkCollisions(game) {
         const powerup = game.powerups[i];
 
         if (isColliding(powerup, game.player)) {
+            console.log('アイテム取得:', powerup.type, powerup.color);  // デバッグログ
             game.player.powerUp(powerup.type);
             game.powerups.splice(i, 1);
         }

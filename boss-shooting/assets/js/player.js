@@ -778,6 +778,8 @@ class Player {
     }
 
     powerUp(type) {
+        console.log('powerUp関数呼び出し:', type);  // デバッグログ
+
         switch (type) {
             // 武器レベルアップ（統合版）
             case 'weapon_level':
@@ -792,10 +794,16 @@ class Player {
                 const oldDefaultLevel = this.weapons.default.level;
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
                 this.weaponLevels.default = this.weapons.default.level;  // weaponLevelsも更新
+
+                // デバッグログ
+                console.log('青色武器レベルアップ:', oldDefaultLevel, '->', this.weapons.default.level);
+
                 if (this.weapons.default.level > oldDefaultLevel) {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
                     this.checkUltimateWeapon();
+                } else {
+                    console.log('青色武器は既にMAX（レベル10）です');
                 }
                 break;
 
