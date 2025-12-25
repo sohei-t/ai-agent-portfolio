@@ -171,6 +171,8 @@ function loadStage(game, stageNumber) {
     game.powerups = [];
     game.particles = [];
     game.boss = null;
+    game.bossStageStartTime = null;  // ボスタイマーリセット
+    game.bossTimeoutProcessing = false;  // タイムアウト処理フラグリセット
 
     // ステージ設定
     game.scrollSpeed = stage.scrollSpeed;
