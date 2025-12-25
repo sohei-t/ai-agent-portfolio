@@ -1020,6 +1020,7 @@ class Player {
         if (!this.ultimateWeaponUnlocked) return;
 
         const now = Date.now();
+        if (!this.lastUltimateFire) this.lastUltimateFire = 0;
         if (now - this.lastUltimateFire < 50) return; // 超高速連射
         this.lastUltimateFire = now;
 
@@ -1045,18 +1046,14 @@ class Player {
 
             createFlameParticles() {
                 // 炎のパーティクル
-                if (Math.random() < 0.8) {
-                    const particle = {
-                        x: this.x + (Math.random() - 0.5) * this.width,
-                        y: this.y + this.height / 2,
-                        vx: (Math.random() - 0.5) * 5,
-                        vy: Math.random() * 3 + 2,
-                        size: Math.random() * 10 + 5,
-                        color: Math.random() > 0.5 ? '#ff6600' : '#ffaa00',
-                        life: 30
-                    };
-                    if (this.game && this.game.particles) {
-                        this.game.particles.push(particle);
+                if (Math.random() < 0.3 && this.game) {  // 頻度を下げる
+                    // createExplosion を使用してパーティクルを作成
+                    if (this.game.createExplosion) {
+                        this.game.createExplosion(
+                            this.x + (Math.random() - 0.5) * this.width,
+                            this.y + this.height / 2,
+                            'flame'
+                        );
                     }
                 }
             },

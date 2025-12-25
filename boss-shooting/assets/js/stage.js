@@ -443,23 +443,29 @@ function spawnWave(game, wave) {
 
 function spawnMiniBoss(game, bossId) {
     // 過去のボスをミニボスとして生成（弱体化版）
-    if (typeof Boss !== 'undefined') {
-        const miniBoss = new Boss(game, `stage${bossId}`);
+    // 現時点ではミニボス機能を簡易実装（強化された敵として出現）
+    if (typeof Enemy !== 'undefined') {
+        const miniBoss = new Enemy(game.canvas.width / 2, -50, 'tank', game);
 
-        // ミニボスとして弱体化
-        miniBoss.hp = Math.floor(miniBoss.maxHp * 0.3);  // HP 30%
+        // ミニボスとして強化
+        miniBoss.width = 120;  // 大型化
+        miniBoss.height = 120;
+        miniBoss.hp = 100 + bossId * 20;  // ボスIDに応じてHP増加
         miniBoss.maxHp = miniBoss.hp;
-        miniBoss.width = miniBoss.width * 0.7;  // サイズ 70%
-        miniBoss.height = miniBoss.height * 0.7;
-        miniBoss.scoreValue = 10000;  // スコア
-        miniBoss.isMiniBoss = true;  // ミニボスフラグ
+        miniBoss.scoreValue = 10000;
+        miniBoss.movePattern = 'hover';
+        miniBoss.attackPattern = 'spread';
+        miniBoss.color = '#ff00ff';
+        miniBoss.attackInterval = 40;  // 高速攻撃
 
-        // 位置をランダムに
-        miniBoss.x = Math.random() * (game.canvas.width - miniBoss.width) + miniBoss.width / 2;
+        // ボスIDに応じて色を変更
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff',
+                       '#00ffff', '#ff8800', '#8800ff', '#ff0088'];
+        miniBoss.color = colors[bossId - 1] || '#ff00ff';
 
-        game.enemies.push(miniBoss);  // ボスではなく敵として追加
+        game.enemies.push(miniBoss);
 
-        console.log(`Mini Boss spawned: Stage ${bossId} Boss as mini-boss`);
+        console.log(`Mini Boss spawned: Boss ${bossId} as enhanced enemy`);
     }
 }
 
