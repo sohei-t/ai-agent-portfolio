@@ -270,7 +270,7 @@ class Game {
                 const itemTypes = [];
 
                 // 各武器のレベルをチェック
-                if (this.player) {
+                if (this.player && this.player.weaponLevels) {
                     if (this.player.weaponLevels.default < 10) {
                         itemTypes.push('weapon_default');
                     }
@@ -283,6 +283,9 @@ class Game {
                     if (this.player.weaponLevels.yellow < 10) {
                         itemTypes.push('weapon_yellow');
                     }
+                } else {
+                    // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                    itemTypes.push('weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow');
                 }
 
                 // その他のアイテムは常に追加
@@ -567,7 +570,7 @@ class Game {
             const validItemTypes = [];
 
             // 各武器のレベルをチェック（MAXでない武器のみ追加）
-            if (this.player) {
+            if (this.player && this.player.weaponLevels) {
                 if (this.player.weaponLevels.default < 10) {
                     validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');  // 青武器（3枚）
                 }
@@ -580,6 +583,12 @@ class Game {
                 if (this.player.weaponLevels.yellow < 10) {
                     validItemTypes.push('weapon_yellow', 'weapon_yellow');  // 黄武器（2枚）
                 }
+            } else {
+                // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');
+                validItemTypes.push('weapon_green', 'weapon_green');
+                validItemTypes.push('weapon_purple', 'weapon_purple');
+                validItemTypes.push('weapon_yellow', 'weapon_yellow');
             }
 
             // その他のアイテムは常に追加
@@ -590,11 +599,14 @@ class Game {
             if (forceWeapon) {
                 // ボス戦中は武器アイテムを優先（MAXでない武器のみ）
                 const weaponTypes = [];
-                if (this.player) {
+                if (this.player && this.player.weaponLevels) {
                     if (this.player.weaponLevels.default < 10) weaponTypes.push('weapon_default');
                     if (this.player.weaponLevels.green < 10) weaponTypes.push('weapon_green');
                     if (this.player.weaponLevels.purple < 10) weaponTypes.push('weapon_purple');
                     if (this.player.weaponLevels.yellow < 10) weaponTypes.push('weapon_yellow');
+                } else {
+                    // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                    weaponTypes.push('weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow');
                 }
 
                 // MAXでない武器がある場合はそれを出現
