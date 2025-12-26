@@ -1044,12 +1044,20 @@ class Player {
                     opacity: 0.7,  // 半透明
                     lastFire: 0,
                     fireInterval: 200,  // 200ms間隔で発射
+                    trail: [],  // 残像エフェクト用
+                    maxTrailLength: 8,  // 残像の数
 
                     update(player, dt) {
-                        // 自機の周りを旋回
-                        this.offsetAngle += 0.02;  // ゆっくり旋回
+                        // 自機の周りを高速旋回
+                        this.offsetAngle += 0.15;  // 回転速度を大幅に上げる（0.02→0.15）
                         this.x = player.x + Math.cos(this.offsetAngle) * this.distance;
                         this.y = player.y + Math.sin(this.offsetAngle) * this.distance;
+
+                        // 残像を記録
+                        this.trail.unshift({ x: this.x, y: this.y, opacity: this.opacity });
+                        if (this.trail.length > this.maxTrailLength) {
+                            this.trail.pop();
+                        }
 
                         // 定期的に弾を発射
                         const now = Date.now();
@@ -1105,14 +1113,42 @@ class Player {
 
                     render(ctx, player) {
                         ctx.save();
+
+                        // 残像を描画（バリア感を演出）
+                        for (let i = this.trail.length - 1; i >= 0; i--) {
+                            const point = this.trail[i];
+                            const alpha = (this.maxTrailLength - i) / this.maxTrailLength * 0.3;
+
+                            ctx.globalAlpha = alpha;
+                            ctx.fillStyle = '#00ffff';
+                            ctx.shadowBlur = 30;
+                            ctx.shadowColor = '#00ffff';
+
+                            // 円形のバリアエフェクト
+                            ctx.beginPath();
+                            ctx.arc(point.x, point.y, this.width * 1.5, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            // 残像の機体
+                            ctx.fillStyle = '#00aaff';
+                            ctx.beginPath();
+                            ctx.moveTo(point.x, point.y - this.height / 2);
+                            ctx.lineTo(point.x - this.width / 2, point.y + this.height / 2);
+                            ctx.lineTo(point.x, point.y + this.height / 3);
+                            ctx.lineTo(point.x + this.width / 2, point.y + this.height / 2);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+
+                        // 分身本体
                         ctx.globalAlpha = this.opacity;
 
-                        // 分身の発光エフェクト
-                        ctx.shadowBlur = 20;
+                        // 分身の発光エフェクト（強化）
+                        ctx.shadowBlur = 40;
                         ctx.shadowColor = '#00ffff';
                         ctx.fillStyle = '#00ffff';
                         ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
+                        ctx.arc(this.x, this.y, this.width * 1.2, 0, Math.PI * 2);
                         ctx.fill();
 
                         // 分身本体（小さめの自機）
