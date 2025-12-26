@@ -40,12 +40,20 @@ function updateUI(game) {
         }
     }
 
-    // ボス戦タイマー表示（3分カウントダウン - 最終ステージ以外）
+    // ボス戦タイマー表示（ステージごとに異なるタイムアウト）
     const bossTimerElement = document.getElementById('bossTimer');
     if (bossTimerElement) {
         if (game.boss && game.stage < 10 && game.bossStageStartTime) {
             const elapsedTime = Date.now() - game.bossStageStartTime;
-            const timeLimit = 180000; // 3分（180秒）
+            // ステージ1-3はステージ数に合わせて、4以降は3分固定
+            let timeLimit;
+            if (game.stage === 1) {
+                timeLimit = 60000;  // 1分（60秒）
+            } else if (game.stage === 2) {
+                timeLimit = 120000; // 2分（120秒）
+            } else {
+                timeLimit = 180000; // 3分（180秒）
+            }
             const remainingTime = Math.max(0, timeLimit - elapsedTime);
 
             const minutes = Math.floor(remainingTime / 60000);

@@ -221,7 +221,15 @@ class Game {
                     }
 
                     const elapsedTime = Date.now() - this.bossStageStartTime;
-                    const timeLimit = 180000; // 3分（180秒）
+                    // ステージ1-3はステージ数に合わせて、4以降は3分固定
+                    let timeLimit;
+                    if (this.stage === 1) {
+                        timeLimit = 60000;  // 1分（60秒）
+                    } else if (this.stage === 2) {
+                        timeLimit = 120000; // 2分（120秒）
+                    } else {
+                        timeLimit = 180000; // 3分（180秒）
+                    }
 
                     if (elapsedTime >= timeLimit) {
                         // タイムアップでステージクリア（一度だけ実行）

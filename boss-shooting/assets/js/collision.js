@@ -44,7 +44,12 @@ function checkCollisions(game) {
                     game.boss.takeDamage(bullet.power, false);
                 }
 
-                if ((hitCore || isColliding(bullet, game.boss)) && !bullet.penetrating) {
+                // ラスボス（finalSecond）に対してはホーミングミサイルも1撃で消える
+                const isFinalBoss = game.boss && game.boss.phase === 'finalSecond';
+                const shouldRemoveBullet = (hitCore || isColliding(bullet, game.boss)) &&
+                    (!bullet.penetrating || (isFinalBoss && bullet.type === 'ultimate_missile'));
+
+                if (shouldRemoveBullet) {
                     game.bullets.splice(i, 1);
                 }
             }
