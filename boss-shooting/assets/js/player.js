@@ -950,6 +950,24 @@ class Player {
                     }, 10000);
                 }
                 break;
+            // 存在しないタイプは青色武器として扱う（エラー回避）
+            case 'speed':
+            case 'power':
+            case 'score':
+            case 'option':
+                console.log(`タイプ'${type}'は青色武器にフォールバック`);
+                // weapon_defaultと同じ処理を実行
+                const fallbackLevel = this.weapons.default.level;
+                this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
+                this.weaponLevels.default = this.weapons.default.level;
+                console.log('青色武器レベルアップ（代替処理）:', fallbackLevel, '->', this.weapons.default.level);
+                if (this.weapons.default.level > fallbackLevel) {
+                    this.triggerWeaponLevelUpEffect('default');
+                    this.updateWeaponIndicators();
+                    this.checkUltimateWeapon();
+                }
+                break;
+
             default:
                 console.warn('Unknown powerup type:', type);
                 break;

@@ -283,13 +283,13 @@ class Game {
                     itemTypes.push('weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow');
                 }
 
-                // その他のアイテムは常に追加
-                itemTypes.push('heart', 'bomb', 'shield', 'speed', 'power', 'score', 'option');
+                // その他のアイテムは常に追加（正しいタイプ名を使用）
+                itemTypes.push('item-life', 'item-bomb', 'shield');
 
                 // 武器アイテムがない場合は他のアイテムを増やす
-                if (itemTypes.length === 7) {  // 武器が全てMAXの場合
+                if (itemTypes.length === 3) {  // 武器が全てMAXの場合（他アイテム3種類のみ）
                     // 回復・ボム・シールドの出現率を上げる
-                    itemTypes.push('heart', 'bomb', 'shield');
+                    itemTypes.push('item-life', 'item-bomb', 'shield');
                 }
 
                 const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
