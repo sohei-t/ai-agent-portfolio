@@ -907,6 +907,15 @@ class Player {
                 }
                 break;
 
+            // スピードアップ
+            case 'speed':
+                this.speed = Math.min(this.speed + 1, 10); // 最大速度10
+                console.log('スピードアップ！現在の速度:', this.speed);
+                if (this.game && this.game.createExplosion) {
+                    this.game.createExplosion(this.x, this.y, 'powerup');
+                }
+                break;
+
             // オプション機体追加
             case 'option':
                 if (this.options.length < this.maxOptions) {

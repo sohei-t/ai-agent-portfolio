@@ -82,6 +82,12 @@ class Powerup {
                 shape: 'square',
                 icon: 'W',
                 description: 'Wave Level Up'
+            },
+            speed: {
+                color: '#ff00ff',  // マゼンタ
+                shape: 'triangle',
+                icon: 'S',
+                description: 'Speed Up'
             }
         };
 

@@ -221,15 +221,7 @@ class Game {
                     }
 
                     const elapsedTime = Date.now() - this.bossStageStartTime;
-                    // ステージ1-3はステージ数に合わせて、4以降は3分固定
-                    let timeLimit;
-                    if (this.stage === 1) {
-                        timeLimit = 60000;  // 1分（60秒）
-                    } else if (this.stage === 2) {
-                        timeLimit = 120000; // 2分（120秒）
-                    } else {
-                        timeLimit = 180000; // 3分（180秒）
-                    }
+                    const timeLimit = 60000; // 1分（60秒）統一
 
                     if (elapsedTime >= timeLimit) {
                         // タイムアップでステージクリア（一度だけ実行）
@@ -602,6 +594,7 @@ class Game {
             validItemTypes.push('item-bomb', 'item-bomb');  // ボム（2枚）
             validItemTypes.push('item-life', 'item-life');  // ライフ（2枚）
             validItemTypes.push('shield');  // シールド（1枚）
+            validItemTypes.push('speed', 'speed');  // スピードアップ（2枚）
 
             if (forceWeapon) {
                 // ボス戦中は武器アイテムを優先（MAXでない武器のみ）
@@ -621,7 +614,7 @@ class Game {
                     type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
                 } else {
                     // 全武器MAXの場合は他のアイテムから選択
-                    const otherTypes = ['item-bomb', 'item-life', 'shield'];
+                    const otherTypes = ['item-bomb', 'item-life', 'shield', 'speed'];
                     type = otherTypes[Math.floor(Math.random() * otherTypes.length)];
                 }
             } else {
@@ -792,25 +785,16 @@ function showItemGuide() {
 }
 
 function drawItemIcons() {
-    // 各アイテムタイプの設定（シンプル化）
+    // 各アイテムタイプの設定（現在のゲーム仕様に合わせて更新）
     const items = {
-        'item-weapon': { color: '#00ffff', type: 'star' },      // 青武器レベルアップ（星）
-        'item-life': { color: '#ff0066', type: 'heart' },       // 残機増加（ハート）
-        'item-bomb': { color: '#ff6600', type: 'bomb' },        // 爆弾レベルアップ（爆弾）
-        'item-shield': { color: '#00ffff', type: 'shield' },    // シールド
-        'item-speed': { color: '#00ff00', type: 'circle' },     // スピード
-        'item-power': { color: '#ff00ff', type: 'star' },       // パワーアップ
-        'item-score': { color: '#ffaa00', type: 'circle' },     // スコア
-        'item-spread': { color: '#00ff00', type: 'star' },      // 緑武器レベルアップ（星）
-        'item-laser': { color: '#ff00ff', type: 'star' },       // 紫武器レベルアップ（星）
-        'item-homing': { color: '#9900ff', type: 'star' },      // ホーミング
-        'item-wave': { color: '#ffff00', type: 'star' },        // 黄武器レベルアップ（星）
-        'item-option': { color: '#00ffff', type: 'circle' },    // オプション
-        'item-phoenix': { color: '#ff6600', type: 'star' },     // フェニックス
-        'item-dragon': { color: '#00ff00', type: 'star' },      // ドラゴン
-        'item-thunder': { color: '#ffff00', type: 'star' },     // サンダー
-        'item-mega': { color: '#ff00ff', type: 'star' },        // メガ
-        'item-combine': { color: '#ffffff', type: 'star' }      // コンバイン
+        'item-weapon': { color: '#00ffff', type: 'square', text: 'B' },    // 青武器（四角＋B）
+        'item-spread': { color: '#00ff00', type: 'square', text: 'S' },    // 緑武器（四角＋S）
+        'item-laser': { color: '#ff00ff', type: 'square', text: 'L' },     // 紫武器（四角＋L）
+        'item-wave': { color: '#ffff00', type: 'square', text: 'W' },      // 黄武器（四角＋W）
+        'item-life': { color: '#ff0066', type: 'heart' },                  // 残機（ハート）
+        'item-bomb': { color: '#ff6600', type: 'bomb' },                   // 爆弾
+        'item-shield': { color: '#00ffff', type: 'shield' },               // シールド
+        'item-speed': { color: '#ff00ff', type: 'triangle', text: 'S' }    // スピード（三角＋S）
     };
 
     for (const [id, config] of Object.entries(items)) {
@@ -890,6 +874,21 @@ function drawItemIcons() {
                 ctx.closePath();
                 break;
 
+            case 'square':
+                // 四角形
+                ctx.beginPath();
+                ctx.rect(cx - 10, cy - 10, 20, 20);
+                break;
+
+            case 'triangle':
+                // 三角形
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 12);
+                ctx.lineTo(cx - 10, cy + 8);
+                ctx.lineTo(cx + 10, cy + 8);
+                ctx.closePath();
+                break;
+
             case 'circle':
                 // 円形
                 ctx.beginPath();
@@ -900,12 +899,22 @@ function drawItemIcons() {
         ctx.fill();
         ctx.stroke();
 
-        // 中心の明るい点
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(cx, cy, 2, 0, Math.PI * 2);
-        ctx.fill();
+        // テキストがある場合は中央に表示
+        if (config.text) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 0;
+            ctx.fillText(config.text, cx, cy);
+        } else {
+            // 中心の明るい点（テキストがない場合のみ）
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 }
 

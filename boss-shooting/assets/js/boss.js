@@ -413,16 +413,101 @@ class Boss {
                 break;
 
             case 'pattern':
-                // パターン移動
-                const pattern = this.moveTimer % 240;
-                if (pattern < 60) {
-                    this.x -= this.speed * 2;
-                } else if (pattern < 120) {
-                    this.x += this.speed * 2;
-                } else if (pattern < 180) {
-                    this.y += this.speed;
-                } else {
-                    this.y -= this.speed;
+                // ステージごとに異なる動きパターン
+                const stage = this.game ? this.game.stage : 1;
+
+                if (stage === 1) {
+                    // ステージ1: 左右に往復移動
+                    const pattern = this.moveTimer % 120;
+                    if (pattern < 60) {
+                        this.x -= this.speed * 2;
+                    } else {
+                        this.x += this.speed * 2;
+                    }
+                } else if (stage === 2) {
+                    // ステージ2: 8の字移動
+                    const t = this.moveTimer * 0.05;
+                    this.x = this.game.canvas.width / 2 + Math.sin(t) * 150;
+                    this.y = 120 + Math.sin(t * 2) * 50;
+                } else if (stage === 3) {
+                    // ステージ3: 高速ジグザグ移動
+                    const pattern = this.moveTimer % 30;
+                    if (pattern < 15) {
+                        this.x -= this.speed * 4;
+                        this.y = 100 + Math.sin(this.moveTimer * 0.3) * 30;
+                    } else {
+                        this.x += this.speed * 4;
+                        this.y = 100 + Math.cos(this.moveTimer * 0.3) * 30;
+                    }
+                } else if (stage === 4) {
+                    // ステージ4: ランダムワープ
+                    if (this.moveTimer % 90 === 0) {
+                        this.targetX = 100 + Math.random() * (this.game.canvas.width - 200);
+                        this.targetY = 80 + Math.random() * 100;
+                    }
+                    // 目標地点へ高速移動
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+                    this.x += dx * 0.1;
+                    this.y += dy * 0.1;
+                } else if (stage === 5) {
+                    // ステージ5: 螺旋移動
+                    const t = this.moveTimer * 0.08;
+                    const radius = 100 + Math.sin(t * 0.5) * 50;
+                    this.x = this.game.canvas.width / 2 + Math.cos(t) * radius;
+                    this.y = 120 + Math.sin(t) * radius * 0.5;
+                } else if (stage >= 6 && stage <= 9) {
+                    // ステージ6-9: 複合パターン
+                    const pattern = Math.floor(this.moveTimer / 60) % 3;
+                    if (pattern === 0) {
+                        // 円運動
+                        const t = this.moveTimer * 0.1;
+                        this.x = this.game.canvas.width / 2 + Math.cos(t) * 120;
+                        this.y = 120 + Math.sin(t) * 60;
+                    } else if (pattern === 1) {
+                        // プレイヤー追尾
+                        if (this.game.player) {
+                            const dx = this.game.player.x - this.x;
+                            this.x += Math.sign(dx) * this.speed * 2;
+                        }
+                    } else {
+                        // ランダム移動
+                        if (this.moveTimer % 20 === 0) {
+                            this.targetX = this.x + (Math.random() - 0.5) * 200;
+                            this.targetY = this.y + (Math.random() - 0.5) * 80;
+                        }
+                        const dx = this.targetX - this.x;
+                        const dy = this.targetY - this.y;
+                        this.x += dx * 0.05;
+                        this.y += dy * 0.05;
+                    }
+                } else if (stage >= 10) {
+                    // ステージ10以降: 超高速変幻自在
+                    const pattern = Math.floor(this.moveTimer / 45) % 4;
+                    if (pattern === 0) {
+                        // 瞬間移動
+                        if (this.moveTimer % 45 === 0) {
+                            this.x = 100 + Math.random() * (this.game.canvas.width - 200);
+                            this.y = 80 + Math.random() * 120;
+                        }
+                    } else if (pattern === 1) {
+                        // 高速円運動
+                        const t = this.moveTimer * 0.2;
+                        this.x = this.game.canvas.width / 2 + Math.cos(t) * 150;
+                        this.y = 120 + Math.sin(t) * 80;
+                    } else if (pattern === 2) {
+                        // 急速接近
+                        if (this.game.player) {
+                            const dx = this.game.player.x - this.x;
+                            const dy = 100 - this.y;
+                            this.x += dx * 0.08;
+                            this.y += dy * 0.08;
+                        }
+                    } else {
+                        // カオス移動
+                        this.x += Math.sin(this.moveTimer * 0.3) * this.speed * 5;
+                        this.y += Math.cos(this.moveTimer * 0.2) * this.speed * 2;
+                    }
                 }
                 break;
 
