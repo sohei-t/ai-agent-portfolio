@@ -166,6 +166,13 @@ class Player {
             this.fire();
         }
 
+        // 分身の更新（ALL MAX時のみ）
+        if (this.clones && this.clones.length > 0) {
+            for (const clone of this.clones) {
+                clone.update(this, dt);
+            }
+        }
+
         // エンジングロー演出
         this.engineGlow = (this.engineGlow + 0.1) % (Math.PI * 2);
 
@@ -1013,8 +1020,130 @@ class Player {
             this.ultimateWeaponUnlocked = true;
             console.log('🔥🔥🔥 ULTIMATE WEAPON UNLOCKED! 🔥🔥🔥');
 
+            // 分身を3体生成
+            this.createClones();
+
             // 画面全体にエフェクト
             this.createUltimateUnlockEffect();
+        }
+    }
+
+    createClones() {
+        // 分身を3体生成（ALL MAX時のみ）
+        if (!this.clones) {
+            this.clones = [];
+
+            for (let i = 0; i < 3; i++) {
+                const clone = {
+                    offsetAngle: (Math.PI * 2 / 3) * i,  // 120度ずつ配置
+                    distance: 60,  // 自機からの距離
+                    x: 0,
+                    y: 0,
+                    width: this.width * 0.8,  // 本体より少し小さめ
+                    height: this.height * 0.8,
+                    opacity: 0.7,  // 半透明
+                    lastFire: 0,
+                    fireInterval: 200,  // 200ms間隔で発射
+
+                    update(player, dt) {
+                        // 自機の周りを旋回
+                        this.offsetAngle += 0.02;  // ゆっくり旋回
+                        this.x = player.x + Math.cos(this.offsetAngle) * this.distance;
+                        this.y = player.y + Math.sin(this.offsetAngle) * this.distance;
+
+                        // 定期的に弾を発射
+                        const now = Date.now();
+                        if (now - this.lastFire >= this.fireInterval && player.game) {
+                            this.fire(player);
+                            this.lastFire = now;
+                        }
+                    },
+
+                    fire(player) {
+                        // 分身も同じ武器を発射
+                        if (player.game && player.game.bullets) {
+                            const bullet = {
+                                x: this.x,
+                                y: this.y - 10,
+                                vx: 0,
+                                vy: -15,
+                                width: 8,
+                                height: 12,
+                                power: 5,  // 分身の弾は威力控えめ
+                                damage: 5,
+                                owner: 'player',
+                                type: 'clone',
+                                color: '#00ffff',
+
+                                update(dt) {
+                                    this.x += this.vx;
+                                    this.y += this.vy;
+                                },
+
+                                render(ctx) {
+                                    ctx.save();
+                                    ctx.fillStyle = this.color;
+                                    ctx.shadowBlur = 10;
+                                    ctx.shadowColor = this.color;
+                                    ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                                    ctx.restore();
+                                },
+
+                                getHitbox() {
+                                    return {
+                                        x: this.x - this.width / 2,
+                                        y: this.y - this.height / 2,
+                                        width: this.width,
+                                        height: this.height
+                                    };
+                                }
+                            };
+
+                            player.game.bullets.push(bullet);
+                        }
+                    },
+
+                    render(ctx, player) {
+                        ctx.save();
+                        ctx.globalAlpha = this.opacity;
+
+                        // 分身の発光エフェクト
+                        ctx.shadowBlur = 20;
+                        ctx.shadowColor = '#00ffff';
+                        ctx.fillStyle = '#00ffff';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // 分身本体（小さめの自機）
+                        ctx.fillStyle = '#00aaff';
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y - this.height / 2);
+                        ctx.lineTo(this.x - this.width / 2, this.y + this.height / 2);
+                        ctx.lineTo(this.x, this.y + this.height / 3);
+                        ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.restore();
+                    },
+
+                    // 分身のヒットボックス（シールド機能用）
+                    getHitbox() {
+                        return {
+                            x: this.x - this.width / 2,
+                            y: this.y - this.height / 2,
+                            width: this.width,
+                            height: this.height
+                        };
+                    }
+                };
+
+                this.clones.push(clone);
+            }
         }
     }
 
@@ -1044,44 +1173,98 @@ class Player {
     }
 
     fireUltimateWeapon() {
-        // 超強力武器の発射（ドラゴンブレスのみ - バランス調整版）
+        // 超強力ミサイル（1秒間隔で発射）
         if (!this.ultimateWeaponUnlocked) return;
 
         const now = Date.now();
         if (!this.lastUltimateFire) this.lastUltimateFire = 0;
-        if (now - this.lastUltimateFire < 30) return; // 連射速度を少し速く（50→30ms）
+        if (now - this.lastUltimateFire < 1000) return; // 1秒間隔
         this.lastUltimateFire = now;
 
-        // ドラゴン型の巨大ビーム（威力をバランス調整）
+        // 超強力ホーミングミサイル
         const bullet = {
             x: this.x,
             y: this.y - 30,
             vx: 0,
-            vy: -25,  // 弾速を少し速く
-            width: 100,  // 横幅を少し広く（80→100）
-            height: 120,  // 高さも少し大きく
-            power: 25,  // 威力を調整（50→25、通常MAX弾の2.5倍）
-            damage: 25,  // ダメージも同様に調整
+            vy: -8,  // 初速は遅め（ホーミング性能重視）
+            width: 30,  // ミサイルサイズ
+            height: 40,
+            power: 100,  // 超高威力（通常の10倍）
+            damage: 100,
             owner: 'player',
-            type: 'ultimate_dragon',
+            type: 'ultimate_missile',
             color: '#ff00ff',
             penetrating: true,  // 貫通
+            homing: true,  // ホーミング機能
+            target: null,  // ターゲット
+            maxSpeed: 15,  // 最高速度
+            turnSpeed: 0.15,  // 旋回性能
 
             update(dt) {
+                // ホーミング機能
+                if (this.homing && this.game) {
+                    // 最も近い敵を探す
+                    let closestEnemy = null;
+                    let minDistance = Infinity;
+
+                    // 通常敵をチェック
+                    if (this.game.enemies) {
+                        for (const enemy of this.game.enemies) {
+                            const dx = enemy.x - this.x;
+                            const dy = enemy.y - this.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestEnemy = enemy;
+                            }
+                        }
+                    }
+
+                    // ボスもチェック
+                    if (this.game.boss) {
+                        const dx = this.game.boss.x - this.x;
+                        const dy = this.game.boss.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < minDistance) {
+                            closestEnemy = this.game.boss;
+                        }
+                    }
+
+                    // ターゲットに向かって旋回
+                    if (closestEnemy) {
+                        const dx = closestEnemy.x - this.x;
+                        const dy = closestEnemy.y - this.y;
+                        const angle = Math.atan2(dy, dx);
+                        const currentAngle = Math.atan2(this.vy, this.vx);
+
+                        // 角度差を計算して旋回
+                        let angleDiff = angle - currentAngle;
+                        if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                        if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                        const newAngle = currentAngle + angleDiff * this.turnSpeed;
+                        const speed = Math.min(this.maxSpeed, Math.sqrt(this.vx * this.vx + this.vy * this.vy) * 1.1);
+
+                        this.vx = Math.cos(newAngle) * speed;
+                        this.vy = Math.sin(newAngle) * speed;
+                    }
+                }
+
+                this.x += this.vx;
                 this.y += this.vy;
-                // 炎のエフェクトを追加
-                this.createFlameParticles();
+
+                // 煙のエフェクトを追加
+                this.createSmokeTrail();
             },
 
-            createFlameParticles() {
-                // 炎のパーティクル
-                if (Math.random() < 0.3 && this.game) {  // 頻度を下げる
-                    // createExplosion を使用してパーティクルを作成
+            createSmokeTrail() {
+                // 煙の軌跡
+                if (Math.random() < 0.8 && this.game) {
                     if (this.game.createExplosion) {
                         this.game.createExplosion(
-                            this.x + (Math.random() - 0.5) * this.width,
+                            this.x + (Math.random() - 0.5) * 10,
                             this.y + this.height / 2,
-                            'flame'
+                            'smoke'
                         );
                     }
                 }
@@ -1090,43 +1273,36 @@ class Player {
             render(ctx) {
                 ctx.save();
 
-                // ドラゴンの頭部
+                // ミサイル本体
                 ctx.fillStyle = this.color;
-                ctx.shadowBlur = 30;
+                ctx.shadowBlur = 40;
                 ctx.shadowColor = this.color;
 
-                // 本体（ドラゴンの形）
+                // ミサイルの形状（三角形）
                 ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x - this.width/2, this.y + this.height/3);
-                ctx.quadraticCurveTo(this.x - this.width/3, this.y + this.height/2,
-                                     this.x - this.width/4, this.y + this.height);
-                ctx.lineTo(this.x + this.width/4, this.y + this.height);
-                ctx.quadraticCurveTo(this.x + this.width/3, this.y + this.height/2,
-                                     this.x + this.width/2, this.y + this.height/3);
+                ctx.moveTo(this.x, this.y - this.height / 2);
+                ctx.lineTo(this.x - this.width / 2, this.y + this.height / 2);
+                ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2);
                 ctx.closePath();
                 ctx.fill();
 
-                // 目
-                ctx.fillStyle = '#ffff00';
-                ctx.beginPath();
-                ctx.arc(this.x - 15, this.y + 20, 5, 0, Math.PI * 2);
-                ctx.arc(this.x + 15, this.y + 20, 5, 0, Math.PI * 2);
-                ctx.fill();
-
-                // 炎のブレス
-                const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y - 100);
-                gradient.addColorStop(0, 'rgba(255, 0, 0, 0.8)');
-                gradient.addColorStop(0.5, 'rgba(255, 165, 0, 0.6)');
-                gradient.addColorStop(1, 'rgba(255, 255, 0, 0.3)');
+                // 炎のジェット
+                const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + 40);
+                gradient.addColorStop(0, 'rgba(255, 255, 0, 0.8)');
+                gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.6)');
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0.2)');
 
                 ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x - 40, this.y - 100);
-                ctx.lineTo(this.x + 40, this.y - 100);
-                ctx.closePath();
-                ctx.fill();
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        this.x + (Math.random() - 0.5) * 10,
+                        this.y + this.height / 2 + i * 10,
+                        15 - i * 4,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
 
                 ctx.restore();
             },
@@ -1347,6 +1523,13 @@ class Player {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
             ctx.stroke();
+        }
+
+        // 分身の描画（ALL MAX時のみ）
+        if (this.clones && this.clones.length > 0) {
+            for (const clone of this.clones) {
+                clone.render(ctx, this);
+            }
         }
 
         ctx.restore();

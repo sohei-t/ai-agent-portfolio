@@ -61,16 +61,16 @@ function checkCollisions(game) {
                 const enemyBullet = game.bullets[j];
 
                 if (enemyBullet && enemyBullet.owner === 'enemy') {
-                    // 超強力武器（ultimate_dragon）は全ての敵弾を相殺
-                    if (playerBullet.type === 'ultimate_dragon') {
+                    // 超強力武器（ultimate_dragon/ultimate_missile）は全ての敵弾を相殺
+                    if (playerBullet.type === 'ultimate_dragon' || playerBullet.type === 'ultimate_missile') {
                         if (isColliding(playerBullet, enemyBullet)) {
-                            // 敵弾を破壊（ドラゴンブレスは貫通）
+                            // 敵弾を破壊（超強力武器は貫通）
                             if (game.createExplosion) {
                                 game.createExplosion(enemyBullet.x, enemyBullet.y, 'small');
                             }
                             game.bullets.splice(j, 1);
                         }
-                        continue; // ドラゴンブレスは次の敵弾もチェック
+                        continue; // 超強力武器は次の敵弾もチェック
                     }
 
                     // レーザー（大型赤色弾）のみ相殺不可
@@ -121,6 +121,29 @@ function checkCollisions(game) {
                         } else {
                             game.bullets.splice(i, 1);
                             game.bullets.splice(j, 1);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 敵弾 vs 分身（シールド機能）
+    if (game.player.clones && game.player.clones.length > 0) {
+        for (let i = game.bullets.length - 1; i >= 0; i--) {
+            const bullet = game.bullets[i];
+
+            if (bullet && bullet.owner === 'enemy') {
+                // 分身との当たり判定
+                for (const clone of game.player.clones) {
+                    if (isColliding(bullet, clone)) {
+                        // 分身が敵弾をブロック（分身は破壊されない）
+                        game.bullets.splice(i, 1);
+
+                        // ブロック時のエフェクト
+                        if (game.createExplosion) {
+                            game.createExplosion(bullet.x, bullet.y, 'small');
                         }
                         break;
                     }
