@@ -17,10 +17,11 @@
             background: linear-gradient(180deg, #000033 0%, #000066 50%, #0000aa 100%);
             color: #fff;
             font-family: 'Orbitron', monospace;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             position: relative;
             width: 100vw;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         /* 背景エフェクト */
@@ -69,9 +70,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            padding: 20px;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
         }
 
         /* 勝利画像セクション */
@@ -304,10 +305,81 @@
 
         /* レスポンシブ */
         @media (max-width: 768px) {
-            h1 { font-size: 3rem; }
-            .final-score { font-size: 2rem; }
-            .rank { font-size: 3rem; }
-            .btn { padding: 10px 25px; font-size: 1rem; }
+            h1 {
+                font-size: 2.5rem;
+                margin-bottom: 15px;
+            }
+            .congratulations {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+            }
+            .final-score {
+                font-size: 1.8rem;
+                margin: 15px 0;
+            }
+            .rank {
+                font-size: 2.5rem;
+                margin: 15px 0;
+            }
+            .btn {
+                padding: 12px 25px;
+                font-size: 1rem;
+            }
+            #bossGallery {
+                padding: 15px;
+                margin: 15px 0;
+            }
+            .gallery-title {
+                font-size: 1.2rem;
+                margin-bottom: 15px;
+            }
+            .boss-grid {
+                grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+                gap: 8px;
+            }
+            .boss-item {
+                width: 50px;
+                height: 50px;
+            }
+            .buttons {
+                margin-top: 20px;
+            }
+
+            /* 画像エフェクトの調整 */
+            #ending-earth {
+                width: 200px;
+                height: 200px;
+                top: 10%;
+            }
+            #ending-heroes {
+                width: 250px;
+                height: 125px;
+                bottom: 5%;
+                right: 5%;
+            }
+        }
+
+        /* さらに小さい画面用 */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .congratulations {
+                font-size: 1rem;
+            }
+            .final-score {
+                font-size: 1.5rem;
+            }
+            .rank {
+                font-size: 2rem;
+            }
+            .boss-grid {
+                grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            }
+            .boss-item {
+                width: 40px;
+                height: 40px;
+            }
         }
     </style>
 </head>

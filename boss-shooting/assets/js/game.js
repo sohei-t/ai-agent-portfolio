@@ -338,6 +338,10 @@ class Game {
 
         if (this.boss) {
             this.boss.render(this.ctx);
+            // 武器ダウンミサイルの描画
+            if (this.boss.renderWeaponDownMissile) {
+                this.boss.renderWeaponDownMissile(this.ctx);
+            }
         }
 
         this.particles.forEach(p => p.render(this.ctx));

@@ -215,6 +215,11 @@ class Boss {
 
         // 初期化
         this.initParts();
+
+        // 最終ボス専用：武器レベルダウン攻撃
+        this.hasUsedWeaponDown = false;  // 一度だけ発動
+        this.weaponDownAnimating = false;
+        this.weaponDownMissile = null;
     }
 
     initParts() {
@@ -236,6 +241,17 @@ class Boss {
                 this.destroy();
             }
             return;
+        }
+
+        // 最終ボス専用：武器レベルダウン攻撃（HP50%以下で一度だけ発動）
+        if (this.type === 'finalTrue' && !this.hasUsedWeaponDown && this.hp < this.maxHp * 0.5) {
+            this.executeWeaponDownAttack();
+            this.hasUsedWeaponDown = true;
+        }
+
+        // 武器ダウンミサイルのアニメーション処理
+        if (this.weaponDownMissile) {
+            this.updateWeaponDownMissile(dt);
         }
 
         // 移動処理
@@ -964,6 +980,130 @@ class Boss {
 
     }
 
+    executeWeaponDownAttack() {
+        // 画面を赤くフラッシュ
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+
+        // 警告メッセージ表示
+        this.weaponDownAnimating = true;
+
+        // 特殊ミサイル生成（画面中央から）
+        this.weaponDownMissile = {
+            x: this.x,
+            y: this.y + this.height / 2,
+            targetX: this.game.player.x,
+            targetY: this.game.player.y,
+            speed: 2,
+            time: 0,
+            color: '#ff0000',
+            size: 30
+        };
+
+        // 警告演出
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+            if (flashCount >= 6) {
+                clearInterval(flashInterval);
+                return;
+            }
+
+            // 画面全体を赤くフラッシュ
+            ctx.save();
+            ctx.fillStyle = flashCount % 2 === 0 ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 0, 0, 0)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 警告テキスト
+            if (flashCount % 2 === 0) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠ WEAPON BREAKER ⚠', canvas.width / 2, canvas.height / 2);
+            }
+            ctx.restore();
+
+            flashCount++;
+        }, 200);
+    }
+
+    updateWeaponDownMissile(dt) {
+        if (!this.weaponDownMissile) return;
+
+        const missile = this.weaponDownMissile;
+        missile.time += 0.05;
+
+        // プレイヤーに向かってホーミング（避けられない速度で）
+        const dx = this.game.player.x - missile.x;
+        const dy = this.game.player.y - missile.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 5) {
+            // 加速しながら追尾
+            missile.speed = Math.min(missile.speed * 1.02, 15);
+            missile.x += (dx / distance) * missile.speed;
+            missile.y += (dy / distance) * missile.speed;
+        } else {
+            // プレイヤーに命中
+            this.applyWeaponDown();
+            this.weaponDownMissile = null;
+        }
+    }
+
+    applyWeaponDown() {
+        // 全武器レベルを-1
+        if (this.game.player) {
+            const player = this.game.player;
+
+            // 各武器のレベルを1下げる（最低1）
+            player.weapons.default.level = Math.max(1, player.weapons.default.level - 1);
+            player.weapons.green.level = Math.max(0, player.weapons.green.level - 1);
+            player.weapons.purple.level = Math.max(0, player.weapons.purple.level - 1);
+            player.weapons.yellow.level = Math.max(0, player.weapons.yellow.level - 1);
+
+            // weaponLevelsも更新
+            player.weaponLevels.default = player.weapons.default.level;
+            player.weaponLevels.green = player.weapons.green.level;
+            player.weaponLevels.purple = player.weapons.purple.level;
+            player.weaponLevels.yellow = player.weapons.yellow.level;
+
+            // 超強力武器を解除
+            player.ultimateWeaponUnlocked = false;
+
+            // エフェクト
+            if (this.game.createExplosion) {
+                this.game.createExplosion(player.x, player.y, 'special');
+            }
+
+            // 画面揺れ
+            this.shakeScreen();
+
+            // インジケーター更新
+            player.updateWeaponIndicators();
+
+            console.log('武器レベルダウン！全武器-1');
+        }
+    }
+
+    shakeScreen() {
+        const canvas = this.game.canvas;
+        let shakeCount = 0;
+        const originalTransform = canvas.style.transform;
+
+        const shakeInterval = setInterval(() => {
+            if (shakeCount >= 20) {
+                canvas.style.transform = originalTransform || '';
+                clearInterval(shakeInterval);
+                return;
+            }
+
+            const x = (Math.random() - 0.5) * 20;
+            const y = (Math.random() - 0.5) * 20;
+            canvas.style.transform = `translate(${x}px, ${y}px)`;
+
+            shakeCount++;
+        }, 50);
+    }
+
     destroy() {
         // 二重破壊を防ぐ
         if (this.destroyed) return;
@@ -1205,6 +1345,52 @@ class Boss {
             ctx.font = 'bold 20px monospace';
             ctx.textAlign = 'center';
             ctx.fillText(this.name, this.game.canvas.width / 2, 50);
+        }
+    }
+
+    renderWeaponDownMissile(ctx) {
+        // 武器ダウンミサイルの描画
+        if (this.weaponDownMissile) {
+            const missile = this.weaponDownMissile;
+            ctx.save();
+
+            // ミサイル本体（赤く光る）
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 30;
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(missile.x, missile.y, missile.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 内側のコア
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(missile.x, missile.y, missile.size / 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 軌跡エフェクト
+            for (let i = 1; i <= 3; i++) {
+                ctx.globalAlpha = 0.3 / i;
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(
+                    missile.x - (missile.speed * i * 2),
+                    missile.y - (missile.speed * i),
+                    missile.size - i * 5,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+
+            // 警告文字
+            ctx.globalAlpha = 0.8 + Math.sin(Date.now() * 0.01) * 0.2;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('DANGER', missile.x, missile.y - missile.size - 10);
+
+            ctx.restore();
         }
     }
 
