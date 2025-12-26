@@ -61,16 +61,16 @@ function checkCollisions(game) {
                 const enemyBullet = game.bullets[j];
 
                 if (enemyBullet && enemyBullet.owner === 'enemy') {
-                    // 超強力武器（ultimate_dragon, ultimate_omni）は全ての敵弾を相殺
-                    if (playerBullet.type === 'ultimate_dragon' || playerBullet.type === 'ultimate_omni') {
+                    // 超強力武器（ultimate_dragon）は全ての敵弾を相殺
+                    if (playerBullet.type === 'ultimate_dragon') {
                         if (isColliding(playerBullet, enemyBullet)) {
-                            // 敵弾を破壊（超強力武器は貫通）
+                            // 敵弾を破壊（ドラゴンブレスは貫通）
                             if (game.createExplosion) {
                                 game.createExplosion(enemyBullet.x, enemyBullet.y, 'small');
                             }
                             game.bullets.splice(j, 1);
                         }
-                        continue; // 超強力武器は次の敵弾もチェック
+                        continue; // ドラゴンブレスは次の敵弾もチェック
                     }
 
                     // レーザー（大型赤色弾）のみ相殺不可
@@ -163,7 +163,6 @@ function checkCollisions(game) {
         const powerup = game.powerups[i];
 
         if (isColliding(powerup, game.player)) {
-            console.log('アイテム取得:', powerup.type, powerup.color);  // デバッグログ
             game.player.powerUp(powerup.type);
             game.powerups.splice(i, 1);
         }

@@ -778,8 +778,6 @@ class Player {
     }
 
     powerUp(type) {
-        console.log('powerUp関数呼び出し:', type);  // デバッグログ
-
         switch (type) {
             // 武器レベルアップ（統合版）
             case 'weapon_level':
@@ -795,15 +793,10 @@ class Player {
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
                 this.weaponLevels.default = this.weapons.default.level;  // weaponLevelsも更新
 
-                // デバッグログ
-                console.log('青色武器レベルアップ:', oldDefaultLevel, '->', this.weapons.default.level);
-
                 if (this.weapons.default.level > oldDefaultLevel) {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
                     this.checkUltimateWeapon();
-                } else {
-                    console.log('青色武器は既にMAX（レベル10）です');
                 }
                 break;
 
@@ -955,12 +948,10 @@ class Player {
             case 'power':
             case 'score':
             case 'option':
-                console.log(`タイプ'${type}'は青色武器にフォールバック`);
-                // weapon_defaultと同じ処理を実行
+                // weapon_defaultと同じ処理を実行（フォールバック）
                 const fallbackLevel = this.weapons.default.level;
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
                 this.weaponLevels.default = this.weapons.default.level;
-                console.log('青色武器レベルアップ（代替処理）:', fallbackLevel, '->', this.weapons.default.level);
                 if (this.weapons.default.level > fallbackLevel) {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
@@ -1057,73 +1048,24 @@ class Player {
     }
 
     fireUltimateWeapon() {
-        // 超強力武器の発射（ドラゴンブレス + 全方位ビーム）
+        // 超強力武器の発射（ドラゴンブレスのみ - バランス調整版）
         if (!this.ultimateWeaponUnlocked) return;
 
         const now = Date.now();
         if (!this.lastUltimateFire) this.lastUltimateFire = 0;
-        if (now - this.lastUltimateFire < 50) return; // 超高速連射
+        if (now - this.lastUltimateFire < 30) return; // 連射速度を少し速く（50→30ms）
         this.lastUltimateFire = now;
 
-        // 1. 全方位ビーム（青色MAX時の効果を継続）
-        const directions = 16; // 16方向
-        for (let i = 0; i < directions; i++) {
-            const angle = (Math.PI * 2 / directions) * i;
-            const speed = 15;
-
-            const omniBeam = {
-                x: this.x,
-                y: this.y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                width: 20,
-                height: 20,
-                power: 10,  // 全方位ビームのダメージ
-                damage: 10,
-                owner: 'player',
-                type: 'ultimate_omni',  // 全方位ビームタイプ
-                color: '#00ffff',
-                penetrating: true,  // 貫通
-
-                update(dt) {
-                    this.x += this.vx;
-                    this.y += this.vy;
-                },
-
-                render(ctx) {
-                    ctx.save();
-                    ctx.fillStyle = this.color;
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = this.color;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.width / 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                },
-
-                getHitbox() {
-                    return {
-                        x: this.x - this.width / 2,
-                        y: this.y - this.height / 2,
-                        width: this.width,
-                        height: this.height
-                    };
-                }
-            };
-
-            this.game.bullets.push(omniBeam);
-        }
-
-        // 2. ドラゴン型の巨大ビーム（前方超火力）
+        // ドラゴン型の巨大ビーム（威力をバランス調整）
         const bullet = {
             x: this.x,
             y: this.y - 30,
             vx: 0,
-            vy: -20,
-            width: 80,  // 巨大
-            height: 100,
-            power: 50,  // 超高ダメージ
-            damage: 50,  // 超高ダメージ
+            vy: -25,  // 弾速を少し速く
+            width: 100,  // 横幅を少し広く（80→100）
+            height: 120,  // 高さも少し大きく
+            power: 25,  // 威力を調整（50→25、通常MAX弾の2.5倍）
+            damage: 25,  // ダメージも同様に調整
             owner: 'player',
             type: 'ultimate_dragon',
             color: '#ff00ff',
