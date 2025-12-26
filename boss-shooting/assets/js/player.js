@@ -5,9 +5,9 @@ class Player {
         this.y = y;
         this.game = game;
 
-        // サイズ（さらに小型化・シンプル）
-        this.width = 6;  // 12→6（極小サイズ）
-        this.height = 8;  // 14→8（極小サイズ）
+        // サイズ（視認性向上のため拡大）
+        this.width = 10;  // 6→10（視認しやすいサイズ）
+        this.height = 14;  // 8→14（視認しやすいサイズ）
 
         // 移動関連
         this.speed = 2.8;  // 3.5→2.8（少し落とす）
@@ -107,8 +107,8 @@ class Player {
         // 自動連射
         this.autoFire = true;
 
-        // ビジュアル
-        this.color = '#00ffff';
+        // ビジュアル（赤色に変更して視認性向上）
+        this.color = '#ff0000';  // 赤色の機体
         this.engineGlow = 0;
 
         // 画像を読み込み
@@ -944,10 +944,8 @@ class Player {
                 }
                 break;
             // 存在しないタイプは青色武器として扱う（エラー回避）
-            case 'speed':
-            case 'power':
-            case 'score':
-            case 'option':
+            default:
+                console.log('フォールバック処理: タイプ', type, '→ 青武器レベルアップ');
                 // weapon_defaultと同じ処理を実行（フォールバック）
                 const fallbackLevel = this.weapons.default.level;
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
@@ -956,11 +954,9 @@ class Player {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
                     this.checkUltimateWeapon();
+                } else {
+                    console.log('青武器レベルアップ失敗: 既にMAX');
                 }
-                break;
-
-            default:
-                console.warn('Unknown powerup type:', type);
                 break;
         }
 
@@ -1238,22 +1234,22 @@ class Player {
         const glowTime = Date.now() * 0.002;
         const glowPulse = Math.sin(glowTime) * 0.3 + 0.7; // 0.4〜1.0で脈動
 
-        // 大きな外側のグロー
-        ctx.shadowBlur = 30 * glowPulse;
-        ctx.shadowColor = '#00ffff';
-        ctx.globalAlpha = 0.6 * glowPulse;
-        ctx.fillStyle = '#00ffff';
+        // 大きな外側のグロー（赤色に変更）
+        ctx.shadowBlur = 40 * glowPulse;
+        ctx.shadowColor = '#ff0000';
+        ctx.globalAlpha = 0.7 * glowPulse;
+        ctx.fillStyle = '#ff0000';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width * 1.5, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // 中間のグロー
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ffffff';
-        ctx.globalAlpha = 0.4 * glowPulse;
-        ctx.fillStyle = '#ffffff';
+        // 中間のグロー（オレンジ色）
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#ff8800';
+        ctx.globalAlpha = 0.5 * glowPulse;
+        ctx.fillStyle = '#ff8800';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 1.3, 0, Math.PI * 2);
         ctx.fill();
 
         // 内側の明るいコア
@@ -1304,10 +1300,10 @@ class Player {
                 this.height * 2
             );
         } else {
-            // 画像がない場合は従来の描画
+            // 画像がない場合は従来の描画（赤色の機体）
             ctx.fillStyle = this.color;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffff00';  // 黄色の縁取りで視認性向上
+            ctx.lineWidth = 3;  // 太めの線で目立たせる
 
             ctx.beginPath();
             ctx.moveTo(this.x, this.y - this.height / 2);

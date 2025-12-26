@@ -244,7 +244,7 @@ class Boss {
         }
 
         // 最終ボス専用：武器レベルダウン攻撃（HP50%以下で一度だけ発動）
-        if (this.type === 'finalTrue' && !this.hasUsedWeaponDown && this.hp < this.maxHp * 0.5) {
+        if ((this.type === 'finalTrue' || this.isSecondForm) && !this.hasUsedWeaponDown && this.hp < this.maxHp * 0.5) {
             this.executeWeaponDownAttack();
             this.hasUsedWeaponDown = true;
         }
@@ -1346,6 +1346,9 @@ class Boss {
             ctx.textAlign = 'center';
             ctx.fillText(this.name, this.game.canvas.width / 2, 50);
         }
+
+        // 武器ダウンミサイルの描画を追加
+        this.renderWeaponDownMissile(ctx);
     }
 
     renderWeaponDownMissile(ctx) {
