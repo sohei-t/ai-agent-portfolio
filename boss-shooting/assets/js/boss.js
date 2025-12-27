@@ -200,8 +200,12 @@ class Boss {
         if (this.imageFile) {
             // 明示的に指定されている場合
             imageName = this.imageFile;
+        } else if (this.originalStage) {
+            // 累積ボスの場合、元のステージ番号を使用
+            const bossNumber = Math.min(this.originalStage, 11);
+            imageName = `boss_${String(bossNumber).padStart(2, '0')}.PNG`;
         } else {
-            // ボス番号を決定（ステージ番号に基づく）
+            // 通常のボスはステージ番号に基づく
             const bossNumber = Math.min(this.game ? this.game.stage : 1, 11);
             imageName = `boss_${String(bossNumber).padStart(2, '0')}.PNG`;
         }

@@ -165,9 +165,9 @@ class Game {
                     this.addScore(enemy.scoreValue);
                     this.createExplosion(enemy.x, enemy.y, 'small');
 
-                    // 通常のアイテムドロップ率
-                    if (Math.random() < 0.1) {  // 10%の確率
-                        this.spawnPowerup(enemy.x, enemy.y, false);
+                    // 通常のアイテムドロップ率（増加）
+                    if (Math.random() < 0.25) {  // 25%の確率に増加（累積ボス対策）
+                        this.spawnPowerup(enemy.x, enemy.y, Math.random() < 0.6);  // 60%の確率で武器優先
                     }
                 }
                 this.enemies.splice(i, 1);
@@ -594,19 +594,23 @@ class Game {
             // MAXでない武器のみをリストに追加
             const validItemTypes = [];
 
-            // 各武器のレベルをチェック（MAXでない武器のみ追加）
+            // 各武器のレベルをチェック（MAXでない武器のみ追加）- 出現率増加
             if (this.player && this.player.weaponLevels) {
                 if (this.player.weaponLevels.default < 10) {
-                    validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');  // 青武器（3枚）
+                    // 青武器（5枚に増加）
+                    for (let i = 0; i < 5; i++) validItemTypes.push('weapon_default');
                 }
                 if (this.player.weaponLevels.green < 10) {
-                    validItemTypes.push('weapon_green', 'weapon_green');  // 緑武器（2枚）
+                    // 緑武器（4枚に増加）
+                    for (let i = 0; i < 4; i++) validItemTypes.push('weapon_green');
                 }
                 if (this.player.weaponLevels.purple < 10) {
-                    validItemTypes.push('weapon_purple', 'weapon_purple');  // 紫武器（2枚）
+                    // 紫武器（4枚に増加）
+                    for (let i = 0; i < 4; i++) validItemTypes.push('weapon_purple');
                 }
                 if (this.player.weaponLevels.yellow < 10) {
-                    validItemTypes.push('weapon_yellow', 'weapon_yellow');  // 黄武器（2枚）
+                    // 黄武器（4枚に増加）
+                    for (let i = 0; i < 4; i++) validItemTypes.push('weapon_yellow');
                 }
             } else {
                 // weaponLevelsがまだ初期化されていない場合は全武器を追加
@@ -729,6 +733,19 @@ class Game {
 
                             this.accumulatedBosses.push(accumulatedBoss);
                             console.log(`ステージ${escapedStage}のボスを追加生成`);
+
+                            // 累積ボス出現時に武器アイテムも配置（支援）
+                            if (index === 0) {  // 最初の累積ボスの時だけ
+                                const weaponTypes = ['weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'];
+                                weaponTypes.forEach((wType, wIndex) => {
+                                    setTimeout(() => {
+                                        const itemX = 100 + (wIndex * 150);
+                                        const itemY = this.canvas.height - 100;
+                                        const powerup = new Powerup(itemX, itemY, wType);
+                                        this.powerups.push(powerup);
+                                    }, 1000 + wIndex * 200);
+                                });
+                            }
                         }, 500 + index * 500);  // 順番に出現
                     });
                 }
