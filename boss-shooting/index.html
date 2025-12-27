@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Space Odyssey - Boss Shooting Game</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Space Odyssey - Boss Shooting Game v4.3</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect fill='%23000' width='16' height='16'/><polygon fill='%2300ffff' points='8,2 4,14 8,11 12,14'/></svg>"/>
     <style>
         * {
@@ -487,30 +490,37 @@
         <div id="itemGuideScreen">
             <h2>ITEM GUIDE</h2>
             <div style="max-height: 60vh; overflow-y: auto; text-align: left; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; width: 80%; max-width: 600px;">
+                <h3 style="color: #00ffff;">武器レベルアップ（四角アイテム）</h3>
+                <div class="item-row"><canvas id="item-weapon" width="30" height="30"></canvas> <span style="color: #00ffff;">青色四角 [B]</span> - ビーム武器レベルアップ (最大LV10/MAX)</div>
+                <div class="item-row"><canvas id="item-spread" width="30" height="30"></canvas> <span style="color: #00ff00;">緑色四角 [S]</span> - スプレッド武器レベルアップ (最大LV10/MAX)</div>
+                <div class="item-row"><canvas id="item-laser" width="30" height="30"></canvas> <span style="color: #ff00ff;">紫色四角 [L]</span> - レーザー武器レベルアップ (最大LV10/MAX)</div>
+                <div class="item-row"><canvas id="item-wave" width="30" height="30"></canvas> <span style="color: #ffff00;">黄色四角 [W]</span> - ウェーブ武器レベルアップ (最大LV10/MAX)</div>
+
                 <h3 style="color: #00ffff;">基本パワーアップ</h3>
-                <div class="item-row"><canvas id="item-weapon" width="30" height="30"></canvas> <span style="color: #ffff00;">黄色 (Weapon)</span> - 武器レベルアップ (最大LV5)</div>
-                <div class="item-row"><canvas id="item-life" width="30" height="30"></canvas> <span style="color: #ff0066;">赤 (Life)</span> - ライフ+1</div>
-                <div class="item-row"><canvas id="item-bomb" width="30" height="30"></canvas> <span style="color: #ff6600;">オレンジ (Bomb)</span> - ボム+1 (画面内の敵弾消去＋ダメージ)</div>
-                <div class="item-row"><canvas id="item-shield" width="30" height="30"></canvas> <span style="color: #00ffff;">水色 (Shield)</span> - シールド (一回攻撃を防ぐ)</div>
+                <div class="item-row"><canvas id="item-life" width="30" height="30"></canvas> <span style="color: #ff0066;">赤ハート</span> - 残機+1 (最大5)</div>
+                <div class="item-row"><canvas id="item-bomb" width="30" height="30"></canvas> <span style="color: #ff6600;">オレンジ爆弾</span> - ボム+1＆レベルアップ (画面内の敵弾消去＋大ダメージ)</div>
+                <div class="item-row"><canvas id="item-shield" width="30" height="30"></canvas> <span style="color: #00ffff;">水色シールド</span> - シールド獲得 (3回まで攻撃を防ぐ)</div>
+                <div class="item-row"><canvas id="item-speed" width="30" height="30"></canvas> <span style="color: #ff00ff;">マゼンタ三角 [S]</span> - スピードアップ (最大速度10)</div>
 
-                <h3 style="color: #00ffff;">ブースト系 (10秒間)</h3>
-                <div class="item-row"><canvas id="item-speed" width="30" height="30"></canvas> <span style="color: #00ff00;">緑 (Speed)</span> - 移動速度アップ</div>
-                <div class="item-row"><canvas id="item-power" width="30" height="30"></canvas> <span style="color: #ff00ff;">紫 (Power)</span> - 攻撃力1.5倍</div>
-                <div class="item-row"><canvas id="item-score" width="30" height="30"></canvas> <span style="color: #ffaa00;">金 (Score)</span> - スコア2倍</div>
+                <h3 style="color: #00ffff;">ALL MAX時の特殊能力</h3>
+                <p style="color: #ffff00;">全4種類の武器がMAXになると解放:</p>
+                <ul style="margin-left: 20px;">
+                    <li>超強力ホーミングミサイル（1秒間隔、威力100）</li>
+                    <li>3体の分身が高速回転しバリア形成</li>
+                    <li>分身は敵弾をブロック（シールド機能）</li>
+                </ul>
 
-                <h3 style="color: #00ffff;">武器タイプ</h3>
-                <div class="item-row"><canvas id="item-spread" width="30" height="30"></canvas> <span style="color: #ff9900;">🔥 Spread</span> - 拡散弾 (広範囲攻撃)</div>
-                <div class="item-row"><canvas id="item-laser" width="30" height="30"></canvas> <span style="color: #00ff99;">⚔️ Laser</span> - レーザー (貫通)</div>
-                <div class="item-row"><canvas id="item-homing" width="30" height="30"></canvas> <span style="color: #9900ff;">🎯 Homing</span> - ホーミングミサイル (追尾)</div>
-                <div class="item-row"><canvas id="item-wave" width="30" height="30"></canvas> <span style="color: #00ccff;">〰️ Wave</span> - ウェーブ砲 (波状攻撃)</div>
-
-                <h3 style="color: #00ffff;">特殊アイテム</h3>
-                <div class="item-row"><canvas id="item-option" width="30" height="30"></canvas> <span style="color: #00ffff;">◎ Option</span> - オプション追加</div>
-                <div class="item-row"><canvas id="item-phoenix" width="30" height="30"></canvas> <span style="color: #ff6600;">🔥 Phoenix</span> - フェニックス召喚</div>
-                <div class="item-row"><canvas id="item-dragon" width="30" height="30"></canvas> <span style="color: #00ff00;">🐉 Dragon</span> - ドラゴン召喚</div>
-                <div class="item-row"><canvas id="item-thunder" width="30" height="30"></canvas> <span style="color: #ffff00;">⚡ Thunder</span> - 雷神召喚</div>
-                <div class="item-row"><canvas id="item-mega" width="30" height="30"></canvas> <span style="color: #ff00ff;">💠 Mega Laser</span> - メガレーザー</div>
-                <div class="item-row"><canvas id="item-combine" width="30" height="30"></canvas> <span style="color: #ffffff;">⚔️ Combine</span> - 合体モード</div>
+                <h3 style="color: #00ffff;">ボスバトル</h3>
+                <p>各ステージのボスは1分間の耐久戦！</p>
+                <ul style="margin-left: 20px;">
+                    <li>ステージごとに異なる動きパターン</li>
+                    <li>ステージ1: 左右往復</li>
+                    <li>ステージ2: 8の字移動</li>
+                    <li>ステージ3: 高速ジグザグ</li>
+                    <li>ステージ4: ランダムワープ</li>
+                    <li>ステージ5以降: さらに複雑な動き</li>
+                    <li>最終ボス: 武器レベルダウン攻撃あり</li>
+                </ul>
 
                 <h3 style="color: #00ffff;">操作方法</h3>
                 <p>移動: 矢印キー / WASD</p>
@@ -531,26 +541,26 @@
         </div>
     </div>
 
-    <script src="assets/js/game.js?v=3.1"></script>
-    <script src="assets/js/player.js?v=3.1"></script>
-    <script src="assets/js/enemy.js?v=3.1"></script>
-    <script src="assets/js/bullet.js?v=3.1"></script>
-    <script src="assets/js/stage.js?v=3.1"></script>
-    <script src="assets/js/ui.js?v=3.1"></script>
-    <script src="assets/js/input.js?v=2.1"></script>
-    <script src="assets/js/collision.js?v=2.1"></script>
-    <script src="assets/js/save.js?v=2.1"></script>
-    <script src="assets/js/gyro.js?v=2.1"></script>
-    <script src="assets/js/joystick.js?v=2.1"></script>
-    <script src="assets/js/effects.js?v=2.1"></script>
-    <script src="assets/js/audio.js?v=2.1"></script>
-    <script src="assets/js/particles.js?v=2.1"></script>
-    <script src="assets/js/powerups.js?v=2.1"></script>
-    <script src="assets/js/weapon_systems.js?v=1.0"></script>
-    <script src="assets/js/boss_movement.js?v=1.0"></script>
-    <script src="assets/js/boss.js?v=2.2"></script>
-    <script src="assets/js/boss_warning.js?v=2.2"></script>
-    <script src="assets/js/stage_clear.js?v=2.2"></script>
-    <script src="assets/js/special_weapons.js?v=2.2"></script>
+    <script src="assets/js/game.js?v=4.5"></script>
+    <script src="assets/js/player.js?v=4.5"></script>
+    <script src="assets/js/enemy.js?v=4.5"></script>
+    <script src="assets/js/bullet.js?v=4.5"></script>
+    <script src="assets/js/stage.js?v=4.5"></script>
+    <script src="assets/js/ui.js?v=4.5"></script>
+    <script src="assets/js/input.js?v=4.5"></script>
+    <script src="assets/js/collision.js?v=4.5"></script>
+    <script src="assets/js/save.js?v=4.5"></script>
+    <script src="assets/js/gyro.js?v=4.5"></script>
+    <script src="assets/js/joystick.js?v=4.5"></script>
+    <script src="assets/js/effects.js?v=4.5"></script>
+    <script src="assets/js/audio.js?v=4.5"></script>
+    <script src="assets/js/particles.js?v=4.5"></script>
+    <script src="assets/js/powerups.js?v=4.5"></script>
+    <script src="assets/js/weapon_systems.js?v=4.5"></script>
+    <script src="assets/js/boss_movement.js?v=4.5"></script>
+    <script src="assets/js/boss.js?v=4.5"></script>
+    <script src="assets/js/boss_warning.js?v=4.5"></script>
+    <script src="assets/js/stage_clear.js?v=4.5"></script>
+    <script src="assets/js/special_weapons.js?v=4.5"></script>
 </body>
 </html>

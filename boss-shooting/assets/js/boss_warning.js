@@ -20,11 +20,33 @@ function showBossWarning(game, bossName) {
         animation: warningPulse 0.5s infinite;
     `;
 
-    // WARNING テキスト
+    // ボス画像を表示（アニメーション付き）
+    const bossImage = document.createElement('img');
+    const stage = game ? game.stage : 1;
+    const bossNumber = Math.min(stage, 11);
+    bossImage.src = `assets/images/boss_${String(bossNumber).padStart(2, '0')}.PNG`;
+    bossImage.onerror = () => {
+        // PNGが見つからない場合はSVGを試す
+        bossImage.src = `assets/images/bosses/boss_${String(bossNumber).padStart(2, '0')}.svg`;
+    };
+    bossImage.style.cssText = `
+        position: fixed;
+        top: 25%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        width: 250px;
+        height: 250px;
+        object-fit: contain;
+        z-index: 10001;
+        filter: drop-shadow(0 0 30px #ff0000) drop-shadow(0 0 50px #ff0000);
+        animation: bossAppear 1s ease-out forwards;
+    `;
+
+    // WARNING テキスト（位置調整）
     const warningText = document.createElement('div');
     warningText.style.cssText = `
         position: fixed;
-        top: 30%;
+        top: 55%;
         left: 50%;
         transform: translate(-50%, -50%);
         font-size: 72px;
@@ -42,11 +64,11 @@ function showBossWarning(game, bossName) {
     `;
     warningText.textContent = '⚠️ WARNING ⚠️';
 
-    // BOSS APPROACHING
+    // BOSS APPROACHING（位置調整）
     const bossText = document.createElement('div');
     bossText.style.cssText = `
         position: fixed;
-        top: 50%;
+        top: 70%;
         left: 50%;
         transform: translate(-50%, -50%);
         font-size: 48px;
@@ -61,11 +83,11 @@ function showBossWarning(game, bossName) {
     `;
     bossText.textContent = 'BOSS APPROACHING';
 
-    // ボス名
+    // ボス名（位置調整）
     const nameText = document.createElement('div');
     nameText.style.cssText = `
         position: fixed;
-        top: 65%;
+        top: 80%;
         left: 50%;
         transform: translate(-50%, -50%);
         font-size: 36px;
@@ -175,12 +197,27 @@ function showBossWarning(game, bossName) {
                 50% { transform: translate(-50%, -50%) scale(1.5); }
                 100% { transform: translate(-50%, -50%) scale(1); }
             }
+            @keyframes bossAppear {
+                0% {
+                    transform: translate(-50%, -50%) scale(0) rotate(720deg);
+                    opacity: 0;
+                }
+                50% {
+                    transform: translate(-50%, -50%) scale(1.2) rotate(360deg);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+                    opacity: 1;
+                }
+            }
         `;
         document.head.appendChild(style);
     }
 
     // DOM に追加
     document.body.appendChild(overlay);
+    document.body.appendChild(bossImage);  // ボス画像を追加
     document.body.appendChild(warningText);
     document.body.appendChild(bossText);
     document.body.appendChild(nameText);
@@ -205,6 +242,7 @@ function showBossWarning(game, bossName) {
             // 1秒後に全て削除
             setTimeout(() => {
                 overlay.remove();
+                bossImage.remove();  // ボス画像も削除
                 warningText.remove();
                 bossText.remove();
                 nameText.remove();

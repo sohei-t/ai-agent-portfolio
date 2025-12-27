@@ -108,7 +108,7 @@ class Boss {
             finalSecond: {  // 最終ボス第二形態（boss_11.PNG使用）
                 width: 240,  // 第二形態はさらに大きく
                 height: 240,
-                hp: 168750,  // バリア削除してHP3倍以上（45000+11250シールド→168750）
+                hp: 3000,  // MAX武器30発分（100×30）
                 speed: 7.5,  // 速度3倍で超高速移動
                 scoreValue: 100000,
                 color: '#000000',
@@ -215,6 +215,11 @@ class Boss {
 
         // 初期化
         this.initParts();
+
+        // 最終ボス専用：武器レベルダウン攻撃
+        this.hasUsedWeaponDown = false;  // 一度だけ発動
+        this.weaponDownAnimating = false;
+        this.weaponDownMissile = null;
     }
 
     initParts() {
@@ -236,6 +241,55 @@ class Boss {
                 this.destroy();
             }
             return;
+        }
+
+        // 最終ボス第二形態の特殊処理
+        if (this.phase === 'finalSecond') {
+            // バリアタイマーの初期化
+            if (!this.barrierTimer) {
+                this.barrierTimer = 0;
+                this.hasBarrier = true;
+                this.summonedMiniBosses = [];
+            }
+
+            // 1分間（60秒 = 3600フレーム）のバリア
+            if (this.barrierTimer < 3600) {
+                this.barrierTimer++;
+
+                // 10秒ごとに歴代ボスのミニバージョンを召喚
+                if (this.barrierTimer % 600 === 300 && this.game) {
+                    this.summonMiniBoss();
+                }
+
+                // 1分経過でバリア解除と武器レベルダウン
+                if (this.barrierTimer === 3600) {
+                    this.hasBarrier = false;
+                    this.clearMiniBosses();
+                    this.executeWeaponDownAttack();
+
+                    // 武器アイテムを大量生成
+                    if (this.game) {
+                        for (let i = 0; i < 8; i++) {
+                            setTimeout(() => {
+                                const x = 100 + Math.random() * (this.game.canvas.width - 200);
+                                const y = 100 + Math.random() * 100;
+                                this.game.spawnPowerup(x, y, true);
+                            }, i * 200);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 最終ボス専用：武器レベルダウン攻撃（第一形態のHP50%以下で一度だけ）
+        if (this.phase === 'final' && !this.hasUsedWeaponDown && this.hp < this.maxHp * 0.5) {
+            this.executeWeaponDownAttack();
+            this.hasUsedWeaponDown = true;
+        }
+
+        // 武器ダウンミサイルのアニメーション処理
+        if (this.weaponDownMissile) {
+            this.updateWeaponDownMissile(dt);
         }
 
         // 移動処理
@@ -397,16 +451,129 @@ class Boss {
                 break;
 
             case 'pattern':
-                // パターン移動
-                const pattern = this.moveTimer % 240;
-                if (pattern < 60) {
-                    this.x -= this.speed * 2;
-                } else if (pattern < 120) {
-                    this.x += this.speed * 2;
-                } else if (pattern < 180) {
-                    this.y += this.speed;
-                } else {
-                    this.y -= this.speed;
+                // ステージごとに異なる動きパターン
+                const stage = this.game ? this.game.stage : 1;
+
+                if (stage === 1) {
+                    // ステージ1: 左右に往復移動
+                    const pattern = this.moveTimer % 120;
+                    if (pattern < 60) {
+                        this.x -= this.speed * 2;
+                    } else {
+                        this.x += this.speed * 2;
+                    }
+                } else if (stage === 2) {
+                    // ステージ2: 8の字移動
+                    const t = this.moveTimer * 0.05;
+                    this.x = this.game.canvas.width / 2 + Math.sin(t) * 150;
+                    this.y = 120 + Math.sin(t * 2) * 50;
+                } else if (stage === 3) {
+                    // ステージ3: 高速ジグザグ移動＋体当たり攻撃
+                    const pattern = this.moveTimer % 90;
+                    if (pattern < 30) {
+                        // ジグザグ移動
+                        this.x -= this.speed * 4;
+                        this.y = 100 + Math.sin(this.moveTimer * 0.3) * 30;
+                    } else if (pattern < 60) {
+                        // ジグザグ移動（反対方向）
+                        this.x += this.speed * 4;
+                        this.y = 100 + Math.cos(this.moveTimer * 0.3) * 30;
+                    } else {
+                        // プレイヤーへの体当たり攻撃
+                        if (this.game.player) {
+                            const dx = this.game.player.x - this.x;
+                            const dy = this.game.player.y - this.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist > 10) {
+                                this.x += (dx / dist) * this.speed * 6;
+                                this.y += (dy / dist) * this.speed * 3;
+                            }
+                        }
+                    }
+                } else if (stage === 4) {
+                    // ステージ4: ランダムワープ＋体当たり攻撃
+                    const pattern = this.moveTimer % 120;
+                    if (pattern < 90) {
+                        // ランダムワープ移動
+                        if (this.moveTimer % 90 === 0) {
+                            this.targetX = 100 + Math.random() * (this.game.canvas.width - 200);
+                            this.targetY = 80 + Math.random() * 100;
+                        }
+                        // 目標地点へ高速移動
+                        const dx = this.targetX - this.x;
+                        const dy = this.targetY - this.y;
+                        this.x += dx * 0.1;
+                        this.y += dy * 0.1;
+                    } else {
+                        // 体当たり攻撃
+                        if (this.game.player) {
+                            const dx = this.game.player.x - this.x;
+                            const dy = this.game.player.y - this.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist > 10) {
+                                this.x += (dx / dist) * this.speed * 8;
+                                this.y += (dy / dist) * this.speed * 4;
+                            }
+                        }
+                    }
+                } else if (stage === 5) {
+                    // ステージ5: 螺旋移動
+                    const t = this.moveTimer * 0.08;
+                    const radius = 100 + Math.sin(t * 0.5) * 50;
+                    this.x = this.game.canvas.width / 2 + Math.cos(t) * radius;
+                    this.y = 120 + Math.sin(t) * radius * 0.5;
+                } else if (stage >= 6 && stage <= 9) {
+                    // ステージ6-9: 複合パターン
+                    const pattern = Math.floor(this.moveTimer / 60) % 3;
+                    if (pattern === 0) {
+                        // 円運動
+                        const t = this.moveTimer * 0.1;
+                        this.x = this.game.canvas.width / 2 + Math.cos(t) * 120;
+                        this.y = 120 + Math.sin(t) * 60;
+                    } else if (pattern === 1) {
+                        // プレイヤー追尾
+                        if (this.game.player) {
+                            const dx = this.game.player.x - this.x;
+                            this.x += Math.sign(dx) * this.speed * 2;
+                        }
+                    } else {
+                        // ランダム移動
+                        if (this.moveTimer % 20 === 0) {
+                            this.targetX = this.x + (Math.random() - 0.5) * 200;
+                            this.targetY = this.y + (Math.random() - 0.5) * 80;
+                        }
+                        const dx = this.targetX - this.x;
+                        const dy = this.targetY - this.y;
+                        this.x += dx * 0.05;
+                        this.y += dy * 0.05;
+                    }
+                } else if (stage >= 10) {
+                    // ステージ10以降: 超高速変幻自在
+                    const pattern = Math.floor(this.moveTimer / 45) % 4;
+                    if (pattern === 0) {
+                        // 瞬間移動
+                        if (this.moveTimer % 45 === 0) {
+                            this.x = 100 + Math.random() * (this.game.canvas.width - 200);
+                            this.y = 80 + Math.random() * 120;
+                        }
+                    } else if (pattern === 1) {
+                        // 高速円運動
+                        const t = this.moveTimer * 0.2;
+                        this.x = this.game.canvas.width / 2 + Math.cos(t) * 150;
+                        this.y = 120 + Math.sin(t) * 80;
+                    } else if (pattern === 2) {
+                        // 急速接近
+                        if (this.game.player) {
+                            const dx = this.game.player.x - this.x;
+                            const dy = 100 - this.y;
+                            this.x += dx * 0.08;
+                            this.y += dy * 0.08;
+                        }
+                    } else {
+                        // カオス移動
+                        this.x += Math.sin(this.moveTimer * 0.3) * this.speed * 5;
+                        this.y += Math.cos(this.moveTimer * 0.2) * this.speed * 2;
+                    }
                 }
                 break;
 
@@ -520,7 +687,7 @@ class Boss {
     }
 
     aimedAttack() {
-        // プレイヤー狙い撃ち（強化版）
+        // プレイヤー狙い撃ち（超強化版 - 直線的な狙撃）
         if (!this.game.player) return;
 
         const px = this.game.player.x;
@@ -529,26 +696,28 @@ class Boss {
         // プレイヤーの現在位置を正確に狙う
         const angle = Math.atan2(py - this.y, px - this.x);
 
-        // フェーズに応じて弾数を増やし、精度を上げる
-        const bulletCount = this.phase + 2; // 3-5発
+        // ステージが進むほど弾数と速度が増加
+        const stage = this.game ? this.game.stage : 1;
+        const bulletCount = Math.min(stage, 5); // ステージ番号の数だけ発射（最大5発）
 
         for (let i = 0; i < bulletCount; i++) {
             setTimeout(() => {
-                // 少しだけ拡散させながら狙い撃ち（完全に同じ場所だと避けやすい）
-                const spread = (i - bulletCount / 2) * 0.1; // 軽い拡散
-                const bulletAngle = angle + spread;
+                // プレイヤーの現在位置を再計算（移動を予測）
+                const currentPx = this.game.player.x;
+                const currentPy = this.game.player.y;
+                const currentAngle = Math.atan2(currentPy - this.y, currentPx - this.x);
 
-                // 速度もフェーズで調整（後半ほど速い）
-                const speed = 3 + this.phase * 0.5;
+                // 完全に直線的な狙い撃ち（拡散なし）
+                const speed = 4 + stage * 0.3; // ステージが進むほど高速
 
                 this.createBullet(
                     this.x,
                     this.y + this.height / 2,
-                    Math.cos(bulletAngle) * speed,
-                    Math.sin(bulletAngle) * speed,
+                    Math.cos(currentAngle) * speed,
+                    Math.sin(currentAngle) * speed,
                     'aimed'
                 );
-            }, i * 50); // 連射間隔を短く
+            }, i * 100); // 連射間隔
         }
     }
 
@@ -792,6 +961,15 @@ class Boss {
     }
 
     takeDamage(damage, hitCore = false) {
+        // バリアがある場合は一切ダメージを受けない
+        if (this.hasBarrier) {
+            // バリア効果のビジュアルフィードバック
+            if (this.game && this.game.createExplosion) {
+                this.game.createExplosion(this.x, this.y, 'barrier');
+            }
+            return 0;
+        }
+
         // シールドがある場合、シールドから先にダメージを受ける
         if (this.hasShield && this.shield > 0) {
             const shieldDamage = Math.min(this.shield, damage);
@@ -924,6 +1102,9 @@ class Boss {
             createScreenFlash('#ff00ff', 1.0);
         }
 
+        // finalSecond専用のフラグを設定
+        this.phase = 'finalSecond';
+
         // 画面に警告メッセージ
         if (this.game) {
             // showBossWarningが存在する場合のみ呼び出し
@@ -961,7 +1142,288 @@ class Boss {
         if (typeof createScreenFlash === 'function') {
             createScreenFlash();
         }
+    }
 
+    summonMiniBoss() {
+        if (!this.game || !this.game.enemies) return;
+
+        // 召喚するボスの番号（1～10をループ）
+        if (!this.miniBossIndex) this.miniBossIndex = 0;
+        this.miniBossIndex = (this.miniBossIndex % 10) + 1;
+
+        // ミニボスのパラメータ（1/2サイズ、HP1/10）
+        const miniBoss = {
+            x: 100 + Math.random() * (this.game.canvas.width - 200),
+            y: 50 + Math.random() * 100,
+            width: 50,  // 1/2サイズ
+            height: 50,
+            hp: 100 + this.miniBossIndex * 50,  // ステージに応じたHP
+            maxHp: 100 + this.miniBossIndex * 50,
+            speed: 2,
+            color: this.getMiniBossColor(this.miniBossIndex),
+            type: 'miniBoss',
+            bossNumber: this.miniBossIndex,
+            attackTimer: 0,
+            attackInterval: 90,
+            damageFlash: 0,
+
+            update: function(dt) {
+                // 簡単な移動パターン
+                this.x += Math.sin(Date.now() * 0.002) * this.speed;
+                this.y += Math.cos(Date.now() * 0.003) * 0.5;
+
+                // 画面内に留まる
+                this.x = Math.max(30, Math.min(this.game.canvas.width - 30, this.x));
+                this.y = Math.max(30, Math.min(200, this.y));
+
+                // 攻撃
+                this.attackTimer++;
+                if (this.attackTimer >= this.attackInterval) {
+                    this.fire();
+                    this.attackTimer = 0;
+                }
+
+                // ダメージフラッシュ
+                if (this.damageFlash > 0) {
+                    this.damageFlash--;
+                }
+            },
+
+            fire: function() {
+                if (!this.game || !this.game.bullets) return;
+
+                // プレイヤーを狙う
+                if (this.game.player) {
+                    const angle = Math.atan2(
+                        this.game.player.y - this.y,
+                        this.game.player.x - this.x
+                    );
+
+                    this.game.bullets.push({
+                        x: this.x,
+                        y: this.y,
+                        vx: Math.cos(angle) * 3,
+                        vy: Math.sin(angle) * 3,
+                        width: 8,
+                        height: 8,
+                        owner: 'enemy',
+                        type: 'normal',
+                        damage: 1,
+                        color: '#ff0000'
+                    });
+                }
+            },
+
+            takeDamage: function(damage) {
+                this.hp -= damage;
+                this.damageFlash = 10;
+
+                if (this.hp <= 0) {
+                    // 撃破時の処理
+                    const index = this.game.enemies.indexOf(this);
+                    if (index > -1) {
+                        this.game.enemies.splice(index, 1);
+                    }
+
+                    // エフェクト
+                    if (this.game.createExplosion) {
+                        this.game.createExplosion(this.x, this.y, 'large');
+                    }
+
+                    // スコア
+                    if (this.game.addScore) {
+                        this.game.addScore(1000 * this.bossNumber);
+                    }
+                }
+            },
+
+            draw: function(ctx) {
+                ctx.save();
+
+                // ダメージフラッシュ
+                if (this.damageFlash > 0 && this.damageFlash % 4 < 2) {
+                    ctx.globalAlpha = 0.5;
+                }
+
+                // ボス画像を描画（小さく）
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+
+                // ボス番号を表示
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.bossNumber.toString(), this.x, this.y + 5);
+
+                ctx.restore();
+            },
+
+            getHitbox: function() {
+                return {
+                    x: this.x - this.width/2,
+                    y: this.y - this.height/2,
+                    width: this.width,
+                    height: this.height
+                };
+            },
+
+            game: this.game
+        };
+
+        // ゲームに追加
+        miniBoss.game = this.game;
+        this.game.enemies.push(miniBoss);
+        this.summonedMiniBosses.push(miniBoss);
+    }
+
+    getMiniBossColor(index) {
+        const colors = [
+            '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff',
+            '#00ffff', '#ff8800', '#8800ff', '#00ff88', '#ff0088'
+        ];
+        return colors[(index - 1) % colors.length];
+    }
+
+    clearMiniBosses() {
+        if (!this.game || !this.summonedMiniBosses) return;
+
+        // すべてのミニボスを削除
+        this.summonedMiniBosses.forEach(miniBoss => {
+            const index = this.game.enemies.indexOf(miniBoss);
+            if (index > -1) {
+                // 爆発エフェクト
+                if (this.game.createExplosion) {
+                    this.game.createExplosion(miniBoss.x, miniBoss.y, 'large');
+                }
+                this.game.enemies.splice(index, 1);
+            }
+        });
+
+        this.summonedMiniBosses = [];
+    }
+
+    executeWeaponDownAttack() {
+        // 画面を赤くフラッシュ
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+
+        // 警告メッセージ表示
+        this.weaponDownAnimating = true;
+
+        // 特殊ミサイル生成（画面中央から）
+        this.weaponDownMissile = {
+            x: this.x,
+            y: this.y + this.height / 2,
+            targetX: this.game.player.x,
+            targetY: this.game.player.y,
+            speed: 2,
+            time: 0,
+            color: '#ff0000',
+            size: 30
+        };
+
+        // 警告演出
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+            if (flashCount >= 6) {
+                clearInterval(flashInterval);
+                return;
+            }
+
+            // 画面全体を赤くフラッシュ
+            ctx.save();
+            ctx.fillStyle = flashCount % 2 === 0 ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 0, 0, 0)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 警告テキスト
+            if (flashCount % 2 === 0) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠ WEAPON BREAKER ⚠', canvas.width / 2, canvas.height / 2);
+            }
+            ctx.restore();
+
+            flashCount++;
+        }, 200);
+    }
+
+    updateWeaponDownMissile(dt) {
+        if (!this.weaponDownMissile) return;
+
+        const missile = this.weaponDownMissile;
+        missile.time += 0.05;
+
+        // プレイヤーに向かってホーミング（避けられない速度で）
+        const dx = this.game.player.x - missile.x;
+        const dy = this.game.player.y - missile.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 5) {
+            // 加速しながら追尾
+            missile.speed = Math.min(missile.speed * 1.02, 15);
+            missile.x += (dx / distance) * missile.speed;
+            missile.y += (dy / distance) * missile.speed;
+        } else {
+            // プレイヤーに命中
+            this.applyWeaponDown();
+            this.weaponDownMissile = null;
+        }
+    }
+
+    applyWeaponDown() {
+        // 全武器レベルを-1
+        if (this.game.player) {
+            const player = this.game.player;
+
+            // 各武器のレベルを1下げる（最低1）
+            player.weapons.default.level = Math.max(1, player.weapons.default.level - 1);
+            player.weapons.green.level = Math.max(0, player.weapons.green.level - 1);
+            player.weapons.purple.level = Math.max(0, player.weapons.purple.level - 1);
+            player.weapons.yellow.level = Math.max(0, player.weapons.yellow.level - 1);
+
+            // weaponLevelsも更新
+            player.weaponLevels.default = player.weapons.default.level;
+            player.weaponLevels.green = player.weapons.green.level;
+            player.weaponLevels.purple = player.weapons.purple.level;
+            player.weaponLevels.yellow = player.weapons.yellow.level;
+
+            // 超強力武器を解除
+            player.ultimateWeaponUnlocked = false;
+
+            // エフェクト
+            if (this.game.createExplosion) {
+                this.game.createExplosion(player.x, player.y, 'special');
+            }
+
+            // 画面揺れ
+            this.shakeScreen();
+
+            // インジケーター更新
+            player.updateWeaponIndicators();
+
+            console.log('武器レベルダウン！全武器-1');
+        }
+    }
+
+    shakeScreen() {
+        const canvas = this.game.canvas;
+        let shakeCount = 0;
+        const originalTransform = canvas.style.transform;
+
+        const shakeInterval = setInterval(() => {
+            if (shakeCount >= 20) {
+                canvas.style.transform = originalTransform || '';
+                clearInterval(shakeInterval);
+                return;
+            }
+
+            const x = (Math.random() - 0.5) * 20;
+            const y = (Math.random() - 0.5) * 20;
+            canvas.style.transform = `translate(${x}px, ${y}px)`;
+
+            shakeCount++;
+        }, 50);
     }
 
     destroy() {
@@ -1028,8 +1490,38 @@ class Boss {
             ctx.filter = `brightness(${2 + this.damageFlash / 10})`;
         }
 
+        // バリア描画（最優先）
+        if (this.hasBarrier) {
+            ctx.save();
+            const barrierTime = this.barrierTimer || 0;
+            const remainingTime = Math.max(0, 3600 - barrierTime);
+            const barrierAlpha = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
+
+            // バリアの円（虹色に輝く）
+            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.width/2 + 40);
+            const hue = (Date.now() * 0.1) % 360;
+            gradient.addColorStop(0, `hsla(${hue}, 100%, 70%, 0)`);
+            gradient.addColorStop(0.5, `hsla(${hue + 60}, 100%, 60%, ${barrierAlpha})`);
+            gradient.addColorStop(1, `hsla(${hue + 120}, 100%, 50%, ${barrierAlpha * 0.5})`);
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.ellipse(this.x, this.y, this.width/2 + 40, this.height/2 + 40, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // バリアタイマー表示
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            const seconds = Math.ceil(remainingTime / 60);
+            ctx.fillText(`BARRIER: ${seconds}s`, this.x, this.y - this.height/2 - 60);
+
+            ctx.restore();
+        }
+
         // シールド描画
-        if (this.hasShield && this.shield > 0) {
+        else if (this.hasShield && this.shield > 0) {
             ctx.save();
             const shieldAlpha = 0.3 + Math.sin(Date.now() * 0.005) * 0.2;
             const shieldRatio = this.shield / this.maxShield;
@@ -1205,6 +1697,55 @@ class Boss {
             ctx.font = 'bold 20px monospace';
             ctx.textAlign = 'center';
             ctx.fillText(this.name, this.game.canvas.width / 2, 50);
+        }
+
+        // 武器ダウンミサイルの描画を追加
+        this.renderWeaponDownMissile(ctx);
+    }
+
+    renderWeaponDownMissile(ctx) {
+        // 武器ダウンミサイルの描画
+        if (this.weaponDownMissile) {
+            const missile = this.weaponDownMissile;
+            ctx.save();
+
+            // ミサイル本体（赤く光る）
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 30;
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(missile.x, missile.y, missile.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 内側のコア
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(missile.x, missile.y, missile.size / 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 軌跡エフェクト
+            for (let i = 1; i <= 3; i++) {
+                ctx.globalAlpha = 0.3 / i;
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(
+                    missile.x - (missile.speed * i * 2),
+                    missile.y - (missile.speed * i),
+                    missile.size - i * 5,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+
+            // 警告文字
+            ctx.globalAlpha = 0.8 + Math.sin(Date.now() * 0.01) * 0.2;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('DANGER', missile.x, missile.y - missile.size - 10);
+
+            ctx.restore();
         }
     }
 

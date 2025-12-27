@@ -55,7 +55,7 @@ class Game {
             weapon_yellow: false
         };
         this.stageItemTimer = 0;  // ステージ開始からの経過時間
-        this.nextItemSpawnTime = 300;  // 5秒後に最初のアイテム
+        this.nextItemSpawnTime = 600;  // 10秒後に最初のアイテム
         this.itemSpawnOrder = ['weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'];
         this.currentItemIndex = 0;
 
@@ -161,8 +161,10 @@ class Game {
                     this.addScore(enemy.scoreValue);
                     this.createExplosion(enemy.x, enemy.y, 'small');
 
-                    // アイテムドロップを削除（ステージごとに1個に制限）
-                    // 別途管理
+                    // 通常のアイテムドロップ率
+                    if (Math.random() < 0.1) {  // 10%の確率
+                        this.spawnPowerup(enemy.x, enemy.y, false);
+                    }
                 }
                 this.enemies.splice(i, 1);
             }
@@ -212,14 +214,15 @@ class Game {
             } else {
                 this.boss.update(dt);
 
-                // 3分間タイマー処理（最終ステージ以外）
-                if (this.stage < 10 && !this.bossTimeoutProcessing) {  // 最終ステージ（10）以外、かつ処理中でない
+                // 1分間タイマー処理（最終ステージ以外）
+                // ステージ10と11（最終ボス）はタイマーなし
+                if (this.stage < 10 && !this.bossTimeoutProcessing && !(this.boss && this.boss.phase === 'finalSecond')) {
                     if (!this.bossStageStartTime) {
                         this.bossStageStartTime = Date.now();
                     }
 
                     const elapsedTime = Date.now() - this.bossStageStartTime;
-                    const timeLimit = 10000; // テスト用: 10秒（本番は180000ミリ秒）
+                    const timeLimit = 60000; // 1分（60秒）統一
 
                     if (elapsedTime >= timeLimit) {
                         // タイムアップでステージクリア（一度だけ実行）
@@ -259,11 +262,37 @@ class Game {
 
             // 定期的にランダムアイテムを出現させる
             if (this.stageItemTimer >= this.nextItemSpawnTime) {
-                // ランダムにアイテムタイプを選択
-                const itemTypes = [
-                    'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow',
-                    'heart', 'bomb', 'shield', 'speed', 'power', 'score', 'option'
-                ];
+                // MAXでない武器のみをリストに追加
+                const itemTypes = [];
+
+                // 各武器のレベルをチェック
+                if (this.player && this.player.weaponLevels) {
+                    if (this.player.weaponLevels.default < 10) {
+                        itemTypes.push('weapon_default');
+                    }
+                    if (this.player.weaponLevels.green < 10) {
+                        itemTypes.push('weapon_green');
+                    }
+                    if (this.player.weaponLevels.purple < 10) {
+                        itemTypes.push('weapon_purple');
+                    }
+                    if (this.player.weaponLevels.yellow < 10) {
+                        itemTypes.push('weapon_yellow');
+                    }
+                } else {
+                    // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                    itemTypes.push('weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow');
+                }
+
+                // その他のアイテムは常に追加（正しいタイプ名を使用）
+                itemTypes.push('item-life', 'item-bomb', 'shield');
+
+                // 武器アイテムがない場合は他のアイテムを増やす
+                if (itemTypes.length === 3) {  // 武器が全てMAXの場合（他アイテム3種類のみ）
+                    // 回復・ボム・シールドの出現率を上げる
+                    itemTypes.push('item-life', 'item-bomb', 'shield');
+                }
+
                 const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
 
                 // 画面上部のランダムな位置に出現
@@ -280,7 +309,7 @@ class Game {
 
                 // 次のアイテムまでの時間をランダムに設定（10-30秒）
                 this.stageItemTimer = 0;
-                this.nextItemSpawnTime = 600 + Math.random() * 1200;  // 10-30秒間隔
+                this.nextItemSpawnTime = 600 + Math.random() * 600;  // 10-20秒間隔
             }
         }
 
@@ -310,6 +339,10 @@ class Game {
 
         if (this.boss) {
             this.boss.render(this.ctx);
+            // 武器ダウンミサイルの描画
+            if (this.boss.renderWeaponDownMissile) {
+                this.boss.renderWeaponDownMissile(this.ctx);
+            }
         }
 
         this.particles.forEach(p => p.render(this.ctx));
@@ -533,26 +566,66 @@ class Game {
         if (typeof Powerup !== 'undefined') {
             let type;
 
-            // 有効なアイテムタイプのみ使用
-            const validItemTypes = [
-                'weapon_default', 'weapon_default', 'weapon_default',  // 青武器（多め）
-                'weapon_green', 'weapon_green',  // 緑武器
-                'weapon_purple', 'weapon_purple',  // 紫武器
-                'weapon_yellow', 'weapon_yellow',  // 黄武器
-                'item-life', 'item-life',  // 残機増加（ハート）
-                'item-bomb', 'item-bomb',  // 爆弾レベルアップ
-            ];
+            // MAXでない武器のみをリストに追加
+            const validItemTypes = [];
+
+            // 各武器のレベルをチェック（MAXでない武器のみ追加）
+            if (this.player && this.player.weaponLevels) {
+                if (this.player.weaponLevels.default < 10) {
+                    validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');  // 青武器（3枚）
+                }
+                if (this.player.weaponLevels.green < 10) {
+                    validItemTypes.push('weapon_green', 'weapon_green');  // 緑武器（2枚）
+                }
+                if (this.player.weaponLevels.purple < 10) {
+                    validItemTypes.push('weapon_purple', 'weapon_purple');  // 紫武器（2枚）
+                }
+                if (this.player.weaponLevels.yellow < 10) {
+                    validItemTypes.push('weapon_yellow', 'weapon_yellow');  // 黄武器（2枚）
+                }
+            } else {
+                // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');
+                validItemTypes.push('weapon_green', 'weapon_green');
+                validItemTypes.push('weapon_purple', 'weapon_purple');
+                validItemTypes.push('weapon_yellow', 'weapon_yellow');
+            }
+
+            // その他のアイテムは常に追加
+            validItemTypes.push('item-bomb', 'item-bomb');  // ボム（2枚）
+            validItemTypes.push('item-life', 'item-life');  // ライフ（2枚）
+            validItemTypes.push('shield');  // シールド（1枚）
+            validItemTypes.push('speed', 'speed');  // スピードアップ（2枚）
 
             if (forceWeapon) {
-                // ボス戦中は武器アイテムを優先
-                const weaponTypes = [
-                    'weapon_default', 'weapon_default', 'weapon_default',
-                    'weapon_green', 'weapon_purple', 'weapon_yellow'
-                ];
-                type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                // ボス戦中は武器アイテムを優先（MAXでない武器のみ）
+                const weaponTypes = [];
+                if (this.player && this.player.weaponLevels) {
+                    if (this.player.weaponLevels.default < 10) weaponTypes.push('weapon_default');
+                    if (this.player.weaponLevels.green < 10) weaponTypes.push('weapon_green');
+                    if (this.player.weaponLevels.purple < 10) weaponTypes.push('weapon_purple');
+                    if (this.player.weaponLevels.yellow < 10) weaponTypes.push('weapon_yellow');
+                } else {
+                    // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                    weaponTypes.push('weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow');
+                }
+
+                // MAXでない武器がある場合はそれを出現
+                if (weaponTypes.length > 0) {
+                    type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                } else {
+                    // 全武器MAXの場合は他のアイテムから選択
+                    const otherTypes = ['item-bomb', 'item-life', 'shield', 'speed'];
+                    type = otherTypes[Math.floor(Math.random() * otherTypes.length)];
+                }
             } else {
-                // 通常時：ランダムに選択
-                type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];
+                // 通常時：ランダムに選択（ただし出現可能なもののみ）
+                if (validItemTypes.length > 0) {
+                    type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];
+                } else {
+                    // 何もない場合は生命力アイテム
+                    type = 'item-life';
+                }
             }
 
             const powerup = new Powerup(x, y, type);
@@ -713,25 +786,16 @@ function showItemGuide() {
 }
 
 function drawItemIcons() {
-    // 各アイテムタイプの設定（シンプル化）
+    // 各アイテムタイプの設定（現在のゲーム仕様に合わせて更新）
     const items = {
-        'item-weapon': { color: '#00ffff', type: 'star' },      // 青武器レベルアップ（星）
-        'item-life': { color: '#ff0066', type: 'heart' },       // 残機増加（ハート）
-        'item-bomb': { color: '#ff6600', type: 'bomb' },        // 爆弾レベルアップ（爆弾）
-        'item-shield': { color: '#00ffff', type: 'shield' },    // シールド
-        'item-speed': { color: '#00ff00', type: 'circle' },     // スピード
-        'item-power': { color: '#ff00ff', type: 'star' },       // パワーアップ
-        'item-score': { color: '#ffaa00', type: 'circle' },     // スコア
-        'item-spread': { color: '#00ff00', type: 'star' },      // 緑武器レベルアップ（星）
-        'item-laser': { color: '#ff00ff', type: 'star' },       // 紫武器レベルアップ（星）
-        'item-homing': { color: '#9900ff', type: 'star' },      // ホーミング
-        'item-wave': { color: '#ffff00', type: 'star' },        // 黄武器レベルアップ（星）
-        'item-option': { color: '#00ffff', type: 'circle' },    // オプション
-        'item-phoenix': { color: '#ff6600', type: 'star' },     // フェニックス
-        'item-dragon': { color: '#00ff00', type: 'star' },      // ドラゴン
-        'item-thunder': { color: '#ffff00', type: 'star' },     // サンダー
-        'item-mega': { color: '#ff00ff', type: 'star' },        // メガ
-        'item-combine': { color: '#ffffff', type: 'star' }      // コンバイン
+        'item-weapon': { color: '#00ffff', type: 'square', text: 'B' },    // 青武器（四角＋B）
+        'item-spread': { color: '#00ff00', type: 'square', text: 'S' },    // 緑武器（四角＋S）
+        'item-laser': { color: '#ff00ff', type: 'square', text: 'L' },     // 紫武器（四角＋L）
+        'item-wave': { color: '#ffff00', type: 'square', text: 'W' },      // 黄武器（四角＋W）
+        'item-life': { color: '#ff0066', type: 'heart' },                  // 残機（ハート）
+        'item-bomb': { color: '#ff6600', type: 'bomb' },                   // 爆弾
+        'item-shield': { color: '#00ffff', type: 'shield' },               // シールド
+        'item-speed': { color: '#ff00ff', type: 'triangle', text: 'S' }    // スピード（三角＋S）
     };
 
     for (const [id, config] of Object.entries(items)) {
@@ -811,6 +875,21 @@ function drawItemIcons() {
                 ctx.closePath();
                 break;
 
+            case 'square':
+                // 四角形
+                ctx.beginPath();
+                ctx.rect(cx - 10, cy - 10, 20, 20);
+                break;
+
+            case 'triangle':
+                // 三角形
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 12);
+                ctx.lineTo(cx - 10, cy + 8);
+                ctx.lineTo(cx + 10, cy + 8);
+                ctx.closePath();
+                break;
+
             case 'circle':
                 // 円形
                 ctx.beginPath();
@@ -821,12 +900,22 @@ function drawItemIcons() {
         ctx.fill();
         ctx.stroke();
 
-        // 中心の明るい点
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(cx, cy, 2, 0, Math.PI * 2);
-        ctx.fill();
+        // テキストがある場合は中央に表示
+        if (config.text) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 0;
+            ctx.fillText(config.text, cx, cy);
+        } else {
+            // 中心の明るい点（テキストがない場合のみ）
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 }
 

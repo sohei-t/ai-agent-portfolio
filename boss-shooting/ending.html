@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Space Odyssey - Victory!</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Space Odyssey - Victory! v4.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
@@ -17,10 +20,11 @@
             background: linear-gradient(180deg, #000033 0%, #000066 50%, #0000aa 100%);
             color: #fff;
             font-family: 'Orbitron', monospace;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             position: relative;
             width: 100vw;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         /* 背景エフェクト */
@@ -69,9 +73,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            padding: 20px;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
         }
 
         /* 勝利画像セクション */
@@ -304,10 +308,81 @@
 
         /* レスポンシブ */
         @media (max-width: 768px) {
-            h1 { font-size: 3rem; }
-            .final-score { font-size: 2rem; }
-            .rank { font-size: 3rem; }
-            .btn { padding: 10px 25px; font-size: 1rem; }
+            h1 {
+                font-size: 2.5rem;
+                margin-bottom: 15px;
+            }
+            .congratulations {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+            }
+            .final-score {
+                font-size: 1.8rem;
+                margin: 15px 0;
+            }
+            .rank {
+                font-size: 2.5rem;
+                margin: 15px 0;
+            }
+            .btn {
+                padding: 12px 25px;
+                font-size: 1rem;
+            }
+            #bossGallery {
+                padding: 15px;
+                margin: 15px 0;
+            }
+            .gallery-title {
+                font-size: 1.2rem;
+                margin-bottom: 15px;
+            }
+            .boss-grid {
+                grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+                gap: 8px;
+            }
+            .boss-item {
+                width: 50px;
+                height: 50px;
+            }
+            .buttons {
+                margin-top: 20px;
+            }
+
+            /* 画像エフェクトの調整 */
+            #ending-earth {
+                width: 200px;
+                height: 200px;
+                top: 10%;
+            }
+            #ending-heroes {
+                width: 250px;
+                height: 125px;
+                bottom: 5%;
+                right: 5%;
+            }
+        }
+
+        /* さらに小さい画面用 */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .congratulations {
+                font-size: 1rem;
+            }
+            .final-score {
+                font-size: 1.5rem;
+            }
+            .rank {
+                font-size: 2rem;
+            }
+            .boss-grid {
+                grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            }
+            .boss-item {
+                width: 40px;
+                height: 40px;
+            }
         }
     </style>
 </head>
@@ -339,13 +414,167 @@
         </div>
     </div>
 
-    <!-- BGM -->
+    <!-- BGM（クラシック風）-->
     <audio id="bgm" loop autoplay>
-        <source src="assets/audio/bgm/bgm_victory.mp3" type="audio/mpeg">
+        <source src="assets/audio/bgm_ending_classical.wav" type="audio/wav">
         <source src="assets/audio/bgm_ending.wav" type="audio/wav">
+        <source src="assets/audio/bgm/bgm_victory.mp3" type="audio/mpeg">
+        <source src="assets/audio/ending_theme.mp3" type="audio/mpeg">
     </audio>
 
     <script>
+        // BGMの自動再生を確実にする
+        const endingBGM = document.getElementById('bgm');
+        endingBGM.volume = 0.4; // 音量40%
+
+        // 自動再生を試みる
+        const playBGM = () => {
+            endingBGM.play().catch(e => {
+                console.log('BGM自動再生エラー（ブラウザのポリシー）:', e);
+            });
+        };
+
+        // ページロード時に再生
+        window.addEventListener('load', playBGM);
+
+        // ボススライドショー（BGMに合わせて順番に表示）
+        function startBossSlideshow() {
+            const bossImages = [
+                'assets/images/boss_01.PNG',
+                'assets/images/boss_02.PNG',
+                'assets/images/boss_03.PNG',
+                'assets/images/boss_04.PNG',
+                'assets/images/boss_05.PNG',
+                'assets/images/boss_06.PNG',
+                'assets/images/boss_07.PNG',
+                'assets/images/boss_08.PNG',
+                'assets/images/boss_09.PNG',
+                'assets/images/boss_10.PNG',
+                'assets/images/boss_11.PNG'
+            ];
+
+            const bossNames = [
+                'Shadow Warrior',
+                'Crimson Phoenix',
+                'Void Destroyer',
+                'Plasma Titan',
+                'Quantum Hydra',
+                'Dark Nebula',
+                'Galactic Terror',
+                'Stellar Nightmare',
+                'Chaos Incarnate',
+                'Cosmic Horror',
+                'True Omega'
+            ];
+
+            let currentBoss = 0;
+
+            // ボス表示用の要素を作成
+            const bossShowcase = document.createElement('div');
+            bossShowcase.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 100;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 1s ease-in-out;
+            `;
+
+            const bossImg = document.createElement('img');
+            bossImg.style.cssText = `
+                width: 300px;
+                height: 300px;
+                filter: drop-shadow(0 0 30px rgba(255, 255, 0, 0.8));
+                animation: pulse 2s ease-in-out infinite;
+            `;
+
+            const bossLabel = document.createElement('div');
+            bossLabel.style.cssText = `
+                position: absolute;
+                bottom: -50px;
+                left: 50%;
+                transform: translateX(-50%);
+                color: #ffff00;
+                font-size: 2rem;
+                font-weight: bold;
+                text-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+                white-space: nowrap;
+                font-family: 'Orbitron', monospace;
+            `;
+
+            bossShowcase.appendChild(bossImg);
+            bossShowcase.appendChild(bossLabel);
+            document.body.appendChild(bossShowcase);
+
+            // CSSアニメーション追加
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // 2秒ごとにボスを切り替え（BGMのテンポに合わせて）
+            setInterval(() => {
+                if (currentBoss < bossImages.length) {
+                    // フェードアウト
+                    bossShowcase.style.opacity = '0';
+
+                    setTimeout(() => {
+                        // 画像とラベルを更新
+                        bossImg.src = bossImages[currentBoss];
+                        bossImg.onerror = () => {
+                            bossImg.src = bossImages[currentBoss].replace('.PNG', '.svg');
+                        };
+                        bossLabel.textContent = `STAGE ${currentBoss + 1}: ${bossNames[currentBoss]}`;
+
+                        // フェードイン
+                        bossShowcase.style.opacity = '1';
+                        currentBoss++;
+
+                        // 最後のボスの後は非表示に
+                        if (currentBoss >= bossImages.length) {
+                            setTimeout(() => {
+                                bossShowcase.style.opacity = '0';
+                            }, 2000);
+                        }
+                    }, 500);
+                }
+            }, 3000); // 3秒間隔
+
+            // 最初のボスをすぐに表示
+            setTimeout(() => {
+                bossImg.src = bossImages[0];
+                bossImg.onerror = () => {
+                    bossImg.src = bossImages[0].replace('.PNG', '.svg');
+                };
+                bossLabel.textContent = `STAGE 1: ${bossNames[0]}`;
+                bossShowcase.style.opacity = '1';
+                currentBoss = 1;
+            }, 1000);
+        }
+
+        // BGM再生開始時にスライドショーを開始
+        endingBGM.addEventListener('play', () => {
+            setTimeout(startBossSlideshow, 2000); // BGM開始2秒後にスライドショー開始
+        }, { once: true });
+
+        // ユーザーインタラクションで再生（ブラウザ制限対策）
+        const ensurePlayback = () => {
+            if (endingBGM.paused) {
+                endingBGM.play();
+            }
+            document.removeEventListener('click', ensurePlayback);
+            document.removeEventListener('keydown', ensurePlayback);
+        };
+
+        document.addEventListener('click', ensurePlayback);
+        document.addEventListener('keydown', ensurePlayback);
+
         // スコアとランク表示
         const finalScore = localStorage.getItem('finalScore') || 999999;
         const stagesCleared = localStorage.getItem('stagesCleared') || 11;

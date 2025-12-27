@@ -5,9 +5,9 @@ class Player {
         this.y = y;
         this.game = game;
 
-        // サイズ（さらに小型化・シンプル）
-        this.width = 6;  // 12→6（極小サイズ）
-        this.height = 8;  // 14→8（極小サイズ）
+        // サイズ（視認性向上のため拡大）
+        this.width = 10;  // 6→10（視認しやすいサイズ）
+        this.height = 14;  // 8→14（視認しやすいサイズ）
 
         // 移動関連
         this.speed = 2.8;  // 3.5→2.8（少し落とす）
@@ -93,14 +93,22 @@ class Player {
             fire: false
         };
 
+        // 武器レベル管理（MAXアイテム除外用）
+        this.weaponLevels = {
+            default: 1,  // 青色武器（初期レベル1）
+            green: 0,    // 緑色武器
+            purple: 0,   // 紫色武器
+            yellow: 0    // 黄色武器
+        };
+
         // 武器インジケーターの初期化
         setTimeout(() => this.updateWeaponIndicators(), 0);
 
         // 自動連射
         this.autoFire = true;
 
-        // ビジュアル
-        this.color = '#00ffff';
+        // ビジュアル（赤色に変更して視認性向上）
+        this.color = '#ff0000';  // 赤色の機体
         this.engineGlow = 0;
 
         // 画像を読み込み
@@ -156,6 +164,13 @@ class Player {
         } else if (this.autoFire) {
             // オートファイア（チャージしていない時）
             this.fire();
+        }
+
+        // 分身の更新（ALL MAX時のみ）
+        if (this.clones && this.clones.length > 0) {
+            for (const clone of this.clones) {
+                clone.update(this, dt);
+            }
         }
 
         // エンジングロー演出
@@ -227,6 +242,12 @@ class Player {
 
     fire() {
         const now = Date.now();
+
+        // 超強力武器が解放されている場合は優先的に発射
+        if (this.ultimateWeaponUnlocked) {
+            this.fireUltimateWeapon();
+            return;
+        }
 
         // 装備中の全武器から発射（新システム）
         if (typeof WeaponSystems !== 'undefined') {
@@ -765,13 +786,24 @@ class Player {
 
     powerUp(type) {
         switch (type) {
-            // デフォルト武器レベルアップ
+            // 武器レベルアップ（統合版）
+            case 'weapon_level':
+                // 現在のweapon.levelを上げる
+                this.weapon.level = Math.min(10, this.weapon.level + 1);
+                this.triggerWeaponLevelUpEffect('default');
+                this.updateWeaponIndicators();
+                break;
+
+            // デフォルト武器レベルアップ（後方互換性のため残す）
             case 'weapon_default':
                 const oldDefaultLevel = this.weapons.default.level;
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
+                this.weaponLevels.default = this.weapons.default.level;  // weaponLevelsも更新
+
                 if (this.weapons.default.level > oldDefaultLevel) {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
+                    this.checkUltimateWeapon();
                 }
                 break;
 
@@ -780,14 +812,17 @@ class Player {
                 if (!this.weapons.green.equipped) {
                     this.weapons.green.equipped = true;
                     this.weapons.green.level = 1;
+                    this.weaponLevels.green = 1;  // weaponLevelsも更新
                     this.triggerWeaponLevelUpEffect('green');
                     this.updateWeaponIndicators();
                 } else {
                     const oldLevel = this.weapons.green.level;
                     this.weapons.green.level = Math.min(10, this.weapons.green.level + 1);
+                    this.weaponLevels.green = this.weapons.green.level;  // weaponLevelsも更新
                     if (this.weapons.green.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('green');
                         this.updateWeaponIndicators();
+                        this.checkUltimateWeapon();
                     }
                 }
                 break;
@@ -797,14 +832,17 @@ class Player {
                 if (!this.weapons.purple.equipped) {
                     this.weapons.purple.equipped = true;
                     this.weapons.purple.level = 1;
+                    this.weaponLevels.purple = 1;  // weaponLevelsも更新
                     this.triggerWeaponLevelUpEffect('purple');
                     this.updateWeaponIndicators();
                 } else {
                     const oldLevel = this.weapons.purple.level;
                     this.weapons.purple.level = Math.min(10, this.weapons.purple.level + 1);
+                    this.weaponLevels.purple = this.weapons.purple.level;  // weaponLevelsも更新
                     if (this.weapons.purple.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('purple');
                         this.updateWeaponIndicators();
+                        this.checkUltimateWeapon();
                     }
                 }
                 break;
@@ -814,14 +852,17 @@ class Player {
                 if (!this.weapons.yellow.equipped) {
                     this.weapons.yellow.equipped = true;
                     this.weapons.yellow.level = 1;
+                    this.weaponLevels.yellow = 1;  // weaponLevelsも更新
                     this.triggerWeaponLevelUpEffect('yellow');
                     this.updateWeaponIndicators();
                 } else {
                     const oldLevel = this.weapons.yellow.level;
                     this.weapons.yellow.level = Math.min(10, this.weapons.yellow.level + 1);
+                    this.weaponLevels.yellow = this.weapons.yellow.level;  // weaponLevelsも更新
                     if (this.weapons.yellow.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('yellow');
                         this.updateWeaponIndicators();
+                        this.checkUltimateWeapon();
                     }
                 }
                 break;
@@ -852,6 +893,24 @@ class Player {
                 if (this.game) {
                     this.game.bombs = Math.min(this.game.bombs + 1, 10);
                 }
+                if (this.game && this.game.createExplosion) {
+                    this.game.createExplosion(this.x, this.y, 'powerup');
+                }
+                break;
+
+            // シールド追加
+            case 'shield':
+                this.shield = Math.min(this.shield + 1, 3); // 最大3枚のシールド
+                console.log('シールド獲得！現在のシールド:', this.shield);
+                if (this.game && this.game.createExplosion) {
+                    this.game.createExplosion(this.x, this.y, 'shield');
+                }
+                break;
+
+            // スピードアップ
+            case 'speed':
+                this.speed = Math.min(this.speed + 1, 10); // 最大速度10
+                console.log('スピードアップ！現在の速度:', this.speed);
                 if (this.game && this.game.createExplosion) {
                     this.game.createExplosion(this.x, this.y, 'powerup');
                 }
@@ -900,8 +959,20 @@ class Player {
                     }, 10000);
                 }
                 break;
+            // 存在しないタイプは青色武器として扱う（エラー回避）
             default:
-                console.warn('Unknown powerup type:', type);
+                console.log('フォールバック処理: タイプ', type, '→ 青武器レベルアップ');
+                // weapon_defaultと同じ処理を実行（フォールバック）
+                const fallbackLevel = this.weapons.default.level;
+                this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
+                this.weaponLevels.default = this.weapons.default.level;
+                if (this.weapons.default.level > fallbackLevel) {
+                    this.triggerWeaponLevelUpEffect('default');
+                    this.updateWeaponIndicators();
+                    this.checkUltimateWeapon();
+                } else {
+                    console.log('青武器レベルアップ失敗: 既にMAX');
+                }
                 break;
         }
 
@@ -936,13 +1007,444 @@ class Player {
         console.log(`爆弾発動！レベル${bombLevel} ダメージ:${damage}`);
 
         // 画面全体のフラッシュエフェクト
-        if (typeof createScreenFlash === 'function') {
-            createScreenFlash();
-        }
+        this.createBombEffect();
+
+        // 画面全体に稲妻エフェクト
+        this.createLightningEffect();
 
         if (typeof playSFX === 'function') {
             playSFX('bomb');
         }
+    }
+
+    checkUltimateWeapon() {
+        // 全武器がMAX(レベル10)かチェック
+        const allMaxLevel =
+            this.weapons.default.level >= 10 &&
+            this.weapons.green.equipped && this.weapons.green.level >= 10 &&
+            this.weapons.purple.equipped && this.weapons.purple.level >= 10 &&
+            this.weapons.yellow.equipped && this.weapons.yellow.level >= 10;
+
+        if (allMaxLevel && !this.ultimateWeaponUnlocked) {
+            this.ultimateWeaponUnlocked = true;
+            console.log('🔥🔥🔥 ULTIMATE WEAPON UNLOCKED! 🔥🔥🔥');
+
+            // 分身を3体生成
+            this.createClones();
+
+            // 画面全体にエフェクト
+            this.createUltimateUnlockEffect();
+        }
+    }
+
+    createClones() {
+        // 分身を3体生成（ALL MAX時のみ）
+        if (!this.clones) {
+            this.clones = [];
+
+            for (let i = 0; i < 3; i++) {
+                const clone = {
+                    offsetAngle: (Math.PI * 2 / 3) * i,  // 120度ずつ配置
+                    distance: 60,  // 自機からの距離
+                    x: 0,
+                    y: 0,
+                    width: this.width * 0.8,  // 本体より少し小さめ
+                    height: this.height * 0.8,
+                    opacity: 0.7,  // 半透明
+                    lastFire: 0,
+                    fireInterval: 200,  // 200ms間隔で発射
+                    trail: [],  // 残像エフェクト用
+                    maxTrailLength: 8,  // 残像の数
+
+                    update(player, dt) {
+                        // 自機の周りを高速旋回
+                        this.offsetAngle += 0.15;  // 回転速度を大幅に上げる（0.02→0.15）
+                        this.x = player.x + Math.cos(this.offsetAngle) * this.distance;
+                        this.y = player.y + Math.sin(this.offsetAngle) * this.distance;
+
+                        // 残像を記録
+                        this.trail.unshift({ x: this.x, y: this.y, opacity: this.opacity });
+                        if (this.trail.length > this.maxTrailLength) {
+                            this.trail.pop();
+                        }
+
+                        // 定期的に弾を発射
+                        const now = Date.now();
+                        if (now - this.lastFire >= this.fireInterval && player.game) {
+                            this.fire(player);
+                            this.lastFire = now;
+                        }
+                    },
+
+                    fire(player) {
+                        // 分身も同じ武器を発射
+                        if (player.game && player.game.bullets) {
+                            const bullet = {
+                                x: this.x,
+                                y: this.y - 10,
+                                vx: 0,
+                                vy: -15,
+                                width: 8,
+                                height: 12,
+                                power: 5,  // 分身の弾は威力控えめ
+                                damage: 5,
+                                owner: 'player',
+                                type: 'clone',
+                                color: '#00ffff',
+
+                                update(dt) {
+                                    this.x += this.vx;
+                                    this.y += this.vy;
+                                },
+
+                                render(ctx) {
+                                    ctx.save();
+                                    ctx.fillStyle = this.color;
+                                    ctx.shadowBlur = 10;
+                                    ctx.shadowColor = this.color;
+                                    ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                                    ctx.restore();
+                                },
+
+                                getHitbox() {
+                                    return {
+                                        x: this.x - this.width / 2,
+                                        y: this.y - this.height / 2,
+                                        width: this.width,
+                                        height: this.height
+                                    };
+                                }
+                            };
+
+                            player.game.bullets.push(bullet);
+                        }
+                    },
+
+                    render(ctx, player) {
+                        ctx.save();
+
+                        // 残像を描画（バリア感を演出）
+                        for (let i = this.trail.length - 1; i >= 0; i--) {
+                            const point = this.trail[i];
+                            const alpha = (this.maxTrailLength - i) / this.maxTrailLength * 0.3;
+
+                            ctx.globalAlpha = alpha;
+                            ctx.fillStyle = '#00ffff';
+                            ctx.shadowBlur = 30;
+                            ctx.shadowColor = '#00ffff';
+
+                            // 円形のバリアエフェクト
+                            ctx.beginPath();
+                            ctx.arc(point.x, point.y, this.width * 1.5, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            // 残像の機体
+                            ctx.fillStyle = '#00aaff';
+                            ctx.beginPath();
+                            ctx.moveTo(point.x, point.y - this.height / 2);
+                            ctx.lineTo(point.x - this.width / 2, point.y + this.height / 2);
+                            ctx.lineTo(point.x, point.y + this.height / 3);
+                            ctx.lineTo(point.x + this.width / 2, point.y + this.height / 2);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+
+                        // 分身本体
+                        ctx.globalAlpha = this.opacity;
+
+                        // 分身の発光エフェクト（強化）
+                        ctx.shadowBlur = 40;
+                        ctx.shadowColor = '#00ffff';
+                        ctx.fillStyle = '#00ffff';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.width * 1.2, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // 分身本体（小さめの自機）
+                        ctx.fillStyle = '#00aaff';
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y - this.height / 2);
+                        ctx.lineTo(this.x - this.width / 2, this.y + this.height / 2);
+                        ctx.lineTo(this.x, this.y + this.height / 3);
+                        ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.restore();
+                    },
+
+                    // 分身のヒットボックス（シールド機能用）
+                    getHitbox() {
+                        return {
+                            x: this.x - this.width / 2,
+                            y: this.y - this.height / 2,
+                            width: this.width,
+                            height: this.height
+                        };
+                    }
+                };
+
+                this.clones.push(clone);
+            }
+        }
+    }
+
+    createUltimateUnlockEffect() {
+        // 超強力武器解放時のエフェクト
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+
+        // 虹色のフラッシュ
+        let flashCount = 0;
+        const colors = ['#ff0000', '#ff7700', '#ffff00', '#00ff00', '#0099ff', '#ff00ff'];
+
+        const flashInterval = setInterval(() => {
+            if (flashCount >= 6) {
+                clearInterval(flashInterval);
+                return;
+            }
+
+            ctx.save();
+            ctx.fillStyle = colors[flashCount % colors.length];
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            flashCount++;
+        }, 100);
+    }
+
+    fireUltimateWeapon() {
+        // 超強力ミサイル（1秒間隔で発射）
+        if (!this.ultimateWeaponUnlocked) return;
+
+        const now = Date.now();
+        if (!this.lastUltimateFire) this.lastUltimateFire = 0;
+        if (now - this.lastUltimateFire < 1000) return; // 1秒間隔
+        this.lastUltimateFire = now;
+
+        // 超強力ホーミングミサイル
+        const bullet = {
+            x: this.x,
+            y: this.y - 30,
+            vx: 0,
+            vy: -8,  // 初速は遅め（ホーミング性能重視）
+            width: 30,  // ミサイルサイズ
+            height: 40,
+            power: 100,  // 超高威力（通常の10倍）
+            damage: 100,
+            owner: 'player',
+            type: 'ultimate_missile',
+            color: '#ff00ff',
+            penetrating: true,  // 貫通
+            homing: true,  // ホーミング機能
+            target: null,  // ターゲット
+            maxSpeed: 15,  // 最高速度
+            turnSpeed: 0.15,  // 旋回性能
+
+            update(dt) {
+                // ホーミング機能
+                if (this.homing && this.game) {
+                    // 最も近い敵を探す
+                    let closestEnemy = null;
+                    let minDistance = Infinity;
+
+                    // 通常敵をチェック
+                    if (this.game.enemies) {
+                        for (const enemy of this.game.enemies) {
+                            const dx = enemy.x - this.x;
+                            const dy = enemy.y - this.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestEnemy = enemy;
+                            }
+                        }
+                    }
+
+                    // ボスもチェック
+                    if (this.game.boss) {
+                        const dx = this.game.boss.x - this.x;
+                        const dy = this.game.boss.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < minDistance) {
+                            closestEnemy = this.game.boss;
+                        }
+                    }
+
+                    // ターゲットに向かって旋回
+                    if (closestEnemy) {
+                        const dx = closestEnemy.x - this.x;
+                        const dy = closestEnemy.y - this.y;
+                        const angle = Math.atan2(dy, dx);
+                        const currentAngle = Math.atan2(this.vy, this.vx);
+
+                        // 角度差を計算して旋回
+                        let angleDiff = angle - currentAngle;
+                        if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                        if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                        const newAngle = currentAngle + angleDiff * this.turnSpeed;
+                        const speed = Math.min(this.maxSpeed, Math.sqrt(this.vx * this.vx + this.vy * this.vy) * 1.1);
+
+                        this.vx = Math.cos(newAngle) * speed;
+                        this.vy = Math.sin(newAngle) * speed;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 煙のエフェクトを追加
+                this.createSmokeTrail();
+            },
+
+            createSmokeTrail() {
+                // 煙の軌跡
+                if (Math.random() < 0.8 && this.game) {
+                    if (this.game.createExplosion) {
+                        this.game.createExplosion(
+                            this.x + (Math.random() - 0.5) * 10,
+                            this.y + this.height / 2,
+                            'smoke'
+                        );
+                    }
+                }
+            },
+
+            render(ctx) {
+                ctx.save();
+
+                // ミサイル本体
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 40;
+                ctx.shadowColor = this.color;
+
+                // ミサイルの形状（三角形）
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y - this.height / 2);
+                ctx.lineTo(this.x - this.width / 2, this.y + this.height / 2);
+                ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.closePath();
+                ctx.fill();
+
+                // 炎のジェット
+                const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + 40);
+                gradient.addColorStop(0, 'rgba(255, 255, 0, 0.8)');
+                gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.6)');
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0.2)');
+
+                ctx.fillStyle = gradient;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        this.x + (Math.random() - 0.5) * 10,
+                        this.y + this.height / 2 + i * 10,
+                        15 - i * 4,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            },
+
+            getHitbox() {
+                return {
+                    x: this.x - this.width / 2,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height
+                };
+            }
+        };
+
+        bullet.game = this.game;
+        this.game.bullets.push(bullet);
+    }
+
+    createBombEffect() {
+        // 画面全体を白くフラッシュ
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+        let flashIntensity = 1.0;
+        let flashCount = 0;
+        const maxFlashes = 3;
+
+        const flashInterval = setInterval(() => {
+            if (flashCount >= maxFlashes) {
+                clearInterval(flashInterval);
+                return;
+            }
+
+            // 画面全体を白でオーバーレイ
+            ctx.save();
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            flashIntensity *= 0.5; // 段々薄くなる
+            flashCount++;
+        }, 50); // 50msごとにフラッシュ
+    }
+
+    createLightningEffect() {
+        // 稲妻エフェクトを画面に追加
+        const canvas = this.game.canvas;
+        const ctx = this.game.ctx;
+        const lightning = [];
+
+        // ランダムな稲妻を生成
+        for (let i = 0; i < 5; i++) {
+            const startX = Math.random() * canvas.width;
+            const startY = 0;
+            const endX = startX + (Math.random() - 0.5) * 200;
+            const endY = canvas.height;
+
+            lightning.push({ startX, startY, endX, endY, life: 10 });
+        }
+
+        // 稲妻を描画
+        const drawLightning = () => {
+            lightning.forEach((bolt, index) => {
+                if (bolt.life <= 0) {
+                    lightning.splice(index, 1);
+                    return;
+                }
+
+                ctx.save();
+                ctx.strokeStyle = `rgba(255, 255, 255, ${bolt.life / 10})`;
+                ctx.lineWidth = Math.random() * 3 + 2;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#00ffff';
+
+                ctx.beginPath();
+                ctx.moveTo(bolt.startX, bolt.startY);
+
+                // ジグザグパス
+                const segments = 8;
+                for (let j = 1; j <= segments; j++) {
+                    const progress = j / segments;
+                    const x = bolt.startX + (bolt.endX - bolt.startX) * progress + (Math.random() - 0.5) * 40;
+                    const y = bolt.startY + (bolt.endY - bolt.startY) * progress;
+                    ctx.lineTo(x, y);
+                }
+
+                ctx.stroke();
+                ctx.restore();
+
+                bolt.life--;
+            });
+
+            if (lightning.length > 0) {
+                requestAnimationFrame(drawLightning);
+            }
+        };
+
+        drawLightning();
     }
 
     render(ctx) {
@@ -953,22 +1455,22 @@ class Player {
         const glowTime = Date.now() * 0.002;
         const glowPulse = Math.sin(glowTime) * 0.3 + 0.7; // 0.4〜1.0で脈動
 
-        // 大きな外側のグロー
-        ctx.shadowBlur = 30 * glowPulse;
-        ctx.shadowColor = '#00ffff';
-        ctx.globalAlpha = 0.6 * glowPulse;
-        ctx.fillStyle = '#00ffff';
+        // 大きな外側のグロー（赤色に変更）
+        ctx.shadowBlur = 40 * glowPulse;
+        ctx.shadowColor = '#ff0000';
+        ctx.globalAlpha = 0.7 * glowPulse;
+        ctx.fillStyle = '#ff0000';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width * 1.5, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // 中間のグロー
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ffffff';
-        ctx.globalAlpha = 0.4 * glowPulse;
-        ctx.fillStyle = '#ffffff';
+        // 中間のグロー（オレンジ色）
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#ff8800';
+        ctx.globalAlpha = 0.5 * glowPulse;
+        ctx.fillStyle = '#ff8800';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 1.3, 0, Math.PI * 2);
         ctx.fill();
 
         // 内側の明るいコア
@@ -1019,10 +1521,10 @@ class Player {
                 this.height * 2
             );
         } else {
-            // 画像がない場合は従来の描画
+            // 画像がない場合は従来の描画（赤色の機体）
             ctx.fillStyle = this.color;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffff00';  // 黄色の縁取りで視認性向上
+            ctx.lineWidth = 3;  // 太めの線で目立たせる
 
             ctx.beginPath();
             ctx.moveTo(this.x, this.y - this.height / 2);
@@ -1066,6 +1568,13 @@ class Player {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
             ctx.stroke();
+        }
+
+        // 分身の描画（ALL MAX時のみ）
+        if (this.clones && this.clones.length > 0) {
+            for (const clone of this.clones) {
+                clone.render(ctx, this);
+            }
         }
 
         ctx.restore();

@@ -143,15 +143,35 @@ const stageData = {
         boss: { time: 1500, type: 'stage10' }
     },
     11: {
-        name: "Final Dimension",
+        name: "Final Dimension - Boss Rush",
         bgColor: "#330011",
         scrollSpeed: 2.5,
         enemyWaves: [
-            { time: 100, type: 'mixed', count: 15, formation: 'chaos' },
-            { time: 500, type: 'tank', count: 8, formation: 'wall' },
-            { time: 900, type: 'all', count: 25, formation: 'ultimate' },
+            // 序盤：強化雑魚の大群
+            { time: 100, type: 'mixed', count: 20, formation: 'chaos' },
+            { time: 300, type: 'all', count: 25, formation: 'ultimate' },
+            { time: 500, type: 'bomber', count: 15, formation: 'spiral' },
+
+            // 過去のボスをミニボスとして投入
+            { time: 800, type: 'miniboss', bossId: 1 },    // Boss 1
+            { time: 1000, type: 'tank', count: 10, formation: 'wall' },
+            { time: 1200, type: 'miniboss', bossId: 3 },   // Boss 3
+            { time: 1400, type: 'fast', count: 20, formation: 'swarm' },
+            { time: 1600, type: 'miniboss', bossId: 5 },   // Boss 5
+            { time: 1800, type: 'all', count: 30, formation: 'chaos' },
+            { time: 2000, type: 'miniboss', bossId: 7 },   // Boss 7
+
+            // 最終段階：複数ボス同時
+            { time: 2200, type: 'miniboss', bossId: 2 },   // Boss 2
+            { time: 2300, type: 'miniboss', bossId: 4 },   // Boss 4
+            { time: 2400, type: 'miniboss', bossId: 6 },   // Boss 6
+            { time: 2500, type: 'miniboss', bossId: 8 },   // Boss 8
+            { time: 2600, type: 'miniboss', bossId: 9 },   // Boss 9
+
+            // 最後の雑魚ラッシュ
+            { time: 2800, type: 'all', count: 40, formation: 'ultimate' },
         ],
-        boss: { time: 1500, type: 'final' }
+        boss: { time: 3200, type: 'final' }
     }
 };
 
@@ -240,6 +260,12 @@ function updateStage(game) {
 }
 
 function spawnWave(game, wave) {
+    // ミニボス（過去のボス）の処理
+    if (wave.type === 'miniboss' && wave.bossId) {
+        spawnMiniBoss(game, wave.bossId);
+        return;
+    }
+
     const formations = {
         line: (count) => {
             const spacing = game.canvas.width / (count + 1);
@@ -413,6 +439,34 @@ function spawnWave(game, wave) {
             game.spawnEnemy(type, pos.x, pos.y);
         }, index * 100);
     });
+}
+
+function spawnMiniBoss(game, bossId) {
+    // 過去のボスをミニボスとして生成（弱体化版）
+    // 現時点ではミニボス機能を簡易実装（強化された敵として出現）
+    if (typeof Enemy !== 'undefined') {
+        const miniBoss = new Enemy(game.canvas.width / 2, -50, 'tank', game);
+
+        // ミニボスとして強化
+        miniBoss.width = 120;  // 大型化
+        miniBoss.height = 120;
+        miniBoss.hp = 100 + bossId * 20;  // ボスIDに応じてHP増加
+        miniBoss.maxHp = miniBoss.hp;
+        miniBoss.scoreValue = 10000;
+        miniBoss.movePattern = 'hover';
+        miniBoss.attackPattern = 'spread';
+        miniBoss.color = '#ff00ff';
+        miniBoss.attackInterval = 40;  // 高速攻撃
+
+        // ボスIDに応じて色を変更
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff',
+                       '#00ffff', '#ff8800', '#8800ff', '#ff0088'];
+        miniBoss.color = colors[bossId - 1] || '#ff00ff';
+
+        game.enemies.push(miniBoss);
+
+        console.log(`Mini Boss spawned: Boss ${bossId} as enhanced enemy`);
+    }
 }
 
 function spawnMidBoss(game, type) {

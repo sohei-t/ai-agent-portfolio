@@ -15,8 +15,9 @@ function checkCollisions(game) {
                     // ダメージ処理
                     enemy.takeDamage(bullet.power);
 
+                    // 超強力武器（ドラゴンブレス）とチャージレーザーは貫通
                     // 貫通弾でない場合は弾を削除
-                    if (!bullet.penetrating) {
+                    if (!bullet.penetrating && bullet.type !== 'ultimate_dragon') {
                         game.bullets.splice(i, 1);
                         break;
                     }
@@ -43,7 +44,12 @@ function checkCollisions(game) {
                     game.boss.takeDamage(bullet.power, false);
                 }
 
-                if ((hitCore || isColliding(bullet, game.boss)) && !bullet.penetrating) {
+                // ラスボス（finalSecond）に対してはホーミングミサイルも1撃で消える
+                const isFinalBoss = game.boss && game.boss.phase === 'finalSecond';
+                const shouldRemoveBullet = (hitCore || isColliding(bullet, game.boss)) &&
+                    (!bullet.penetrating || (isFinalBoss && bullet.type === 'ultimate_missile'));
+
+                if (shouldRemoveBullet) {
                     game.bullets.splice(i, 1);
                 }
             }
@@ -60,6 +66,18 @@ function checkCollisions(game) {
                 const enemyBullet = game.bullets[j];
 
                 if (enemyBullet && enemyBullet.owner === 'enemy') {
+                    // 超強力武器（ultimate_dragon/ultimate_missile）は全ての敵弾を相殺
+                    if (playerBullet.type === 'ultimate_dragon' || playerBullet.type === 'ultimate_missile') {
+                        if (isColliding(playerBullet, enemyBullet)) {
+                            // 敵弾を破壊（超強力武器は貫通）
+                            if (game.createExplosion) {
+                                game.createExplosion(enemyBullet.x, enemyBullet.y, 'small');
+                            }
+                            game.bullets.splice(j, 1);
+                        }
+                        continue; // 超強力武器は次の敵弾もチェック
+                    }
+
                     // レーザー（大型赤色弾）のみ相殺不可
                     // ホーミング弾は相殺可能に変更
                     if (enemyBullet.type === 'laser') {
@@ -108,6 +126,29 @@ function checkCollisions(game) {
                         } else {
                             game.bullets.splice(i, 1);
                             game.bullets.splice(j, 1);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 敵弾 vs 分身（シールド機能）
+    if (game.player.clones && game.player.clones.length > 0) {
+        for (let i = game.bullets.length - 1; i >= 0; i--) {
+            const bullet = game.bullets[i];
+
+            if (bullet && bullet.owner === 'enemy') {
+                // 分身との当たり判定
+                for (const clone of game.player.clones) {
+                    if (isColliding(bullet, clone)) {
+                        // 分身が敵弾をブロック（分身は破壊されない）
+                        game.bullets.splice(i, 1);
+
+                        // ブロック時のエフェクト
+                        if (game.createExplosion) {
+                            game.createExplosion(bullet.x, bullet.y, 'small');
                         }
                         break;
                     }
