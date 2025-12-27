@@ -369,14 +369,59 @@ class Player {
 
     fireLaserNew(weapon) {
         const level = weapon.level;
-        const width = 4 + level * 2;  // レベルに応じた太さ
 
-        const bullet = this.createBullet(this.x, this.y - 20, 0, -20, 'laser', width);
-        if (bullet) {
-            bullet.power = level;  // レベル＝威力
-            bullet.color = weapon.color;
-            bullet.penetrating = true;  // 貫通
-            bullet.pierceCount = level * 2;  // レベルに応じた貫通数
+        // 紫武器：誘導ミサイル（必ず敵に当たる）
+        const missileCount = Math.min(level, 5);  // 最大5発
+
+        for (let i = 0; i < missileCount; i++) {
+            setTimeout(() => {
+                const bullet = this.createBullet(
+                    this.x + (i - Math.floor(missileCount/2)) * 10,
+                    this.y - 20,
+                    0,
+                    -8,
+                    'homing'  // 誘導ミサイルタイプ
+                );
+                if (bullet) {
+                    bullet.color = weapon.color;
+                    bullet.power = 2;  // 固定ダメージ
+                    bullet.size = 6;
+                    bullet.homingSpeed = 0.15;  // 追尾速度
+                    bullet.maxTurnRate = 0.1;   // 最大旋回速度
+                    bullet.isHoming = true;  // 誘導フラグ
+
+                    // 最も近い敵を検索してターゲットに設定
+                    let nearestEnemy = null;
+                    let minDist = Infinity;
+
+                    // 通常の敵をチェック
+                    if (this.game && this.game.enemies) {
+                        for (const enemy of this.game.enemies) {
+                            const dist = Math.sqrt(
+                                Math.pow(enemy.x - bullet.x, 2) +
+                                Math.pow(enemy.y - bullet.y, 2)
+                            );
+                            if (dist < minDist) {
+                                minDist = dist;
+                                nearestEnemy = enemy;
+                            }
+                        }
+                    }
+
+                    // ボスもチェック
+                    if (this.game && this.game.boss) {
+                        const dist = Math.sqrt(
+                            Math.pow(this.game.boss.x - bullet.x, 2) +
+                            Math.pow(this.game.boss.y - bullet.y, 2)
+                        );
+                        if (dist < minDist) {
+                            nearestEnemy = this.game.boss;
+                        }
+                    }
+
+                    bullet.target = nearestEnemy;
+                }
+            }, i * 50);  // 順番に発射
         }
     }
 

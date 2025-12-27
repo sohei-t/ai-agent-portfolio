@@ -24,7 +24,22 @@ function checkCollisions(game) {
                 }
             }
 
-            // ボス
+            // 累積ボス（追加実装）
+            if (game.accumulatedBosses) {
+                for (let j = game.accumulatedBosses.length - 1; j >= 0; j--) {
+                    const accBoss = game.accumulatedBosses[j];
+                    if (accBoss && isColliding(bullet, accBoss)) {
+                        accBoss.takeDamage(bullet.power, false);
+
+                        if (!bullet.penetrating) {
+                            game.bullets.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // メインボス
             if (game.boss) {
                 // まずコアへの命中をチェック
                 const coreHitbox = game.boss.getCoreHitbox();
@@ -183,6 +198,15 @@ function checkCollisions(game) {
         // ボス vs プレイヤー
         if (game.boss && isColliding(game.boss, game.player)) {
             game.player.takeDamage(2);
+        }
+
+        // 累積ボス vs プレイヤー（追加実装）
+        if (game.accumulatedBosses) {
+            for (const accBoss of game.accumulatedBosses) {
+                if (accBoss && isColliding(accBoss, game.player)) {
+                    game.player.takeDamage(2);
+                }
+            }
         }
     }
 

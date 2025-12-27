@@ -76,6 +76,65 @@ class Bullet {
             }
         }
 
+        // プレイヤーの誘導ミサイル処理
+        if (this.isHoming && this.owner === 'player') {
+            // ターゲットが存在するか確認
+            if (this.target && !this.target.destroyed) {
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const angle = Math.atan2(dy, dx);
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // 近距離では追尾性能を上げる
+                const trackingStrength = dist < 200 ? 0.3 : 0.15;
+
+                // 徐々に方向を調整（強力な追尾）
+                this.vx += Math.cos(angle) * trackingStrength;
+                this.vy += Math.sin(angle) * trackingStrength;
+
+                // 速度制限
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const maxSpeed = 12;  // 高速ミサイル
+                if (speed > maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
+
+                this.rotation = Math.atan2(this.vy, this.vx);
+            } else {
+                // ターゲットを失った場合、新しいターゲットを探す
+                let nearestEnemy = null;
+                let minDist = Infinity;
+
+                // 通常の敵をチェック
+                if (this.game && this.game.enemies) {
+                    for (const enemy of this.game.enemies) {
+                        const dist = Math.sqrt(
+                            Math.pow(enemy.x - this.x, 2) +
+                            Math.pow(enemy.y - this.y, 2)
+                        );
+                        if (dist < minDist && dist < 400) {  // 400ピクセル以内の敵のみ
+                            minDist = dist;
+                            nearestEnemy = enemy;
+                        }
+                    }
+                }
+
+                // ボスもチェック
+                if (this.game && this.game.boss) {
+                    const dist = Math.sqrt(
+                        Math.pow(this.game.boss.x - this.x, 2) +
+                        Math.pow(this.game.boss.y - this.y, 2)
+                    );
+                    if (dist < minDist) {
+                        nearestEnemy = this.game.boss;
+                    }
+                }
+
+                this.target = nearestEnemy;
+            }
+        }
+
         // 位置更新
         this.x += this.vx;
         this.y += this.vy;

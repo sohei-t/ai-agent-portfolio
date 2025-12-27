@@ -21,6 +21,10 @@ class Game {
         this.particles = [];
         this.boss = null;
 
+        // 逃したボスの累積システム
+        this.escapedBosses = [];  // 逃したボスのステージ番号リスト
+        this.accumulatedBosses = [];  // 現在ステージに追加されるボス
+
         // ゲーム設定
         this.settings = {
             bgmVolume: 0.5,
@@ -203,6 +207,23 @@ class Game {
         }
 
         // ボス更新
+        // 累積ボスの更新（追加実装）
+        if (this.accumulatedBosses && this.accumulatedBosses.length > 0) {
+            this.accumulatedBosses = this.accumulatedBosses.filter(accBoss => {
+                if (accBoss.destroyed || accBoss.hp <= 0) {
+                    // 累積ボスが倒された場合、逃したボスリストから削除
+                    const index = this.escapedBosses.indexOf(accBoss.originalStage);
+                    if (index > -1) {
+                        this.escapedBosses.splice(index, 1);
+                        console.log(`ステージ${accBoss.originalStage}の累積ボスを撃破！残り: ${this.escapedBosses}`);
+                    }
+                    return false;  // 配列から削除
+                }
+                accBoss.update(dt);
+                return true;  // 配列に残す
+            });
+        }
+
         if (this.boss) {
             // ボスが破壊されていないかチェック
             if (this.boss.destroyed || this.boss.hp <= 0) {
@@ -227,10 +248,14 @@ class Game {
                     if (elapsedTime >= timeLimit) {
                         // タイムアップでステージクリア（一度だけ実行）
                         this.bossTimeoutProcessing = true;
-                        console.log('タイムアップ - ステージクリア！');
+                        console.log('タイムアップ - ボスが逃げました！');
 
-                        // ボスを撤退させる
+                        // 逃したボスを記録（累積システム）
                         if (this.boss && !this.boss.destroyed) {
+                            this.escapedBosses.push(this.stage);  // 現在のステージ番号を記録
+                            console.log(`ステージ${this.stage}のボスを逃しました。累積ボス: ${this.escapedBosses}`);
+
+                            // ボスを撤退させる
                             this.boss.movePattern = 'leaving';
                         }
 
@@ -645,6 +670,22 @@ class Game {
         }
     }
 
+    getBossTypeByStage(stageNum) {
+        const types = {
+            1: 'stage1',
+            2: 'stage2',
+            3: 'stage3',
+            4: 'stage4',
+            5: 'stage5',
+            6: 'stage1',  // ステージ6以降は循環
+            7: 'stage2',
+            8: 'stage3',
+            9: 'stage4',
+            10: 'stage10'
+        };
+        return types[stageNum] || 'stage1';
+    }
+
     spawnBoss(type) {
         if (typeof Boss !== 'undefined') {
             // Boss Warning画面を表示
@@ -663,6 +704,34 @@ class Game {
             // 4秒後にボスを生成
             setTimeout(() => {
                 this.boss = new Boss(this.gameWidth / 2, -100, type, this);
+
+                // 累積ボスシステム：逃したボスを追加で出現
+                if (this.escapedBosses.length > 0) {
+                    console.log(`累積ボスを追加: ${this.escapedBosses}`);
+                    this.accumulatedBosses = [];  // 現在の累積ボスをクリア
+
+                    // 逃した各ボスを追加生成
+                    this.escapedBosses.forEach((escapedStage, index) => {
+                        setTimeout(() => {
+                            const bossType = this.getBossTypeByStage(escapedStage);
+                            const accumulatedBoss = new Boss(
+                                100 + (index * 150) % (this.gameWidth - 200),  // 横位置をずらす
+                                50 + (index * 50),  // 縦位置もずらす
+                                bossType,
+                                this
+                            );
+
+                            // 累積ボスは少し弱くする（HP 70%）
+                            accumulatedBoss.hp = Math.floor(accumulatedBoss.hp * 0.7);
+                            accumulatedBoss.maxHp = accumulatedBoss.hp;
+                            accumulatedBoss.isAccumulated = true;  // 累積ボスフラグ
+                            accumulatedBoss.originalStage = escapedStage;  // 元のステージ番号
+
+                            this.accumulatedBosses.push(accumulatedBoss);
+                            console.log(`ステージ${escapedStage}のボスを追加生成`);
+                        }, 500 + index * 500);  // 順番に出現
+                    });
+                }
 
                 // ボス戦開始時にステージアイテム管理をリセット
                 this.stageItemsSpawned = {
@@ -731,9 +800,79 @@ class Game {
 
     victory() {
         this.state = 'victory';
-        // エンディング画面へ遷移
-        const currentScore = this.score || 0;
-        window.location.href = `ending.html?score=${currentScore}`;
+
+        // 巨大な爆発エフェクトを生成（画面全体で連続爆発）
+        const explosionCount = 30;  // 爆発の数
+        const duration = 3000;  // 3秒間の演出
+
+        for (let i = 0; i < explosionCount; i++) {
+            setTimeout(() => {
+                // ランダムな位置で爆発
+                const x = Math.random() * this.canvas.width;
+                const y = Math.random() * this.canvas.height;
+
+                // 爆発エフェクト作成
+                if (this.createExplosion) {
+                    this.createExplosion(x, y, 'huge');
+                }
+
+                // 爆発パーティクル
+                for (let j = 0; j < 20; j++) {
+                    const angle = (Math.PI * 2 / 20) * j;
+                    const speed = 5 + Math.random() * 10;
+
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: 5 + Math.random() * 10,
+                        color: `hsl(${Math.random() * 60}, 100%, 50%)`,  // 赤〜黄色系
+                        lifetime: 60 + Math.random() * 30,
+                        type: 'explosion'
+                    });
+                }
+
+                // 画面を振動させる効果
+                if (this.canvas) {
+                    this.canvas.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
+                    setTimeout(() => {
+                        this.canvas.style.transform = 'translate(0, 0)';
+                    }, 100);
+                }
+            }, (i * duration) / explosionCount);
+        }
+
+        // 爆発演出後にビクトリー画面を表示
+        setTimeout(() => {
+            // キャンバスをクリア
+            const ctx = this.canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // ビクトリーメッセージ表示
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 72px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('VICTORY!', this.canvas.width / 2, this.canvas.height / 2 - 50);
+
+            ctx.font = '36px Arial';
+            ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 50);
+
+            // さらに2秒後にタイトル画面へ戻る（ending.htmlではなく）
+            setTimeout(() => {
+                // スコアをローカルストレージに保存
+                const currentScore = this.score || 0;
+                const highScore = parseInt(localStorage.getItem('highScore') || '0');
+                if (currentScore > highScore) {
+                    localStorage.setItem('highScore', currentScore);
+                }
+
+                // タイトル画面に戻る
+                location.reload();
+            }, 2000);
+        }, duration);
     }
 
     applySettings() {

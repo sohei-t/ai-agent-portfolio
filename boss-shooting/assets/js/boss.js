@@ -11,59 +11,63 @@ class Boss {
             stage1: {
                 width: 107,  // 1/3サイズ（320→107）
                 height: 107,
-                hp: 4500,  // バリア削除してHP3倍（1500→4500）
+                hp: 1500,  // 1/3に減少（4500→1500）：1分討伐可能
                 speed: 1,
                 scoreValue: 10000,
                 color: '#ff0044',
                 name: 'Alien Commander',
-                attackPatterns: ['spread', 'aimed', 'laser'],
+                attackPatterns: ['spread', 'aimed', 'laser', 'rapid'],  // rapid追加で攻撃強化
                 glowColor: '#ff00ff',
                 hasShield: false,  // バリア無効化
-                summonMinions: false
+                summonMinions: false,
+                attackInterval: 45  // 攻撃間隔を短縮（通常60→45）
             },
             stage2: {
                 width: 120,  // 1/3サイズ（360→120）
                 height: 120,
-                hp: 7500,  // バリア削除してHP3倍以上（2000+500シールド→7500）
+                hp: 2500,  // 1/3に減少（7500→2500）：1分討伐可能
                 speed: 1.2,
                 scoreValue: 15000,
                 color: '#ff4400',
                 name: 'Mechanical Destroyer',
-                attackPatterns: ['laser', 'homing', 'bomb'],
+                attackPatterns: ['laser', 'homing', 'bomb', 'spread'],  // spread追加で攻撃強化
                 glowColor: '#ffaa00',
                 hasShield: false,  // バリア無効化
-                summonMinions: false
+                summonMinions: false,
+                attackInterval: 40  // 攻撃間隔を短縮（通常60→40）
             },
             stage3: {
                 width: 133,  // 1/3サイズ（400→133）
                 height: 133,
-                hp: 9750,  // バリア削除してHP3倍以上（2500+750シールド→9750）
+                hp: 3250,  // 1/3に減少（9750→3250）：1分討伐可能
                 speed: 2.4,  // 速度3倍で高速移動
                 scoreValue: 20000,
                 color: '#ff0088',
                 name: 'Crystal Guardian',
-                attackPatterns: ['spiral', 'laser', 'spread'],
+                attackPatterns: ['spiral', 'laser', 'spread', 'aimed', 'rapid'],  // aimed,rapid追加で攻撃強化
                 glowColor: '#00ffff',
                 hasShield: false,  // バリア無効化
-                summonMinions: false
+                summonMinions: false,
+                attackInterval: 35  // 攻撃間隔を短縮（通常60→35）
             },
             stage4: {
                 width: 120,  // 1/3サイズ（360→120）
                 height: 120,
-                hp: 12000,  // バリア削除してHP3倍以上（3000+1000シールド→12000）
+                hp: 6000,  // 1/2に減少（12000→6000）：1分討伐可能
                 speed: 1.5,
                 scoreValue: 25000,
                 color: '#8800ff',
                 name: 'Shadow Leviathan',
-                attackPatterns: ['homing', 'bomb', 'spiral', 'minion'],
+                attackPatterns: ['homing', 'bomb', 'spiral', 'minion', 'laser'],  // laser追加で攻撃強化
                 glowColor: '#9900ff',
                 hasShield: false,  // バリア無効化
-                summonMinions: true  // ミニオン召喚
+                summonMinions: true,  // ミニオン召喚
+                attackInterval: 30  // 攻撃間隔を短縮（通常60→30）
             },
             stage5: {
                 width: 133,  // 1/3サイズ（400→133）
                 height: 133,
-                hp: 15000,  // バリア削除してHP3倍以上（3750+1250シールド→15000）
+                hp: 7500,  // 1/2に減少（15000→7500）：1分討伐可能
                 speed: 3.0,  // 速度3倍で高速移動
                 scoreValue: 30000,
                 color: '#ff00ff',
@@ -77,22 +81,23 @@ class Boss {
             stage10: {  // ステージ10専用ボス（boss_10.PNG使用）
                 width: 183,  // 1/3サイズ（550→183）
                 height: 183,
-                hp: 30000,  // バリア削除してHP3倍以上（7500+2500シールド→30000）
+                hp: 15000,  // 1/2に減少（30000→15000）：1分討伐可能
                 speed: 5.4,  // 速度3倍で超高速移動
                 scoreValue: 75000,
                 color: '#aa00ff',
                 name: 'Cosmic Horror',
-                attackPatterns: ['ultimate', 'chaos', 'spiral', 'minion', 'laser'],
+                attackPatterns: ['ultimate', 'chaos', 'spiral', 'minion', 'laser', 'rapid'],  // rapid追加で攻撃強化
                 glowColor: '#aa00ff',
                 hasShield: false,  // バリア無効化
                 regenerateShield: false,
                 summonMinions: true,
-                imageFile: 'boss_10.PNG'  // 明示的に指定
+                imageFile: 'boss_10.PNG',  // 明示的に指定
+                attackInterval: 25  // 攻撃間隔を短縮（通常60→25）
             },
             final: {  // ステージ11第一形態（boss_11.PNG使用）
                 width: 220,  // ステージ10（183）より一回り大きい
                 height: 220,
-                hp: 35000,  // バリア削除してHP3倍以上（8750+3000シールド→35000）
+                hp: 17500,  // 1/2に減少（35000→17500）：1分討伐可能
                 speed: 4.5,  // 速度3倍で超高速移動
                 scoreValue: 50000,
                 color: '#ff0000',
@@ -176,7 +181,7 @@ class Boss {
 
         // 攻撃関連
         this.attackTimer = 0;
-        this.attackInterval = 60;
+        this.attackInterval = config.attackInterval || 60;  // タイプ別の攻撃間隔を使用
         this.currentPattern = 0;
         this.specialAttackCooldown = 0;
 
@@ -1234,6 +1239,36 @@ class Boss {
                     if (this.game.addScore) {
                         this.game.addScore(1000 * this.bossNumber);
                     }
+
+                    // スモールボス撃破時に全種類のアイテムを出現
+                    if (this.game.spawnPowerup) {
+                        const itemTypes = [
+                            'weapon_default',  // 青武器
+                            'weapon_green',    // 緑武器
+                            'weapon_purple',   // 紫武器
+                            'weapon_yellow',   // 黄武器
+                            'item-bomb',       // ボム
+                            'item-life',       // ライフ
+                            'shield',          // シールド
+                            'speed'            // スピード
+                        ];
+
+                        // 全種類のアイテムを円形に配置
+                        itemTypes.forEach((type, index) => {
+                            const angle = (Math.PI * 2 / itemTypes.length) * index;
+                            const radius = 50;
+                            const itemX = this.x + Math.cos(angle) * radius;
+                            const itemY = this.y + Math.sin(angle) * radius;
+
+                            setTimeout(() => {
+                                if (this.game && this.game.powerups) {
+                                    const powerup = new Powerup(itemX, itemY, type);
+                                    powerup.game = this.game;
+                                    this.game.powerups.push(powerup);
+                                }
+                            }, index * 50);  // 少しずつ遅延して出現
+                        });
+                    }
                 }
             },
 
@@ -1245,15 +1280,43 @@ class Boss {
                     ctx.globalAlpha = 0.5;
                 }
 
-                // ボス画像を描画（小さく）
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                // boss_01〜boss_10の画像パスを使用
+                const imagePath = `assets/images/boss_${String(this.bossNumber).padStart(2, '0')}.PNG`;
 
-                // ボス番号を表示
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(this.bossNumber.toString(), this.x, this.y + 5);
+                // 画像が存在する場合は描画、なければ代替表示
+                const img = new Image();
+                img.src = imagePath;
+
+                if (img.complete && img.naturalHeight !== 0) {
+                    // 画像を1/2サイズで描画
+                    ctx.drawImage(img,
+                        this.x - this.width/2,
+                        this.y - this.height/2,
+                        this.width,
+                        this.height
+                    );
+                } else {
+                    // 画像が読み込めない場合は色付き四角形で代替
+                    ctx.fillStyle = this.color;
+                    ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+
+                    // ボス番号を表示
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`B${this.bossNumber}`, this.x, this.y + 5);
+                }
+
+                // HPバー表示（小さく）
+                const barWidth = 40;
+                const barHeight = 4;
+                const barY = this.y - this.height/2 - 10;
+
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                ctx.fillRect(this.x - barWidth/2, barY, barWidth, barHeight);
+
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+                ctx.fillRect(this.x - barWidth/2, barY, barWidth * (this.hp / this.maxHp), barHeight);
 
                 ctx.restore();
             },
