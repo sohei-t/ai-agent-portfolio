@@ -214,8 +214,9 @@ class Game {
             } else {
                 this.boss.update(dt);
 
-                // 3分間タイマー処理（最終ステージ以外）
-                if (this.stage < 10 && !this.bossTimeoutProcessing) {  // 最終ステージ（10）以外、かつ処理中でない
+                // 1分間タイマー処理（最終ステージ以外）
+                // ステージ10と11（最終ボス）はタイマーなし
+                if (this.stage < 10 && !this.bossTimeoutProcessing && !(this.boss && this.boss.phase === 'finalSecond')) {
                     if (!this.bossStageStartTime) {
                         this.bossStageStartTime = Date.now();
                     }

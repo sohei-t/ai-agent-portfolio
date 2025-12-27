@@ -84,7 +84,7 @@ class Powerup {
                 description: 'Wave Level Up'
             },
             speed: {
-                color: '#ff00ff',  // マゼンタ
+                color: '#ffffff',  // 白色（見やすさ向上）
                 shape: 'triangle',
                 icon: 'S',
                 description: 'Speed Up'
@@ -230,6 +230,15 @@ class Powerup {
                 ctx.quadraticCurveTo(-this.width / 2, this.height / 2, 0, this.height / 2);
                 ctx.quadraticCurveTo(this.width / 2, this.height / 2, this.width / 2, this.height / 3);
                 ctx.lineTo(this.width / 2, -this.height / 3);
+                ctx.closePath();
+                break;
+
+            case 'triangle':
+                // 三角形（スピードアップ）
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(-this.width / 2, this.height / 2);
+                ctx.lineTo(this.width / 2, this.height / 2);
                 ctx.closePath();
                 break;
 
