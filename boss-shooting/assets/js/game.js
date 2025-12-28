@@ -411,10 +411,7 @@ class Game {
                 this.boss = currentBoss;
             }
 
-            // 繰り越しボスを配置
-            this.spawnPendingBosses();
-
-            // ボス登場演出（複数ボスがいても一度だけ）
+            // ボス登場演出
             document.getElementById('bossHealth').style.display = 'block';
 
             if (typeof playBGM === 'function') {
