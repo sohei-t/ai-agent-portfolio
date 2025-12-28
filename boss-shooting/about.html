@@ -41,38 +41,6 @@
             50% { opacity: 1; }
         }
 
-        /* Language Switcher */
-        .language-switcher {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            gap: 10px;
-        }
-
-        .lang-btn {
-            padding: 8px 16px;
-            background: rgba(20, 20, 40, 0.8);
-            border: 2px solid #00ffff;
-            border-radius: 20px;
-            color: #00ffff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            font-weight: bold;
-        }
-
-        .lang-btn:hover {
-            background: rgba(0, 255, 255, 0.2);
-            transform: scale(1.1);
-        }
-
-        .lang-btn.active {
-            background: linear-gradient(135deg, #00ffff, #ff00ff);
-            color: #0a0a1a;
-        }
-
         /* Hero Section */
         .hero {
             min-height: 100vh;
@@ -383,34 +351,28 @@
     </style>
 </head>
 <body>
-    <!-- Language Switcher -->
-    <div class="language-switcher">
-        <button class="lang-btn" onclick="setLanguage('ja')">🇯🇵 日本語</button>
-        <button class="lang-btn active" onclick="setLanguage('en')">🌍 English</button>
-    </div>
-
     <!-- Starfield Background -->
     <div class="starfield" id="starfield"></div>
 
     <!-- Hero Section -->
     <section class="hero">
         <h1>SPACE ODYSSEY</h1>
-        <p class="subtitle" data-en="Boss Shooting Game" data-ja="ボスシューティングゲーム">Boss Shooting Game</p>
-        <a href="index.html" class="cta-button" data-en="Play Now" data-ja="今すぐプレイ">Play Now</a>
+        <p class="subtitle">Boss Shooting Game</p>
+        <a href="index.html" class="cta-button">Play Now</a>
     </section>
 
     <!-- Features Section -->
     <div class="container">
         <div class="section-header fade-in">
-            <h2 data-en="Epic Features" data-ja="素晴らしい機能">Epic Features</h2>
-            <p data-en="Experience the ultimate retro arcade shooter" data-ja="究極のレトロアーケードシューティングを体験">Experience the ultimate retro arcade shooter</p>
+            <h2>Epic Features</h2>
+            <p>Experience the ultimate retro arcade shooter</p>
         </div>
 
         <div class="features-grid">
             <div class="feature-card fade-in">
                 <div class="feature-icon">🎮</div>
-                <h3 data-en="10 Challenging Stages" data-ja="10の挑戦的なステージ">10 Challenging Stages</h3>
-                <p data-en="Progress through increasingly difficult levels with unique enemy patterns and strategic challenges." data-ja="独自の敵パターンと戦略的な課題を持つ、段階的に難しくなるレベルを進みます。">Progress through increasingly difficult levels with unique enemy patterns and strategic challenges.</p>
+                <h3>10 Challenging Stages</h3>
+                <p>Progress through increasingly difficult levels with unique enemy patterns and strategic challenges.</p>
             </div>
 
             <div class="feature-card fade-in">
@@ -568,45 +530,10 @@
             });
         }
 
-        // Language switching function
-        function setLanguage(lang) {
-            // Update button states
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Update all translatable elements
-            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
-                const text = element.getAttribute('data-' + lang);
-                if (text) {
-                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
-                        element.value = text;
-                    } else {
-                        element.textContent = text;
-                    }
-                }
-            });
-
-            // Update HTML lang attribute
-            document.documentElement.lang = lang;
-
-            // Save preference
-            localStorage.setItem('preferredLanguage', lang);
-        }
-
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             createStars();
             initScrollAnimations();
-
-            // Check for saved language preference
-            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
-            if (savedLang === 'ja') {
-                setLanguage('ja');
-                document.querySelectorAll('.lang-btn')[0].classList.add('active');
-                document.querySelectorAll('.lang-btn')[1].classList.remove('active');
-            }
         });
 
         // Smooth scroll for links

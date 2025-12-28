@@ -5,19 +5,14 @@ class Powerup {
         this.y = y;
         this.type = type;
 
-        // サイズ（少し大きくして見やすく）
-        this.width = 25;
-        this.height = 25;
+        // サイズ
+        this.width = 20;
+        this.height = 20;
 
-        // 移動（ゆっくり流れる）
-        this.vx = (Math.random() - 0.5) * 0.2;  // 横の動きをさらに減らす
-        this.vy = 0.5;  // 下に流れる速度を半分に（0.5倍）
+        // 移動
+        this.vy = 1.5;
         this.floatOffset = Math.random() * Math.PI * 2;
-        this.floatSpeed = 0.08;  // 浮遊アニメーション
-
-        // 生存時間（画面外に出るか時間経過で消える）
-        this.lifeTime = 480;  // 8秒 * 60fps = 480フレーム
-        this.fadeStartTime = 420;  // 7秒目から点滅開始
+        this.floatSpeed = 0.05;
 
         // ビジュアル
         this.rotation = 0;
@@ -29,135 +24,69 @@ class Powerup {
 
     setupType() {
         const types = {
-            // 武器レベルアップ（青色・四角）- 統合版
-            'weapon_level': {
-                color: '#00ffff',
-                shape: 'square',
-                icon: 'W',
+            weapon: {
+                color: '#ffff00',
+                icon: '⚡',
                 description: 'Weapon Level Up'
             },
-            // ボムアイテム（赤色・爆弾マーク）
-            'item-bomb': {
+            life: {
                 color: '#ff0066',
-                shape: 'bomb',
+                icon: '❤️',
+                description: 'Life +1'
+            },
+            bomb: {
+                color: '#ff6600',
                 icon: '💣',
                 description: 'Bomb +1'
             },
-            // HP回復（赤色・ハート）
-            'item-life': {
-                color: '#ff0066',
-                shape: 'heart',
-                icon: '❤',
-                description: 'Life +1'
-            },
-            // シールド（赤色・盾形）
-            'shield': {
-                color: '#ff0066',
-                shape: 'shield',
-                icon: '🛡',
+            shield: {
+                color: '#00ffff',
+                icon: '🛡️',
                 description: 'Shield'
             },
-
-            // 4色の武器システム
-            weapon_default: {
-                color: '#00ffff',  // 水色
-                shape: 'square',
-                icon: 'B',
-                description: 'Beam Level Up'
-            },
-            weapon_green: {
-                color: '#00ff00',  // 緑
-                shape: 'square',
-                icon: 'S',
-                description: 'Spread Level Up'
-            },
-            weapon_purple: {
-                color: '#ff00ff',  // 紫
-                shape: 'square',
-                icon: 'L',
-                description: 'Laser Level Up'
-            },
-            weapon_yellow: {
-                color: '#ffff00',  // 黄色
-                shape: 'square',
-                icon: 'W',
-                description: 'Wave Level Up'
-            },
             speed: {
-                color: '#ffffff',  // 白色（見やすさ向上）
-                shape: 'triangle',
-                icon: 'S',
-                description: 'Speed Up'
+                color: '#00ff00',
+                icon: '⚡',
+                description: 'Speed Boost'
+            },
+            power: {
+                color: '#ff00ff',
+                icon: '💪',
+                description: 'Power Boost'
+            },
+            score: {
+                color: '#ffaa00',
+                icon: '⭐',
+                description: 'Score x2'
             }
         };
 
-        const config = types[this.type] || types.weapon_level;
+        const config = types[this.type] || types.weapon;
         this.color = config.color;
         this.icon = config.icon;
         this.description = config.description;
-        this.shape = config.shape || 'square';
     }
 
     update(dt) {
-        // ゆっくり流れる（下に移動＋横にも少し）
+        // 落下
         this.y += this.vy;
-        this.x += this.vx;
 
-        // 上下にゆらゆら浮遊（流れながら）
+        // 横揺れ
         this.floatOffset += this.floatSpeed;
-        const floatAmount = Math.sin(this.floatOffset) * 2;  // 上下2ピクセル
-        this.y += floatAmount * 0.1;  // ゆっくり上下
-
-        // 横の動きに少し波を加える
-        this.x += Math.sin(this.floatOffset * 0.5) * 0.3;
+        this.x += Math.sin(this.floatOffset) * 0.5;
 
         // 回転
         this.rotation += 0.05;
 
         // グロー効果
         this.glow = (this.glow + 0.1) % (Math.PI * 2);
-
-        // 生存時間カウントダウン
-        this.lifeTime--;
-
-        // 画面外に出たら削除
-        if (this.y > window.innerHeight + 50 ||
-            this.x < -50 ||
-            this.x > window.innerWidth + 50) {
-            this.destroy();
-        }
-
-        // 時間切れでも削除
-        if (this.lifeTime <= 0) {
-            this.destroy();
-        }
-    }
-
-    destroy() {
-        // 配列から削除
-        if (this.game && this.game.powerups) {
-            const index = this.game.powerups.indexOf(this);
-            if (index > -1) {
-                this.game.powerups.splice(index, 1);
-            }
-        }
     }
 
     render(ctx) {
         ctx.save();
 
-        // 消滅前の点滅効果
-        let alpha = 1.0;
-        if (this.lifeTime < this.fadeStartTime - 300) {  // 最後の1秒
-            // 高速点滅
-            alpha = Math.sin(this.lifeTime * 0.5) > 0 ? 1.0 : 0.3;
-        } else if (this.lifeTime < this.fadeStartTime) {  // 6秒目
-            // ゆっくり点滅
-            alpha = 0.5 + Math.sin(this.lifeTime * 0.1) * 0.5;
-        }
-
         // グロー効果
-        const glowIntensity = (0.5 + Math.sin(this.glow) * 0.3) * alpha;
+        const glowIntensity = 0.5 + Math.sin(this.glow) * 0.3;
         ctx.shadowBlur = 20;
         ctx.shadowColor = this.color;
 
@@ -170,118 +99,69 @@ class Powerup {
         ctx.lineWidth = 2;
         ctx.globalAlpha = glowIntensity;
 
-        // アイテムタイプ別の形状描画（shapeプロパティを優先）
-        const shapeType = this.shape || this.type;
-        switch (shapeType) {
-            case 'square':
-                // 四角形（武器アイテム用）
-                ctx.beginPath();
-                ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
-                ctx.closePath();
-                break;
-
+        switch (this.type) {
+            case 'weapon':
             case 'power':
-                // 炎型（パワーアップを表現）
-                ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
-                ctx.bezierCurveTo(
-                    -this.width / 2, -this.height / 3,
-                    -this.width / 3, this.height / 3,
-                    0, this.height / 2
-                );
-                ctx.bezierCurveTo(
-                    this.width / 3, this.height / 3,
-                    this.width / 2, -this.height / 3,
-                    0, -this.height / 2
-                );
-                ctx.closePath();
-                break;
-
-            case 'life':
-                // ハート型（より明確に）
-                const w = this.width / 2;
-                const h = this.height / 2;
-                ctx.beginPath();
-                ctx.moveTo(0, -h * 0.3);
-                ctx.bezierCurveTo(-w * 0.5, -h, -w, -h * 0.5, -w, 0);
-                ctx.bezierCurveTo(-w, h * 0.5, 0, h, 0, h);
-                ctx.bezierCurveTo(0, h, w, h * 0.5, w, 0);
-                ctx.bezierCurveTo(w, -h * 0.5, w * 0.5, -h, 0, -h * 0.3);
-                ctx.closePath();
-                break;
-
-            case 'bomb':
-                // 爆弾型（丸い本体と導火線）
-                ctx.beginPath();
-                ctx.arc(0, this.height / 6, this.width / 3, 0, Math.PI * 2);
-                ctx.moveTo(0, -this.height / 6);
-                ctx.lineTo(0, -this.height / 2);
-                // 導火線の火花
-                ctx.moveTo(-5, -this.height / 2);
-                ctx.lineTo(5, -this.height / 2);
-                break;
-
-            case 'shield':
-                // シールド型（盾の形）
-                ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(-this.width / 2, -this.height / 3);
-                ctx.lineTo(-this.width / 2, this.height / 3);
-                ctx.quadraticCurveTo(-this.width / 2, this.height / 2, 0, this.height / 2);
-                ctx.quadraticCurveTo(this.width / 2, this.height / 2, this.width / 2, this.height / 3);
-                ctx.lineTo(this.width / 2, -this.height / 3);
-                ctx.closePath();
-                break;
-
-            case 'triangle':
-                // 三角形（スピードアップ）
-                ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(-this.width / 2, this.height / 2);
-                ctx.lineTo(this.width / 2, this.height / 2);
-                ctx.closePath();
-                break;
-
-            case 'speed':
-                // 矢印型（スピードアップ）
-                ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(-this.width / 2, 0);
-                ctx.lineTo(-this.width / 4, 0);
-                ctx.lineTo(-this.width / 4, this.height / 2);
-                ctx.lineTo(this.width / 4, this.height / 2);
-                ctx.lineTo(this.width / 4, 0);
-                ctx.lineTo(this.width / 2, 0);
-                ctx.closePath();
-                break;
-
-            case 'score':
-                // 星型（スコアアップ）
+                // 星型
                 ctx.beginPath();
                 for (let i = 0; i < 5; i++) {
                     const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
                     const outerRadius = this.width / 2;
-                    const innerRadius = outerRadius * 0.4;
+                    const innerRadius = outerRadius / 2;
+
                     const x1 = Math.cos(angle) * outerRadius;
                     const y1 = Math.sin(angle) * outerRadius;
+
                     const angle2 = angle + Math.PI / 5;
                     const x2 = Math.cos(angle2) * innerRadius;
                     const y2 = Math.sin(angle2) * innerRadius;
-                    if (i === 0) ctx.moveTo(x1, y1);
-                    else ctx.lineTo(x1, y1);
+
+                    if (i === 0) {
+                        ctx.moveTo(x1, y1);
+                    } else {
+                        ctx.lineTo(x1, y1);
+                    }
                     ctx.lineTo(x2, y2);
                 }
                 ctx.closePath();
                 break;
 
-            default:
-                // その他特殊アイテム（ダイヤ型）
+            case 'life':
+                // ハート型（簡略版）
+                ctx.beginPath();
+                ctx.arc(-this.width / 4, -this.height / 4, this.width / 3, 0, Math.PI * 2);
+                ctx.arc(this.width / 4, -this.height / 4, this.width / 3, 0, Math.PI * 2);
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-this.width / 2, -this.height / 4);
+                ctx.lineTo(0, this.height / 2);
+                ctx.lineTo(this.width / 2, -this.height / 4);
+                ctx.lineTo(0, 0);
+                break;
+
+            case 'bomb':
+                // 爆弾型
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
+                ctx.moveTo(0, -this.width / 2);
+                ctx.lineTo(0, -this.width * 0.75);
+                break;
+
+            case 'shield':
+                // シールド型
                 ctx.beginPath();
                 ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(-this.width / 2, 0);
+                ctx.lineTo(-this.width / 2, -this.height / 4);
+                ctx.lineTo(-this.width / 2, this.height / 4);
                 ctx.lineTo(0, this.height / 2);
-                ctx.lineTo(this.width / 2, 0);
+                ctx.lineTo(this.width / 2, this.height / 4);
+                ctx.lineTo(this.width / 2, -this.height / 4);
                 ctx.closePath();
+                break;
+
+            default:
+                // デフォルト（円形）
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
                 break;
         }
 
@@ -303,13 +183,11 @@ class Powerup {
     }
 
     getHitbox() {
-        // 取得判定を適度に緩和（実際のサイズより少し大きめ）
-        const multiplier = 2.0;  // 判定を2倍に拡大（適正化）
         return {
-            x: this.x - this.width * multiplier / 2,
-            y: this.y - this.height * multiplier / 2,
-            width: this.width * multiplier,
-            height: this.height * multiplier
+            x: this.x - this.width / 2,
+            y: this.y - this.height / 2,
+            width: this.width,
+            height: this.height
         };
     }
 }

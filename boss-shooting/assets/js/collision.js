@@ -15,158 +15,32 @@ function checkCollisions(game) {
                     // ダメージ処理
                     enemy.takeDamage(bullet.power);
 
-                    // 超強力武器（ドラゴンブレス）とチャージレーザーは貫通
                     // 貫通弾でない場合は弾を削除
-                    if (!bullet.penetrating && bullet.type !== 'ultimate_dragon') {
+                    if (!bullet.penetrating) {
                         game.bullets.splice(i, 1);
                         break;
                     }
                 }
             }
 
-            // 累積ボス（追加実装）
-            if (game.accumulatedBosses) {
-                for (let j = game.accumulatedBosses.length - 1; j >= 0; j--) {
-                    const accBoss = game.accumulatedBosses[j];
-                    if (accBoss && isColliding(bullet, accBoss)) {
-                        accBoss.takeDamage(bullet.power, false);
+            // 複数ボスとの当たり判定
+            for (const boss of game.bosses) {
+                if (!boss.destroyed && isColliding(bullet, boss)) {
+                    boss.takeDamage(bullet.power);
 
-                        if (!bullet.penetrating) {
-                            game.bullets.splice(i, 1);
-                            break;
-                        }
+                    if (!bullet.penetrating) {
+                        game.bullets.splice(i, 1);
+                        break;
                     }
                 }
             }
 
-            // メインボス
-            if (game.boss) {
-                // まずコアへの命中をチェック
-                const coreHitbox = game.boss.getCoreHitbox();
-                let hitCore = false;
+            // 旧互換性のためのボス判定（削除予定）
+            if (game.boss && !game.bosses.includes(game.boss) && isColliding(bullet, game.boss)) {
+                game.boss.takeDamage(bullet.power);
 
-                if (coreHitbox && isColliding(bullet, coreHitbox)) {
-                    // コアに命中
-                    game.boss.takeDamage(bullet.power, true);  // true = core hit
-                    hitCore = true;
-
-                    // コアヒット時のエフェクト
-                    if (game.createExplosion) {
-                        game.createExplosion(bullet.x, bullet.y, 'medium');
-                    }
-                } else if (isColliding(bullet, game.boss)) {
-                    // ボス本体に命中
-                    game.boss.takeDamage(bullet.power, false);
-                }
-
-                // ラスボス（finalSecond）に対してはホーミングミサイルも1撃で消える
-                const isFinalBoss = game.boss && game.boss.phase === 'finalSecond';
-                const shouldRemoveBullet = (hitCore || isColliding(bullet, game.boss)) &&
-                    (!bullet.penetrating || (isFinalBoss && bullet.type === 'ultimate_missile'));
-
-                if (shouldRemoveBullet) {
+                if (!bullet.penetrating) {
                     game.bullets.splice(i, 1);
-                }
-            }
-        }
-    }
-
-    // 弾の相殺システム（プレイヤー弾 vs 敵弾）
-    for (let i = game.bullets.length - 1; i >= 0; i--) {
-        const playerBullet = game.bullets[i];
-
-        if (playerBullet && playerBullet.owner === 'player') {
-            for (let j = game.bullets.length - 1; j >= 0; j--) {
-                if (i === j) continue;
-                const enemyBullet = game.bullets[j];
-
-                if (enemyBullet && enemyBullet.owner === 'enemy') {
-                    // 超強力武器（ultimate_dragon/ultimate_missile）は全ての敵弾を相殺
-                    if (playerBullet.type === 'ultimate_dragon' || playerBullet.type === 'ultimate_missile') {
-                        if (isColliding(playerBullet, enemyBullet)) {
-                            // 敵弾を破壊（超強力武器は貫通）
-                            if (game.createExplosion) {
-                                game.createExplosion(enemyBullet.x, enemyBullet.y, 'small');
-                            }
-                            game.bullets.splice(j, 1);
-                        }
-                        continue; // 超強力武器は次の敵弾もチェック
-                    }
-
-                    // レーザー（大型赤色弾）のみ相殺不可
-                    // ホーミング弾は相殺可能に変更
-                    if (enemyBullet.type === 'laser') {
-                        continue;
-                    }
-
-                    // チャージレーザーは敵弾も貫通する（相殺しない）
-                    if (playerBullet.isChargedLaser) {
-                        if (isColliding(playerBullet, enemyBullet)) {
-                            // 敵弾を破壊するが、チャージレーザーは貫通
-                            if (game.createExplosion) {
-                                game.createExplosion(enemyBullet.x, enemyBullet.y, 'small');
-                            }
-
-                            // スコア追加（貫通ボーナス）
-                            if (game.addScore) {
-                                game.addScore(20);
-                            }
-
-                            // 敵弾のみ削除（チャージレーザーは貫通）
-                            game.bullets.splice(j, 1);
-
-                            // チャージレーザーの威力をわずかに減衰（オプション）
-                            // playerBullet.power *= 0.95;
-                        }
-                        continue; // チャージレーザーは次の敵弾もチェック
-                    }
-
-                    if (isColliding(playerBullet, enemyBullet)) {
-                        // 通常弾の相殺エフェクト
-                        if (game.createExplosion) {
-                            const x = (playerBullet.x + enemyBullet.x) / 2;
-                            const y = (playerBullet.y + enemyBullet.y) / 2;
-                            game.createExplosion(x, y, 'small');
-                        }
-
-                        // スコア追加（相殺ボーナス）
-                        if (game.addScore) {
-                            game.addScore(10);
-                        }
-
-                        // 両方の弾を削除（通常弾同士）
-                        if (j > i) {
-                            game.bullets.splice(j, 1);
-                            game.bullets.splice(i, 1);
-                        } else {
-                            game.bullets.splice(i, 1);
-                            game.bullets.splice(j, 1);
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    // 敵弾 vs 分身（シールド機能）
-    if (game.player.clones && game.player.clones.length > 0) {
-        for (let i = game.bullets.length - 1; i >= 0; i--) {
-            const bullet = game.bullets[i];
-
-            if (bullet && bullet.owner === 'enemy') {
-                // 分身との当たり判定
-                for (const clone of game.player.clones) {
-                    if (isColliding(bullet, clone)) {
-                        // 分身が敵弾をブロック（分身は破壊されない）
-                        game.bullets.splice(i, 1);
-
-                        // ブロック時のエフェクト
-                        if (game.createExplosion) {
-                            game.createExplosion(bullet.x, bullet.y, 'small');
-                        }
-                        break;
-                    }
                 }
             }
         }
@@ -195,18 +69,17 @@ function checkCollisions(game) {
             }
         }
 
-        // ボス vs プレイヤー
-        if (game.boss && isColliding(game.boss, game.player)) {
-            game.player.takeDamage(2);
+        // 複数ボス vs プレイヤー
+        for (const boss of game.bosses) {
+            if (!boss.destroyed && isColliding(boss, game.player)) {
+                game.player.takeDamage(2);
+                break; // 一度に複数ボスからダメージを受けないように
+            }
         }
 
-        // 累積ボス vs プレイヤー（追加実装）
-        if (game.accumulatedBosses) {
-            for (const accBoss of game.accumulatedBosses) {
-                if (accBoss && isColliding(accBoss, game.player)) {
-                    game.player.takeDamage(2);
-                }
-            }
+        // 旧互換性のためのボス判定（削除予定）
+        if (game.boss && !game.bosses.includes(game.boss) && isColliding(game.boss, game.player)) {
+            game.player.takeDamage(2);
         }
     }
 

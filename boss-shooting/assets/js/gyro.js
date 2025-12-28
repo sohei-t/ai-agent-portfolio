@@ -7,20 +7,19 @@ class GyroControls {
         this.enabled = false;
         this.permissionGranted = false;
 
-        // 設定（v2.0で高感度化）
-        this.sensitivity = 2.5;  // 感度を少し下げる（3.5→2.5）
-        this.deadZone = 8; // 度（ドリフトを防ぐため増やす 5→8）
-        this.maxTilt = 25; // 度（20→25）
+        // 設定（非常にゆっくりとした動き）
+        this.sensitivity = 0.25;  // 0.15→0.25（少し反応を良くする）
+        this.deadZone = 5; // 5度（デッドゾーン維持）
+        this.maxTilt = 45; // 45度（傾ける角度を大きくして繊細に）
 
         // 現在の値
         this.alpha = 0; // Z軸周りの回転
         this.beta = 0;  // X軸周りの回転（前後の傾き）
         this.gamma = 0; // Y軸周りの回転（左右の傾き）
 
-        // 補正値（水平面に置いた状態を想定）
-        // betaの初期値を調整（デバイスによって異なるが、60-90度が一般的）
+        // 補正値
         this.calibration = {
-            beta: 60,  // 水平面に置いた場合の典型的な角度（70→60に調整）
+            beta: 0,
             gamma: 0
         };
 
@@ -30,10 +29,6 @@ class GyroControls {
             x: 0,
             y: 0
         };
-
-        // 自動キャリブレーション用
-        this.calibrationSamples = [];
-        this.isAutoCalibrating = false;
     }
 
     async requestPermission() {
@@ -69,43 +64,11 @@ class GyroControls {
             // イベントリスナー追加
             window.addEventListener('deviceorientation', this.handleOrientation.bind(this));
 
-            // 初期自動キャリブレーション（1秒後に開始）
-            setTimeout(() => {
-                this.startAutoCalibration();
-            }, 1000);
+            // 初期キャリブレーション（2秒後）
+            setTimeout(() => this.calibrate(), 2000);
 
             console.log('ジャイロコントロール有効化');
         }
-    }
-
-    startAutoCalibration() {
-        this.isAutoCalibrating = true;
-        this.calibrationSamples = [];
-
-        // 0.5秒間サンプルを収集
-        const calibrationInterval = setInterval(() => {
-            if (this.beta !== 0 || this.gamma !== 0) {
-                this.calibrationSamples.push({
-                    beta: this.beta,
-                    gamma: this.gamma
-                });
-            }
-        }, 50);
-
-        // 0.5秒後に平均値でキャリブレーション
-        setTimeout(() => {
-            clearInterval(calibrationInterval);
-            if (this.calibrationSamples.length > 0) {
-                const avgBeta = this.calibrationSamples.reduce((sum, s) => sum + s.beta, 0) / this.calibrationSamples.length;
-                const avgGamma = this.calibrationSamples.reduce((sum, s) => sum + s.gamma, 0) / this.calibrationSamples.length;
-
-                this.calibration.beta = avgBeta;
-                this.calibration.gamma = avgGamma;
-
-                console.log('自動キャリブレーション完了:', this.calibration);
-            }
-            this.isAutoCalibrating = false;
-        }, 500);
     }
 
     disable() {
@@ -152,9 +115,20 @@ class GyroControls {
             y = adjustedBeta;
         }
 
-        // デッドゾーン適用
-        if (Math.abs(x) < this.deadZone) x = 0;
-        if (Math.abs(y) < this.deadZone) y = 0;
+        // デッドゾーン適用（より厳密に）
+        if (Math.abs(x) < this.deadZone) {
+            x = 0;
+        } else {
+            // デッドゾーン外の値を補正（デッドゾーンの分だけ引く）
+            x = x > 0 ? x - this.deadZone : x + this.deadZone;
+        }
+
+        if (Math.abs(y) < this.deadZone) {
+            y = 0;
+        } else {
+            // デッドゾーン外の値を補正
+            y = y > 0 ? y - this.deadZone : y + this.deadZone;
+        }
 
         // 正規化（-1 〜 1）
         x = this.clamp(x / this.maxTilt, -1, 1);

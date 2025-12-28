@@ -8,7 +8,6 @@ class Bullet {
         this.power = power;
         this.owner = owner; // 'player' or 'enemy'
         this.type = type;
-        this.color = null; // 武器タイプの色（設定されない場合はデフォルト色を使用）
 
         // サイズ設定
         this.width = 4;
@@ -76,65 +75,6 @@ class Bullet {
             }
         }
 
-        // プレイヤーの誘導ミサイル処理
-        if (this.isHoming && this.owner === 'player') {
-            // ターゲットが存在するか確認
-            if (this.target && !this.target.destroyed) {
-                const dx = this.target.x - this.x;
-                const dy = this.target.y - this.y;
-                const angle = Math.atan2(dy, dx);
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                // 近距離では追尾性能を上げる
-                const trackingStrength = dist < 200 ? 0.3 : 0.15;
-
-                // 徐々に方向を調整（強力な追尾）
-                this.vx += Math.cos(angle) * trackingStrength;
-                this.vy += Math.sin(angle) * trackingStrength;
-
-                // 速度制限
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                const maxSpeed = 12;  // 高速ミサイル
-                if (speed > maxSpeed) {
-                    this.vx = (this.vx / speed) * maxSpeed;
-                    this.vy = (this.vy / speed) * maxSpeed;
-                }
-
-                this.rotation = Math.atan2(this.vy, this.vx);
-            } else {
-                // ターゲットを失った場合、新しいターゲットを探す
-                let nearestEnemy = null;
-                let minDist = Infinity;
-
-                // 通常の敵をチェック
-                if (this.game && this.game.enemies) {
-                    for (const enemy of this.game.enemies) {
-                        const dist = Math.sqrt(
-                            Math.pow(enemy.x - this.x, 2) +
-                            Math.pow(enemy.y - this.y, 2)
-                        );
-                        if (dist < minDist && dist < 400) {  // 400ピクセル以内の敵のみ
-                            minDist = dist;
-                            nearestEnemy = enemy;
-                        }
-                    }
-                }
-
-                // ボスもチェック
-                if (this.game && this.game.boss) {
-                    const dist = Math.sqrt(
-                        Math.pow(this.game.boss.x - this.x, 2) +
-                        Math.pow(this.game.boss.y - this.y, 2)
-                    );
-                    if (dist < minDist) {
-                        nearestEnemy = this.game.boss;
-                    }
-                }
-
-                this.target = nearestEnemy;
-            }
-        }
-
         // 位置更新
         this.x += this.vx;
         this.y += this.vy;
@@ -164,30 +104,9 @@ class Bullet {
         if (this.explosive) {
             // 爆発ダメージ（周囲の敵にもダメージ）
             this.createExplosion();
-            // 爆発弾は爆発後に消滅
-            this.destroy();
-            return;
         }
 
-        // チャージレーザーは無限貫通
-        if (this.isChargedLaser) {
-            // 貫通時にダメージエフェクト
-            if (this.game && this.game.createExplosion) {
-                this.game.createExplosion(target.x || this.x, target.y || this.y, 'small');
-            }
-            return; // 消滅しない
-        }
-
-        // 通常の貫通弾処理
-        if (this.penetrating) {
-            if (this.pierceCount !== undefined) {
-                this.pierceCount--;
-                if (this.pierceCount <= 0) {
-                    this.destroy();
-                }
-            }
-            // pierceCountが未定義または999以上なら無限貫通
-        } else {
+        if (!this.penetrating) {
             // 貫通弾以外は消滅
             this.destroy();
         }
@@ -196,38 +115,20 @@ class Bullet {
     createExplosion() {
         if (!this.game) return;
 
-        // 爆発エフェクト（爆発半径に応じたサイズ）
-        const explosionSize = this.explosionRadius > 100 ? 'large' :
-                             this.explosionRadius > 50 ? 'medium' : 'small';
-        this.game.createExplosion(this.x, this.y, explosionSize);
+        // 爆発エフェクト
+        this.game.createExplosion(this.x, this.y, 'medium');
 
-        // 範囲ダメージ（設定された爆発半径を使用）
-        const explosionRadius = this.explosionRadius || 50;
+        // 範囲ダメージ
+        const explosionRadius = 50;
         this.game.enemies.forEach(enemy => {
             const dx = enemy.x - this.x;
             const dy = enemy.y - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < explosionRadius) {
-                // 中心に近いほどダメージが大きい
-                const damageRatio = 1 - (distance / explosionRadius) * 0.5;
-                enemy.takeDamage(Math.ceil(this.power * damageRatio));
+                enemy.takeDamage(this.power * 0.5);
             }
         });
-
-        // 画面揺れ演出（ニュークリアミサイル用）
-        if (this.screenShake && this.game.canvas) {
-            const canvas = this.game.canvas;
-            let shakeCount = 0;
-            const shakeInterval = setInterval(() => {
-                canvas.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
-                shakeCount++;
-                if (shakeCount > 10) {
-                    clearInterval(shakeInterval);
-                    canvas.style.transform = '';
-                }
-            }, 50);
-        }
     }
 
     destroy() {
@@ -239,37 +140,13 @@ class Bullet {
         }
     }
 
-    // HEX色をRGBAに変換するヘルパー関数
-    hexToRgba(hex, alpha) {
-        let r = 0, g = 0, b = 0;
-
-        if (hex.length === 4) {
-            r = parseInt(hex[1] + hex[1], 16);
-            g = parseInt(hex[2] + hex[2], 16);
-            b = parseInt(hex[3] + hex[3], 16);
-        } else if (hex.length === 7) {
-            r = parseInt(hex[1] + hex[2], 16);
-            g = parseInt(hex[3] + hex[4], 16);
-            b = parseInt(hex[5] + hex[6], 16);
-        }
-
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
     render(ctx) {
         ctx.save();
 
         // トレイル描画
         if (this.trail.length > 0) {
-            // 武器の色が設定されていればそれを使用、なければデフォルト
-            if (this.color && this.owner === 'player') {
-                // 武器カラーを使用（アルファ値を設定）
-                const colorRgba = this.hexToRgba(this.color, 0.3);
-                ctx.strokeStyle = colorRgba;
-            } else {
-                ctx.strokeStyle = this.owner === 'player' ?
-                    'rgba(0, 255, 255, 0.3)' : 'rgba(255, 100, 100, 0.3)';
-            }
+            ctx.strokeStyle = this.owner === 'player' ?
+                'rgba(0, 255, 255, 0.3)' : 'rgba(255, 100, 100, 0.3)';
             ctx.lineWidth = this.width * 0.5;
             ctx.beginPath();
 
@@ -291,8 +168,7 @@ class Bullet {
         switch (this.type) {
             case 'missile':
                 // ミサイル型
-                ctx.fillStyle = this.owner === 'player' ?
-                    (this.color || '#00ffff') : '#ff6600';
+                ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff6600';
                 ctx.beginPath();
                 ctx.moveTo(0, -this.height / 2);
                 ctx.lineTo(-this.width / 2, this.height / 2);
@@ -311,14 +187,7 @@ class Bullet {
             case 'laser':
                 // レーザー型
                 const gradient = ctx.createLinearGradient(0, -this.height / 2, 0, this.height / 2);
-                if (this.owner === 'player' && this.color) {
-                    // 武器の色を使用
-                    const rgba0 = this.hexToRgba(this.color, 0);
-                    const rgba1 = this.hexToRgba(this.color, 1);
-                    gradient.addColorStop(0, rgba0);
-                    gradient.addColorStop(0.5, rgba1);
-                    gradient.addColorStop(1, rgba0);
-                } else if (this.owner === 'player') {
+                if (this.owner === 'player') {
                     gradient.addColorStop(0, 'rgba(0, 255, 255, 0)');
                     gradient.addColorStop(0.5, 'rgba(0, 255, 255, 1)');
                     gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
@@ -332,66 +201,13 @@ class Bullet {
 
                 // グロー効果
                 ctx.shadowBlur = 10;
-                ctx.shadowColor = this.owner === 'player' ?
-                    (this.color || '#00ffff') : '#ff0000';
+                ctx.shadowColor = this.owner === 'player' ? '#00ffff' : '#ff0000';
                 ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-                break;
-
-            case 'charged_laser':
-                // チャージレーザー（太い貫通ビーム）
-                const laserGradient = ctx.createLinearGradient(0, -this.height / 2, 0, this.height / 2);
-
-                // チャージレベルに応じた色
-                if (this.color === '#ff00ff') {
-                    // 最大チャージ: 紫
-                    laserGradient.addColorStop(0, 'rgba(255, 0, 255, 0.2)');
-                    laserGradient.addColorStop(0.3, 'rgba(255, 0, 255, 0.8)');
-                    laserGradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
-                    laserGradient.addColorStop(0.7, 'rgba(255, 0, 255, 0.8)');
-                    laserGradient.addColorStop(1, 'rgba(255, 0, 255, 0.2)');
-                } else if (this.color === '#00ffff') {
-                    // 中チャージ: 水色
-                    laserGradient.addColorStop(0, 'rgba(0, 255, 255, 0.2)');
-                    laserGradient.addColorStop(0.3, 'rgba(0, 255, 255, 0.8)');
-                    laserGradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
-                    laserGradient.addColorStop(0.7, 'rgba(0, 255, 255, 0.8)');
-                    laserGradient.addColorStop(1, 'rgba(0, 255, 255, 0.2)');
-                } else {
-                    // 低チャージ: 青
-                    laserGradient.addColorStop(0, 'rgba(0, 153, 255, 0.2)');
-                    laserGradient.addColorStop(0.3, 'rgba(0, 153, 255, 0.8)');
-                    laserGradient.addColorStop(0.5, 'rgba(200, 200, 255, 1)');
-                    laserGradient.addColorStop(0.7, 'rgba(0, 153, 255, 0.8)');
-                    laserGradient.addColorStop(1, 'rgba(0, 153, 255, 0.2)');
-                }
-
-                // グロー効果（強力）
-                ctx.shadowBlur = this.glowRadius || 20;
-                ctx.shadowColor = this.glowColor || this.color;
-
-                // メインビーム（太く）
-                ctx.fillStyle = laserGradient;
-                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-
-                // コアビーム（中心の明るい部分）
-                const coreGradient = ctx.createLinearGradient(0, -this.height / 2, 0, this.height / 2);
-                coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-                coreGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.8)');
-                coreGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                ctx.fillStyle = coreGradient;
-                ctx.fillRect(-this.width / 4, -this.height / 2, this.width / 2, this.height);
-
-                // パルスエフェクト
-                const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
-                ctx.globalAlpha = pulse;
-                ctx.fillStyle = 'white';
-                ctx.fillRect(-this.width / 6, -this.height / 2, this.width / 3, this.height);
-                ctx.globalAlpha = 1;
                 break;
 
             case 'bomb':
                 // 爆弾型
-                ctx.fillStyle = this.color || '#444444';
+                ctx.fillStyle = '#444444';
                 ctx.beginPath();
                 ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
                 ctx.fill();
@@ -411,55 +227,9 @@ class Bullet {
                 ctx.fill();
                 break;
 
-            case 'sonic_blade':
-                // ソニックブレード（半円刃型）
-                ctx.save();
-
-                // 回転アニメーション
-                if (this.spinning) {
-                    ctx.rotate(Date.now() * 0.01);
-                }
-
-                // グロー効果
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color || '#ffff00';
-
-                // 半円刃の描画
-                const bladeGradient = ctx.createLinearGradient(-this.width/2, 0, this.width/2, 0);
-                bladeGradient.addColorStop(0, this.hexToRgba(this.color || '#ffff00', 0.3));
-                bladeGradient.addColorStop(0.5, this.hexToRgba(this.color || '#ffff00', 1));
-                bladeGradient.addColorStop(1, this.hexToRgba(this.color || '#ffff00', 0.3));
-
-                ctx.fillStyle = bladeGradient;
-                ctx.strokeStyle = this.color || '#ffff00';
-                ctx.lineWidth = 2;
-
-                // 半円形の刃を描画
-                ctx.beginPath();
-                ctx.arc(0, 0, this.width / 2, Math.PI, 0, false);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-
-                // 中心の光
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(0, 0, 3, 0, Math.PI * 2);
-                ctx.fill();
-
-                // エッジの光沢
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.arc(0, 0, this.width / 2 - 2, Math.PI, 0, false);
-                ctx.stroke();
-
-                ctx.restore();
-                break;
-
             case 'homing':
                 // ホーミング弾
-                ctx.fillStyle = this.color || '#ff00ff';
+                ctx.fillStyle = '#ff00ff';
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 1;
 
@@ -482,8 +252,7 @@ class Bullet {
 
             default:
                 // 通常弾
-                ctx.fillStyle = this.owner === 'player' ?
-                    (this.color || '#00ffff') : '#ff4444';
+                ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff4444';
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 1;
 

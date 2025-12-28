@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>Space Odyssey - Boss Shooting Game v4.3</title>
+    <title>Space Odyssey - Boss Shooting Game</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect fill='%23000' width='16' height='16'/><polygon fill='%2300ffff' points='8,2 4,14 8,11 12,14'/></svg>"/>
     <style>
         * {
@@ -92,70 +89,6 @@
             font-size: 14px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             z-index: 100;
-        }
-
-        /* 武器レベルインジケーター */
-        .weapon-indicators {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 15px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid rgba(0, 255, 255, 0.5);
-            border-radius: 10px;
-        }
-
-        .weapon-indicator {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 5px;
-            min-width: 60px;
-            transition: all 0.3s;
-        }
-
-        .weapon-indicator.inactive {
-            opacity: 0.3;
-            filter: grayscale(0.7);
-        }
-
-        #weapon-default {
-            background: linear-gradient(135deg, #00ffff, #0099cc);
-            box-shadow: 0 2px 10px rgba(0, 255, 255, 0.5);
-        }
-
-        #weapon-green {
-            background: linear-gradient(135deg, #00ff00, #009900);
-            box-shadow: 0 2px 10px rgba(0, 255, 0, 0.5);
-        }
-
-        #weapon-purple {
-            background: linear-gradient(135deg, #ff00ff, #990099);
-            box-shadow: 0 2px 10px rgba(255, 0, 255, 0.5);
-        }
-
-        #weapon-yellow {
-            background: linear-gradient(135deg, #ffff00, #cc9900);
-            box-shadow: 0 2px 10px rgba(255, 255, 0, 0.5);
-        }
-
-        .weapon-indicator .weapon-name {
-            font-size: 10px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-            margin-bottom: 4px;
-        }
-
-        .weapon-indicator .weapon-level {
-            font-size: 14px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
         }
 
         #bossHealth {
@@ -305,54 +238,6 @@
             background: linear-gradient(90deg, #fa709a, #fee140);
         }
 
-        #itemGuideScreen {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(180deg, #000428 0%, #004e92 100%);
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-            color: white;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        #itemGuideScreen h2 {
-            color: #00ffff;
-            font-size: 36px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
-        }
-
-        #itemGuideScreen h3 {
-            margin-top: 15px;
-            margin-bottom: 10px;
-        }
-
-        #itemGuideScreen p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-
-        .item-row {
-            display: flex;
-            align-items: center;
-            margin: 8px 0;
-            gap: 10px;
-        }
-
-        .item-row canvas {
-            display: inline-block;
-            vertical-align: middle;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-            background: rgba(0, 0, 0, 0.3);
-        }
-
         #gameOverScreen {
             display: none;
             position: absolute;
@@ -412,17 +297,6 @@
                 right: 10px;
             }
         }
-
-        /* 点滅アニメーション（残機が少ない時用） */
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
-        .blinking {
-            animation: blink 0.5s infinite;
-        }
     </style>
 </head>
 <body>
@@ -432,28 +306,7 @@
         <div id="ui">
             <div id="score" class="ui-element">SCORE: 0</div>
             <div id="lives" class="ui-element">❤️❤️❤️</div>
-            <div id="playerHp" class="ui-element">HP: ████████████████████ 100%</div>
-            <div id="bossTimer" class="ui-element" style="display: none;">TIME: 3:00</div>
-            <!-- 武器レベルインジケーター -->
-            <div id="weaponIndicators" class="ui-element weapon-indicators">
-                <div class="weapon-indicator" id="weapon-default" data-weapon="default">
-                    <span class="weapon-name">BEAM</span>
-                    <span class="weapon-level">LV1</span>
-                </div>
-                <div class="weapon-indicator inactive" id="weapon-green" data-weapon="green">
-                    <span class="weapon-name">SPREAD</span>
-                    <span class="weapon-level">--</span>
-                </div>
-                <div class="weapon-indicator inactive" id="weapon-purple" data-weapon="purple">
-                    <span class="weapon-name">LASER</span>
-                    <span class="weapon-level">--</span>
-                </div>
-                <div class="weapon-indicator inactive" id="weapon-yellow" data-weapon="yellow">
-                    <span class="weapon-name">WAVE</span>
-                    <span class="weapon-level">--</span>
-                </div>
-            </div>
-            <div id="chargeIndicator" class="ui-element" style="display: none;">CHARGE: ▯▯▯▯▯▯▯▯▯▯▯▯▯▯▯ 0%</div>
+            <div id="weaponLevel" class="ui-element">WEAPON: LV1</div>
             <div id="bombs" class="ui-element">💣 x3</div>
 
             <div id="bossHealth" class="ui-element">
@@ -475,7 +328,6 @@
             <button class="menu-button" onclick="showSettings()">SETTINGS</button>
             <button class="menu-button" onclick="showHighScores()">HIGH SCORES</button>
             <button class="menu-button" onclick="showAchievements()">ACHIEVEMENTS</button>
-            <button class="menu-button" onclick="showItemGuide()">ITEM GUIDE</button>
         </div>
 
         <div id="difficultySelect">
@@ -484,51 +336,6 @@
             <button class="difficulty-button normal" onclick="startGame('normal')">NORMAL<br>Standard, Life 3</button>
             <button class="difficulty-button hard" onclick="startGame('hard')">HARD<br>Enemy HP +50%, Life 2</button>
             <button class="difficulty-button expert" onclick="startGame('expert')">EXPERT<br>Enemy HP +100%, Life 1</button>
-            <button class="menu-button" onclick="backToTitle()">BACK</button>
-        </div>
-
-        <div id="itemGuideScreen">
-            <h2>ITEM GUIDE</h2>
-            <div style="max-height: 60vh; overflow-y: auto; text-align: left; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; width: 80%; max-width: 600px;">
-                <h3 style="color: #00ffff;">武器レベルアップ（四角アイテム）</h3>
-                <div class="item-row"><canvas id="item-weapon" width="30" height="30"></canvas> <span style="color: #00ffff;">青色四角 [B]</span> - ビーム武器レベルアップ (最大LV10/MAX)</div>
-                <div class="item-row"><canvas id="item-spread" width="30" height="30"></canvas> <span style="color: #00ff00;">緑色四角 [S]</span> - スプレッド武器レベルアップ (最大LV10/MAX)</div>
-                <div class="item-row"><canvas id="item-laser" width="30" height="30"></canvas> <span style="color: #ff00ff;">紫色四角 [L]</span> - レーザー武器レベルアップ (最大LV10/MAX)</div>
-                <div class="item-row"><canvas id="item-wave" width="30" height="30"></canvas> <span style="color: #ffff00;">黄色四角 [W]</span> - ウェーブ武器レベルアップ (最大LV10/MAX)</div>
-
-                <h3 style="color: #00ffff;">基本パワーアップ</h3>
-                <div class="item-row"><canvas id="item-life" width="30" height="30"></canvas> <span style="color: #ff0066;">赤ハート</span> - 残機+1 (最大5)</div>
-                <div class="item-row"><canvas id="item-bomb" width="30" height="30"></canvas> <span style="color: #ff6600;">オレンジ爆弾</span> - ボム+1＆レベルアップ (画面内の敵弾消去＋大ダメージ)</div>
-                <div class="item-row"><canvas id="item-shield" width="30" height="30"></canvas> <span style="color: #00ffff;">水色シールド</span> - シールド獲得 (3回まで攻撃を防ぐ)</div>
-                <div class="item-row"><canvas id="item-speed" width="30" height="30"></canvas> <span style="color: #ff00ff;">マゼンタ三角 [S]</span> - スピードアップ (最大速度10)</div>
-
-                <h3 style="color: #00ffff;">ALL MAX時の特殊能力</h3>
-                <p style="color: #ffff00;">全4種類の武器がMAXになると解放:</p>
-                <ul style="margin-left: 20px;">
-                    <li>超強力ホーミングミサイル（1秒間隔、威力100）</li>
-                    <li>3体の分身が高速回転しバリア形成</li>
-                    <li>分身は敵弾をブロック（シールド機能）</li>
-                </ul>
-
-                <h3 style="color: #00ffff;">ボスバトル</h3>
-                <p>各ステージのボスは1分間の耐久戦！</p>
-                <ul style="margin-left: 20px;">
-                    <li>ステージごとに異なる動きパターン</li>
-                    <li>ステージ1: 左右往復</li>
-                    <li>ステージ2: 8の字移動</li>
-                    <li>ステージ3: 高速ジグザグ</li>
-                    <li>ステージ4: ランダムワープ</li>
-                    <li>ステージ5以降: さらに複雑な動き</li>
-                    <li>最終ボス: 武器レベルダウン攻撃あり</li>
-                </ul>
-
-                <h3 style="color: #00ffff;">操作方法</h3>
-                <p>移動: 矢印キー / WASD</p>
-                <p>ショット: Z / Space (押し続けで連射)</p>
-                <p>ボム: X / B</p>
-                <p>ポーズ: P / Escape</p>
-                <p>チャージショット: Z長押し後リリース</p>
-            </div>
             <button class="menu-button" onclick="backToTitle()">BACK</button>
         </div>
 
@@ -541,26 +348,21 @@
         </div>
     </div>
 
-    <script src="assets/js/game.js?v=4.5"></script>
-    <script src="assets/js/player.js?v=4.5"></script>
-    <script src="assets/js/enemy.js?v=4.5"></script>
-    <script src="assets/js/bullet.js?v=4.5"></script>
-    <script src="assets/js/stage.js?v=4.5"></script>
-    <script src="assets/js/ui.js?v=4.5"></script>
-    <script src="assets/js/input.js?v=4.5"></script>
-    <script src="assets/js/collision.js?v=4.5"></script>
-    <script src="assets/js/save.js?v=4.5"></script>
-    <script src="assets/js/gyro.js?v=4.5"></script>
-    <script src="assets/js/joystick.js?v=4.5"></script>
-    <script src="assets/js/effects.js?v=4.5"></script>
-    <script src="assets/js/audio.js?v=4.5"></script>
-    <script src="assets/js/particles.js?v=4.5"></script>
-    <script src="assets/js/powerups.js?v=4.5"></script>
-    <script src="assets/js/weapon_systems.js?v=4.5"></script>
-    <script src="assets/js/boss_movement.js?v=4.5"></script>
-    <script src="assets/js/boss.js?v=4.5"></script>
-    <script src="assets/js/boss_warning.js?v=4.5"></script>
-    <script src="assets/js/stage_clear.js?v=4.5"></script>
-    <script src="assets/js/special_weapons.js?v=4.5"></script>
+    <script src="assets/js/game.js"></script>
+    <script src="assets/js/player.js"></script>
+    <script src="assets/js/enemy.js"></script>
+    <script src="assets/js/bullet.js"></script>
+    <script src="assets/js/stage.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script src="assets/js/input.js"></script>
+    <script src="assets/js/collision.js"></script>
+    <script src="assets/js/save.js"></script>
+    <script src="assets/js/gyro.js"></script>
+    <script src="assets/js/joystick.js"></script>
+    <script src="assets/js/effects.js"></script>
+    <script src="assets/js/audio.js"></script>
+    <script src="assets/js/particles.js"></script>
+    <script src="assets/js/powerups.js"></script>
+    <script src="assets/js/boss.js"></script>
 </body>
 </html>

@@ -1,48 +1,18 @@
 # 🚀 Space Odyssey - Boss Shooting Game
 
-<div align="center">
-
-## 🎮 [PLAY LIVE DEMO](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/) | 📖 [ABOUT](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)
-
-[![Play Now](https://img.shields.io/badge/Play%20Now-Live%20Demo-00ff00?style=for-the-badge&logo=gamepad)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/)
-[![About](https://img.shields.io/badge/Learn%20More-About-0099ff?style=for-the-badge&logo=book)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)
-
-🌍 English | [🇯🇵 日本語](README_JP.md)
-
-</div>
-
----
-
 A retro-style vertical scrolling shooter game with boss battles, mobile controls, and progressive difficulty.
 
 ## ✨ Features
 
-### 🎯 Core Gameplay
 - **10 Stages**: Progressive difficulty with unique enemy patterns
-- **Epic Boss Battles**: Massive bosses with dynamic attack patterns
-- **Bullet Hell System**: Dodge intricate patterns of slow-moving projectiles
-- **Ultra-Responsive Controls**: Precision movement for bullet dodging
-
-### 📱 Mobile Experience
-- **Gyroscope Controls**: Ultra-sensitive tilt controls (adjustable sensitivity)
-- **Virtual Joystick**: Responsive touch controls for all devices
-- **Tiny Player Ship**: Optimized for mobile dodging gameplay
-- **Full Screen Support**: Immersive mobile gaming experience
-
-### ⚡ Special Weapons & Power-ups
-- **5 Weapon Types**: Beam, Spread, Laser, Homing, Wave
-- **Option Units**: Deploy helper drones that follow and assist
-- **Summon System**: Call forth Phoenix, Dragon, or Thunder God
-- **Mega Laser**: Screen-clearing rainbow laser barrage
-- **Combine Mode**: Transform into a powerful combined form
-- **30% Drop Rate**: Frequent power-ups for dynamic gameplay
-
-### 🎨 Visual Effects
-- **Boss Warning System**: Dramatic warning screens with lightning effects
-- **Stage Clear Animations**: Celebratory effects with bonus scoring
-- **Glowing Boss Auras**: Dynamic visual feedback based on HP
-- **Particle Effects**: Explosions, fire, and energy effects
-- **Screen Effects**: Flashes, shakes, and dramatic transitions
+- **Epic Boss Battles**: Face powerful bosses at the end of each stage
+- **Mobile-Optimized**: Virtual joystick and gyroscope controls
+- **Power-Up System**: Weapon upgrades, shields, bombs, and extra lives
+- **Responsive Design**: Playable on desktop and mobile devices
+- **Multiple Difficulties**: Easy, Normal, Hard, and Expert modes
+- **High Score System**: Track your best performances
+- **Web Audio API**: Dynamic sound effects (when available)
+- **Smooth Performance**: 60 FPS gameplay with optimized rendering
 
 ## 🎮 How to Play
 

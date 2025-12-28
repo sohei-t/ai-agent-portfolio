@@ -132,46 +132,15 @@ const stageData = {
         boss: { time: 1700, type: 'stage9' }
     },
     10: {
-        name: "Cosmic Abyss",
-        bgColor: "#220044",
-        scrollSpeed: 2.2,
-        enemyWaves: [
-            { time: 100, type: 'mixed', count: 12, formation: 'chaos' },
-            { time: 400, type: 'bomber', count: 8, formation: 'ultimate' },
-            { time: 700, type: 'all', count: 20, formation: 'swarm' },
-        ],
-        boss: { time: 1500, type: 'stage10' }
-    },
-    11: {
-        name: "Final Dimension - Boss Rush",
+        name: "Final Dimension",
         bgColor: "#330011",
-        scrollSpeed: 2.5,
+        scrollSpeed: 2,
         enemyWaves: [
-            // 序盤：強化雑魚の大群
-            { time: 100, type: 'mixed', count: 20, formation: 'chaos' },
-            { time: 300, type: 'all', count: 25, formation: 'ultimate' },
-            { time: 500, type: 'bomber', count: 15, formation: 'spiral' },
-
-            // 過去のボスをミニボスとして投入
-            { time: 800, type: 'miniboss', bossId: 1 },    // Boss 1
-            { time: 1000, type: 'tank', count: 10, formation: 'wall' },
-            { time: 1200, type: 'miniboss', bossId: 3 },   // Boss 3
-            { time: 1400, type: 'fast', count: 20, formation: 'swarm' },
-            { time: 1600, type: 'miniboss', bossId: 5 },   // Boss 5
-            { time: 1800, type: 'all', count: 30, formation: 'chaos' },
-            { time: 2000, type: 'miniboss', bossId: 7 },   // Boss 7
-
-            // 最終段階：複数ボス同時
-            { time: 2200, type: 'miniboss', bossId: 2 },   // Boss 2
-            { time: 2300, type: 'miniboss', bossId: 4 },   // Boss 4
-            { time: 2400, type: 'miniboss', bossId: 6 },   // Boss 6
-            { time: 2500, type: 'miniboss', bossId: 8 },   // Boss 8
-            { time: 2600, type: 'miniboss', bossId: 9 },   // Boss 9
-
-            // 最後の雑魚ラッシュ
-            { time: 2800, type: 'all', count: 40, formation: 'ultimate' },
+            { time: 100, type: 'mixed', count: 10, formation: 'chaos' },
+            { time: 500, type: 'tank', count: 5, formation: 'wall' },
+            { time: 900, type: 'all', count: 15, formation: 'ultimate' },
         ],
-        boss: { time: 3200, type: 'final' }
+        boss: { time: 1500, type: 'final' }
     }
 };
 
@@ -191,8 +160,6 @@ function loadStage(game, stageNumber) {
     game.powerups = [];
     game.particles = [];
     game.boss = null;
-    game.bossStageStartTime = null;  // ボスタイマーリセット
-    game.bossTimeoutProcessing = false;  // タイムアウト処理フラグリセット
 
     // ステージ設定
     game.scrollSpeed = stage.scrollSpeed;
@@ -254,18 +221,41 @@ function updateStage(game) {
     }
 
     // ボス出現
-    if (stage.boss && window.stageTimer === stage.boss.time && !game.boss) {
+    if (stage.boss && window.stageTimer === stage.boss.time && game.bosses.length === 0) {
         game.spawnBoss(stage.boss.type);
+    }
+
+    // ステージタイムアウトチェック（ボス出現後300秒=5分）
+    if (stage.boss && window.stageTimer > stage.boss.time + 1800) {
+        // タイムアウト - ボスが撃破されていない場合は次のステージへ
+        if (game.bosses.length > 0) {
+            // まだボスが残っている場合、繰り越し処理
+            game.bosses.forEach(boss => {
+                if (!boss.destroyed && boss.stageNumber === game.stage) {
+                    // 現在のステージのボスを繰り越しリストに追加
+                    game.pendingBosses.push({
+                        stageNumber: boss.stageNumber,
+                        type: game.getBossTypeForStage(boss.stageNumber)
+                    });
+                }
+            });
+
+            // 全ボスを強制的にステージアウトさせる
+            game.bosses.forEach(boss => {
+                boss.movePattern = 'leaving';
+            });
+
+            // 次のステージへの移行をスケジュール
+            setTimeout(() => {
+                game.bosses = [];
+                game.boss = null;
+                game.checkStageProgress();
+            }, 2000);
+        }
     }
 }
 
 function spawnWave(game, wave) {
-    // ミニボス（過去のボス）の処理
-    if (wave.type === 'miniboss' && wave.bossId) {
-        spawnMiniBoss(game, wave.bossId);
-        return;
-    }
-
     const formations = {
         line: (count) => {
             const spacing = game.canvas.width / (count + 1);
@@ -441,47 +431,18 @@ function spawnWave(game, wave) {
     });
 }
 
-function spawnMiniBoss(game, bossId) {
-    // 過去のボスをミニボスとして生成（弱体化版）
-    // 現時点ではミニボス機能を簡易実装（強化された敵として出現）
-    if (typeof Enemy !== 'undefined') {
-        const miniBoss = new Enemy(game.canvas.width / 2, -50, 'tank', game);
-
-        // ミニボスとして強化
-        miniBoss.width = 120;  // 大型化
-        miniBoss.height = 120;
-        miniBoss.hp = 100 + bossId * 20;  // ボスIDに応じてHP増加
-        miniBoss.maxHp = miniBoss.hp;
-        miniBoss.scoreValue = 10000;
-        miniBoss.movePattern = 'hover';
-        miniBoss.attackPattern = 'spread';
-        miniBoss.color = '#ff00ff';
-        miniBoss.attackInterval = 40;  // 高速攻撃
-
-        // ボスIDに応じて色を変更
-        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff',
-                       '#00ffff', '#ff8800', '#8800ff', '#ff0088'];
-        miniBoss.color = colors[bossId - 1] || '#ff00ff';
-
-        game.enemies.push(miniBoss);
-
-        console.log(`Mini Boss spawned: Boss ${bossId} as enhanced enemy`);
-    }
-}
-
 function spawnMidBoss(game, type) {
-    // 中ボスは通常の敵として生成（大型・高HP）
+    // 中ボスは通常の敵として生成（HPが高い）
     if (typeof Enemy !== 'undefined') {
         const midBoss = new Enemy(game.canvas.width / 2, -50, 'tank', game);
-        midBoss.width = 100;  // 64→100（大型化）
-        midBoss.height = 100;  // 64→100（大型化）
-        midBoss.hp = 50;  // 20→50（2.5倍）
-        midBoss.maxHp = 50;  // 20→50（2.5倍）
+        midBoss.width = 64;
+        midBoss.height = 64;
+        midBoss.hp = 20;
+        midBoss.maxHp = 20;
         midBoss.scoreValue = 5000;
         midBoss.movePattern = 'hover';
         midBoss.attackPattern = 'spread';
         midBoss.color = '#ff00ff';
-        midBoss.attackInterval = 50;  // 攻撃頻度を上げる
 
         game.enemies.push(midBoss);
     }
