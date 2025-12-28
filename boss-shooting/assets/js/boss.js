@@ -626,11 +626,7 @@ class Boss {
         // 画像描画に失敗した場合のフォールバック
         if (!imageDrawn) {
             // デバッグ表示
-            if (this.isPending) {
-                ctx.fillStyle = '#ffaa00';  // 繰り越しボスは橙色
-            } else {
-                ctx.fillStyle = this.color || '#ff0044';
-            }
+            ctx.fillStyle = this.color || '#ff0044';
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 3;
 

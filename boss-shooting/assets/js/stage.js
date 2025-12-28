@@ -227,19 +227,8 @@ function updateStage(game) {
 
     // ステージタイムアウトチェック（ボス出現後300秒=5分）
     if (stage.boss && window.stageTimer > stage.boss.time + 1800) {
-        // タイムアウト - ボスが撃破されていない場合は次のステージへ
+        // タイムアウト - ボスが撃破されていなくても次のステージへ
         if (game.bosses.length > 0) {
-            // まだボスが残っている場合、繰り越し処理
-            game.bosses.forEach(boss => {
-                if (!boss.destroyed && boss.stageNumber === game.stage) {
-                    // 現在のステージのボスを繰り越しリストに追加
-                    game.pendingBosses.push({
-                        stageNumber: boss.stageNumber,
-                        type: game.getBossTypeForStage(boss.stageNumber)
-                    });
-                }
-            });
-
             // 全ボスを強制的にステージアウトさせる
             game.bosses.forEach(boss => {
                 boss.movePattern = 'leaving';

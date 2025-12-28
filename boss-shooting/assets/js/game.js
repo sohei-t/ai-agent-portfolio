@@ -24,7 +24,6 @@ class Game {
         // ボス管理システム
         this.bosses = [];  // 現在のステージに出現している全ボス
         this.defeatedBosses = [];  // 撃破済みボスのステージ番号リスト
-        this.pendingBosses = [];  // 繰り越し中の未撃破ボス
 
         // ゲーム設定
         this.settings = {
@@ -315,7 +314,6 @@ class Game {
         // ボス管理システムをリセット
         this.bosses = [];
         this.defeatedBosses = [];
-        this.pendingBosses = [];
 
         // プレイヤー作成
         if (typeof Player !== 'undefined') {
@@ -425,63 +423,8 @@ class Game {
         }
     }
 
-    spawnPendingBosses() {
-        // 未撃破の繰り越しボスを出現させる
-        const pendingCount = this.pendingBosses.length;
-        console.log(`Spawning ${pendingCount} pending bosses`);
-
-        // 繰り越しボスを一時配列にコピー（元の配列をクリアする前に）
-        const pendingBossesCopy = [...this.pendingBosses];
-
-        for (let i = 0; i < pendingBossesCopy.length; i++) {
-            const pendingBoss = pendingBossesCopy[i];
-
-            // 配置を調整（画面幅に応じて均等配置）
-            let xPos, yPos;
-
-            if (pendingCount === 1) {
-                // 1体の場合は左側に配置
-                xPos = this.gameWidth * 0.25;
-                yPos = -100;
-            } else if (pendingCount === 2) {
-                // 2体の場合は左右に配置
-                xPos = this.gameWidth * (i === 0 ? 0.2 : 0.8);
-                yPos = -100 - i * 30;
-            } else {
-                // 3体以上の場合は均等配置
-                const spacing = this.gameWidth / (pendingCount + 2);
-                xPos = spacing * (i + 1);
-                yPos = -100 - (i % 2) * 50; // ジグザグ配置
-            }
-
-            // 繰り越しボスを再生成（typeを正しく渡す）
-            const boss = new Boss(xPos, yPos, pendingBoss.type, this);
-
-            // デバッグ情報
-            console.log(`Creating pending boss: stage ${pendingBoss.stageNumber}, type: ${pendingBoss.type}, position: (${xPos}, ${yPos})`);
-
-            boss.stageNumber = pendingBoss.stageNumber;
-            boss.isPending = true;  // 繰り越しボスであることを示すフラグ
-
-            // HPを少し減らして再登場（前回の戦闘ダメージを反映）
-            boss.hp = Math.floor(boss.maxHp * 0.75);  // 75%のHPで復活
-
-            // サイズを少し小さく（旧ボスは弱体化）
-            boss.width *= 0.9;
-            boss.height *= 0.9;
-
-            // 画像が正しく読み込まれているか確認
-            if (!boss.sprite) {
-                console.error(`Boss sprite not initialized for type: ${pendingBoss.type}`);
-            }
-
-            this.bosses.push(boss);
-        }
-
-        // 繰り越しボスを生成したら、待機リストをクリア
-        this.pendingBosses = [];
-        console.log(`Pending bosses spawned and list cleared. Current boss count: ${this.bosses.length}`);
-    }
+    // 繰り越しボス機能は削除されました
+    // タイムアウトしても次のステージへ進みます
 
     onBossDefeated(defeatedBoss) {
         // 撃破されたボスを記録
@@ -519,20 +462,8 @@ class Game {
     }
 
     checkStageProgress() {
-        // 次のステージへ進む前に、未撃破ボスをチェック
+        // タイムアウトに関わらず次のステージへ進む
         setTimeout(() => {
-            // 現在のステージボスが撃破されているか確認
-            const currentStageDefeated = this.defeatedBosses.includes(this.stage);
-
-            if (!currentStageDefeated) {
-                // 現在のステージのボスが未撃破の場合、繰り越しリストに追加
-                const bossType = this.getBossTypeForStage(this.stage);
-                this.pendingBosses.push({
-                    stageNumber: this.stage,
-                    type: bossType
-                });
-            }
-
             // 次のステージへ
             this.stage++;
             if (this.stage > 10) {
