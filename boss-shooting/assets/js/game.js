@@ -21,9 +21,6 @@ class Game {
         this.particles = [];
         this.boss = null;
 
-        // ボス管理システム
-        this.bosses = [];  // 現在のステージに出現している全ボス
-        this.defeatedBosses = [];  // 撃破済みボスのステージ番号リスト
 
         // ゲーム設定
         this.settings = {
@@ -51,11 +48,28 @@ class Game {
             expert: { enemyHpMultiplier: 2.0, playerLives: 1, scoreMultiplier: 2.0 }
         };
 
+        // ステージアイテム管理システム
+        this.stageItemsSpawned = {
+            weapon_default: false,
+            weapon_green: false,
+            weapon_purple: false,
+            weapon_yellow: false
+        };
+        this.stageItemTimer = 0;  // ステージ開始からの経過時間
+        this.nextItemSpawnTime = 600;  // 10秒後に最初のアイテム
+        this.itemSpawnOrder = ['weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'];
+        this.currentItemIndex = 0;
+
         // 初期化
         this.init();
     }
 
     init() {
+        // 特殊武器システムを初期化
+        if (typeof SpecialWeapon !== 'undefined') {
+            specialWeapon = new SpecialWeapon(this);
+        }
+
         // Canvas サイズ設定（モバイル対応）
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -131,8 +145,10 @@ class Game {
             this.player.update(dt);
 
             // 画面外制限（ゲーム座標系を使用）
+            // 下部のUIエリア（高さ80px）より上に制限
+            const bottomLimit = this.gameHeight - 100;  // UIエリアの上限
             this.player.x = Math.max(16, Math.min(this.gameWidth - 16, this.player.x));
-            this.player.y = Math.max(16, Math.min(this.gameHeight - 16, this.player.y));
+            this.player.y = Math.max(16, Math.min(bottomLimit, this.player.y));
         }
 
         // 敵更新
@@ -146,9 +162,9 @@ class Game {
                     this.addScore(enemy.scoreValue);
                     this.createExplosion(enemy.x, enemy.y, 'small');
 
-                    // アイテムドロップ（10%の確率）
-                    if (Math.random() < 0.1) {
-                        this.spawnPowerup(enemy.x, enemy.y);
+                    // 通常のアイテムドロップ率
+                    if (Math.random() < 0.1) {  // 10%の確率
+                        this.spawnPowerup(enemy.x, enemy.y, false);
                     }
                 }
                 this.enemies.splice(i, 1);
@@ -187,35 +203,109 @@ class Game {
             }
         }
 
-        // 複数ボス更新
-        for (let i = this.bosses.length - 1; i >= 0; i--) {
-            const boss = this.bosses[i];
-            if (boss.destroyed || boss.hp <= 0) {
-                // 破壊済みボスは配列から削除（onBossDefeatedで処理済み）
-                if (!boss.destroyProcessed) {
-                    boss.destroyProcessed = true;
-                    // destroy()が呼ばれていない場合は呼ぶ
-                    if (!boss.destroyed && boss.hp <= 0) {
-                        boss.destroy();
-                    }
+
+        if (this.boss) {
+            // ボスが破壊されていないかチェック
+            if (this.boss.destroyed || this.boss.hp <= 0) {
+                // onBossDefeatedは一度だけ呼ぶ
+                if (!this.bossDefeated) {
+                    this.bossDefeated = true;
+                    // boss.destroy()が既に呼ばれていればonBossDefeatedも呼ばれている
                 }
             } else {
-                boss.update(dt);
-            }
-        }
-
-        // 旧互換性のためのボス更新（削除予定）
-        if (this.boss && !this.bosses.includes(this.boss)) {
-            if (this.boss.destroyed || this.boss.hp <= 0) {
-                this.boss = null;
-            } else {
                 this.boss.update(dt);
+
+                // 1分間タイマー処理（最終ステージ以外）
+                // ステージ10と11（最終ボス）はタイマーなし
+                if (this.stage < 10 && !this.bossTimeoutProcessing && !(this.boss && this.boss.phase === 'finalSecond')) {
+                    if (!this.bossStageStartTime) {
+                        this.bossStageStartTime = Date.now();
+                    }
+
+                    const elapsedTime = Date.now() - this.bossStageStartTime;
+                    const timeLimit = 60000; // 1分（60秒）統一
+
+                    if (elapsedTime >= timeLimit) {
+                        // タイムアップでステージクリア（一度だけ実行）
+                        this.bossTimeoutProcessing = true;
+                        console.log('タイムアップ - ボスが逃げました！');
+                        // ステージクリア処理（onBossDefeatedを呼ぶ）
+                        setTimeout(() => {
+                            this.boss = null;
+                            this.bossStageStartTime = null;
+                            this.bossTimeoutProcessing = false;  // リセット
+                            this.onBossDefeated();  // 既存のボス撃破処理を使用
+                        }, 2000);
+                    }
+                }
             }
         }
 
         // 当たり判定
         if (typeof checkCollisions === 'function') {
             checkCollisions(this);
+        }
+
+        // 特殊武器の更新
+        if (specialWeapon) {
+            specialWeapon.update();
+        }
+
+        // ステージアイテム管理（ボス戦でない場合）- 完全ランダム化
+        if (!this.boss) {
+            this.stageItemTimer++;
+
+            // 定期的にランダムアイテムを出現させる
+            if (this.stageItemTimer >= this.nextItemSpawnTime) {
+                // MAXでない武器のみをリストに追加
+                const itemTypes = [];
+
+                // 各武器のレベルをチェック
+                if (this.player && this.player.weaponLevels) {
+                    if (this.player.weaponLevels.default < 10) {
+                        itemTypes.push('weapon_default');
+                    }
+                    if (this.player.weaponLevels.green < 10) {
+                        itemTypes.push('weapon_green');
+                    }
+                    if (this.player.weaponLevels.purple < 10) {
+                        itemTypes.push('weapon_purple');
+                    }
+                    if (this.player.weaponLevels.yellow < 10) {
+                        itemTypes.push('weapon_yellow');
+                    }
+                } else {
+                    // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                    itemTypes.push('weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow');
+                }
+
+                // その他のアイテムは常に追加（正しいタイプ名を使用）
+                itemTypes.push('item-life', 'item-bomb', 'shield');
+
+                // 武器アイテムがない場合は他のアイテムを増やす
+                if (itemTypes.length === 3) {  // 武器が全てMAXの場合（他アイテム3種類のみ）
+                    // 回復・ボム・シールドの出現率を上げる
+                    itemTypes.push('item-life', 'item-bomb', 'shield');
+                }
+
+                const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+
+                // 画面上部のランダムな位置に出現
+                const x = 50 + Math.random() * (this.canvas.width - 100);
+                const y = 50;
+
+                // アイテムを出現
+                const powerup = new Powerup(x, y, itemType);
+                powerup.game = this;
+                this.powerups.push(powerup);
+
+                // エフェクトで知らせる
+                this.createExplosion(x, y, 'powerup');
+
+                // 次のアイテムまでの時間をランダムに設定（10-30秒）
+                this.stageItemTimer = 0;
+                this.nextItemSpawnTime = 600 + Math.random() * 600;  // 10-20秒間隔
+            }
         }
 
         // ステージ進行
@@ -242,15 +332,20 @@ class Game {
 
         this.enemies.forEach(e => e.render(this.ctx));
 
-        // 複数ボス描画
-        this.bosses.forEach(boss => boss.render(this.ctx));
-
-        // 旧互換性のためのボス描画（削除予定）
-        if (this.boss && !this.bosses.includes(this.boss)) {
+        if (this.boss) {
             this.boss.render(this.ctx);
+            // 武器ダウンミサイルの描画
+            if (this.boss.renderWeaponDownMissile) {
+                this.boss.renderWeaponDownMissile(this.ctx);
+            }
         }
 
         this.particles.forEach(p => p.render(this.ctx));
+
+        // 特殊武器の描画
+        if (specialWeapon) {
+            specialWeapon.render(this.ctx);
+        }
 
         // UI更新
         if (typeof updateUI === 'function') {
@@ -311,9 +406,16 @@ class Game {
         this.stage = 1;
         this.bombs = 3;
 
-        // ボス管理システムをリセット
-        this.bosses = [];
-        this.defeatedBosses = [];
+        // ステージアイテム管理を初期化
+        this.stageItemsSpawned = {
+            weapon_default: false,
+            weapon_green: false,
+            weapon_purple: false,
+            weapon_yellow: false
+        };
+        this.currentItemIndex = 0;
+        this.stageItemTimer = 0;
+        this.nextItemSpawnTime = 600 + Math.random() * 600; // 10-20秒後に最初のアイテム
 
         // プレイヤー作成
         if (typeof Player !== 'undefined') {
@@ -355,7 +457,13 @@ class Game {
 
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('finalStage').textContent = this.stage;
-        document.getElementById('gameOverScreen').style.display = 'flex';
+
+        // CONTINUE機能の表示（残機がない場合のみ）
+        if (!this.continueUsed && this.score >= 1000) {  // 一度だけ使用可能、スコア1000以上で解放
+            this.showContinue();
+        } else {
+            document.getElementById('gameOverScreen').style.display = 'flex';
+        }
 
         // BGM停止
         if (typeof stopBGM === 'function') {
@@ -369,6 +477,75 @@ class Game {
         }
     }
 
+    showContinue() {
+        // CONTINUE画面の作成（存在しない場合）
+        let continueScreen = document.getElementById('continueScreen');
+        if (!continueScreen) {
+            continueScreen = document.createElement('div');
+            continueScreen.id = 'continueScreen';
+            continueScreen.className = 'screen';
+            continueScreen.style.cssText = `
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                color: white;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                font-family: 'Courier New', monospace;
+                z-index: 1000;
+            `;
+            continueScreen.innerHTML = `
+                <h1 style="font-size: 48px; margin-bottom: 30px; color: #ffff00;">CONTINUE?</h1>
+                <p style="font-size: 24px; margin-bottom: 20px;">Score: <span id="continueScore">0</span></p>
+                <p style="font-size: 20px; margin-bottom: 40px; color: #ff6600;">コンティニューは1回のみ使用可能です</p>
+                <div style="display: flex; gap: 30px;">
+                    <button id="continueYes" style="padding: 15px 30px; font-size: 24px; background: #00ff00; color: black; border: none; cursor: pointer;">YES (残機3で復活)</button>
+                    <button id="continueNo" style="padding: 15px 30px; font-size: 24px; background: #ff0000; color: white; border: none; cursor: pointer;">NO</button>
+                </div>
+            `;
+            document.body.appendChild(continueScreen);
+
+            // ボタンイベント
+            document.getElementById('continueYes').addEventListener('click', () => this.continueGame());
+            document.getElementById('continueNo').addEventListener('click', () => {
+                document.getElementById('continueScreen').style.display = 'none';
+                document.getElementById('gameOverScreen').style.display = 'flex';
+            });
+        }
+
+        document.getElementById('continueScore').textContent = this.score;
+        continueScreen.style.display = 'flex';
+    }
+
+    continueGame() {
+        // CONTINUE実行
+        this.continueUsed = true;  // 一度だけ使用可能
+        this.lives = 3;  // 残機を3に回復
+        this.state = 'playing';
+
+        // プレイヤーを復活
+        if (this.player) {
+            this.player.respawn();
+            this.player.invincible = 300;  // 5秒間無敵
+        }
+
+        // 画面を隠す
+        document.getElementById('continueScreen').style.display = 'none';
+        document.getElementById('gameOverScreen').style.display = 'none';
+
+        // BGM再開
+        if (typeof playBGM === 'function') {
+            playBGM('stage');
+        }
+
+        console.log('CONTINUE実行！残機3で復活');
+    }
+
     addScore(points) {
         const multiplier = this.difficultySettings[this.difficulty].scoreMultiplier;
         this.score += Math.floor(points * multiplier);
@@ -380,11 +557,75 @@ class Game {
         }
     }
 
-    spawnPowerup(x, y) {
+    spawnPowerup(x, y, forceWeapon = false) {
         if (typeof Powerup !== 'undefined') {
-            const types = ['weapon', 'life', 'bomb', 'shield'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            this.powerups.push(new Powerup(x, y, type));
+            let type;
+
+            // MAXでない武器のみをリストに追加
+            const validItemTypes = [];
+
+            // 各武器のレベルをチェック（MAXでない武器のみ追加）
+            if (this.player && this.player.weaponLevels) {
+                if (this.player.weaponLevels.default < 10) {
+                    validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');  // 青武器（3枚）
+                }
+                if (this.player.weaponLevels.green < 10) {
+                    validItemTypes.push('weapon_green', 'weapon_green');  // 緑武器（2枚）
+                }
+                if (this.player.weaponLevels.purple < 10) {
+                    validItemTypes.push('weapon_purple', 'weapon_purple');  // 紫武器（2枚）
+                }
+                if (this.player.weaponLevels.yellow < 10) {
+                    validItemTypes.push('weapon_yellow', 'weapon_yellow');  // 黄武器（2枚）
+                }
+            } else {
+                // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                validItemTypes.push('weapon_default', 'weapon_default', 'weapon_default');
+                validItemTypes.push('weapon_green', 'weapon_green');
+                validItemTypes.push('weapon_purple', 'weapon_purple');
+                validItemTypes.push('weapon_yellow', 'weapon_yellow');
+            }
+
+            // その他のアイテムは常に追加
+            validItemTypes.push('item-bomb', 'item-bomb');  // ボム（2枚）
+            validItemTypes.push('item-life', 'item-life');  // ライフ（2枚）
+            validItemTypes.push('shield');  // シールド（1枚）
+            validItemTypes.push('speed', 'speed');  // スピードアップ（2枚）
+
+            if (forceWeapon) {
+                // ボス戦中は武器アイテムを優先（MAXでない武器のみ）
+                const weaponTypes = [];
+                if (this.player && this.player.weaponLevels) {
+                    if (this.player.weaponLevels.default < 10) weaponTypes.push('weapon_default');
+                    if (this.player.weaponLevels.green < 10) weaponTypes.push('weapon_green');
+                    if (this.player.weaponLevels.purple < 10) weaponTypes.push('weapon_purple');
+                    if (this.player.weaponLevels.yellow < 10) weaponTypes.push('weapon_yellow');
+                } else {
+                    // weaponLevelsがまだ初期化されていない場合は全武器を追加
+                    weaponTypes.push('weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow');
+                }
+
+                // MAXでない武器がある場合はそれを出現
+                if (weaponTypes.length > 0) {
+                    type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                } else {
+                    // 全武器MAXの場合は他のアイテムから選択
+                    const otherTypes = ['item-bomb', 'item-life', 'shield', 'speed'];
+                    type = otherTypes[Math.floor(Math.random() * otherTypes.length)];
+                }
+            } else {
+                // 通常時：ランダムに選択（ただし出現可能なもののみ）
+                if (validItemTypes.length > 0) {
+                    type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];
+                } else {
+                    // 何もない場合は生命力アイテム
+                    type = 'item-life';
+                }
+            }
+
+            const powerup = new Powerup(x, y, type);
+            powerup.game = this;  // gameの参照を追加
+            this.powerups.push(powerup);
         }
     }
 
@@ -399,112 +640,181 @@ class Game {
         }
     }
 
-    spawnBoss(type) {
-        if (typeof Boss !== 'undefined') {
-            // 現在のステージボスを生成
-            const currentBoss = new Boss(this.gameWidth / 2, -100, type, this);
-            currentBoss.stageNumber = this.stage;  // ボスのステージ番号を記録
-            this.bosses.push(currentBoss);
-
-            // 旧互換性のため、最初のボスをthis.bossにも設定
-            if (!this.boss) {
-                this.boss = currentBoss;
-            }
-
-            // ボス登場演出
-            document.getElementById('bossHealth').style.display = 'block';
-
-            if (typeof playBGM === 'function') {
-                playBGM('boss');
-            }
-        }
-    }
-
-    // 繰り越しボス機能は削除されました
-    // タイムアウトしても次のステージへ進みます
-
-    onBossDefeated(defeatedBoss) {
-        // 撃破されたボスを記録
-        if (defeatedBoss && defeatedBoss.stageNumber) {
-            this.defeatedBosses.push(defeatedBoss.stageNumber);
-        }
-
-        // bosses配列から削除
-        const index = this.bosses.indexOf(defeatedBoss);
-        if (index > -1) {
-            this.bosses.splice(index, 1);
-        }
-
-        // 旧互換性のため
-        if (this.boss === defeatedBoss) {
-            this.boss = this.bosses.length > 0 ? this.bosses[0] : null;
-        }
-
-        // エフェクト
-        this.createExplosion(defeatedBoss.x, defeatedBoss.y, 'large');
-        this.addScore(defeatedBoss.scoreValue || 20000);
-
-        // 全ボスが撃破されたかチェック
-        if (this.bosses.length === 0) {
-            this.onAllBossesDefeated();
-        }
-    }
-
-    onAllBossesDefeated() {
-        // 全ボス撃破時の処理
-        document.getElementById('bossHealth').style.display = 'none';
-
-        // ステージクリアチェック - ボスがタイムアウトしていないかを確認
-        this.checkStageProgress();
-    }
-
-    checkStageProgress() {
-        // タイムアウトに関わらず次のステージへ進む
-        setTimeout(() => {
-            // 次のステージへ
-            this.stage++;
-            if (this.stage > 10) {
-                this.victory();
-            } else {
-                // 次ステージ
-                if (typeof loadStage === 'function') {
-                    loadStage(this, this.stage);
-
-                    // ステージタイマーをリセット
-                    window.stageTimer = 0;
-                    window.currentWaveIndex = 0;
-                }
-            }
-        }, 2000); // 2秒待ってから次ステージへ
-    }
-
-    getBossTypeForStage(stageNumber) {
-        // ステージ番号からボスタイプを取得
-        const bossTypes = {
+    getBossTypeByStage(stageNum) {
+        const types = {
             1: 'stage1',
             2: 'stage2',
             3: 'stage3',
             4: 'stage4',
             5: 'stage5',
-            6: 'stage6',
-            7: 'stage7',
-            8: 'stage8',
-            9: 'stage9',
-            10: 'final'
+            6: 'stage1',  // ステージ6以降は循環
+            7: 'stage2',
+            8: 'stage3',
+            9: 'stage4',
+            10: 'stage10'
         };
-        return bossTypes[stageNumber] || 'stage1';
+        return types[stageNum] || 'stage1';
+    }
+
+    spawnBoss(type) {
+        if (typeof Boss !== 'undefined') {
+            // Boss Warning画面を表示
+            if (typeof showBossWarning === 'function') {
+                const bossNames = {
+                    stage1: 'Alien Commander',
+                    stage2: 'Mechanical Destroyer',
+                    stage3: 'Crystal Guardian',
+                    stage4: 'Shadow Leviathan',
+                    stage5: 'Quantum Hydra',
+                    final: 'Omega Overlord'
+                };
+                showBossWarning(this, bossNames[type] || 'Unknown Boss');
+            }
+
+            // 4秒後にボスを生成
+            setTimeout(() => {
+                this.boss = new Boss(this.gameWidth / 2, -100, type, this);
+
+                // ボス戦開始時にステージアイテム管理をリセット
+                this.stageItemsSpawned = {
+                    weapon_default: false,
+                    weapon_green: false,
+                    weapon_purple: false,
+                    weapon_yellow: false
+                };
+                this.currentItemIndex = 0;
+
+                // ボス登場演出
+                document.getElementById('bossHealth').style.display = 'block';
+
+                if (typeof playBGM === 'function') {
+                    playBGM('boss');
+                }
+            }, 4000);
+        }
+    }
+
+    onBossDefeated() {
+        // 二重実行を防ぐ
+        if (this.processingBossDefeat) return;
+        this.processingBossDefeat = true;
+
+        // ボスが存在する場合は爆発エフェクト
+        if (this.boss) {
+            this.createExplosion(this.boss.x, this.boss.y, 'large');
+        }
+        this.addScore(20000);
+
+        document.getElementById('bossHealth').style.display = 'none';
+        this.boss = null;
+        this.bossDefeated = false; // リセット
+
+        // ステージクリア演出を表示
+        if (typeof showStageClear === 'function') {
+            showStageClear(this, this.stage);
+        }
+
+        // ステージクリア処理はshowStageClear内で行われる
+        setTimeout(() => {
+            this.stage++;
+            if (this.stage > 11) {  // ステージ11クリア後に終了
+                this.victory();
+            }
+            // ステージタイマーをリセット
+            window.stageTimer = 0;
+            window.currentWaveIndex = 0;
+
+            // 次のステージのためにアイテム管理をリセット
+            this.stageItemsSpawned = {
+                weapon_default: false,
+                weapon_green: false,
+                weapon_purple: false,
+                weapon_yellow: false
+            };
+            this.currentItemIndex = 0;
+            this.stageItemTimer = 0;
+            this.nextItemSpawnTime = 600 + Math.random() * 600; // 10-20秒後に最初のアイテム
+
+            // フラグをリセット
+            this.processingBossDefeat = false;
+        }, 4000); // 4秒待ってから（演出時間に合わせる）
     }
 
     victory() {
         this.state = 'victory';
-        // エンディング画面表示
-        alert('Congratulations! You have completed Space Odyssey!');
-        // backToTitle関数を直接呼び出す（グローバル関数として定義されている）
-        if (typeof backToTitle === 'function') {
-            backToTitle();
-        } else {
-            location.reload();
+
+        // 巨大な爆発エフェクトを生成（画面全体で連続爆発）
+        const explosionCount = 30;  // 爆発の数
+        const duration = 3000;  // 3秒間の演出
+
+        for (let i = 0; i < explosionCount; i++) {
+            setTimeout(() => {
+                // ランダムな位置で爆発
+                const x = Math.random() * this.canvas.width;
+                const y = Math.random() * this.canvas.height;
+
+                // 爆発エフェクト作成
+                if (this.createExplosion) {
+                    this.createExplosion(x, y, 'huge');
+                }
+
+                // 爆発パーティクル
+                for (let j = 0; j < 20; j++) {
+                    const angle = (Math.PI * 2 / 20) * j;
+                    const speed = 5 + Math.random() * 10;
+
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: 5 + Math.random() * 10,
+                        color: `hsl(${Math.random() * 60}, 100%, 50%)`,  // 赤〜黄色系
+                        lifetime: 60 + Math.random() * 30,
+                        type: 'explosion'
+                    });
+                }
+
+                // 画面を振動させる効果
+                if (this.canvas) {
+                    this.canvas.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
+                    setTimeout(() => {
+                        this.canvas.style.transform = 'translate(0, 0)';
+                    }, 100);
+                }
+            }, (i * duration) / explosionCount);
         }
+
+        // 爆発演出後にビクトリー画面を表示
+        setTimeout(() => {
+            // キャンバスをクリア
+            const ctx = this.canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // ビクトリーメッセージ表示
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 72px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('VICTORY!', this.canvas.width / 2, this.canvas.height / 2 - 50);
+
+            ctx.font = '36px Arial';
+            ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 50);
+
+            // さらに2秒後にタイトル画面へ戻る（ending.htmlではなく）
+            setTimeout(() => {
+                // スコアをローカルストレージに保存
+                const currentScore = this.score || 0;
+                const highScore = parseInt(localStorage.getItem('highScore') || '0');
+                if (currentScore > highScore) {
+                    localStorage.setItem('highScore', currentScore);
+                }
+
+                // タイトル画面に戻る
+                location.reload();
+            }, 2000);
+        }, duration);
     }
 
     applySettings() {
@@ -534,13 +844,159 @@ function startGame(difficulty) {
 }
 
 function backToTitle() {
-    location.reload();
+    document.getElementById('itemGuideScreen').style.display = 'none';
+    document.getElementById('difficultySelect').style.display = 'none';
+    document.getElementById('titleScreen').style.display = 'block';
 }
 
 function retryGame() {
     if (game) {
         document.getElementById('gameOverScreen').style.display = 'none';
         game.startGame(game.difficulty);
+    }
+}
+
+function showItemGuide() {
+    document.getElementById('titleScreen').style.display = 'none';
+    document.getElementById('itemGuideScreen').style.display = 'flex';
+
+    // アイテムアイコンを描画
+    setTimeout(() => {
+        drawItemIcons();
+    }, 100);
+}
+
+function drawItemIcons() {
+    // 各アイテムタイプの設定（現在のゲーム仕様に合わせて更新）
+    const items = {
+        'item-weapon': { color: '#00ffff', type: 'square', text: 'B' },    // 青武器（四角＋B）
+        'item-spread': { color: '#00ff00', type: 'square', text: 'S' },    // 緑武器（四角＋S）
+        'item-laser': { color: '#ff00ff', type: 'square', text: 'L' },     // 紫武器（四角＋L）
+        'item-wave': { color: '#ffff00', type: 'square', text: 'W' },      // 黄武器（四角＋W）
+        'item-life': { color: '#ff0066', type: 'heart' },                  // 残機（ハート）
+        'item-bomb': { color: '#ff6600', type: 'bomb' },                   // 爆弾
+        'item-shield': { color: '#00ffff', type: 'shield' },               // シールド
+        'item-speed': { color: '#ff00ff', type: 'triangle', text: 'S' }    // スピード（三角＋S）
+    };
+
+    for (const [id, config] of Object.entries(items)) {
+        const canvas = document.getElementById(id);
+        if (!canvas) continue;
+
+        const ctx = canvas.getContext('2d');
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        // アイテムのグロー効果
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = config.color;
+
+        ctx.strokeStyle = config.color;
+        ctx.lineWidth = 2;
+        ctx.fillStyle = config.color + '66'; // 半透明の塗りつぶし
+
+        switch(config.type) {
+            case 'star':
+                // 星型
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                    const outerRadius = 12;
+                    const innerRadius = 6;
+
+                    const x1 = cx + Math.cos(angle) * outerRadius;
+                    const y1 = cy + Math.sin(angle) * outerRadius;
+
+                    const angle2 = angle + Math.PI / 5;
+                    const x2 = cx + Math.cos(angle2) * innerRadius;
+                    const y2 = cy + Math.sin(angle2) * innerRadius;
+
+                    if (i === 0) {
+                        ctx.moveTo(x1, y1);
+                    } else {
+                        ctx.lineTo(x1, y1);
+                    }
+                    ctx.lineTo(x2, y2);
+                }
+                ctx.closePath();
+                break;
+
+            case 'heart':
+                // ハート型（簡略版）
+                ctx.beginPath();
+                ctx.arc(cx - 5, cy - 5, 5, 0, Math.PI * 2);
+                ctx.arc(cx + 5, cy - 5, 5, 0, Math.PI * 2);
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx - 10, cy - 5);
+                ctx.lineTo(cx, cy + 10);
+                ctx.lineTo(cx + 10, cy - 5);
+                ctx.lineTo(cx, cy);
+                break;
+
+            case 'bomb':
+                // 爆弾型
+                ctx.beginPath();
+                ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+                ctx.moveTo(cx, cy - 10);
+                ctx.lineTo(cx, cy - 15);
+                // 導火線
+                ctx.moveTo(cx, cy - 15);
+                ctx.lineTo(cx + 2, cy - 17);
+                break;
+
+            case 'shield':
+                // シールド型
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 12);
+                ctx.lineTo(cx - 10, cy - 6);
+                ctx.lineTo(cx - 10, cy + 6);
+                ctx.lineTo(cx, cy + 12);
+                ctx.lineTo(cx + 10, cy + 6);
+                ctx.lineTo(cx + 10, cy - 6);
+                ctx.closePath();
+                break;
+
+            case 'square':
+                // 四角形
+                ctx.beginPath();
+                ctx.rect(cx - 10, cy - 10, 20, 20);
+                break;
+
+            case 'triangle':
+                // 三角形
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 12);
+                ctx.lineTo(cx - 10, cy + 8);
+                ctx.lineTo(cx + 10, cy + 8);
+                ctx.closePath();
+                break;
+
+            case 'circle':
+                // 円形
+                ctx.beginPath();
+                ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+                break;
+        }
+
+        ctx.fill();
+        ctx.stroke();
+
+        // テキストがある場合は中央に表示
+        if (config.text) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 0;
+            ctx.fillText(config.text, cx, cy);
+        } else {
+            // 中心の明るい点（テキストがない場合のみ）
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 }
 

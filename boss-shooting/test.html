@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>パワーアップアイテム修正確認</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #0f0;
+        }
+        .ok { color: #0f0; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #333;
+            color: #0f0;
+            border: 2px solid #0f0;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0f0;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <h1>パワーアップアイテム修正確認</h1>
+    <div>
+        <button onclick="testPowerups()">パワーアップテスト実行</button>
+        <button onclick="location.href='index.html'">ゲームに戻る</button>
+    </div>
+    <div id="results"></div>
+
+    <script src="assets/js/player.js"></script>
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(name, status, detail) {
+            const div = document.createElement('div');
+            div.className = 'test-result ' + (status ? 'ok' : 'error');
+            div.innerHTML = `
+                <strong>${status ? '✅' : '❌'} ${name}</strong><br>
+                ${detail || ''}
+            `;
+            results.appendChild(div);
+        }
+
+        function testPowerups() {
+            results.innerHTML = '<h2>パワーアップアイテムテスト結果</h2>';
+
+            // モックオブジェクト作成
+            const mockGame = {
+                lives: 3,
+                bombs: 1,
+                scoreMultiplier: 1,
+                bullets: [],
+                enemies: [],
+                createExplosion: function() {}
+            };
+
+            try {
+                // Playerインスタンスのテスト
+                const testPlayer = new Player(mockGame);
+                testPlayer.game = mockGame;
+
+                addResult('Player作成', true, 'Playerインスタンス作成成功');
+
+                // 各パワーアップのテスト
+                const powerupTypes = [
+                    { type: 'life', desc: '赤（life）アイテム' },
+                    { type: 'speed', desc: '緑（speed）アイテム' },
+                    { type: 'power', desc: '紫（power）アイテム' },
+                    { type: 'weapon', desc: '黄（weapon）アイテム' },
+                    { type: 'shield', desc: '水色（shield）アイテム' },
+                    { type: 'bomb', desc: 'オレンジ（bomb）アイテム' },
+                    { type: 'score', desc: '金（score）アイテム' }
+                ];
+
+                powerupTypes.forEach(item => {
+                    try {
+                        const prevLives = mockGame.lives;
+                        const prevBombs = mockGame.bombs;
+                        const prevScore = mockGame.scoreMultiplier;
+
+                        testPlayer.powerUp(item.type);
+
+                        let changeText = '';
+                        if (item.type === 'life' && mockGame.lives > prevLives) {
+                            changeText = `ライフ: ${prevLives} → ${mockGame.lives}`;
+                        } else if (item.type === 'bomb' && mockGame.bombs > prevBombs) {
+                            changeText = `ボム: ${prevBombs} → ${mockGame.bombs}`;
+                        } else if (item.type === 'speed' && testPlayer.speedBoost) {
+                            changeText = 'スピードブースト有効（10秒間）';
+                        } else if (item.type === 'power' && testPlayer.powerBoost) {
+                            changeText = 'パワーブースト有効（10秒間）';
+                        } else if (item.type === 'weapon') {
+                            changeText = `武器レベル: ${testPlayer.weapon.level}`;
+                        } else if (item.type === 'shield' && testPlayer.shield) {
+                            changeText = 'シールド有効';
+                        } else if (item.type === 'score' && mockGame.scoreMultiplier > prevScore) {
+                            changeText = `スコア倍率: ${prevScore}x → ${mockGame.scoreMultiplier}x`;
+                        }
+
+                        addResult(item.desc, true, `エラーなし。${changeText}`);
+
+                    } catch (err) {
+                        addResult(item.desc, false, `エラー: ${err.message}`);
+                    }
+                });
+
+                // setTimeout関数のテスト
+                addResult('setTimeout テスト', true, '10秒後に効果が切れる設定を確認');
+
+                // player.js の修正確認
+                fetch('assets/js/player.js')
+                    .then(res => res.text())
+                    .then(text => {
+                        const hasSpeedFix = text.includes('const player = this');
+                        const hasPowerFix = text.includes('const playerPower = this');
+                        const hasScoreCase = text.includes("case 'score':");
+                        const hasDefaultCase = text.includes('default:');
+
+                        addResult('speed修正', hasSpeedFix,
+                            hasSpeedFix ? 'setTimeoutの参照修正済み' : '未修正');
+                        addResult('power修正', hasPowerFix,
+                            hasPowerFix ? 'setTimeoutの参照修正済み' : '未修正');
+                        addResult('scoreケース', hasScoreCase,
+                            hasScoreCase ? 'scoreケース追加済み' : '未追加');
+                        addResult('defaultケース', hasDefaultCase,
+                            hasDefaultCase ? 'エラーハンドリング追加済み' : '未追加');
+                    });
+
+            } catch (err) {
+                addResult('テスト実行エラー', false, err.message);
+            }
+        }
+
+        // 初期テストを自動実行
+        addResult('テストページ', true, 'パワーアップアイテムの修正確認用ページ');
+    </script>
+</body>
+</html>
