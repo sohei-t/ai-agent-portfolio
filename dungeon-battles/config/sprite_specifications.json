@@ -1,0 +1,472 @@
+{
+  "version": "1.0",
+  "canvas": {
+    "width": 800,
+    "height": 600,
+    "targetFPS": 60
+  },
+  "sprites": {
+    "player": {
+      "name": "Player Character",
+      "file": "assets/sprites/player/player_ship.png",
+      "optimalSize": {
+        "width": 64,
+        "height": 64
+      },
+      "minSize": {
+        "width": 48,
+        "height": 48
+      },
+      "maxSize": {
+        "width": 80,
+        "height": 80
+      },
+      "type": "player",
+      "required": true,
+      "hasAnimation": false,
+      "frames": 1,
+      "placeholder": {
+        "shape": "triangle",
+        "color": "#4A90E2",
+        "outline": "#FFFFFF",
+        "outlineWidth": 2
+      }
+    },
+    "enemies": [
+      {
+        "name": "Enemy 1 - Stage 1",
+        "file": "assets/sprites/enemies/enemy_1.png",
+        "optimalSize": {
+          "width": 32,
+          "height": 32
+        },
+        "type": "enemy_small",
+        "required": true,
+        "stats": {
+          "hp": 30,
+          "stage": 1
+        },
+        "placeholder": {
+          "shape": "circle",
+          "color": "#E74C3C",
+          "label": "E1"
+        }
+      },
+      {
+        "name": "Enemy 2 - Stage 2",
+        "file": "assets/sprites/enemies/enemy_2.png",
+        "optimalSize": {
+          "width": 48,
+          "height": 48
+        },
+        "type": "enemy_medium",
+        "required": true,
+        "stats": {
+          "hp": 50,
+          "stage": 2
+        },
+        "placeholder": {
+          "shape": "circle",
+          "color": "#E67E22",
+          "label": "E2"
+        }
+      },
+      {
+        "name": "Enemy 3 - Stage 3",
+        "file": "assets/sprites/enemies/enemy_3.png",
+        "optimalSize": {
+          "width": 48,
+          "height": 48
+        },
+        "type": "enemy_medium",
+        "required": true,
+        "stats": {
+          "hp": 70,
+          "stage": 3
+        },
+        "placeholder": {
+          "shape": "square",
+          "color": "#9B59B6",
+          "label": "E3"
+        }
+      },
+      {
+        "name": "Enemy 4 - Stage 4",
+        "file": "assets/sprites/enemies/enemy_4.png",
+        "optimalSize": {
+          "width": 64,
+          "height": 64
+        },
+        "type": "enemy_large",
+        "required": true,
+        "stats": {
+          "hp": 90,
+          "stage": 4
+        },
+        "placeholder": {
+          "shape": "square",
+          "color": "#8E44AD",
+          "label": "E4"
+        }
+      }
+    ],
+    "boss": {
+      "name": "Boss - Final Stage",
+      "file": "assets/sprites/boss/boss_1.png",
+      "optimalSize": {
+        "width": 128,
+        "height": 128
+      },
+      "minSize": {
+        "width": 96,
+        "height": 96
+      },
+      "maxSize": {
+        "width": 160,
+        "height": 160
+      },
+      "type": "boss",
+      "required": true,
+      "stats": {
+        "hp": 300,
+        "stage": 5
+      },
+      "placeholder": {
+        "shape": "hexagon",
+        "color": "#C0392B",
+        "outline": "#FF0000",
+        "outlineWidth": 4,
+        "label": "BOSS"
+      }
+    },
+    "bullets": {
+      "player_normal": {
+        "name": "Player Normal Attack",
+        "file": "assets/sprites/bullets/player_normal.png",
+        "optimalSize": {
+          "width": 8,
+          "height": 16
+        },
+        "type": "bullet_player",
+        "required": false,
+        "placeholder": {
+          "shape": "rectangle",
+          "color": "#3498DB",
+          "glow": true
+        }
+      },
+      "player_magic": {
+        "name": "Player Magic Attack",
+        "file": "assets/sprites/bullets/player_magic.png",
+        "optimalSize": {
+          "width": 16,
+          "height": 16
+        },
+        "type": "bullet_player_magic",
+        "required": false,
+        "placeholder": {
+          "shape": "circle",
+          "color": "#00D4FF",
+          "glow": true
+        }
+      },
+      "enemy_bullet": {
+        "name": "Enemy Bullet",
+        "file": "assets/sprites/bullets/enemy_bullet.png",
+        "optimalSize": {
+          "width": 12,
+          "height": 12
+        },
+        "type": "bullet_enemy",
+        "required": false,
+        "placeholder": {
+          "shape": "circle",
+          "color": "#E74C3C",
+          "glow": true
+        }
+      }
+    },
+    "items": {
+      "hp_potion": {
+        "name": "HP Recovery Potion",
+        "file": "assets/sprites/items/hp_potion.png",
+        "optimalSize": {
+          "width": 32,
+          "height": 32
+        },
+        "type": "powerup",
+        "required": false,
+        "effect": "restore_hp",
+        "value": 30,
+        "placeholder": {
+          "shape": "circle",
+          "color": "#2ECC71",
+          "label": "HP"
+        }
+      },
+      "mp_potion": {
+        "name": "MP Recovery Potion",
+        "file": "assets/sprites/items/mp_potion.png",
+        "optimalSize": {
+          "width": 32,
+          "height": 32
+        },
+        "type": "powerup",
+        "required": false,
+        "effect": "restore_mp",
+        "value": 20,
+        "placeholder": {
+          "shape": "circle",
+          "color": "#3498DB",
+          "label": "MP"
+        }
+      },
+      "weapon_upgrade": {
+        "name": "Weapon Power Upgrade",
+        "file": "assets/sprites/items/weapon_upgrade.png",
+        "optimalSize": {
+          "width": 32,
+          "height": 32
+        },
+        "type": "powerup",
+        "required": false,
+        "effect": "increase_attack",
+        "value": 5,
+        "placeholder": {
+          "shape": "diamond",
+          "color": "#F39C12",
+          "label": "ATK"
+        }
+      },
+      "magic_upgrade": {
+        "name": "Magic Power Upgrade",
+        "file": "assets/sprites/items/magic_upgrade.png",
+        "optimalSize": {
+          "width": 32,
+          "height": 32
+        },
+        "type": "powerup",
+        "required": false,
+        "effect": "increase_magic",
+        "value": 10,
+        "placeholder": {
+          "shape": "diamond",
+          "color": "#9B59B6",
+          "label": "MAG"
+        }
+      }
+    }
+  },
+  "backgrounds": {
+    "dungeon": {
+      "name": "Dungeon Background",
+      "file": "assets/backgrounds/dungeon/dungeon_bg.png",
+      "size": {
+        "width": 800,
+        "height": 600
+      },
+      "type": "background",
+      "required": false,
+      "scrollSpeed": 1.0,
+      "placeholder": {
+        "color": "#2C3E50",
+        "pattern": "stone_wall"
+      }
+    },
+    "dungeon_parallax": {
+      "name": "Dungeon Parallax Layer",
+      "file": "assets/backgrounds/dungeon/dungeon_parallax.png",
+      "size": {
+        "width": 800,
+        "height": 1200
+      },
+      "type": "background",
+      "required": false,
+      "scrollSpeed": 0.5
+    },
+    "menu": {
+      "name": "Menu Background",
+      "file": "assets/backgrounds/ui/menu_bg.png",
+      "size": {
+        "width": 800,
+        "height": 600
+      },
+      "type": "background",
+      "required": false,
+      "placeholder": {
+        "color": "#34495E"
+      }
+    }
+  },
+  "ui": {
+    "hud": {
+      "hp_bar_empty": {
+        "file": "assets/ui/hud/hp_bar_empty.png",
+        "size": {
+          "width": 200,
+          "height": 20
+        },
+        "required": false
+      },
+      "hp_bar_fill": {
+        "file": "assets/ui/hud/hp_bar_fill.png",
+        "size": {
+          "width": 200,
+          "height": 20
+        },
+        "color": "#E74C3C",
+        "required": false
+      },
+      "mp_bar_empty": {
+        "file": "assets/ui/hud/mp_bar_empty.png",
+        "size": {
+          "width": 200,
+          "height": 20
+        },
+        "required": false
+      },
+      "mp_bar_fill": {
+        "file": "assets/ui/hud/mp_bar_fill.png",
+        "size": {
+          "width": 200,
+          "height": 20
+        },
+        "color": "#3498DB",
+        "required": false
+      },
+      "score_panel": {
+        "file": "assets/ui/hud/score_panel.png",
+        "size": {
+          "width": 150,
+          "height": 40
+        },
+        "required": false
+      },
+      "stage_panel": {
+        "file": "assets/ui/hud/stage_panel.png",
+        "size": {
+          "width": 100,
+          "height": 30
+        },
+        "required": false
+      }
+    },
+    "mobile": {
+      "joystick_base": {
+        "file": "assets/ui/mobile/joystick_base.png",
+        "size": {
+          "width": 100,
+          "height": 100
+        },
+        "opacity": 0.6,
+        "required": false
+      },
+      "joystick_stick": {
+        "file": "assets/ui/mobile/joystick_stick.png",
+        "size": {
+          "width": 50,
+          "height": 50
+        },
+        "opacity": 0.8,
+        "required": false
+      },
+      "attack_button": {
+        "file": "assets/ui/mobile/attack_button.png",
+        "size": {
+          "width": 80,
+          "height": 80
+        },
+        "opacity": 0.7,
+        "required": false,
+        "label": "ATK"
+      },
+      "magic_button": {
+        "file": "assets/ui/mobile/magic_button.png",
+        "size": {
+          "width": 80,
+          "height": 80
+        },
+        "opacity": 0.7,
+        "required": false,
+        "label": "MAG"
+      }
+    }
+  },
+  "effects": {
+    "explosion": {
+      "name": "Explosion Effect",
+      "filePattern": "assets/effects/explosion/explosion_{frame:02d}.png",
+      "frameCount": 6,
+      "frameSize": {
+        "width": 64,
+        "height": 64
+      },
+      "type": "explosion",
+      "required": false,
+      "fps": 12
+    },
+    "hit": {
+      "name": "Hit Flash",
+      "filePattern": "assets/effects/hit/hit_{frame:02d}.png",
+      "frameCount": 3,
+      "frameSize": {
+        "width": 48,
+        "height": 48
+      },
+      "type": "hit",
+      "required": false,
+      "fps": 15
+    },
+    "spawn": {
+      "name": "Spawn Effect",
+      "filePattern": "assets/effects/spawn/spawn_{frame:02d}.png",
+      "frameCount": 4,
+      "frameSize": {
+        "width": 48,
+        "height": 48
+      },
+      "type": "spawn",
+      "required": false,
+      "fps": 10
+    },
+    "magic_burst": {
+      "name": "Magic Burst",
+      "filePattern": "assets/effects/magic/magic_burst_{frame:02d}.png",
+      "frameCount": 8,
+      "frameSize": {
+        "width": 96,
+        "height": 96
+      },
+      "type": "magic",
+      "required": false,
+      "fps": 15
+    }
+  },
+  "resizeSettings": {
+    "algorithm": "lanczos",
+    "preserveAspectRatio": true,
+    "antialias": true,
+    "quality": "high",
+    "maxUpscale": 2.0,
+    "minDownscale": 0.25,
+    "cachePprocessed": true
+  },
+  "loadingStrategy": {
+    "critical": [
+      "player",
+      "enemies",
+      "boss"
+    ],
+    "essential": [
+      "backgrounds",
+      "bullets",
+      "ui"
+    ],
+    "optional": [
+      "effects",
+      "audio"
+    ],
+    "timeout": 30000,
+    "retries": 3
+  }
+}

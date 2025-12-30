@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📦 Dungeon Battles - Vertical Scrolling RPG - 成果物一覧</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 2rem;
+        }
+        .section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.2rem;
+            margin-top: 1rem;
+        }
+        .file-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .file-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        .file-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .file-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: #e0e0e0;
+        }
+        .file-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .file-name { font-weight: bold; color: #333; margin-bottom: 0.5rem; }
+        .file-desc { color: #666; font-size: 0.9rem; line-height: 1.4; }
+        .quick-start {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .start-button {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 1rem;
+            transition: transform 0.3s;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+        .start-button:hover {
+            transform: scale(1.05);
+        }
+        .start-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .start-button.disabled:hover {
+            transform: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 0.8rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        td:first-child {
+            font-weight: 600;
+            width: 40%;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-missing {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .next-steps {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+        }
+        ol {
+            margin-left: 1.5rem;
+            line-height: 1.8;
+        }
+        .audio-player {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .docs-section {
+            background: #f0f7ff;
+            border: 2px solid #0066cc;
+        }
+        .doc-category {
+            margin-bottom: 1rem;
+        }
+        .doc-category h4 {
+            color: #0066cc;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        .doc-list {
+            list-style: none;
+            padding-left: 1.5rem;
+        }
+        .doc-list li {
+            padding: 0.25rem 0;
+            color: #555;
+        }
+        .doc-list li:before {
+            content: "📄 ";
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 Dungeon Battles - Vertical Scrolling RPG - 成果物一覧</h1>
+
+        <div class="quick-start">
+            <h2>🚀 クイックスタート</h2>
+            <p>アプリを今すぐ起動できます！</p>
+            <button class='start-button' onclick='launchApp()'>アプリを起動</button>
+        </div>
+
+        <div class="section">
+            <h2>📄 重要ファイル</h2>
+            <div class="file-grid">
+                <a href='README.md' target='_blank' class='file-card'>
+                    <div class="file-icon">📄</div>
+                    <div class="file-name">README.md</div>
+                    <div class="file-desc">使い方・インストール方法<br>技術仕様の詳細</div>
+                </a>
+
+                <a href='about.html' target='_blank' class='file-card'>
+                    <div class="file-icon">🌐</div>
+                    <div class="file-name">about.html</div>
+                    <div class="file-desc">プロジェクト紹介ページ<br>ビジュアル付き説明</div>
+                </a>
+
+                <div class='file-card disabled'>
+                    <div class="file-icon">🔊</div>
+                    <div class="file-name">explanation.mp3</div>
+                    <div class="file-desc">音声解説<br>ファイルが見つかりません</div>
+                </div>
+
+                <div class='file-card' onclick='launchApp()'>
+                    <div class="file-icon">🚀</div>
+                    <div class="file-name">launch_app.command</div>
+                    <div class="file-desc">ワンクリック起動<br>ダブルクリックでも起動可</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 プロジェクト情報</h2>
+            <table>
+                <tr>
+                    <td>開発方式</td>
+                    <td>Portfolio App</td>
+                </tr>
+                <tr>
+                    <td>データベース</td>
+                    <td>SQLite</td>
+                </tr>
+                <tr>
+                    <td>実行コスト</td>
+                    <td><span class="status-badge status-ready">$0</span></td>
+                </tr>
+                <tr>
+                    <td>生成日時</td>
+                    <td>2025-12-11 19:39</td>
+                </tr>
+                <tr>
+                    <td>ファイル状態</td>
+                    <td>
+                        <span class='status-badge status-missing'>⚠️ 一部ファイルが不足</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section docs-section">
+<h2>📚 技術ドキュメント（ポートフォリオ用）</h2>
+<p>プロジェクトの設計書、テスト結果、管理文書が整理されています。</p>
+<div class="doc-category">
+<h4>📋 管理文書</h4>
+<p style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">プロジェクト管理、ユーザーガイド、デプロイ手順</p>
+<ul class="doc-list">
+<li>PROJECT_INFO.yaml</li>
+</ul>
+</div>
+<div class="doc-category">
+<h4>📑 その他</h4>
+<p style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">追加のドキュメント</p>
+<ul class="doc-list">
+<li>PROJECT_INFO.yaml</li>
+</ul>
+</div>
+<div style="margin-top: 1.5rem; padding: 1rem; background: #e8f4ff; border-radius: 5px;">
+<strong>💡 ポートフォリオとして活用</strong><br>
+これらのドキュメントは技術力をアピールする重要な資料です。<br>
+GitHubにpushする際は、docs/フォルダも含めることをお勧めします。
+</div>
+</div>
+
+        <div class="section next-steps">
+            <h2>✨ 次のステップ</h2>
+            <ol>
+                <li><strong>launch_app.command</strong> をダブルクリックして起動</li>
+                <li><strong>about.html</strong> でプロジェクトの詳細を確認</li>
+                <li><strong>README.md</strong> で技術的な詳細を確認</li>
+                <li><strong>docs/</strong> フォルダで設計書・テスト資料を確認</li>
+                <li>必要に応じてソースコードをカスタマイズ</li>
+            </ol>
+        </div>
+
+        
+    </div>
+
+    <script>
+        function launchApp() {
+            alert("launch_app.command をダブルクリックしてください\n\n起動しない場合は、ターミナルで:\nchmod +x launch_app.command\n./launch_app.command");
+        }
+
+        function toggleAudio() {
+            alert('音声ファイルが見つかりません。');
+        }
+    </script>
+</body>
+</html>

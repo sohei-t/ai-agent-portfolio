@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+
+    <title>Dungeon Battles - Action RPG</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles/game-ui.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
+
+    <!-- Prevent zoom on iOS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Loading screen -->
+        <div id="loading-screen">
+            <div class="loading-content">
+                <h1>DUNGEON BATTLES</h1>
+                <div class="loading-bar">
+                    <div class="loading-progress" id="loading-progress"></div>
+                </div>
+                <p class="loading-text">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Game canvas -->
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <!-- FPS counter (debug) -->
+        <div id="fps-counter" class="debug-info" style="display: none;">
+            <span id="fps-value">60</span> FPS
+        </div>
+
+        <!-- Mobile orientation warning -->
+        <div id="orientation-warning" class="hidden">
+            <div class="orientation-content">
+                <p>📱</p>
+                <p>Please rotate your device</p>
+                <p>Landscape mode recommended</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error modal -->
+    <div id="error-modal" class="hidden">
+        <div class="modal-content">
+            <h2>Error</h2>
+            <p id="error-message">An error occurred</p>
+            <button id="error-reload-btn">Reload Game</button>
+        </div>
+    </div>
+
+    <!-- Scripts (ES6 modules) -->
+    <script type="module">
+        import { GameCore } from './src/game/GameCore.js?v=26';
+
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Get canvas
+                const canvas = document.getElementById('game-canvas');
+                const loadingScreen = document.getElementById('loading-screen');
+                const loadingProgress = document.getElementById('loading-progress');
+                const loadingText = document.querySelector('.loading-text');
+
+                // Initialize game
+                console.log('Initializing Dungeon Battles...');
+
+                // Update loading progress
+                const updateProgress = (progress, text = 'Loading...') => {
+                    loadingProgress.style.width = `${progress * 100}%`;
+                    loadingText.textContent = text;
+                };
+
+                updateProgress(0, 'Creating game instance...');
+
+                // Create game instance
+                const game = new GameCore(canvas);
+
+                // Make game accessible for debugging
+                window.game = game;
+
+                updateProgress(0.3, 'Initializing systems...');
+
+                // Initialize game
+                await game.init();
+
+                updateProgress(0.7, 'Loading assets...');
+
+                // Wait a moment to show loading complete
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                updateProgress(1.0, 'Ready!');
+
+                // Hide loading screen
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 500);
+                }, 500);
+
+                // Start game loop
+                game.start();
+
+                console.log('Game initialized successfully!');
+
+            } catch (error) {
+                console.error('Failed to initialize game:', error);
+                showError('Failed to initialize game: ' + error.message);
+            }
+        });
+
+        // Error handling
+        function showError(message) {
+            const errorModal = document.getElementById('error-modal');
+            const errorMessage = document.getElementById('error-message');
+            const loadingScreen = document.getElementById('loading-screen');
+
+            loadingScreen.style.display = 'none';
+            errorMessage.textContent = message;
+            errorModal.classList.remove('hidden');
+        }
+
+        // Error reload button
+        document.getElementById('error-reload-btn')?.addEventListener('click', () => {
+            location.reload();
+        });
+
+        // Orientation warning for mobile
+        function checkOrientation() {
+            const warning = document.getElementById('orientation-warning');
+            if (window.innerWidth < window.innerHeight && window.innerWidth < 768) {
+                warning.classList.remove('hidden');
+            } else {
+                warning.classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+        checkOrientation();
+
+        // Prevent default touch behaviors (but allow touch events to propagate)
+        // Remove the touchmove preventDefault that was blocking touch events
+
+        // Prevent context menu on long press
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                e.preventDefault();
+            }
+        });
+
+        // Prevent pinch zoom
+        document.addEventListener('gesturestart', (e) => {
+            e.preventDefault();
+        });
+
+    </script>
+
+    <!-- Service Worker for PWA (optional) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            // Uncomment to enable PWA
+            // navigator.serviceWorker.register('/sw.js').catch(console.error);
+        }
+    </script>
+</body>
+</html>

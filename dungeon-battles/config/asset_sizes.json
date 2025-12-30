@@ -1,0 +1,342 @@
+{
+  "version": "1.0",
+  "description": "Recommended asset sizes for dungeon battles game optimized for 800x600 canvas",
+  "canvas": {
+    "width": 800,
+    "height": 600,
+    "aspectRatio": "4:3"
+  },
+  "sizeCategories": {
+    "player": {
+      "description": "Player character sprite size",
+      "recommended": {
+        "width": 64,
+        "height": 64
+      },
+      "acceptable": {
+        "min": {
+          "width": 48,
+          "height": 48
+        },
+        "max": {
+          "width": 80,
+          "height": 80
+        }
+      },
+      "rationale": "Approximately 10% of canvas height - visible but not overwhelming, allows precise movement"
+    },
+    "enemy_small": {
+      "description": "Small, fast enemies",
+      "recommended": {
+        "width": 32,
+        "height": 32
+      },
+      "acceptable": {
+        "min": {
+          "width": 24,
+          "height": 24
+        },
+        "max": {
+          "width": 40,
+          "height": 40
+        }
+      },
+      "rationale": "Quick enemies should be smaller - easier to miss but less threatening visually"
+    },
+    "enemy_medium": {
+      "description": "Medium-sized enemies",
+      "recommended": {
+        "width": 48,
+        "height": 48
+      },
+      "acceptable": {
+        "min": {
+          "width": 40,
+          "height": 40
+        },
+        "max": {
+          "width": 56,
+          "height": 56
+        }
+      },
+      "rationale": "Standard enemy size - balanced between visibility and maneuverability"
+    },
+    "enemy_large": {
+      "description": "Large, tough enemies",
+      "recommended": {
+        "width": 64,
+        "height": 64
+      },
+      "acceptable": {
+        "min": {
+          "width": 56,
+          "height": 56
+        },
+        "max": {
+          "width": 80,
+          "height": 80
+        }
+      },
+      "rationale": "Larger hitbox indicates tougher enemy - more intimidating but easier to hit"
+    },
+    "boss": {
+      "description": "Boss character sprite",
+      "recommended": {
+        "width": 128,
+        "height": 128
+      },
+      "acceptable": {
+        "min": {
+          "width": 96,
+          "height": 96
+        },
+        "max": {
+          "width": 160,
+          "height": 160
+        }
+      },
+      "rationale": "Approximately 21% of canvas height - imposing presence for final challenge"
+    },
+    "bullet_player": {
+      "description": "Player normal attack projectile",
+      "recommended": {
+        "width": 8,
+        "height": 16
+      },
+      "acceptable": {
+        "min": {
+          "width": 6,
+          "height": 12
+        },
+        "max": {
+          "width": 12,
+          "height": 20
+        }
+      },
+      "rationale": "Small and fast - allows rapid fire without cluttering screen"
+    },
+    "bullet_player_magic": {
+      "description": "Player magic attack projectile",
+      "recommended": {
+        "width": 16,
+        "height": 16
+      },
+      "acceptable": {
+        "min": {
+          "width": 12,
+          "height": 12
+        },
+        "max": {
+          "width": 20,
+          "height": 20
+        }
+      },
+      "rationale": "Larger than normal bullets - indicates more powerful attack"
+    },
+    "bullet_enemy": {
+      "description": "Enemy attack projectile",
+      "recommended": {
+        "width": 12,
+        "height": 12
+      },
+      "acceptable": {
+        "min": {
+          "width": 8,
+          "height": 8
+        },
+        "max": {
+          "width": 16,
+          "height": 16
+        }
+      },
+      "rationale": "Visible threat but small enough to dodge with skill"
+    },
+    "powerup": {
+      "description": "Item pickups (HP, MP, upgrades)",
+      "recommended": {
+        "width": 32,
+        "height": 32
+      },
+      "acceptable": {
+        "min": {
+          "width": 24,
+          "height": 24
+        },
+        "max": {
+          "width": 40,
+          "height": 40
+        }
+      },
+      "rationale": "Easily noticeable but doesn't obstruct gameplay"
+    },
+    "explosion": {
+      "description": "Explosion and death effects",
+      "recommended": {
+        "width": 64,
+        "height": 64
+      },
+      "acceptable": {
+        "min": {
+          "width": 48,
+          "height": 48
+        },
+        "max": {
+          "width": 96,
+          "height": 96
+        }
+      },
+      "rationale": "Satisfying visual feedback without obscuring gameplay"
+    },
+    "hit": {
+      "description": "Hit flash and impact effects",
+      "recommended": {
+        "width": 48,
+        "height": 48
+      },
+      "acceptable": {
+        "min": {
+          "width": 32,
+          "height": 32
+        },
+        "max": {
+          "width": 64,
+          "height": 64
+        }
+      },
+      "rationale": "Immediate feedback without overwhelming the player"
+    },
+    "magic": {
+      "description": "Magic attack effects",
+      "recommended": {
+        "width": 96,
+        "height": 96
+      },
+      "acceptable": {
+        "min": {
+          "width": 64,
+          "height": 64
+        },
+        "max": {
+          "width": 128,
+          "height": 128
+        }
+      },
+      "rationale": "Impressive visual for powerful attacks - conveys impact"
+    }
+  },
+  "backgroundSizes": {
+    "main_background": {
+      "width": 800,
+      "height": 600,
+      "format": "PNG or JPEG",
+      "notes": "Matches canvas size exactly"
+    },
+    "parallax_layer": {
+      "width": 800,
+      "height": 1200,
+      "format": "PNG",
+      "notes": "Double height for vertical scrolling effect"
+    }
+  },
+  "uiSizes": {
+    "hp_bar": {
+      "width": 200,
+      "height": 20,
+      "notes": "Health bar display"
+    },
+    "mp_bar": {
+      "width": 200,
+      "height": 20,
+      "notes": "Magic points bar display"
+    },
+    "score_panel": {
+      "width": 150,
+      "height": 40,
+      "notes": "Score display background"
+    },
+    "stage_panel": {
+      "width": 100,
+      "height": 30,
+      "notes": "Stage number indicator"
+    },
+    "mobile_joystick_base": {
+      "width": 100,
+      "height": 100,
+      "notes": "Virtual joystick background (mobile)"
+    },
+    "mobile_joystick_stick": {
+      "width": 50,
+      "height": 50,
+      "notes": "Virtual joystick movable part (mobile)"
+    },
+    "mobile_button": {
+      "width": 80,
+      "height": 80,
+      "notes": "Touch-friendly size for mobile buttons"
+    }
+  },
+  "autoResizeRules": {
+    "oversized": {
+      "action": "downscale",
+      "method": "lanczos",
+      "preserveAspectRatio": true,
+      "threshold": 2.0,
+      "description": "If image is more than 2x the recommended size, downscale it"
+    },
+    "undersized": {
+      "action": "upscale_limited",
+      "method": "bicubic",
+      "preserveAspectRatio": true,
+      "maxUpscale": 2.0,
+      "threshold": 0.5,
+      "description": "If image is less than 0.5x the recommended size, upscale up to 2x max"
+    },
+    "withinRange": {
+      "action": "use_original",
+      "description": "If image is within acceptable range, use as-is"
+    }
+  },
+  "qualitySettings": {
+    "resampling": {
+      "downscale": "lanczos3",
+      "upscale": "bicubic",
+      "antialiasing": true,
+      "sharpening": "minimal"
+    },
+    "optimization": {
+      "removeMetadata": true,
+      "compressTransparency": true,
+      "bitDepth": "auto",
+      "colorProfile": "sRGB"
+    }
+  },
+  "performanceTargets": {
+    "totalMemoryBudget": "50MB",
+    "breakdown": {
+      "sprites": "5MB",
+      "backgrounds": "10MB",
+      "effects": "15MB",
+      "ui": "5MB",
+      "audio": "15MB"
+    },
+    "loadingTargets": {
+      "criticalAssets": "< 2 seconds",
+      "allAssets": "< 5 seconds"
+    }
+  },
+  "validationRules": {
+    "minimumSize": {
+      "width": 8,
+      "height": 8,
+      "reason": "Smaller than 8x8 is not visible"
+    },
+    "maximumSize": {
+      "width": 1600,
+      "height": 1200,
+      "reason": "Larger than 2x canvas is wasteful"
+    },
+    "requiredFormat": ["PNG", "JPEG", "WebP"],
+    "recommendedFormat": "PNG",
+    "transparencySupport": true
+  }
+}
