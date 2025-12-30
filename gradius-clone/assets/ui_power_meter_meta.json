@@ -1,0 +1,6 @@
+{
+  "name": "ui_power_meter",
+  "path": "public/assets/ui_power_meter.png",
+  "prompt": "A game UI power meter bar sprite, segmented bar with 6 glowing sections, gradient from green to yellow to red, futuristic but cute design, rounded edges, transparent background, 320x48 pixels, pixel art style, kawaii japanese game art, Studio Ghibli inspired colors, clean vector-like appearance, suitable for children's game",
+  "size": "320x48"
+}

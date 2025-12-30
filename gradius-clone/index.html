@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Cute Gradius - Horizontal Shooting Game</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+      }
+
+      body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Arial', sans-serif;
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        touch-action: manipulation; /* ページスクロールを抑制しつつタップ優先 */
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      /* 16:9をベースにレターボックス。大きい画面は余白で埋める */
+      #game-container {
+        position: relative;
+        width: 960px;
+        height: 540px;
+        max-width: 100vw;
+        max-height: 56.25vw; /* 16:9 = 9/16 = 56.25% */
+        overflow: hidden;
+        touch-action: none; /* ゲーム操作用のタップを優先 */
+        background: #000; /* レターボックス時の背景 */
+      }
+
+      /* Phaserキャンバスをコンテナいっぱいに表示（比率はPhaser側に任せる） */
+      #game-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+        touch-action: none;
+        display: block;
+      }
+
+      /* モバイル向けの自動スケール */
+      @media (max-width: 960px) {
+        #game-container {
+          width: 100vw;
+          height: 56.25vw; /* 16:9 aspect ratio */
+          max-height: 100vh;
+        }
+      }
+
+      @media (max-height: 540px) {
+        #game-container {
+          width: 177.78vh; /* 16:9 = 16/9 = 1.7778 */
+          height: 100vh;
+          max-width: 100vw;
+        }
+      }
+
+      /* 横向き警告 */
+      #orientation-warning {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        color: white;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        z-index: 9999;
+        text-align: center;
+      }
+
+      #orientation-warning.show {
+        display: flex;
+      }
+
+      #orientation-warning h1 {
+        font-size: 2em;
+        margin-bottom: 20px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      #orientation-warning .rotate-icon {
+        font-size: 5em;
+        margin: 20px;
+        animation: rotate 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        50% { transform: rotate(90deg); }
+        100% { transform: rotate(0deg); }
+      }
+
+      /* ローディング画面 */
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 1.5em;
+        text-align: center;
+      }
+
+      .loading-spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 4px solid white;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* UI オーバーレイ */
+      #ui-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      .power-meter {
+        position: absolute;
+        bottom: 20px; /* safe-area-insetを一旦削除して確実に表示 */
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 16px;
+        border-radius: 20px;
+        display: flex;
+        gap: 6px;
+        pointer-events: auto;  /* タッチ可能に変更 */
+        flex-wrap: nowrap;  /* 1行に固定 */
+        touch-action: none; /* ダブルタップズーム抑制 */
+        white-space: nowrap;
+        z-index: 1000; /* 確実に最前面に */
+      }
+
+      .power-item {
+        padding: 4px 8px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 5px;
+        color: white;
+        font-size: 11px;
+        transition: all 0.3s;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        flex-shrink: 0;  /* アイテムが縮小しないように */
+      }
+
+      .power-item:active {
+        transform: scale(0.95);
+      }
+
+      .power-item.active {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(245, 87, 108, 0.5);
+      }
+
+      .power-item.selected {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        animation: blink 0.5s ease-in-out infinite;
+      }
+
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      /* モバイルボタン */
+      #mobile-controls {
+        position: absolute;
+        bottom: 80px; /* パワーメーターの上に配置 */
+        left: 16px; /* 左配置に変更 */
+        display: none;
+        pointer-events: auto;
+        z-index: 1000; /* 確実に最前面に */
+      }
+
+      /* モーション許可ボタン */
+      #motion-permission {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        cursor: pointer;
+        pointer-events: auto;
+        z-index: 200;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .touch-button {
+        width: 68px;
+        height: 68px;
+        background: rgba(255, 255, 255, 0.35);
+        border: 3px solid white;
+        border-radius: 50%;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        touch-action: none; /* ダブルタップズーム抑制 */
+      }
+
+      .touch-button:active {
+        transform: scale(0.9);
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      @media (max-width: 900px) {
+        .power-meter {
+          bottom: 14px; /* モバイルでも確実に表示 */
+          left: 50%;
+          transform: translateX(-50%);
+          gap: 4px;
+          padding: 6px 10px;
+          flex-wrap: nowrap;  /* モバイルでも1行 */
+        }
+        .power-item {
+          font-size: 10px;
+          padding: 3px 6px;
+        }
+        #mobile-controls {
+          display: block;
+          bottom: 70px; /* パワーメーターの上 */
+        }
+        .touch-button {
+          width: 70px;
+          height: 70px;
+          font-size: 12px;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/ai-agent-portfolio/gradius-clone-v2/assets/index-GooseoXw.js"></script>
+  </head>
+  <body>
+    <!-- 横向き警告 -->
+    <div id="orientation-warning">
+      <div class="rotate-icon">📱</div>
+      <h1>Please Rotate Your Device</h1>
+      <p>This game is best played in landscape mode</p>
+    </div>
+
+    <!-- ゲームコンテナ -->
+    <div id="game-container">
+      <div id="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading Cute Gradius...</p>
+      </div>
+
+      <!-- UI はすべて Canvas 内に描画 -->
+    </div>
+
+    <script>
+      // 横向き検出
+      function checkOrientation() {
+        const warning = document.getElementById('orientation-warning');
+        const isPortrait = window.innerHeight > window.innerWidth;
+
+        if (isPortrait) {
+          warning.classList.add('show');
+        } else {
+          warning.classList.remove('show');
+        }
+      }
+
+      // イベントリスナー
+      window.addEventListener('resize', checkOrientation);
+      window.addEventListener('orientationchange', checkOrientation);
+
+      // 初期チェック
+      checkOrientation();
+
+      // モバイルデバイス向け：タッチイベントを防ぐ
+      document.addEventListener('touchmove', function(e) {
+        if (e.target.closest('#game-container')) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      // 初回ロード時にゲームキャンバスを現在の画面サイズにリサイズ
+      document.addEventListener('DOMContentLoaded', () => {
+        const resizeGame = () => {
+          const evt = new Event('resize');
+          window.dispatchEvent(evt);
+        };
+        // 少し遅延して2回呼ぶことでモバイルの初期レイアウト変化にも追従
+        resizeGame();
+        setTimeout(resizeGame, 300);
+        setTimeout(resizeGame, 800);
+        // 端末向きの変化にも追従
+        window.addEventListener('orientationchange', () => {
+          setTimeout(resizeGame, 100);
+          setTimeout(resizeGame, 500);
+        });
+      });
+    </script>
+
+    <!-- ジャイロ許可の事前設定（iOS 18対応） -->
+    <script>
+      // グローバル変数でジャイロ状態を管理
+      window.gyroPermissionStatus = 'pending';
+      window.gyroEnabled = false;
+      window.gyroData = { x: 0, y: 0 };
+
+      // ジャイロ許可を事前に設定（ゲーム内から呼び出し可能）
+      window.requestGyroPermission = async function() {
+        console.log('[Gyro] Permission request initiated from inline script');
+
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          try {
+            // 直接requestPermissionを呼ぶ（ユーザージェスチャーのコンテキスト内）
+            const permission = await DeviceOrientationEvent.requestPermission();
+            console.log('[Gyro] Permission result:', permission);
+
+            if (permission === 'granted') {
+              window.gyroPermissionStatus = 'granted';
+              window.gyroEnabled = true;
+
+              // イベントリスナー登録
+              window.addEventListener('deviceorientation', function(event) {
+                if (!window.gyroEnabled) return;
+
+                const { beta, gamma } = event;
+                if (beta === null || gamma === null) return;
+
+                const isLandscape = window.innerWidth > window.innerHeight;
+                const maxTilt = 20;
+                const sensitivity = 2.5;
+
+                if (isLandscape) {
+                  window.gyroData.x = (beta / maxTilt) * sensitivity;
+                  window.gyroData.y = -(gamma / maxTilt) * sensitivity;
+                } else {
+                  window.gyroData.x = (gamma / maxTilt) * sensitivity;
+                  window.gyroData.y = -(beta / maxTilt) * sensitivity;
+                }
+
+                // クランプ
+                window.gyroData.x = Math.max(-1, Math.min(1, window.gyroData.x));
+                window.gyroData.y = Math.max(-1, Math.min(1, window.gyroData.y));
+              });
+
+              return true;
+            } else {
+              window.gyroPermissionStatus = 'denied';
+              return false;
+            }
+          } catch (error) {
+            console.error('[Gyro] Permission error:', error);
+            window.gyroPermissionStatus = 'error';
+            return false;
+          }
+        } else {
+          // Android/古いiOS - 自動的に有効
+          window.gyroPermissionStatus = 'granted';
+          window.gyroEnabled = true;
+
+          window.addEventListener('deviceorientation', function(event) {
+            if (!window.gyroEnabled) return;
+
+            const { beta, gamma } = event;
+            if (beta === null || gamma === null) return;
+
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const maxTilt = 20;
+            const sensitivity = 2.5;
+
+            if (isLandscape) {
+              window.gyroData.x = (beta / maxTilt) * sensitivity;
+              window.gyroData.y = -(gamma / maxTilt) * sensitivity;
+            } else {
+              window.gyroData.x = (gamma / maxTilt) * sensitivity;
+              window.gyroData.y = -(beta / maxTilt) * sensitivity;
+            }
+
+            window.gyroData.x = Math.max(-1, Math.min(1, window.gyroData.x));
+            window.gyroData.y = Math.max(-1, Math.min(1, window.gyroData.y));
+          });
+
+          return true;
+        }
+      };
+    </script>
+
+  </body>
+</html>
