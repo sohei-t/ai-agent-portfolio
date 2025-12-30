@@ -6,6 +6,10 @@
 
 **[ゲームをプレイ](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/index.html)**
 
+## About
+
+**[プロジェクト解説ページ](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/about.html)** - 技術詳細・開発プロセス・アーキテクチャの解説
+
 ## Features
 
 - **リアルタイムバトルシステム**: 通常攻撃と魔法攻撃
