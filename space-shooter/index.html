@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Space Shooter Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: 'Arial', sans-serif;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    #gameCanvas {
+      border: 2px solid #333;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+      display: block;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      max-width: 100%;
+      max-height: 70vh;
+      width: auto;
+      height: auto;
+    }
+
+    @media (max-width: 768px) {
+      #gameCanvas {
+        max-height: 60vh;
+      }
+    }
+
+    #gameInfo {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #0ff;
+      font-size: 14px;
+      text-shadow: 0 0 5px #0ff;
+      z-index: 10;
+    }
+
+    #gameInfo div {
+      margin-bottom: 5px;
+    }
+
+    .loading {
+      position: absolute;
+      color: #0ff;
+      font-size: 24px;
+      text-shadow: 0 0 10px #0ff;
+    }
+
+    /* Touch controls for mobile */
+    #touchControls {
+      position: fixed;
+      bottom: 20px;
+      width: 100%;
+      display: none;
+      z-index: 100;
+    }
+
+    @media (max-width: 768px), (pointer: coarse) {
+      #touchControls {
+        display: block;
+      }
+    }
+
+    .touch-button {
+      position: fixed;
+      width: 60px;
+      height: 60px;
+      border: 2px solid #0ff;
+      background: rgba(0, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0ff;
+      font-size: 24px;
+      font-weight: bold;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+    }
+
+    .touch-button:active {
+      background: rgba(0, 255, 255, 0.3);
+      transform: scale(0.95);
+    }
+
+    .touch-button.fire {
+      width: 80px;
+      height: 80px;
+      font-size: 16px;
+      background: rgba(255, 0, 0, 0.2);
+      border-color: #ff0066;
+      color: #ff0066;
+    }
+
+    #touchLeft {
+      left: 20px;
+      bottom: 30px;
+    }
+
+    #touchRight {
+      left: 100px;
+      bottom: 30px;
+    }
+
+    #touchFire {
+      right: 20px;
+      bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading">Loading Game Engine...</div>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="gameInfo">
+    <div>FPS: <span id="fps">60</span></div>
+    <div>Quality: <span id="quality">high</span></div>
+  </div>
+
+  <!-- Touch controls for mobile -->
+  <div id="touchControls">
+    <button id="touchLeft" class="touch-button">◀</button>
+    <button id="touchRight" class="touch-button">▶</button>
+    <button id="touchFire" class="touch-button fire">FIRE</button>
+  </div>
+
+  <!-- Utils -->
+  <script src="utils/Vector2D.js"></script>
+  <script src="utils/Config.js"></script>
+
+  <!-- Core Game Engine -->
+  <script src="core/Canvas.js"></script>
+  <script src="core/Game.js"></script>
+  <script src="core/InputHandler.js"></script>
+  <script src="core/PerformanceMonitor.js"></script>
+
+  <!-- Entities -->
+  <script src="entities/Player.js"></script>
+  <script src="entities/Enemy.js"></script>
+  <script src="entities/Bullet.js"></script>
+  <script src="entities/PowerUp.js"></script>
+  <script src="entities/Shield.js"></script>
+  <script src="entities/UFO.js"></script>
+
+  <!-- Systems -->
+  <script src="systems/CollisionSystem.js"></script>
+  <script src="systems/PowerUpSystem.js"></script>
+  <script src="systems/ScoreSystem.js"></script>
+  <script src="systems/ParticleSystem.js"></script>
+  <script src="systems/SoundSystem.js"></script>
+
+  <!-- UI -->
+  <script src="ui/Menu.js"></script>
+  <script src="ui/HUD.js"></script>
+  <script src="ui/GameOver.js"></script>
+  <script src="ui/StageClear.js"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Shield Manager -->
+  <script src="entities/Shield.js"></script>
+
+  <script>
+    // Initialize game engine
+    window.addEventListener('DOMContentLoaded', () => {
+      const canvasElement = document.getElementById('gameCanvas');
+      const loadingElement = document.querySelector('.loading');
+
+      // Initialize core systems
+      const canvas = new Canvas(canvasElement);
+      const performanceMonitor = new PerformanceMonitor();
+      const inputHandler = new InputHandler();
+
+      // Initialize game entities
+      const player = new Player(800, 600);
+      const enemyGrid = new EnemyGrid(800, 600);
+      let bullets = [];
+      let enemyBullets = [];
+      let powerUps = [];
+      const particles = [];
+
+      // Initialize systems
+      const collisionSystem = new CollisionSystem();
+      const powerUpSystem = new PowerUpSystem();
+      const scoreSystem = new ScoreSystem();
+      const particleSystem = new ParticleSystem();
+      const shieldManager = new ShieldManager(800, 600);
+      const soundSystem = new SoundSystem();
+      const ufoManager = new UFOManager(800);
+
+      // Initialize UI
+      const menu = new Menu(canvas.canvas, canvas.ctx);
+      const hud = new HUD(canvas.canvas, canvas.ctx);
+      const gameOverScreen = new GameOver(canvas.canvas, canvas.ctx);
+      const stageClear = new StageClear(canvas.canvas, canvas.ctx);
+
+      // Game state
+      let gameState = 'MENU'; // 'MENU', 'PLAYING', 'STAGE_CLEAR', 'GAME_OVER'
+      let wave = 1;
+      let lives = 3;
+      let isPaused = false;
+      let ufoActive = false;
+      let ufoSound = null;  // Store UFO sound to stop it later
+
+      canvas.init();
+      inputHandler.init();
+      player.position.x = 400;
+      player.position.y = 520;
+
+      // Setup touch button controls
+      const setupTouchButtons = () => {
+        const touchLeft = document.getElementById('touchLeft');
+        const touchRight = document.getElementById('touchRight');
+        const touchFire = document.getElementById('touchFire');
+
+        if (touchLeft) {
+          touchLeft.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            inputHandler.keys['ArrowLeft'] = true;
+          });
+          touchLeft.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            inputHandler.keys['ArrowLeft'] = false;
+          });
+        }
+
+        if (touchRight) {
+          touchRight.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            inputHandler.keys['ArrowRight'] = true;
+          });
+          touchRight.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            inputHandler.keys['ArrowRight'] = false;
+          });
+        }
+
+        if (touchFire) {
+          touchFire.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            inputHandler.keys[' '] = true;
+          });
+          touchFire.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            inputHandler.keys[' '] = false;
+          });
+        }
+
+        // Also add tap-to-shoot on canvas for mobile menu interaction
+        canvasElement.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          if (gameState === 'MENU' || gameState === 'GAME_OVER') {
+            inputHandler.keys[' '] = true;
+            setTimeout(() => {
+              inputHandler.keys[' '] = false;
+            }, 100);
+          }
+        });
+      };
+
+      setupTouchButtons();
+
+      // Hide loading screen
+      loadingElement.style.display = 'none';
+
+      // Main game loop
+      let lastTime = performance.now();
+
+      function gameLoop(currentTime) {
+        const deltaTime = Math.min(currentTime - lastTime, 100); // Cap deltaTime
+        lastTime = currentTime;
+
+        // Update performance monitoring
+        performanceMonitor.update(currentTime);
+        const stats = performanceMonitor.getStats();
+
+        // Clear canvas
+        canvas.clear();
+
+        // Handle game states
+        if (gameState === 'MENU') {
+          menu.update(inputHandler);
+          menu.render(canvas.ctx);
+
+          if (menu.getSelectedOption() === 'START' && inputHandler.isSpace()) {
+            gameState = 'PLAYING';
+            enemyGrid.init();  // Initialize enemy grid
+            scoreSystem.reset();
+            player.reset();
+            shieldManager.reset();  // Reset shields
+            ufoManager.reset();  // Reset UFO
+            soundSystem.init();  // Initialize sound
+            soundSystem.startBGM();  // Start background music
+            lives = player.lives;
+            wave = 1;
+            bullets.length = 0;
+            enemyBullets.length = 0;
+            powerUps.length = 0;
+            ufoActive = false;
+            ufoSound = null;
+          }
+        }
+        else if (gameState === 'PLAYING') {
+          // Handle pause
+          if (inputHandler.isPaused()) {
+            isPaused = !isPaused;
+          }
+
+          if (!isPaused) {
+            // Update player
+            if (inputHandler.isLeft()) player.moveLeft();
+            if (inputHandler.isRight()) player.moveRight();
+
+            if (inputHandler.isSpace() && player.canShoot(Date.now())) {
+              if (player.shoot(Date.now())) {
+                // Create bullet at player position
+                const bullet = new Bullet(
+                  player.x + player.width / 2 - 2,
+                  player.y,
+                  'player'
+                );
+                bullets.push(bullet);
+                soundSystem.playShoot();  // Play shoot sound
+              }
+            }
+
+            player.update(Date.now());
+
+            // Update enemies
+            enemyGrid.update();
+
+            // Update UFO
+            if (ufoManager.update()) {
+              // UFO just spawned
+              ufoActive = true;
+              ufoSound = soundSystem.playUFO();  // Store the sound controller
+            }
+            if (ufoActive && !ufoManager.ufo.isActive) {
+              ufoActive = false;
+              // Stop UFO sound when UFO disappears
+              if (ufoSound && ufoSound.stop) {
+                ufoSound.stop();
+                ufoSound = null;
+              }
+            }
+
+            // Enemy shooting
+            const enemies = enemyGrid.getAliveEnemies();
+            enemies.forEach(enemy => {
+              if (enemy.shouldFire()) { // Use enemy's fire rate
+                const bullet = new Bullet(
+                  enemy.x + enemy.width / 2 - 2,
+                  enemy.y + enemy.height,
+                  'enemy'
+                );
+                enemyBullets.push(bullet);
+              }
+            });
+
+            // Update bullets
+            bullets.forEach((bullet, i) => {
+              bullet.update();
+              if (bullet.y < 0) bullets.splice(i, 1);
+            });
+
+            enemyBullets.forEach((bullet, i) => {
+              bullet.update();
+              if (bullet.y > 600) enemyBullets.splice(i, 1);
+            });
+
+            // Update power-ups
+            powerUps.forEach((powerUp, i) => {
+              if (powerUp.isActive) {
+                powerUp.update();
+                if (powerUp.isOffScreen(600)) {
+                  powerUp.deactivate();
+                }
+              }
+            });
+            powerUps = powerUps.filter(p => p.isActive);
+
+            powerUpSystem.update(Date.now());
+            const effects = powerUpSystem.applyEffects(player);
+            if (effects.fireRate) player.fireRate = effects.fireRate;
+            if (effects.isInvincible) player.isInvincible = effects.isInvincible;
+
+            // Update particles
+            particleSystem.update(deltaTime);
+
+            // Check shield collisions with bullets
+            const shieldHits = shieldManager.checkBulletCollisions([...bullets, ...enemyBullets]);
+            shieldHits.forEach(({ bullet }) => {
+              bullet.deactivate();
+              soundSystem.playHit();
+            });
+
+            // Check shield collisions with enemies
+            shieldManager.checkEnemyCollisions(enemyGrid.getAliveEnemies());
+
+            // Update BGM tempo based on enemy count
+            const aliveEnemies = enemyGrid.getAliveEnemies().length;
+            soundSystem.updateBGMTempo(aliveEnemies, enemyGrid.rows * enemyGrid.cols);
+
+            // Check UFO collision
+            const ufoHit = ufoManager.checkCollision(bullets);
+            if (ufoHit) {
+              scoreSystem.addScore(ufoHit.points);
+              particleSystem.createExplosion(ufoHit.x, ufoHit.y);
+              soundSystem.playUFODestroy();
+              ufoActive = false;
+              // Stop UFO sound when UFO is destroyed
+              if (ufoSound && ufoSound.stop) {
+                ufoSound.stop();
+                ufoSound = null;
+              }
+            }
+
+            // Collision detection
+            const bulletHits = collisionSystem.checkBulletEnemyCollision(bullets, enemyGrid.getAliveEnemies());
+            bulletHits.forEach(({ bullet, enemy }) => {
+              bullet.deactivate();
+              enemy.destroy();
+              scoreSystem.addScore(enemy.getPoints());
+              particleSystem.createExplosion(enemy.x, enemy.y);
+              soundSystem.playExplosion();  // Play explosion sound
+
+              // Drop power-up chance
+              if (Math.random() < 0.15) {
+                const types = ['RAPID_FIRE', 'SHIELD', 'MULTI_SHOT'];
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                const powerUp = new PowerUp(enemy.x, enemy.y, randomType);
+                powerUps.push(powerUp);
+              }
+            });
+
+            const playerHits = collisionSystem.checkBulletPlayerCollision(enemyBullets, player);
+            playerHits.forEach(({ bullet }) => {
+              bullet.deactivate();
+
+              if (!player.isInvincible) {
+                player.takeDamage();
+                lives = player.lives;
+                particleSystem.createExplosion(player.x, player.y);
+
+                if (player.lives <= 0) {
+                  gameState = 'GAME_OVER';
+                  gameOverScreen.setGameOver(false, scoreSystem.getScore(), wave);
+                  soundSystem.stopBGM();
+                  soundSystem.playGameOver();
+                  // Stop UFO sound on game over
+                  if (ufoSound && ufoSound.stop) {
+                    ufoSound.stop();
+                    ufoSound = null;
+                  }
+                }
+              }
+            });
+
+            // Check for power-up collisions
+            const collectedPowerUps = collisionSystem.checkPlayerPowerUpCollision(player, powerUps);
+            collectedPowerUps.forEach(({ powerUp, index }) => {
+              powerUpSystem.activate(powerUp.type);
+              powerUp.deactivate();
+              soundSystem.playPowerUp();  // Play power-up sound
+            });
+
+            // Check wave completion
+            if (enemyGrid.allDestroyed()) {
+              // Transition to stage clear screen
+              gameState = 'STAGE_CLEAR';
+              const bonusScore = lives * 100; // Bonus for remaining lives
+              scoreSystem.addScore(bonusScore);
+              stageClear.setStageClear(wave, scoreSystem.getScore(), bonusScore);
+              soundSystem.playVictory();
+              ufoActive = false;
+              // Stop UFO sound when stage clears
+              if (ufoSound && ufoSound.stop) {
+                ufoSound.stop();
+                ufoSound = null;
+              }
+            }
+          }
+
+          // Render game
+          // Render player
+          const ctx = canvas.ctx;
+          ctx.fillStyle = '#00ffff';
+          ctx.fillRect(player.x, player.y, player.width, player.height);
+
+          // Render enemies
+          enemyGrid.getAliveEnemies().forEach(enemy => {
+            ctx.fillStyle = Config.colors.enemyTypes[enemy.type % 3];
+            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+          });
+
+          // Render shields
+          shieldManager.render(ctx);
+
+          // Render UFO
+          ufoManager.render(ctx);
+
+          // Render player bullets
+          ctx.fillStyle = '#ffff00';
+          bullets.forEach(bullet => {
+            if (bullet.isActive) {
+              ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            }
+          });
+
+          // Render enemy bullets
+          ctx.fillStyle = '#ff00ff';
+          enemyBullets.forEach(bullet => {
+            if (bullet.isActive) {
+              ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            }
+          });
+
+          // Render power-ups
+          powerUps.forEach(powerUp => {
+            if (powerUp.isActive) {
+              ctx.fillStyle = powerUp.type === 'RAPID_FIRE' ? '#ff0000' :
+                             powerUp.type === 'SHIELD' ? '#00ff00' : '#0000ff';
+              ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+            }
+          });
+
+          // Render particles (if particleSystem has render method)
+          if (particleSystem.render) {
+            particleSystem.render(ctx);
+          }
+
+          // Render HUD
+          hud.update(scoreSystem.getScore(), lives, wave, powerUpSystem.getActivePowerUps());
+          hud.render(canvas.ctx);
+
+          // Pause indicator
+          if (isPaused) {
+            canvas.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            canvas.ctx.fillRect(0, 0, 800, 600);
+            canvas.ctx.fillStyle = '#00ffff';
+            canvas.ctx.font = '48px monospace';
+            canvas.ctx.textAlign = 'center';
+            canvas.ctx.fillText('PAUSED', 400, 300);
+            canvas.ctx.font = '24px monospace';
+            canvas.ctx.fillText('Press P to Resume', 400, 350);
+          }
+        }
+        else if (gameState === 'STAGE_CLEAR') {
+          // Update and render stage clear screen
+          if (stageClear.update()) {
+            stageClear.render();
+          } else {
+            // Transition to next stage
+            gameState = 'PLAYING';
+            wave++;
+            enemyGrid.nextWave();
+            enemyGrid.init();
+            shieldManager.reset();
+            ufoManager.reset();
+            bullets.length = 0;
+            enemyBullets.length = 0;
+            powerUps.length = 0;
+          }
+        }
+        else if (gameState === 'GAME_OVER') {
+          gameOverScreen.update(inputHandler);
+          gameOverScreen.render(canvas.ctx);
+
+          if (gameOverScreen.getSelectedOption() === 'RESTART' && inputHandler.isSpace()) {
+            // Reset game
+            gameState = 'PLAYING';
+            player.reset();
+            enemyGrid.init();
+            scoreSystem.reset();
+            powerUpSystem.clear();
+            shieldManager.reset();
+            ufoManager.reset();
+            soundSystem.startBGM();
+            bullets.length = 0;
+            enemyBullets.length = 0;
+            powerUps.length = 0;
+            lives = 3;
+            wave = 1;
+            ufoActive = false;
+            ufoSound = null;
+          } else if (gameOverScreen.getSelectedOption() === 'MAIN MENU' && inputHandler.isSpace()) {
+            gameState = 'MENU';
+            ufoActive = false;
+            ufoSound = null;
+          }
+        }
+
+        // Update UI
+        document.getElementById('fps').textContent = stats.fps;
+        document.getElementById('quality').textContent = stats.qualityLevel;
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      requestAnimationFrame(gameLoop);
+
+      // Log controls
+      console.log('Space Shooter Game Initialized');
+      console.log('Controls:');
+      console.log('- Arrow Keys / WASD: Move');
+      console.log('- Space: Shoot');
+      console.log('- P / Escape: Pause');
+    });
+  </script>
+</body>
+</html>
