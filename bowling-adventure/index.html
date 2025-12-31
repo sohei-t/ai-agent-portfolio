@@ -380,6 +380,171 @@
       background: rgba(0,0,0,0.3);
     }
 
+    /* Ready Screen */
+    .ready-content {
+      text-align: center;
+    }
+
+    .ready-frame {
+      font-size: clamp(48px, 12vw, 96px);
+      font-weight: bold;
+      color: #00ff88;
+      text-shadow: 0 0 30px rgba(0,255,136,0.5);
+      margin-bottom: 10px;
+    }
+
+    .ready-throw {
+      font-size: clamp(32px, 8vw, 64px);
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    /* Pin Count Display */
+    #pin-count-display {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      pointer-events: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    #pin-count-display.hidden {
+      display: none;
+    }
+
+    #pin-count-number {
+      font-size: clamp(120px, 30vw, 300px);
+      font-weight: bold;
+      color: #ffdd00;
+      text-shadow: 0 0 50px rgba(255,221,0,0.8);
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #pin-count-label {
+      font-size: clamp(36px, 8vw, 72px);
+      color: white;
+      margin-top: -20px;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Celebration Display */
+    #celebration-display {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+      z-index: 250;
+      pointer-events: none;
+    }
+
+    #celebration-display.hidden {
+      display: none;
+    }
+
+    #celebration-image {
+      width: clamp(150px, 40vw, 300px);
+      height: clamp(150px, 40vw, 300px);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #celebration-image img {
+      max-width: 100%;
+      max-height: 100%;
+      animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #celebration-image .emoji-fallback {
+      font-size: clamp(80px, 20vw, 180px);
+      animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+      50% { transform: scale(1.2) rotate(10deg); }
+      70% { transform: scale(0.9) rotate(-5deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    #celebration-text {
+      font-size: clamp(48px, 12vw, 120px);
+      font-weight: bold;
+      text-align: center;
+      animation: textGlow 1s ease-in-out infinite alternate;
+    }
+
+    #celebration-text.strike { color: #ff4444; }
+    #celebration-text.double { color: #ff8800; }
+    #celebration-text.turkey { color: #ffdd00; }
+    #celebration-text.spare { color: #00ff88; }
+
+    @keyframes textGlow {
+      from { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+      to { text-shadow: 0 0 40px currentColor, 0 0 80px currentColor, 0 0 120px currentColor; }
+    }
+
+    /* Particles */
+    #celebration-particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: particleFall 2s ease-out forwards;
+    }
+
+    @keyframes particleFall {
+      0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* Gutter display */
+    #pin-count-number.gutter {
+      color: #666;
+      text-shadow: none;
+    }
+
     /* Result Screen */
     #final-score {
       font-size: 72px;
@@ -527,7 +692,7 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="./assets/index-CotHEQaZ.js"></script>
+  <script type="module" crossorigin src="./assets/index-CCGjTui7.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/three-CQZDdIZO.js">
   <link rel="modulepreload" crossorigin href="./assets/cannon-CMZeK6Ld.js">
 </head>
@@ -588,6 +753,28 @@
         </div>
       </div>
 
+      <!-- Ready Screen (before each throw) -->
+      <div id="ready-screen" class="screen hidden">
+        <div class="ready-content">
+          <div id="ready-frame" class="ready-frame">1フレーム</div>
+          <div id="ready-throw" class="ready-throw">1投目</div>
+          <button id="throw-btn" class="btn">投球開始</button>
+        </div>
+      </div>
+
+      <!-- Pin Count Display -->
+      <div id="pin-count-display" class="hidden">
+        <div id="pin-count-number">0</div>
+        <div id="pin-count-label">本</div>
+      </div>
+
+      <!-- Celebration Display -->
+      <div id="celebration-display" class="hidden">
+        <div id="celebration-image"></div>
+        <div id="celebration-text"></div>
+        <div id="celebration-particles"></div>
+      </div>
+
       <!-- Result Screen -->
       <div id="result-screen" class="screen hidden">
         <h1>Game Over!</h1>
@@ -598,6 +785,14 @@
       </div>
     </div>
   </div>
+
+  <!-- Sound Effects -->
+  <audio id="sound-roll" preload="auto"></audio>
+  <audio id="sound-pin-hit" preload="auto"></audio>
+  <audio id="sound-strike" preload="auto"></audio>
+  <audio id="sound-spare" preload="auto"></audio>
+  <audio id="sound-gutter" preload="auto"></audio>
+  <audio id="sound-cheer" preload="auto"></audio>
 
 </body>
 </html>
