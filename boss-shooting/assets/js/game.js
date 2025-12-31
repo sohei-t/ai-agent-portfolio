@@ -21,9 +21,6 @@ class Game {
         this.particles = [];
         this.boss = null;
 
-        // 逃したボスの累積システム
-        this.escapedBosses = [];  // 逃したボスのステージ番号リスト
-        this.accumulatedBosses = [];  // 現在ステージに追加されるボス
 
         // ゲーム設定
         this.settings = {
@@ -206,23 +203,6 @@ class Game {
             }
         }
 
-        // ボス更新
-        // 累積ボスの更新（追加実装）
-        if (this.accumulatedBosses && this.accumulatedBosses.length > 0) {
-            this.accumulatedBosses = this.accumulatedBosses.filter(accBoss => {
-                if (accBoss.destroyed || accBoss.hp <= 0) {
-                    // 累積ボスが倒された場合、逃したボスリストから削除
-                    const index = this.escapedBosses.indexOf(accBoss.originalStage);
-                    if (index > -1) {
-                        this.escapedBosses.splice(index, 1);
-                        console.log(`ステージ${accBoss.originalStage}の累積ボスを撃破！残り: ${this.escapedBosses}`);
-                    }
-                    return false;  // 配列から削除
-                }
-                accBoss.update(dt);
-                return true;  // 配列に残す
-            });
-        }
 
         if (this.boss) {
             // ボスが破壊されていないかチェック
@@ -250,22 +230,22 @@ class Game {
                         this.bossTimeoutProcessing = true;
                         console.log('タイムアップ - ボスが逃げました！');
 
-                        // 逃したボスを記録（累積システム）
+                        // ボスを即座に完全削除（次のステージに持ち越さない）
                         if (this.boss && !this.boss.destroyed) {
-                            this.escapedBosses.push(this.stage);  // 現在のステージ番号を記録
-                            console.log(`ステージ${this.stage}のボスを逃しました。累積ボス: ${this.escapedBosses}`);
-
-                            // ボスを撤退させる
-                            this.boss.movePattern = 'leaving';
+                            this.boss.destroyed = true;  // destroyフラグを立てて重複処理を防ぐ
+                            // 撤退エフェクト
+                            this.createExplosion(this.boss.x, this.boss.y, 'medium');
                         }
+                        this.boss = null;  // 即座にnullにして次のステージに持ち越さない
+                        this.bossStageStartTime = null;
+
+                        document.getElementById('bossHealth').style.display = 'none';
 
                         // ステージクリア処理（onBossDefeatedを呼ぶ）
                         setTimeout(() => {
-                            this.boss = null;
-                            this.bossStageStartTime = null;
                             this.bossTimeoutProcessing = false;  // リセット
                             this.onBossDefeated();  // 既存のボス撃破処理を使用
-                        }, 2000);
+                        }, 1000);
                     }
                 }
             }
@@ -704,34 +684,6 @@ class Game {
             // 4秒後にボスを生成
             setTimeout(() => {
                 this.boss = new Boss(this.gameWidth / 2, -100, type, this);
-
-                // 累積ボスシステム：逃したボスを追加で出現
-                if (this.escapedBosses.length > 0) {
-                    console.log(`累積ボスを追加: ${this.escapedBosses}`);
-                    this.accumulatedBosses = [];  // 現在の累積ボスをクリア
-
-                    // 逃した各ボスを追加生成
-                    this.escapedBosses.forEach((escapedStage, index) => {
-                        setTimeout(() => {
-                            const bossType = this.getBossTypeByStage(escapedStage);
-                            const accumulatedBoss = new Boss(
-                                100 + (index * 150) % (this.gameWidth - 200),  // 横位置をずらす
-                                50 + (index * 50),  // 縦位置もずらす
-                                bossType,
-                                this
-                            );
-
-                            // 累積ボスは少し弱くする（HP 70%）
-                            accumulatedBoss.hp = Math.floor(accumulatedBoss.hp * 0.7);
-                            accumulatedBoss.maxHp = accumulatedBoss.hp;
-                            accumulatedBoss.isAccumulated = true;  // 累積ボスフラグ
-                            accumulatedBoss.originalStage = escapedStage;  // 元のステージ番号
-
-                            this.accumulatedBosses.push(accumulatedBoss);
-                            console.log(`ステージ${escapedStage}のボスを追加生成`);
-                        }, 500 + index * 500);  // 順番に出現
-                    });
-                }
 
                 // ボス戦開始時にステージアイテム管理をリセット
                 this.stageItemsSpawned = {

@@ -226,18 +226,22 @@ class Game {
                         this.bossTimeoutProcessing = true;
                         console.log('タイムアップ - ステージクリア！');
 
-                        // ボスを撤退させる
+                        // ボスを即座に完全削除（次のステージに持ち越さない）
                         if (this.boss && !this.boss.destroyed) {
-                            this.boss.movePattern = 'leaving';
+                            this.boss.destroyed = true;  // destroyフラグを立てて重複処理を防ぐ
+                            // 撤退エフェクト
+                            this.createExplosion(this.boss.x, this.boss.y, 'medium');
                         }
+                        this.boss = null;  // 即座にnullにして次のステージに持ち越さない
+                        this.bossStageStartTime = null;
+
+                        document.getElementById('bossHealth').style.display = 'none';
 
                         // ステージクリア処理（onBossDefeatedを呼ぶ）
                         setTimeout(() => {
-                            this.boss = null;
-                            this.bossStageStartTime = null;
                             this.bossTimeoutProcessing = false;  // リセット
                             this.onBossDefeated();  // 既存のボス撃破処理を使用
-                        }, 2000);
+                        }, 1000);
                     }
                 }
             }
