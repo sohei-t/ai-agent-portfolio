@@ -1,0 +1,129 @@
+// UI management - Space Odyssey
+function updateUI(game) {
+    // スコア表示
+    const scoreElement = document.getElementById('score');
+    if (scoreElement) {
+        scoreElement.textContent = `SCORE: ${game.score.toLocaleString()}`;
+    }
+
+    // ライフ表示
+    const livesElement = document.getElementById('lives');
+    if (livesElement) {
+        let heartsHtml = '';
+        for (let i = 0; i < game.lives; i++) {
+            heartsHtml += '❤️';
+        }
+        for (let i = game.lives; i < 5; i++) {
+            heartsHtml += '🖤';
+        }
+        livesElement.innerHTML = heartsHtml;
+    }
+
+    // プレイヤーHP表示（新規追加）
+    const playerHpElement = document.getElementById('playerHp');
+    if (playerHpElement && game.player) {
+        const maxHp = 100;  // プレイヤーの最大HP
+        const currentHp = game.player.hp || maxHp;
+        const hpPercent = (currentHp / maxHp) * 100;
+
+        // HPバー表示
+        let hpBar = '<span style="color: #00ff00">HP: </span>';
+        const barLength = 20;
+        const filledBars = Math.round((hpPercent / 100) * barLength);
+
+        // HP残量で色を変更
+        let color = '#00ff00';  // 緑
+        if (hpPercent <= 30) color = '#ff0000';  // 赤
+        else if (hpPercent <= 60) color = '#ffaa00';  // 黄色
+
+        hpBar += `<span style="color: ${color}">`;
+        for (let i = 0; i < barLength; i++) {
+            hpBar += i < filledBars ? '█' : '░';
+        }
+        hpBar += '</span>';
+        hpBar += ` ${Math.round(hpPercent)}%`;
+
+        playerHpElement.innerHTML = hpBar;
+    }
+
+    // 武器レベル表示（パワーアップ状態を明確に表示）
+    const weaponElement = document.getElementById('weaponLevel');
+    if (weaponElement && game.player) {
+        const weaponTypes = {
+            'beam': 'BEAM',
+            'spread': 'SPREAD',
+            'laser': 'LASER',
+            'homing': 'HOMING',
+            'wave': 'WAVE'
+        };
+        const weaponName = weaponTypes[game.player.weapon.type] || 'BEAM';
+        const level = game.player.weapon.level;
+        const maxLevel = 5;
+        let gauge = '';
+        for (let i = 0; i < maxLevel; i++) {
+            gauge += i < level ? '■' : '□';
+        }
+
+        // 武器の色を種類によって変更
+        let weaponColor = '#00ffff';
+        switch(game.player.weapon.type) {
+            case 'spread': weaponColor = '#ff9900'; break;
+            case 'laser': weaponColor = '#00ff99'; break;
+            case 'homing': weaponColor = '#9900ff'; break;
+            case 'wave': weaponColor = '#00ccff'; break;
+        }
+
+        weaponElement.innerHTML = `<span style="color: ${weaponColor}">${weaponName}</span>: LV${level} <span style="color: ${weaponColor}">${gauge}</span>`;
+    }
+
+    // チャージインジケーター（チャージ中のみ表示）
+    const chargeElement = document.getElementById('chargeIndicator');
+    if (chargeElement && game.player && game.player.weapon.charging) {
+        chargeElement.style.display = 'block';
+        const chargePercent = (game.player.weapon.chargeTime / game.player.weapon.maxCharge) * 100;
+
+        // チャージバー表示
+        let chargeBar = '<span style="color: #ffff00">CHARGE: </span>';
+        const barLength = 15;
+        const filledBars = Math.round((chargePercent / 100) * barLength);
+
+        // チャージ量で色を変更
+        let color = '#ffff00';  // 黄色
+        if (chargePercent >= 80) color = '#ff00ff';  // 紫（フルチャージ近く）
+        else if (chargePercent >= 50) color = '#ff9900';  // オレンジ
+
+        chargeBar += `<span style="color: ${color}; text-shadow: 0 0 5px ${color}">`;
+        for (let i = 0; i < barLength; i++) {
+            chargeBar += i < filledBars ? '▮' : '▯';
+        }
+        chargeBar += '</span>';
+        chargeBar += ` ${Math.round(chargePercent)}%`;
+
+        chargeElement.innerHTML = chargeBar;
+    } else if (chargeElement) {
+        chargeElement.style.display = 'none';
+    }
+
+    // ボム数表示
+    const bombsElement = document.getElementById('bombs');
+    if (bombsElement) {
+        let bombsHtml = '💣 x' + game.bombs;
+        bombsElement.innerHTML = bombsHtml;
+    }
+
+    // ボスHP表示
+    const bossHealthBar = document.getElementById('bossHealthBar');
+    if (bossHealthBar && game.boss) {
+        const hpPercent = (game.boss.hp / game.boss.maxHp) * 100;
+        bossHealthBar.style.width = hpPercent + '%';
+
+        // HPによって色を変更
+        if (hpPercent > 66) {
+            bossHealthBar.style.background = 'linear-gradient(90deg, #ff0000, #ff6600)';
+        } else if (hpPercent > 33) {
+            bossHealthBar.style.background = 'linear-gradient(90deg, #ff6600, #ffaa00)';
+        } else {
+            bossHealthBar.style.background = 'linear-gradient(90deg, #ffaa00, #ffff00)';
+        }
+    }
+}

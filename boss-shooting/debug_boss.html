@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Boss Debug</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; }
+        .test { margin: 10px; padding: 10px; border: 1px solid #0f0; }
+        img { border: 1px solid #fff; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Boss Image Debug</h1>
+
+    <div class="test">
+        <h2>Direct Image Test</h2>
+        <img src="assets/images/boss_01.PNG" width="100" onerror="this.style.border='2px solid red'">
+        <img src="assets/images/boss_02.PNG" width="100" onerror="this.style.border='2px solid red'">
+        <img src="assets/images/boss_03.PNG" width="100" onerror="this.style.border='2px solid red'">
+    </div>
+
+    <div class="test">
+        <h2>JavaScript Loading Test</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        for (let i = 1; i <= 3; i++) {
+            const img = new Image();
+            const path = `assets/images/boss_${String(i).padStart(2, '0')}.PNG`;
+
+            img.onload = () => {
+                results.innerHTML += `✅ Loaded: ${path}<br>`;
+            };
+
+            img.onerror = () => {
+                results.innerHTML += `❌ Failed: ${path}<br>`;
+
+                // Try lowercase extension
+                const img2 = new Image();
+                const path2 = path.replace('.PNG', '.png');
+                img2.onload = () => {
+                    results.innerHTML += `✅ Loaded (lowercase): ${path2}<br>`;
+                };
+                img2.onerror = () => {
+                    results.innerHTML += `❌ Failed (lowercase): ${path2}<br>`;
+                };
+                img2.src = path2;
+            };
+
+            img.src = path;
+        }
+    </script>
+</body>
+</html>

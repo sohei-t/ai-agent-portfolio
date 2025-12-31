@@ -7,10 +7,10 @@ class GyroControls {
         this.enabled = false;
         this.permissionGranted = false;
 
-        // 設定（非常にゆっくりとした動き）
-        this.sensitivity = 0.25;  // 0.15→0.25（少し反応を良くする）
-        this.deadZone = 5; // 5度（デッドゾーン維持）
-        this.maxTilt = 45; // 45度（傾ける角度を大きくして繊細に）
+        // 設定（v2.0で高感度化）
+        this.sensitivity = 3.5;
+        this.deadZone = 2; // 度
+        this.maxTilt = 20; // 度
 
         // 現在の値
         this.alpha = 0; // Z軸周りの回転
@@ -115,20 +115,9 @@ class GyroControls {
             y = adjustedBeta;
         }
 
-        // デッドゾーン適用（より厳密に）
-        if (Math.abs(x) < this.deadZone) {
-            x = 0;
-        } else {
-            // デッドゾーン外の値を補正（デッドゾーンの分だけ引く）
-            x = x > 0 ? x - this.deadZone : x + this.deadZone;
-        }
-
-        if (Math.abs(y) < this.deadZone) {
-            y = 0;
-        } else {
-            // デッドゾーン外の値を補正
-            y = y > 0 ? y - this.deadZone : y + this.deadZone;
-        }
+        // デッドゾーン適用
+        if (Math.abs(x) < this.deadZone) x = 0;
+        if (Math.abs(y) < this.deadZone) y = 0;
 
         // 正規化（-1 〜 1）
         x = this.clamp(x / this.maxTilt, -1, 1);

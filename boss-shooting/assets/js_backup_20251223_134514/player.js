@@ -5,15 +5,15 @@ class Player {
         this.y = y;
         this.game = game;
 
-        // サイズ（よりコンパクトに）
-        this.width = 24;
-        this.height = 28;
+        // サイズ（さらに小型化・シンプル）
+        this.width = 6;  // 12→6（極小サイズ）
+        this.height = 8;  // 14→8（極小サイズ）
 
         // 移動関連
-        this.speed = 12;  // 基本速度を上げる
+        this.speed = 2;  // 8→2（敵弾0.6より少し速い程度）
         this.vx = 0;
         this.vy = 0;
-        this.maxSpeed = 15;  // 最大速度も上げる
+        this.maxSpeed = 3;  // 10→3（最大速度も大幅に下げる）
 
         // 戦闘関連
         this.weapon = {
@@ -25,6 +25,10 @@ class Player {
             chargeTime: 0,   // チャージ時間
             maxCharge: 100   // 最大チャージ時間（フレーム）
         };
+
+        // HP関連（新規追加）
+        this.hp = 100;
+        this.maxHp = 100;
 
         this.life = 3;
         this.maxLife = 5;
@@ -145,6 +149,18 @@ class Player {
         // 位置更新
         this.x += this.vx;
         this.y += this.vy;
+
+        // 画面内制限（重要: 下端を含めて完全に画面内に制限）
+        const margin = 5;  // 画面端からの最小マージン
+        if (this.game && this.game.canvas) {
+            // 左右の制限
+            this.x = Math.max(this.width / 2 + margin,
+                    Math.min(this.game.canvas.width - this.width / 2 - margin, this.x));
+
+            // 上下の制限（特に下端を厳密に制限）
+            this.y = Math.max(this.height / 2 + margin,
+                    Math.min(this.game.canvas.height - this.height / 2 - margin, this.y));
+        }
     }
 
     fire() {
@@ -162,11 +178,17 @@ class Player {
             case 'beam':
                 this.fireBeam();
                 break;
-            case 'missile':
-                this.fireMissile();
+            case 'spread':
+                this.fireSpread();
                 break;
             case 'laser':
                 this.fireLaser();
+                break;
+            case 'homing':
+                this.fireHoming();
+                break;
+            case 'wave':
+                this.fireWave();
                 break;
             default:
                 this.fireBeam();
@@ -209,22 +231,80 @@ class Player {
         }
     }
 
-    fireMissile() {
+    fireSpread() {
         const level = this.weapon.level;
-        const missiles = Math.min(level, 3);
+        // レベルに応じて扇状に広がる弾を発射
+        const bulletCount = 2 + level;  // レベル1で3発、レベル5で7発
+        const angleSpread = 15;  // 基本角度
 
-        for (let i = 0; i < missiles; i++) {
-            const offset = (i - missiles / 2) * 15;
-            this.createBullet(this.x + offset, this.y - 10, 0, -8, 'missile');
+        for (let i = 0; i < bulletCount; i++) {
+            const angle = (i - (bulletCount - 1) / 2) * angleSpread * Math.PI / 180;
+            const speed = 12;
+            this.createBullet(
+                this.x,
+                this.y - 15,
+                Math.sin(angle) * speed,
+                -Math.cos(angle) * speed,
+                'spread'
+            );
         }
     }
 
     fireLaser() {
-        // レーザーは特殊処理（貫通弾）
+        // レーザーは特殊処理（貫通弾・持続型）
         const level = this.weapon.level;
-        const width = 4 + level * 2;
+        const width = 6 + level * 3;  // より太く
 
-        this.createBullet(this.x, this.y - 20, 0, -15, 'laser', width);
+        // レベルに応じて複数レーザー
+        if (level >= 3) {
+            this.createBullet(this.x - 20, this.y - 20, 0, -20, 'laser', width);
+            this.createBullet(this.x + 20, this.y - 20, 0, -20, 'laser', width);
+        } else {
+            this.createBullet(this.x, this.y - 20, 0, -20, 'laser', width * 1.5);
+        }
+    }
+
+    fireHoming() {
+        const level = this.weapon.level;
+        const missiles = Math.min(level + 1, 4);  // 最大4発
+
+        for (let i = 0; i < missiles; i++) {
+            const offset = (i - (missiles - 1) / 2) * 20;
+            const bullet = this.createBullet(
+                this.x + offset,
+                this.y - 10,
+                0,
+                -6,
+                'homing'
+            );
+            // ホーミング用のターゲット設定
+            if (bullet && this.game.enemies.length > 0) {
+                bullet.target = this.game.enemies[0];  // 最も近い敵をターゲット
+            }
+        }
+    }
+
+    fireWave() {
+        const level = this.weapon.level;
+        // 波状の弾を発射
+        const waves = Math.min(level, 3);  // 最大3列
+
+        for (let w = 0; w < waves; w++) {
+            for (let i = -1; i <= 1; i++) {
+                const bullet = this.createBullet(
+                    this.x + i * 15,
+                    this.y - 15 - w * 10,
+                    0,
+                    -10,
+                    'wave'
+                );
+                if (bullet) {
+                    bullet.waveAmplitude = 3 + level;  // 波の振幅
+                    bullet.waveFrequency = 0.1;  // 波の周波数
+                    bullet.waveOffset = i * Math.PI / 2;  // 位相差
+                }
+            }
+        }
     }
 
     createBullet(x, y, vx, vy, type = 'beam', width = 4) {
@@ -233,7 +313,9 @@ class Player {
             const bullet = new Bullet(x, y, vx, vy, power, 'player', type);
             bullet.width = width;
             this.game.bullets.push(bullet);
+            return bullet;  // 弾を返すように変更（ホーミング用）
         }
+        return null;
     }
 
     fireChargedBeam() {
@@ -277,7 +359,15 @@ class Player {
             return;
         }
 
-        this.life -= amount;
+        // HPを減らす（1ダメージ = HP20減少）
+        this.hp -= amount * 20;
+
+        // HPが0以下になったらライフを減らしてHP回復
+        if (this.hp <= 0) {
+            this.life -= 1;
+            this.hp = this.maxHp;  // HPを最大に回復
+        }
+
         this.invincible = this.invincibleDuration;
 
         if (typeof playSFX === 'function') {
@@ -309,9 +399,11 @@ class Player {
     }
 
     respawn() {
-        this.x = this.game.gameWidth / 2;
-        this.y = this.game.gameHeight - 100;
-        this.life = 3;
+        if (this.game && this.game.canvas) {
+            this.x = this.game.canvas.width / 2;
+            this.y = this.game.canvas.height - 100;
+        }
+        this.hp = this.maxHp;  // HPを最大に回復
         this.invincible = 120; // 2秒間の無敵時間
         this.weapon.level = Math.max(1, this.weapon.level - 1); // 武器レベル低下
     }
@@ -320,6 +412,22 @@ class Player {
         switch (type) {
             case 'weapon':
                 this.weapon.level = Math.min(5, this.weapon.level + 1);
+                break;
+            case 'weapon_spread':
+                this.weapon.type = 'spread';
+                this.weapon.level = Math.max(1, this.weapon.level);  // 武器切り替え時はレベル維持
+                break;
+            case 'weapon_laser':
+                this.weapon.type = 'laser';
+                this.weapon.level = Math.max(1, this.weapon.level);
+                break;
+            case 'weapon_homing':
+                this.weapon.type = 'homing';
+                this.weapon.level = Math.max(1, this.weapon.level);
+                break;
+            case 'weapon_wave':
+                this.weapon.type = 'wave';
+                this.weapon.level = Math.max(1, this.weapon.level);
                 break;
             case 'life':
                 this.life = Math.min(this.maxLife, this.life + 1);
@@ -338,6 +446,36 @@ class Player {
             case 'power':
                 this.powerBoost = true;
                 setTimeout(() => { this.powerBoost = false; }, 10000);
+                break;
+            case 'option':
+                if (this.game && this.game.specialWeapon) {
+                    this.game.specialWeapon.addOption();
+                }
+                break;
+            case 'summon_phoenix':
+                if (this.game && this.game.specialWeapon) {
+                    this.game.specialWeapon.summonCreature('phoenix');
+                }
+                break;
+            case 'summon_dragon':
+                if (this.game && this.game.specialWeapon) {
+                    this.game.specialWeapon.summonCreature('dragon');
+                }
+                break;
+            case 'summon_thunder':
+                if (this.game && this.game.specialWeapon) {
+                    this.game.specialWeapon.summonCreature('thunder');
+                }
+                break;
+            case 'mega_laser':
+                if (this.game && this.game.specialWeapon) {
+                    this.game.specialWeapon.activateMegaLaser();
+                }
+                break;
+            case 'combine':
+                if (this.game && this.game.specialWeapon) {
+                    this.game.specialWeapon.activateCombinedMode();
+                }
                 break;
         }
 

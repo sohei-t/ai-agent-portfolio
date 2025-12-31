@@ -6,67 +6,73 @@ class Boss {
         this.type = type;
         this.game = game;
 
-        // ボスタイプ別の設定（大きめサイズ）
+        // ボスタイプ別の設定（超巨大化・大幅強化）
         const bossTypes = {
             stage1: {
-                width: 120,
-                height: 120,
-                hp: 100,
+                width: 320,  // 160→320（2倍）
+                height: 320,  // 160→320（2倍）
+                hp: 400,  // 200→400（さらに2倍）
                 speed: 1,
                 scoreValue: 10000,
                 color: '#ff0044',
                 name: 'Alien Commander',
-                attackPatterns: ['spread', 'aimed', 'laser']
+                attackPatterns: ['spread', 'aimed', 'laser'],
+                glowColor: '#ff00ff'
             },
             stage2: {
-                width: 130,
-                height: 130,
-                hp: 150,
+                width: 360,  // 180→360（2倍）
+                height: 360,  // 180→360（2倍）
+                hp: 600,  // 300→600（2倍）
                 speed: 1.2,
                 scoreValue: 15000,
                 color: '#ff4400',
                 name: 'Mechanical Destroyer',
-                attackPatterns: ['laser', 'homing', 'bomb']
+                attackPatterns: ['laser', 'homing', 'bomb'],
+                glowColor: '#ffaa00'
             },
             stage3: {
-                width: 140,
-                height: 140,
-                hp: 200,
+                width: 400,  // 200→400（2倍）
+                height: 400,  // 200→400（2倍）
+                hp: 800,  // 400→800（2倍）
                 speed: 0.8,
                 scoreValue: 20000,
                 color: '#ff0088',
                 name: 'Crystal Guardian',
-                attackPatterns: ['spiral', 'laser', 'spread']
+                attackPatterns: ['spiral', 'laser', 'spread'],
+                glowColor: '#00ffff'
             },
             stage4: {
-                width: 120,
-                height: 120,
-                hp: 250,
+                width: 360,  // 180→360（2倍）
+                height: 360,  // 180→360（2倍）
+                hp: 1000,  // 500→1000（2倍）
                 speed: 1.5,
                 scoreValue: 25000,
                 color: '#8800ff',
                 name: 'Shadow Leviathan',
-                attackPatterns: ['homing', 'bomb', 'spiral']
+                attackPatterns: ['homing', 'bomb', 'spiral'],
+                glowColor: '#9900ff'
             },
             stage5: {
-                width: 128,
-                height: 128,
-                hp: 300,
+                width: 400,  // 200→400（2倍）
+                height: 400,  // 200→400（2倍）
+                hp: 1200,  // 600→1200（2倍）
                 speed: 1,
                 scoreValue: 30000,
                 color: '#ff00ff',
                 name: 'Quantum Hydra',
-                attackPatterns: ['multi', 'laser', 'chaos']
+                attackPatterns: ['multi', 'laser', 'chaos'],
+                glowColor: '#ff00ff'
             },
             final: {
-                width: 144,
-                height: 144,
-                hp: 500,
+                width: 480,  // 240→480（2倍・超巨大）
+                height: 480,  // 240→480（2倍・超巨大）
+                hp: 2000,  // 1000→2000（2倍）
                 speed: 0.5,
                 scoreValue: 50000,
                 color: '#ff0000',
                 name: 'Omega Overlord',
-                attackPatterns: ['ultimate', 'chaos', 'laser']
+                attackPatterns: ['ultimate', 'chaos', 'laser'],
+                glowColor: '#ff0000'
             }
         };
 
@@ -78,6 +84,14 @@ class Boss {
         const diffSettings = this.game.difficultySettings[this.game.difficulty];
         this.hp = Math.ceil(this.hp * diffSettings.enemyHpMultiplier);
         this.maxHp = this.hp;
+
+        // コアシステムの追加
+        this.hasCore = true;
+        this.coreSize = 40;  // コアの大きさ（ボスに比例）
+        this.coreGlowTimer = 0;
+        this.coreDamageMultiplier = 3;  // コアへのダメージは3倍
+        this.coreOffsetX = 0;  // コアの位置（ボス中心からのオフセット）
+        this.coreOffsetY = 0;
 
         // フェーズ管理
         this.phase = 1;
@@ -106,35 +120,17 @@ class Boss {
         this.imageLoaded = false;
         this.sprite = new Image();
 
-        // ボス番号を決定（typeから判定）
-        let bossNumber = 1;
-        if (type) {
-            // stage1, stage2, ... final から番号を抽出
-            if (type === 'final') {
-                bossNumber = 10;
-            } else if (type.startsWith('stage')) {
-                bossNumber = parseInt(type.replace('stage', '')) || 1;
-            }
-        }
-        bossNumber = Math.min(bossNumber, 11);
-
+        // ボス番号を決定（ステージ番号に基づく）
+        const bossNumber = Math.min(this.game ? this.game.stage : 1, 11);
         const imageName = `boss_${String(bossNumber).padStart(2, '0')}`;
 
         this.sprite.onload = () => {
             this.imageLoaded = true;
-            console.log(`Boss image loaded: ${imageName}`);
         };
 
         this.sprite.onerror = () => {
-            console.log(`PNG not found for ${imageName}, trying SVG...`);
             // PNGが見つからない場合はSVGを試す
             this.sprite.src = `assets/images/bosses/${imageName}.svg`;
-
-            // SVGも失敗した場合のエラーハンドリング
-            this.sprite.onerror = () => {
-                console.log(`No image found for ${imageName}, will use shape rendering`);
-                this.imageLoaded = false;
-            };
         };
 
         // まずPNG画像を試す
@@ -176,13 +172,11 @@ class Boss {
                 this.attackTimer = 0;
             }
 
-            // 特殊攻撃
-            if (this.specialAttackCooldown > 0) {
-                this.specialAttackCooldown--;
-            } else if (Math.random() < 0.01) {
-                this.specialAttack();
-                this.specialAttackCooldown = 300;
-            }
+            // 特殊攻撃は削除（難易度が高すぎるため）
+            // コアの脈動アニメーション
+            this.coreGlowTimer += 0.1;
+            this.coreOffsetX = Math.sin(this.coreGlowTimer) * 10;
+            this.coreOffsetY = Math.cos(this.coreGlowTimer * 1.3) * 5;
         }
 
         // フェーズ変更チェック
@@ -358,17 +352,22 @@ class Boss {
     }
 
     spreadAttack() {
-        // 扇状拡散弾
+        // ランダム化された扇状拡散弾
         const bullets = 5 + this.phase * 2;
-        const angleStep = Math.PI / (bullets + 1);
+        const baseAngle = -Math.PI / 2 + (Math.random() - 0.5) * 0.5;  // 基準角度をランダム化
+        const spreadRange = Math.PI * 0.6;  // 扇の範囲
 
         for (let i = 0; i < bullets; i++) {
-            const angle = -Math.PI / 2 - angleStep * (bullets / 2) + angleStep * (i + 1);
+            // 各弾の角度と速度をランダム化
+            const angleOffset = (i / (bullets - 1)) * spreadRange - spreadRange / 2;
+            const angle = baseAngle + angleOffset + (Math.random() - 0.5) * 0.2;
+            const speed = 2 + Math.random() * 1.5;  // 速度もランダム化
+
             this.createBullet(
-                this.x,
+                this.x + (Math.random() - 0.5) * 40,  // 発射位置も少しずらす
                 this.y + this.height / 2,
-                Math.cos(angle) * 2.5,  // 3から2.5に減速
-                Math.sin(angle) * 2.5   // ボスの弾も少し遅く
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
             );
         }
     }
@@ -481,21 +480,6 @@ class Boss {
         this.homingAttack();
     }
 
-    specialAttack() {
-        // 特殊攻撃（画面全体攻撃の警告あり）
-        this.warningTimer = 60;
-
-        if (typeof playSFX === 'function') {
-            playSFX('warning');
-        }
-
-        setTimeout(() => {
-            // 画面全体に弾幕
-            for (let x = 0; x < this.game.canvas.width; x += 40) {
-                this.createBullet(x, 0, 0, 3);
-            }
-        }, 1000);
-    }
 
     createBullet(x, y, vx, vy, type = 'normal') {
         if (typeof Bullet !== 'undefined') {
@@ -562,10 +546,10 @@ class Boss {
             playSFX('boss_destroy');
         }
 
-        // 新しいonBossDefeated関数にこのボス自身を渡す
+        // 少し遅延を入れてから次のステージへ
         setTimeout(() => {
             if (this.game) {
-                this.game.onBossDefeated(this);
+                this.game.onBossDefeated();
             }
         }, 500);
     }
@@ -579,15 +563,42 @@ class Boss {
     }
 
     render(ctx) {
-        // ボスが存在し、破壊されていないことを確認
-        if (this.destroyed) return;
-
         ctx.save();
+
+        // 発光エフェクト（パルス）
+        const glowIntensity = 0.5 + Math.sin(Date.now() * 0.003) * 0.3;
+        ctx.shadowColor = this.glowColor || this.color;
+        ctx.shadowBlur = 50 + glowIntensity * 30;
+
+        // HPに応じた表情変化（怒りレベル）
+        const hpRatio = this.hp / this.maxHp;
+        if (hpRatio < 0.3) {
+            // 瀕死状態（赤く点滅）
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 80;
+        }
 
         // ダメージフラッシュ
         if (this.damageFlash > 0) {
             ctx.globalAlpha = 0.7;
-            ctx.filter = `brightness(${1 + this.damageFlash / 20})`;
+            ctx.filter = `brightness(${2 + this.damageFlash / 10})`;
+        }
+
+        // 怒りモードのオーラ（多重層）
+        if (this.isAngry || hpRatio < 0.5) {
+            // 外側のオーラ
+            ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + glowIntensity * 0.3})`;
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.width / 2 + 40, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 内側のオーラ
+            ctx.strokeStyle = `rgba(255, 100, 0, ${0.5 + glowIntensity * 0.3})`;
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.width / 2 + 20, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         // 警告エフェクト
@@ -603,59 +614,39 @@ class Boss {
         ctx.translate(this.x, this.y);
         // ctx.rotate(this.rotation);  // 回転を無効化
 
-        // 画像描画を優先
-        let imageDrawn = false;
-
         // 画像が読み込まれていれば画像を描画
-        if (this.imageLoaded && this.sprite && this.sprite.complete) {
-            try {
-                ctx.drawImage(
-                    this.sprite,
-                    -this.width / 2,
-                    -this.height / 2,
-                    this.width,
-                    this.height
-                );
-                imageDrawn = true;
-            } catch (e) {
-                console.error('Failed to draw boss image:', e);
-                imageDrawn = false;
-            }
-        }
-
-        // 画像描画に失敗した場合のフォールバック
-        if (!imageDrawn) {
-            // デバッグ表示
-            ctx.fillStyle = this.color || '#ff0044';
+        if (this.imageLoaded && this.sprite) {
+            ctx.drawImage(
+                this.sprite,
+                -this.width / 2,
+                -this.height / 2,
+                this.width,
+                this.height
+            );
+        } else {
+            // 画像がない場合は従来の描画
+            ctx.fillStyle = this.color;
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 3;
 
             // 本体（複雑な形状）
             ctx.beginPath();
-            const points = 8;
-            for (let i = 0; i < points; i++) {
-                const angle = (Math.PI * 2 / points) * i;
-                const radius = i % 2 === 0 ? this.width / 2 : this.width / 3;
-                const px = Math.cos(angle) * radius;
-                const py = Math.sin(angle) * radius;
+        const points = 8;
+        for (let i = 0; i < points; i++) {
+            const angle = (Math.PI * 2 / points) * i;
+            const radius = i % 2 === 0 ? this.width / 2 : this.width / 3;
+            const px = Math.cos(angle) * radius;
+            const py = Math.sin(angle) * radius;
 
-                if (i === 0) {
-                    ctx.moveTo(px, py);
-                } else {
-                    ctx.lineTo(px, py);
-                }
+            if (i === 0) {
+                ctx.moveTo(px, py);
+            } else {
+                ctx.lineTo(px, py);
             }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            // ステージ番号を表示（デバッグ用）
-            if (this.stageNumber) {
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 16px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText(`S${this.stageNumber}`, 0, 0);
-            }
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
         }
 
         // パーツの描画
@@ -677,13 +668,55 @@ class Boss {
             ctx.restore();
         });
 
-        // コア（中心部）
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + Math.sin(this.moveTimer * 0.1) * 0.3})`;
-        ctx.beginPath();
-        ctx.arc(0, 0, 10, 0, Math.PI * 2);
-        ctx.fill();
-
         ctx.restore();
+
+        // コアシステムの描画（ボス本体とは別に描画）
+        if (this.hasCore) {
+            ctx.save();
+
+            // コアの位置
+            const coreX = this.x + this.coreOffsetX;
+            const coreY = this.y + this.coreOffsetY;
+
+            // コアの発光エフェクト
+            const pulseScale = 1 + Math.sin(this.coreGlowTimer * 2) * 0.2;
+            const glowAlpha = 0.6 + Math.sin(this.coreGlowTimer * 3) * 0.4;
+
+            // 外側のグロー
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 30 * pulseScale;
+            ctx.fillStyle = `rgba(0, 255, 255, ${glowAlpha * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(coreX, coreY, this.coreSize * 1.5 * pulseScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 中間層
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = `rgba(100, 200, 255, ${glowAlpha * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(coreX, coreY, this.coreSize * pulseScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // コア本体
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = `rgba(255, 255, 255, ${glowAlpha})`;
+            ctx.beginPath();
+            ctx.arc(coreX, coreY, this.coreSize * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // コアの十字マーク
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = glowAlpha;
+            ctx.beginPath();
+            ctx.moveTo(coreX - this.coreSize, coreY);
+            ctx.lineTo(coreX + this.coreSize, coreY);
+            ctx.moveTo(coreX, coreY - this.coreSize);
+            ctx.lineTo(coreX, coreY + this.coreSize);
+            ctx.stroke();
+
+            ctx.restore();
+        }
 
         // 名前表示
         if (this.movePattern === 'entering') {
@@ -702,5 +735,54 @@ class Boss {
             width: this.width * 0.8,
             height: this.height * 0.8
         };
+    }
+
+    getCoreHitbox() {
+        // コアの当たり判定
+        if (!this.hasCore) return null;
+
+        const coreX = this.x + this.coreOffsetX;
+        const coreY = this.y + this.coreOffsetY;
+
+        return {
+            x: coreX - this.coreSize,
+            y: coreY - this.coreSize,
+            width: this.coreSize * 2,
+            height: this.coreSize * 2,
+            isCore: true
+        };
+    }
+
+    takeDamage(amount, hitCore = false) {
+        // コアに命中した場合はダメージ倍率を適用
+        const actualDamage = hitCore ? amount * this.coreDamageMultiplier : amount;
+
+        this.hp -= actualDamage;
+        this.damageFlash = 10;
+
+        // コアヒット時の特別なエフェクト
+        if (hitCore && this.game) {
+            // 大きな爆発エフェクト
+            this.game.createExplosion(
+                this.x + this.coreOffsetX,
+                this.y + this.coreOffsetY,
+                'large'
+            );
+
+            // 画面フラッシュ
+            if (typeof createScreenFlash === 'function') {
+                createScreenFlash('#00ffff', 0.5);
+            }
+
+            if (typeof playSFX === 'function') {
+                playSFX('critical_hit');
+            }
+        }
+
+        if (this.hp <= 0 && !this.destroyed) {
+            this.destroy();
+        }
+
+        return actualDamage;
     }
 }

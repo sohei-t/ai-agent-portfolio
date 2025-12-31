@@ -23,24 +23,66 @@ function checkCollisions(game) {
                 }
             }
 
-            // 複数ボスとの当たり判定
-            for (const boss of game.bosses) {
-                if (!boss.destroyed && isColliding(bullet, boss)) {
-                    boss.takeDamage(bullet.power);
+            // ボス
+            if (game.boss) {
+                // まずコアへの命中をチェック
+                const coreHitbox = game.boss.getCoreHitbox();
+                let hitCore = false;
 
-                    if (!bullet.penetrating) {
-                        game.bullets.splice(i, 1);
-                        break;
+                if (coreHitbox && isColliding(bullet, coreHitbox)) {
+                    // コアに命中
+                    game.boss.takeDamage(bullet.power, true);  // true = core hit
+                    hitCore = true;
+
+                    // コアヒット時のエフェクト
+                    if (game.createExplosion) {
+                        game.createExplosion(bullet.x, bullet.y, 'medium');
                     }
+                } else if (isColliding(bullet, game.boss)) {
+                    // ボス本体に命中
+                    game.boss.takeDamage(bullet.power, false);
+                }
+
+                if ((hitCore || isColliding(bullet, game.boss)) && !bullet.penetrating) {
+                    game.bullets.splice(i, 1);
                 }
             }
+        }
+    }
 
-            // 旧互換性のためのボス判定（削除予定）
-            if (game.boss && !game.bosses.includes(game.boss) && isColliding(bullet, game.boss)) {
-                game.boss.takeDamage(bullet.power);
+    // 弾の相殺システム（プレイヤー弾 vs 敵弾）
+    for (let i = game.bullets.length - 1; i >= 0; i--) {
+        const playerBullet = game.bullets[i];
 
-                if (!bullet.penetrating) {
-                    game.bullets.splice(i, 1);
+        if (playerBullet.owner === 'player') {
+            for (let j = game.bullets.length - 1; j >= 0; j--) {
+                const enemyBullet = game.bullets[j];
+
+                if (enemyBullet.owner === 'enemy' && i !== j) {
+                    // レーザーとホーミング弾は相殺不可
+                    if (enemyBullet.type === 'laser' || enemyBullet.type === 'homing') {
+                        continue;
+                    }
+
+                    if (isColliding(playerBullet, enemyBullet)) {
+                        // 両方の弾を相殺
+                        game.bullets.splice(Math.max(i, j), 1);
+                        game.bullets.splice(Math.min(i, j), 1);
+
+                        // 相殺エフェクト
+                        if (game.createExplosion) {
+                            const x = (playerBullet.x + enemyBullet.x) / 2;
+                            const y = (playerBullet.y + enemyBullet.y) / 2;
+                            game.createExplosion(x, y, 'small');
+                        }
+
+                        // スコア追加（相殺ボーナス）
+                        if (game.addScore) {
+                            game.addScore(10);
+                        }
+
+                        break;
+                    }
                 }
             }
         }
@@ -69,16 +111,8 @@ function checkCollisions(game) {
             }
         }
 
-        // 複数ボス vs プレイヤー
-        for (const boss of game.bosses) {
-            if (!boss.destroyed && isColliding(boss, game.player)) {
-                game.player.takeDamage(2);
-                break; // 一度に複数ボスからダメージを受けないように
-            }
-        }
-
-        // 旧互換性のためのボス判定（削除予定）
-        if (game.boss && !game.bosses.includes(game.boss) && isColliding(game.boss, game.player)) {
+        // ボス vs プレイヤー
+        if (game.boss && isColliding(game.boss, game.player)) {
             game.player.takeDamage(2);
         }
     }

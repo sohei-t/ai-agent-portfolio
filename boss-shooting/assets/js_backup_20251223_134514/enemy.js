@@ -6,22 +6,22 @@ class Enemy {
         this.type = type;
         this.game = game;
 
-        // 敵タイプ別の設定（適切なサイズに調整）
+        // 敵タイプ別の設定（サイズを1/2に縮小）
         const enemyTypes = {
             basic: {
-                width: 32,
-                height: 32,
+                width: 16,  // 32→16
+                height: 16,  // 32→16
                 hp: 1,
                 speed: 2,
                 scoreValue: 100,
                 color: '#ff4444',
                 movePattern: 'straight',
                 attackPattern: 'single',
-                attackInterval: 60
+                attackInterval: 90  // 60→90（攻撃頻度を下げる）
             },
             fast: {
-                width: 28,
-                height: 28,
+                width: 14,  // 28→14
+                height: 14,  // 28→14
                 hp: 1,
                 speed: 4,
                 scoreValue: 150,
@@ -31,37 +31,37 @@ class Enemy {
                 attackInterval: 0
             },
             tank: {
-                width: 40,
-                height: 40,
+                width: 20,  // 40→20
+                height: 20,  // 40→20
                 hp: 3,
                 speed: 1,
                 scoreValue: 300,
                 color: '#884444',
                 movePattern: 'straight',
                 attackPattern: 'spread',
-                attackInterval: 90
+                attackInterval: 120  // 90→120（攻撃頻度を下げる）
             },
             sniper: {
-                width: 32,
-                height: 36,
+                width: 16,  // 32→16
+                height: 18,  // 36→18
                 hp: 2,
                 speed: 1.5,
                 scoreValue: 250,
                 color: '#ff44ff',
                 movePattern: 'wave',
                 attackPattern: 'aimed',
-                attackInterval: 120
+                attackInterval: 150  // 120→150（攻撃頻度を下げる）
             },
             bomber: {
-                width: 36,
-                height: 36,
+                width: 18,  // 36→18
+                height: 18,  // 36→18
                 hp: 2,
                 speed: 2,
                 scoreValue: 200,
                 color: '#ffaa44',
                 movePattern: 'dive',
                 attackPattern: 'bomb',
-                attackInterval: 80
+                attackInterval: 100  // 80→100（攻撃頻度を下げる）
             }
         };
 
@@ -208,37 +208,57 @@ class Enemy {
 
         switch (this.attackPattern) {
             case 'single':
-                // 単発弾
-                this.createBullet(this.x, this.y + this.height / 2, 0, 2.5);  // 3から2.5に減速
+                // 単発弾（さらに遅く、弾幕風）
+                for (let i = -1; i <= 1; i++) {  // 3方向に減らす（5→3）
+                    this.createBullet(this.x + i * 8, this.y + this.height / 2, i * 0.15, 0.8, 'normal', 1);  // 超低速
+                }
                 break;
 
             case 'spread':
-                // 拡散弾
-                for (let i = -2; i <= 2; i++) {
+                // 拡散弾（円形弾幕）
+                const bulletCount = 6;  // 6方向に減らす（12→6）
+                for (let i = 0; i < bulletCount; i++) {
+                    const angle = (Math.PI * 2 / bulletCount) * i;
                     this.createBullet(
                         this.x,
                         this.y + this.height / 2,
-                        i * 1.2,  // 1.5から1.2に減速
-                        2.5  // 3から2.5に減速
+                        Math.cos(angle) * 0.6,  // ゆっくり
+                        Math.sin(angle) * 0.6,  // ゆっくり
+                        'normal',
+                        1  // 威力1
                     );
                 }
                 break;
 
             case 'aimed':
-                // 狙い撃ち
+                // 狙い撃ち（扇状に3発）
                 const angle = Math.atan2(py - this.y, px - this.x);
-                const speed = 3;  // 4から3に減速
-                this.createBullet(
-                    this.x,
-                    this.y + this.height / 2,
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
-                );
+                for (let i = -1; i <= 1; i++) {
+                    const spread = i * 0.2;  // 扇状
+                    this.createBullet(
+                        this.x,
+                        this.y + this.height / 2,
+                        Math.cos(angle + spread) * 1.0,  // ゆっくり
+                        Math.sin(angle + spread) * 1.0,
+                        'aimed',
+                        1  // 威力1
+                    );
+                }
                 break;
 
             case 'bomb':
-                // 爆弾投下
-                this.createBullet(this.x, this.y + this.height / 2, 0, 2, 'bomb');
+                // 爆弾投下（周囲に拡散）
+                for (let i = 0; i < 4; i++) {  // 4方向に減らす（8→4）
+                    const bombAngle = (Math.PI * 2 / 4) * i;
+                    this.createBullet(
+                        this.x,
+                        this.y + this.height / 2,
+                        Math.cos(bombAngle) * 0.5,
+                        Math.sin(bombAngle) * 0.5 + 0.5,  // 下方向に流れる
+                        'bomb',
+                        2  // 威力2
+                    );
+                }
                 break;
 
             case 'laser':
@@ -258,9 +278,9 @@ class Enemy {
         }
     }
 
-    createBullet(x, y, vx, vy, type = 'normal') {
+    createBullet(x, y, vx, vy, type = 'normal', power = 1) {
         if (typeof Bullet !== 'undefined') {
-            const bullet = new Bullet(x, y, vx, vy, 1, 'enemy', type);
+            const bullet = new Bullet(x, y, vx, vy, power, 'enemy', type);
             this.game.bullets.push(bullet);
         }
     }
@@ -283,8 +303,38 @@ class Enemy {
         // スコア加算
         this.game.addScore(this.scoreValue);
 
-        // 爆発エフェクト
-        this.game.createExplosion(this.x, this.y, 'small');
+        // 強化された爆発エフェクト
+        if (this.type === 'mid-boss') {
+            // 中ボスは大爆発
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    if (this.game && this.game.createExplosion) {
+                        const offsetX = (Math.random() - 0.5) * this.width;
+                        const offsetY = (Math.random() - 0.5) * this.height;
+                        this.game.createExplosion(
+                            this.x + offsetX,
+                            this.y + offsetY,
+                            'medium'
+                        );
+                    }
+                }, i * 50);
+            }
+
+            // 画面フラッシュ
+            if (typeof createScreenFlash === 'function') {
+                createScreenFlash('#ffff00', 0.4);
+            }
+        } else {
+            // 通常の敵も強化された爆発
+            if (this.game && this.game.createExplosion) {
+                this.game.createExplosion(this.x, this.y, 'small');
+            }
+
+            // パーティクルエフェクト追加
+            if (typeof createParticles === 'function') {
+                createParticles(this.game, this.x, this.y, 'explosion', this.color);
+            }
+        }
 
         // アイテムドロップ
         if (Math.random() < 0.15) {
@@ -293,7 +343,11 @@ class Enemy {
 
         // 効果音
         if (typeof playSFX === 'function') {
-            playSFX('enemy_destroy');
+            if (this.type === 'mid-boss') {
+                playSFX('boss_destroy', 0.7);
+            } else {
+                playSFX('enemy_destroy');
+            }
         }
 
         // 配列から削除
