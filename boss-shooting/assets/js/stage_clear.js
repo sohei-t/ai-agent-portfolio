@@ -123,8 +123,8 @@ function showStageClear(game, stageNumber) {
         opacity: 0;
         animation: fadeIn 1s ease-out 2s forwards, blink 1s infinite 3s;
     `;
-    // ステージ11クリア時はエンディングページへ
-    if (stageNumber >= 11) {
+    // ステージ10（Final Dimension）クリア時はエンディングページへ
+    if (stageNumber >= 10) {
         nextStageText.textContent = `CONGRATULATIONS!`;
         nextStageText.style.fontSize = '36px';
         nextStageText.style.color = '#ffff00';
@@ -236,8 +236,8 @@ function showStageClear(game, stageNumber) {
         nextStageText.remove();
         readyText.remove();
 
-        // ステージ11クリア時はエンディングページへ
-        if (stageNumber >= 11) {
+        // ステージ10（Final Dimension）クリア時はエンディングページへ
+        if (stageNumber >= 10) {
             // スコアを保存
             const currentScore = game.score || 0;
             window.location.href = `ending.html?score=${currentScore}`;

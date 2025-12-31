@@ -727,8 +727,9 @@ class Game {
         // ステージクリア処理はshowStageClear内で行われる
         setTimeout(() => {
             this.stage++;
-            if (this.stage > 11) {  // ステージ11クリア後に終了
+            if (this.stage > 10) {  // ステージ10（Final Dimension）クリア後に終了
                 this.victory();
+                return;  // 次のステージ処理をスキップ
             }
             // ステージタイマーをリセット
             window.stageTimer = 0;
