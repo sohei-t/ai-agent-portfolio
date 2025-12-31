@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Bowling Adventure</title>
+  <script type="module" crossorigin src="/assets/index-DgGZFBYZ.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-5Yke0Vhs.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen">
+      <h1>Bowling Adventure</h1>
+      <p class="subtitle">傾けて転がす！障害物ボーリング</p>
+      <button id="start-btn" class="btn-primary">START</button>
+      <p class="hint">スマートフォンを傾けて操作します</p>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+      <div id="hud">
+        <div id="score-display">
+          <span id="current-score">0</span>
+        </div>
+        <div id="frame-display">
+          Frame: <span id="current-frame">1</span>/10
+        </div>
+      </div>
+      <canvas id="game-canvas"></canvas>
+      <div id="speed-gauge">
+        <div id="speed-bar"></div>
+        <span id="speed-text">0%</span>
+      </div>
+      <div id="message-overlay" class="hidden"></div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="result-screen" class="screen hidden">
+      <h2>Frame Result</h2>
+      <div id="pins-knocked"></div>
+      <button id="next-frame-btn" class="btn-primary">Next Frame</button>
+    </div>
+  </div>
+</body>
+</html>
