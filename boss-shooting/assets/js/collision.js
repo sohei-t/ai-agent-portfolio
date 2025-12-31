@@ -23,20 +23,8 @@ function checkCollisions(game) {
                 }
             }
 
-            // 複数ボスとの当たり判定
-            for (const boss of game.bosses) {
-                if (!boss.destroyed && isColliding(bullet, boss)) {
-                    boss.takeDamage(bullet.power);
-
-                    if (!bullet.penetrating) {
-                        game.bullets.splice(i, 1);
-                        break;
-                    }
-                }
-            }
-
-            // 旧互換性のためのボス判定（削除予定）
-            if (game.boss && !game.bosses.includes(game.boss) && isColliding(bullet, game.boss)) {
+            // ボスとの当たり判定
+            if (game.boss && !game.boss.destroyed && isColliding(bullet, game.boss)) {
                 game.boss.takeDamage(bullet.power);
 
                 if (!bullet.penetrating) {
@@ -69,16 +57,8 @@ function checkCollisions(game) {
             }
         }
 
-        // 複数ボス vs プレイヤー
-        for (const boss of game.bosses) {
-            if (!boss.destroyed && isColliding(boss, game.player)) {
-                game.player.takeDamage(2);
-                break; // 一度に複数ボスからダメージを受けないように
-            }
-        }
-
-        // 旧互換性のためのボス判定（削除予定）
-        if (game.boss && !game.bosses.includes(game.boss) && isColliding(game.boss, game.player)) {
+        // ボス vs プレイヤー
+        if (game.boss && !game.boss.destroyed && isColliding(game.boss, game.player)) {
             game.player.takeDamage(2);
         }
     }
