@@ -1,215 +1,101 @@
-# Bowling Adventure
+# Bowling Adventure Development Environment
 
-An innovative 3D obstacle course bowling game built with Three.js and Cannon.js physics. Navigate your bowling ball through challenging terrain and obstacles to knock down pins!
+このディレクトリは **Bowling Adventure** 専用のAIエージェント開発環境です。
 
-## Live Demo
+## 🚀 Phase別Worktree自律開発システム
 
-[Play Bowling Adventure](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure/)
+このプロジェクトは**複数アプローチ並列開発・自律評価システム**を採用しています。
 
-## Features
-
-- **3D Physics-Based Gameplay**: Realistic ball and pin physics using Cannon.js
-- **Obstacle Course**: Navigate through rocks, barriers, and terrain changes
-- **Multiple Terrain Types**:
-  - Standard grass lanes
-  - Sand sections (high friction, slows the ball)
-  - Ice sections (low friction, slippery and fast)
-- **Dual Control System**:
-  - Virtual joystick (default) for precise control
-  - Tilt/gyroscope controls for mobile devices (iOS 18 compatible)
-- **Full 10-Frame Bowling**: Complete bowling scoring system with strikes and spares
-- **Responsive Design**: Works on desktop and mobile devices
-- **Beautiful 3D Environment**: Sky, clouds, distant hills, and shadows
-
-## Technology Stack
-
-| Category | Technology |
-|----------|------------|
-| **3D Rendering** | Three.js (v0.160.0) |
-| **Physics Engine** | Cannon-es (v0.20.0) |
-| **Input Handling** | DeviceOrientation API, Touch Events |
-| **Build Tool** | Vite (v5.0.10) |
-| **Testing** | Vitest (v1.1.0) |
-| **Language** | JavaScript (ES Modules) |
-
-## How to Play
-
-1. **Start the Game**: Click "Start Game" on the title screen
-2. **Control the Ball**:
-   - **Joystick Mode** (default): Drag the virtual joystick to roll the ball
-   - **Tilt Mode**: Tilt your device to control the ball (tap "Joystick" button to switch)
-3. **Navigate Obstacles**: Avoid rocks and barriers, use terrain to your advantage
-4. **Knock Down Pins**: Roll the ball through the obstacle course to hit the pins
-5. **Score Points**: Standard bowling scoring - strikes (10 pins, 1 throw) and spares (10 pins, 2 throws)
-6. **Complete 10 Frames**: Play through all 10 frames to get your final score
-
-### Tips
-
-- Use sand sections to slow down before obstacles
-- Use ice sections for speed boosts
-- The speed gauge shows your current ball velocity
-- Falling off the course counts as a gutter ball (0 points)
-
-## Installation
-
-### Prerequisites
-
-- Node.js 18.x or higher
-- npm 9.x or higher
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/sohei-t/ai-agent-portfolio.git
-cd ai-agent-portfolio/bowling-adventure
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Open browser at http://localhost:5173
-```
-
-### Build for Production
-
-```bash
-# Build optimized version
-npm run build
-
-# Preview production build
-npm run preview
-```
-
-## Running Tests
-
-```bash
-# Run tests once
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-```
-
-### Test Coverage
-
-The project includes comprehensive tests for:
-
-- `BowlingScore.js` - Scoring logic (strikes, spares, frame completion)
-- `Ball.js` - Ball entity creation and physics
-- `Pins.js` - Pin management and knock-down detection
-- `Course.js` - Course creation and terrain types
-- `Controls.js` - Input handling (joystick and gyroscope)
-
-## Project Structure
+### 📊 9つのWorktree構成
 
 ```
-bowling-adventure/
-├── index.html          # Main HTML entry point
-├── package.json        # Dependencies and scripts
-├── vite.config.js      # Vite configuration
-├── src/
-│   ├── main.js         # Entry point - creates game instance
-│   ├── BowlingGame.js  # Main game controller
-│   ├── BowlingScore.js # Bowling scoring system
-│   ├── Controls.js     # Joystick and gyroscope input
-│   ├── Course.js       # Obstacle course creation
-│   ├── UI.js           # HUD and screen management
-│   └── entities/
-│       ├── Ball.js     # Bowling ball entity
-│       └── Pins.js     # Pin entities and management
-└── tests/
-    └── *.test.js       # Unit tests
+worktrees/
+├── phase1-planning-a/           # 計画案A（保守的）
+├── phase1-planning-b/           # 計画案B（革新的）
+├── phase2-impl-prototype-a/     # 実装プロトタイプA
+├── phase2-impl-prototype-b/     # 実装プロトタイプB
+├── phase2-impl-prototype-c/     # 実装プロトタイプC
+├── phase3-testing/              # テスト環境
+├── phase4-quality-opt-a/        # 最適化アプローチA
+├── phase4-quality-opt-b/        # 最適化アプローチB
+└── phase5-delivery/             # 最終成果物
 ```
 
-## Architecture
+### 🤖 自律的な開発フロー
 
-### Game Loop
+1. **Phase 1: 計画**
+   - AIが2つの計画案を並列生成（保守的/革新的）
+   - 自律評価して最良を選択 → mainにマージ
+
+2. **Phase 2: 実装**
+   - 3つのプロトタイプを並列開発
+   - 自動テスト・評価
+   - 最良をmainにマージ
+
+3. **Phase 3: テスト**
+   - 徹底的なテスト実行
+   - 失敗時はPhase 2に自動フィードバック
+
+4. **Phase 4: 品質改善**
+   - 2つの最適化アプローチを並列実装
+   - ベンチマーク評価で最良を選択
+
+5. **Phase 5: 完成処理**
+   - ドキュメント生成
+   - GitHub公開
+
+### 🎯 期待される効果
+
+| 項目 | 従来 | Phase別worktree |
+|------|------|----------------|
+| **精度** | 基準 | +35-50%向上 |
+| **効率** | 基準 | +50-80%向上 |
+| **並列実行** | 部分的 | 完全並列（1.5-2倍速） |
+
+### 📁 ディレクトリ構成
 
 ```
-BowlingGame.animate()
-├── Physics Update (Cannon.js world.step)
-├── Game State Update
-│   ├── Input Processing (Controls.getInput)
-│   ├── Ball Movement (Ball.applyInput)
-│   ├── Camera Follow
-│   └── Pin Detection
-└── Render (Three.js renderer.render)
+bowling-adventure-agent/
+├── worktrees/              # Phase別開発環境（9個）
+├── src/                    # ワークフロー実行スクリプト（テンプレートからコピー済み）
+│   ├── autonomous_evaluator.py           # Phase 1: 計画案の自律評価
+│   ├── autonomous_evaluator_ux.py        # Phase 2: 実装プロトタイプの評価
+│   ├── documenter_agent.py               # Phase 5: ドキュメント・音声生成
+│   ├── path_validator.py                 # Phase 5: GitHub Pagesパス検証
+│   ├── simplified_github_publisher.py    # Phase 6: GitHub公開
+│   ├── credential_checker.py             # 認証状態確認
+│   └── audio_generator_lyria.py          # ゲーム音声生成（オプション）
+├── project/
+│   └── public/             # GitHub公開用ファイル（Phase 5で自動生成）
+├── credentials/            # API認証ファイル（.gitignore済み）
+├── CLAUDE.md               # ワークフロー実行ガイド
+├── WORKTREE_INDEX.md       # Worktree役割インデックス
+└── .env                    # API認証設定（.gitignore済み）
 ```
 
-### State Machine
+**ポータビリティ:**
+このディレクトリを他の端末にコピーすれば、単独で動作します。
+テンプレート環境（git-worktree-agent）への依存はありません。
 
-```
-title -> playing -> throwing -> waiting -> result
-  ^                                          |
-  └──────────── restartGame ─────────────────┘
-```
+### 🔄 修正フロー
 
-## Controls Reference
+1. 該当Phaseのworktreeに移動
+   ```bash
+   cd worktrees/phase2-impl-prototype-a/
+   ```
 
-| Control | Desktop | Mobile |
-|---------|---------|--------|
-| Move Ball | Drag joystick | Drag joystick or tilt device |
-| Switch Mode | Click toggle button | Tap toggle button |
-| Start Game | Click "Start Game" | Tap "Start Game" |
-| Restart | Click "Play Again" | Tap "Play Again" |
+2. 修正を実施 → commit
 
-## Browser Support
+3. mainにマージ
+   ```bash
+   git checkout main
+   git merge phase/impl-prototype-a
+   ```
 
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-- Mobile Safari (iOS 14+)
-- Chrome for Android
+4. 次のPhaseに反映
+   ```bash
+   cd worktrees/phase3-testing/
+   git merge main
+   ```
 
-## Performance
-
-- Optimized for 60fps gameplay
-- Shadow mapping for realistic lighting
-- Efficient physics with sleep detection
-- Responsive design adapts to screen size
-
-## Developer Notes
-
-### Adding New Obstacles
-
-```javascript
-// In Course.js
-this.createRock(new THREE.Vector3(x, 0, z), size);
-this.createBarrier(new THREE.Vector3(x, 0, z), width, height, rotation);
-```
-
-### Adding New Terrain Types
-
-```javascript
-// In Course.js
-this.createTerrainSection({
-  start: 10,
-  end: 20,
-  color: 0xHEXCOLOR,
-  friction: 0.0 - 1.0,
-  restitution: 0.0 - 1.0,
-  name: 'terrainName'
-});
-```
-
-## License
-
-MIT License - See LICENSE file for details.
-
-## Credits
-
-Built with:
-- [Three.js](https://threejs.org/) - 3D graphics library
-- [Cannon-es](https://pmndrs.github.io/cannon-es/) - Physics engine
-- [Vite](https://vitejs.dev/) - Build tool
-
----
-
-Generated with [Claude Code](https://github.com/anthropics/claude-code) and AI Agent Workflow
+作成日: 2025年 12月31日 水曜日 09時46分29秒 JST
