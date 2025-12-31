@@ -231,24 +231,22 @@ function updateStage(game) {
     }
 
     // ボス出現
-    if (stage.boss && window.stageTimer === stage.boss.time && game.bosses.length === 0) {
+    if (stage.boss && window.stageTimer === stage.boss.time && !game.boss) {
         game.spawnBoss(stage.boss.type);
     }
 
     // ステージタイムアウトチェック（ボス出現後300秒=5分）
+    // 注: game.jsの1分タイマーで処理されるため、この処理は通常到達しない
     if (stage.boss && window.stageTimer > stage.boss.time + 1800) {
         // タイムアウト - ボスが撃破されていなくても次のステージへ
-        if (game.bosses.length > 0) {
-            // 全ボスを強制的にステージアウトさせる
-            game.bosses.forEach(boss => {
-                boss.movePattern = 'leaving';
-            });
+        if (game.boss && !game.boss.destroyed) {
+            // ボスを強制的にステージアウトさせる
+            game.boss.destroyed = true;
 
             // 次のステージへの移行をスケジュール
             setTimeout(() => {
-                game.bosses = [];
                 game.boss = null;
-                game.checkStageProgress();
+                game.onBossDefeated();
             }, 2000);
         }
     }
