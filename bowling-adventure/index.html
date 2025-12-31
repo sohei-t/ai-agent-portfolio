@@ -217,7 +217,42 @@
       transform: scale(0.98);
     }
 
-    /* Scoreboard */
+    .btn-secondary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      box-shadow: 0 5px 20px rgba(99,102,241,0.4);
+      font-size: 16px;
+      padding: 12px 24px;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 8px 30px rgba(99,102,241,0.6);
+    }
+
+    .btn-secondary.enabled {
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      box-shadow: 0 5px 20px rgba(0,255,136,0.4);
+    }
+
+    #control-options {
+      margin-bottom: 20px;
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    .status-text.success {
+      color: #00ff88;
+    }
+
+    .status-text.error {
+      color: #ff6b6b;
+    }
+
+    /* Scoreboard (Result screen) */
     #scoreboard {
       display: grid;
       grid-template-columns: repeat(10, 1fr);
@@ -253,6 +288,261 @@
       font-weight: bold;
       color: #00ff88;
       min-height: 20px;
+    }
+
+    /* Live Scoresheet (during gameplay) */
+    #live-scoresheet {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      border-radius: 10px;
+      padding: 8px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.2);
+      max-width: 95%;
+      overflow-x: auto;
+      display: none;
+    }
+
+    #live-scoresheet.visible {
+      display: block;
+    }
+
+    .scoresheet-table {
+      display: flex;
+      gap: 2px;
+      min-width: max-content;
+    }
+
+    .scoresheet-frame {
+      display: flex;
+      flex-direction: column;
+      min-width: 44px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .scoresheet-frame.current {
+      background: rgba(0,255,136,0.2);
+      border: 1px solid #00ff88;
+    }
+
+    .scoresheet-frame.tenth {
+      min-width: 66px;
+    }
+
+    .frame-header {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.7);
+      font-size: 10px;
+      padding: 2px 4px;
+      text-align: center;
+    }
+
+    .frame-throws-row {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .throw-cell {
+      flex: 1;
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 12px;
+      color: white;
+      min-width: 20px;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .throw-cell:last-child {
+      border-right: none;
+    }
+
+    .throw-cell.strike {
+      color: #ff4444;
+      font-weight: bold;
+    }
+
+    .throw-cell.spare {
+      color: #00ff88;
+      font-weight: bold;
+    }
+
+    .frame-total {
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: bold;
+      color: #00ff88;
+      background: rgba(0,0,0,0.3);
+    }
+
+    /* Ready Screen */
+    .ready-content {
+      text-align: center;
+    }
+
+    .ready-frame {
+      font-size: clamp(48px, 12vw, 96px);
+      font-weight: bold;
+      color: #00ff88;
+      text-shadow: 0 0 30px rgba(0,255,136,0.5);
+      margin-bottom: 10px;
+    }
+
+    .ready-throw {
+      font-size: clamp(32px, 8vw, 64px);
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    /* Pin Count Display */
+    #pin-count-display {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      pointer-events: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    #pin-count-display.hidden {
+      display: none;
+    }
+
+    #pin-count-number {
+      font-size: clamp(120px, 30vw, 300px);
+      font-weight: bold;
+      color: #ffdd00;
+      text-shadow: 0 0 50px rgba(255,221,0,0.8);
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #pin-count-label {
+      font-size: clamp(36px, 8vw, 72px);
+      color: white;
+      margin-top: -20px;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Celebration Display */
+    #celebration-display {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+      z-index: 250;
+      pointer-events: none;
+    }
+
+    #celebration-display.hidden {
+      display: none;
+    }
+
+    #celebration-image {
+      width: clamp(150px, 40vw, 300px);
+      height: clamp(150px, 40vw, 300px);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #celebration-image img {
+      max-width: 100%;
+      max-height: 100%;
+      animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #celebration-image .emoji-fallback {
+      font-size: clamp(80px, 20vw, 180px);
+      animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+      50% { transform: scale(1.2) rotate(10deg); }
+      70% { transform: scale(0.9) rotate(-5deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    #celebration-text {
+      font-size: clamp(48px, 12vw, 120px);
+      font-weight: bold;
+      text-align: center;
+      animation: textGlow 1s ease-in-out infinite alternate;
+    }
+
+    #celebration-text.strike { color: #ff4444; }
+    #celebration-text.double { color: #ff8800; }
+    #celebration-text.turkey { color: #ffdd00; }
+    #celebration-text.spare { color: #00ff88; }
+
+    @keyframes textGlow {
+      from { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+      to { text-shadow: 0 0 40px currentColor, 0 0 80px currentColor, 0 0 120px currentColor; }
+    }
+
+    /* Particles */
+    #celebration-particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: particleFall 2s ease-out forwards;
+    }
+
+    @keyframes particleFall {
+      0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* Gutter display */
+    #pin-count-number.gutter {
+      color: #666;
+      text-shadow: none;
     }
 
     /* Result Screen */
@@ -315,6 +605,34 @@
       #score-display {
         font-size: 20px;
       }
+
+      #live-scoresheet {
+        top: 50px;
+        padding: 6px;
+      }
+
+      .scoresheet-frame {
+        min-width: 36px;
+      }
+
+      .scoresheet-frame.tenth {
+        min-width: 54px;
+      }
+
+      .frame-header {
+        font-size: 9px;
+      }
+
+      .throw-cell {
+        font-size: 10px;
+        padding: 3px 1px;
+        min-width: 16px;
+      }
+
+      .frame-total {
+        font-size: 9px;
+        padding: 3px 1px;
+      }
     }
 
     /* Landscape mobile */
@@ -343,9 +661,38 @@
         padding: 8px 15px;
         font-size: 12px;
       }
+
+      #live-scoresheet {
+        top: 45px;
+        padding: 4px;
+      }
+
+      .scoresheet-frame {
+        min-width: 32px;
+      }
+
+      .scoresheet-frame.tenth {
+        min-width: 48px;
+      }
+
+      .frame-header {
+        font-size: 8px;
+        padding: 1px 2px;
+      }
+
+      .throw-cell {
+        font-size: 9px;
+        padding: 2px 1px;
+        min-width: 14px;
+      }
+
+      .frame-total {
+        font-size: 8px;
+        padding: 2px 1px;
+      }
     }
   </style>
-  <script type="module" crossorigin src="./assets/index-ER6Cv-cN.js"></script>
+  <script type="module" crossorigin src="./assets/index-CCGjTui7.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/three-CQZDdIZO.js">
   <link rel="modulepreload" crossorigin href="./assets/cannon-CMZeK6Ld.js">
 </head>
@@ -363,6 +710,13 @@
         <div class="hud-section">
           <div id="score-label">SCORE</div>
           <div id="score-display">0</div>
+        </div>
+      </div>
+
+      <!-- Live Scoresheet -->
+      <div id="live-scoresheet">
+        <div class="scoresheet-table" id="scoresheet-frames">
+          <!-- Frames 1-10 will be generated by JavaScript -->
         </div>
       </div>
 
@@ -384,6 +738,10 @@
       <div id="title-screen" class="screen">
         <h1>Bowling Adventure</h1>
         <p>Navigate through obstacles to knock down the pins!</p>
+        <div id="control-options">
+          <button id="enable-gyro-btn" class="btn btn-secondary">📱 Enable Tilt Controls</button>
+          <p id="gyro-status" class="status-text"></p>
+        </div>
         <button id="start-btn" class="btn">Start Game</button>
       </div>
 
@@ -393,6 +751,28 @@
           <div class="spinner"></div>
           <p>Loading...</p>
         </div>
+      </div>
+
+      <!-- Ready Screen (before each throw) -->
+      <div id="ready-screen" class="screen hidden">
+        <div class="ready-content">
+          <div id="ready-frame" class="ready-frame">1フレーム</div>
+          <div id="ready-throw" class="ready-throw">1投目</div>
+          <button id="throw-btn" class="btn">投球開始</button>
+        </div>
+      </div>
+
+      <!-- Pin Count Display -->
+      <div id="pin-count-display" class="hidden">
+        <div id="pin-count-number">0</div>
+        <div id="pin-count-label">本</div>
+      </div>
+
+      <!-- Celebration Display -->
+      <div id="celebration-display" class="hidden">
+        <div id="celebration-image"></div>
+        <div id="celebration-text"></div>
+        <div id="celebration-particles"></div>
       </div>
 
       <!-- Result Screen -->
@@ -405,6 +785,14 @@
       </div>
     </div>
   </div>
+
+  <!-- Sound Effects -->
+  <audio id="sound-roll" preload="auto"></audio>
+  <audio id="sound-pin-hit" preload="auto"></audio>
+  <audio id="sound-strike" preload="auto"></audio>
+  <audio id="sound-spare" preload="auto"></audio>
+  <audio id="sound-gutter" preload="auto"></audio>
+  <audio id="sound-cheer" preload="auto"></audio>
 
 </body>
 </html>
