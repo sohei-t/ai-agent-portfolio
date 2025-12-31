@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Bowling Adventure - Obstacle Course Bowling</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* UI Overlay */
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .hud-section {
+      background: rgba(0,0,0,0.5);
+      padding: 10px 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(5px);
+    }
+
+    #frame-display {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #score-display {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: right;
+    }
+
+    #score-label {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    /* Speed Gauge */
+    #speed-gauge-container {
+      position: absolute;
+      bottom: 120px;
+      left: 20px;
+      width: 30px;
+      height: 150px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 15px;
+      border: 2px solid rgba(255,255,255,0.3);
+      overflow: hidden;
+    }
+
+    #speed-gauge {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0%;
+      background: linear-gradient(to top, #00ff88, #ffff00, #ff4444);
+      transition: height 0.1s ease-out;
+    }
+
+    #speed-label {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* Virtual Joystick */
+    #joystick-container {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      width: 120px;
+      height: 120px;
+      background: rgba(255,255,255,0.1);
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      pointer-events: auto;
+    }
+
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50px;
+      height: 50px;
+      margin-left: -25px;
+      margin-top: -25px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    /* Control Mode Toggle */
+    #control-toggle {
+      position: absolute;
+      bottom: 30px;
+      left: 20px;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 25px;
+      font-size: 14px;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    #control-toggle:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Screens */
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+      pointer-events: auto;
+      z-index: 100;
+    }
+
+    .screen.hidden {
+      display: none;
+    }
+
+    .screen h1 {
+      font-size: clamp(32px, 8vw, 64px);
+      color: #00ff88;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(0,255,136,0.5);
+    }
+
+    .screen p {
+      color: white;
+      font-size: 18px;
+      margin-bottom: 30px;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .btn {
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 5px 20px rgba(0,255,136,0.4);
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 30px rgba(0,255,136,0.6);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Scoreboard */
+    #scoreboard {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 2px;
+      margin: 20px;
+      padding: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      max-width: 600px;
+      width: 90%;
+    }
+
+    .frame-box {
+      background: rgba(255,255,255,0.05);
+      padding: 5px;
+      text-align: center;
+      border-radius: 5px;
+    }
+
+    .frame-number {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .frame-throws {
+      font-size: 14px;
+      color: white;
+      min-height: 20px;
+    }
+
+    .frame-score {
+      font-size: 16px;
+      font-weight: bold;
+      color: #00ff88;
+      min-height: 20px;
+    }
+
+    /* Result Screen */
+    #final-score {
+      font-size: 72px;
+      color: #ffdd00;
+      text-shadow: 0 0 30px rgba(255,221,0,0.5);
+    }
+
+    /* Loading */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid rgba(255,255,255,0.2);
+      border-top-color: #00ff88;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      #joystick-container {
+        width: 100px;
+        height: 100px;
+        bottom: 20px;
+        right: 20px;
+      }
+
+      #joystick-knob {
+        width: 40px;
+        height: 40px;
+        margin-left: -20px;
+        margin-top: -20px;
+      }
+
+      #speed-gauge-container {
+        height: 120px;
+        bottom: 100px;
+      }
+
+      .hud-section {
+        padding: 8px 12px;
+      }
+
+      #frame-display {
+        font-size: 14px;
+      }
+
+      #score-display {
+        font-size: 20px;
+      }
+    }
+
+    /* Landscape mobile */
+    @media (max-height: 500px) and (orientation: landscape) {
+      #speed-gauge-container {
+        height: 100px;
+        bottom: 80px;
+      }
+
+      #joystick-container {
+        width: 80px;
+        height: 80px;
+        bottom: 10px;
+        right: 10px;
+      }
+
+      #joystick-knob {
+        width: 35px;
+        height: 35px;
+        margin-left: -17.5px;
+        margin-top: -17.5px;
+      }
+
+      #control-toggle {
+        bottom: 10px;
+        padding: 8px 15px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- Three.js Canvas will be inserted here -->
+
+    <div id="ui-overlay">
+      <!-- HUD -->
+      <div id="hud">
+        <div class="hud-section">
+          <div id="frame-display">Frame: 1 / 10</div>
+          <div id="throw-display">Throw: 1</div>
+        </div>
+        <div class="hud-section">
+          <div id="score-label">SCORE</div>
+          <div id="score-display">0</div>
+        </div>
+      </div>
+
+      <!-- Speed Gauge -->
+      <div id="speed-gauge-container">
+        <div id="speed-gauge"></div>
+        <div id="speed-label">Speed</div>
+      </div>
+
+      <!-- Virtual Joystick -->
+      <div id="joystick-container">
+        <div id="joystick-knob"></div>
+      </div>
+
+      <!-- Control Mode Toggle -->
+      <button id="control-toggle">Joystick</button>
+
+      <!-- Title Screen -->
+      <div id="title-screen" class="screen">
+        <h1>Bowling Adventure</h1>
+        <p>Navigate through obstacles to knock down the pins!</p>
+        <button id="start-btn" class="btn">Start Game</button>
+      </div>
+
+      <!-- Loading Screen -->
+      <div id="loading-screen" class="screen hidden">
+        <div id="loading">
+          <div class="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+
+      <!-- Result Screen -->
+      <div id="result-screen" class="screen hidden">
+        <h1>Game Over!</h1>
+        <p>Your final score:</p>
+        <div id="final-score">0</div>
+        <div id="scoreboard"></div>
+        <button id="restart-btn" class="btn">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
