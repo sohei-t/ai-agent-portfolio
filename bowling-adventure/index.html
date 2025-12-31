@@ -217,6 +217,41 @@
       transform: scale(0.98);
     }
 
+    .btn-secondary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      box-shadow: 0 5px 20px rgba(99,102,241,0.4);
+      font-size: 16px;
+      padding: 12px 24px;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 8px 30px rgba(99,102,241,0.6);
+    }
+
+    .btn-secondary.enabled {
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      box-shadow: 0 5px 20px rgba(0,255,136,0.4);
+    }
+
+    #control-options {
+      margin-bottom: 20px;
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    .status-text.success {
+      color: #00ff88;
+    }
+
+    .status-text.error {
+      color: #ff6b6b;
+    }
+
     /* Scoreboard */
     #scoreboard {
       display: grid;
@@ -345,7 +380,7 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="./assets/index-ER6Cv-cN.js"></script>
+  <script type="module" crossorigin src="./assets/index-DsCtD0DM.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/three-CQZDdIZO.js">
   <link rel="modulepreload" crossorigin href="./assets/cannon-CMZeK6Ld.js">
 </head>
@@ -384,6 +419,10 @@
       <div id="title-screen" class="screen">
         <h1>Bowling Adventure</h1>
         <p>Navigate through obstacles to knock down the pins!</p>
+        <div id="control-options">
+          <button id="enable-gyro-btn" class="btn btn-secondary">📱 Enable Tilt Controls</button>
+          <p id="gyro-status" class="status-text"></p>
+        </div>
         <button id="start-btn" class="btn">Start Game</button>
       </div>
 
