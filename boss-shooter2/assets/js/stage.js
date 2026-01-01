@@ -163,6 +163,12 @@ window.stageBgm = null;
 function loadStage(game, stageNumber) {
     const stage = stageData[stageNumber] || stageData[1];
 
+    // 既存のボスを完全にクリーンアップ（重複出現を防ぐ）
+    if (game.boss) {
+        game.boss.destroyed = true;  // destroyフラグを立てて重複処理を防ぐ
+        game.boss = null;
+    }
+
     // リセット
     window.stageTimer = 0;
     window.currentWaveIndex = 0;
@@ -173,6 +179,8 @@ function loadStage(game, stageNumber) {
     game.boss = null;
     game.bossStageStartTime = null;  // ボスタイマーリセット
     game.bossTimeoutProcessing = false;  // タイムアウト処理フラグリセット
+    game.bossDefeated = false;  // ボス撃破フラグリセット
+    game.processingBossDefeat = false;  // ボス撃破処理フラグリセット
 
     // ステージ設定
     game.scrollSpeed = stage.scrollSpeed;

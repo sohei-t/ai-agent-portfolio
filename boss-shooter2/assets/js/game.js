@@ -185,6 +185,11 @@ class Game {
             const powerup = this.powerups[i];
             powerup.update(dt);
 
+            // プレイヤーへの引き寄せ効果（マグネット）
+            if (this.player && powerup.attractToPlayer) {
+                powerup.attractToPlayer(this.player);
+            }
+
             if (powerup.y > this.canvas.height + 20) {
                 this.powerups.splice(i, 1);
             }
@@ -219,25 +224,29 @@ class Game {
                     }
 
                     const elapsedTime = Date.now() - this.bossStageStartTime;
-                    const timeLimit = 10000; // テスト用: 10秒（本番は180000ミリ秒）
+                    const timeLimit = 120000; // 2分（120秒）
 
                     if (elapsedTime >= timeLimit) {
                         // タイムアップでステージクリア（一度だけ実行）
                         this.bossTimeoutProcessing = true;
                         console.log('タイムアップ - ステージクリア！');
 
-                        // ボスを撤退させる
+                        // ボスを即座に完全削除（次のステージに持ち越さない）
                         if (this.boss && !this.boss.destroyed) {
-                            this.boss.movePattern = 'leaving';
+                            this.boss.destroyed = true;  // destroyフラグを立てて重複処理を防ぐ
+                            // 撤退エフェクト
+                            this.createExplosion(this.boss.x, this.boss.y, 'medium');
                         }
+                        this.boss = null;  // 即座にnullにして次のステージに持ち越さない
+                        this.bossStageStartTime = null;
+
+                        document.getElementById('bossHealth').style.display = 'none';
 
                         // ステージクリア処理（onBossDefeatedを呼ぶ）
                         setTimeout(() => {
-                            this.boss = null;
-                            this.bossStageStartTime = null;
                             this.bossTimeoutProcessing = false;  // リセット
                             this.onBossDefeated();  // 既存のボス撃破処理を使用
-                        }, 2000);
+                        }, 1000);
                     }
                 }
             }
@@ -259,12 +268,44 @@ class Game {
 
             // 定期的にランダムアイテムを出現させる
             if (this.stageItemTimer >= this.nextItemSpawnTime) {
-                // ランダムにアイテムタイプを選択
-                const itemTypes = [
-                    'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow',
-                    'heart', 'bomb', 'shield', 'speed', 'power', 'score', 'option'
-                ];
-                const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+                let itemType;
+
+                // ステージ10以降はMAXに達していない武器を優先
+                if (this.stage >= 10 && this.player && this.player.weapons) {
+                    const nonMaxWeapons = [];
+                    const weaponMap = {
+                        'weapon_default': this.player.weapons.default.level,
+                        'weapon_green': this.player.weapons.green.equipped ? this.player.weapons.green.level : 0,
+                        'weapon_purple': this.player.weapons.purple.equipped ? this.player.weapons.purple.level : 0,
+                        'weapon_yellow': this.player.weapons.yellow.equipped ? this.player.weapons.yellow.level : 0
+                    };
+
+                    for (const [weapon, level] of Object.entries(weaponMap)) {
+                        if (level < 10) {
+                            // レベルが低いほど出現率を上げる（1〜10回追加）
+                            const weight = 11 - level;
+                            for (let i = 0; i < weight; i++) {
+                                nonMaxWeapons.push(weapon);
+                            }
+                        }
+                    }
+
+                    // MAXに達していない武器がある場合は80%の確率でそれを選択
+                    if (nonMaxWeapons.length > 0 && Math.random() < 0.8) {
+                        itemType = nonMaxWeapons[Math.floor(Math.random() * nonMaxWeapons.length)];
+                    } else {
+                        // その他のアイテム
+                        const otherItems = ['heart', 'bomb', 'shield', 'option'];
+                        itemType = otherItems[Math.floor(Math.random() * otherItems.length)];
+                    }
+                } else {
+                    // ステージ9以前は従来のランダム
+                    const itemTypes = [
+                        'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow',
+                        'heart', 'bomb', 'shield', 'option'
+                    ];
+                    itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+                }
 
                 // 画面上部のランダムな位置に出現
                 const x = 50 + Math.random() * (this.canvas.width - 100);

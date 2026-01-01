@@ -2,10 +2,10 @@
 
 <div align="center">
 
-## 🎮 [ライブデモで遊ぶ](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/) | 📖 [詳細情報](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)
+## 🎮 [ライブデモで遊ぶ](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) | 📖 [詳細情報](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/about.html)
 
-[![今すぐプレイ](https://img.shields.io/badge/今すぐプレイ-ライブデモ-00ff00?style=for-the-badge&logo=gamepad)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/)
-[![詳細](https://img.shields.io/badge/詳細を見る-About-0099ff?style=for-the-badge&logo=book)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)
+[![今すぐプレイ](https://img.shields.io/badge/今すぐプレイ-ライブデモ-00ff00?style=for-the-badge&logo=gamepad)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/)
+[![詳細](https://img.shields.io/badge/詳細を見る-About-0099ff?style=for-the-badge&logo=book)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/about.html)
 
 [🌍 English](README.md) | 🇯🇵 日本語
 

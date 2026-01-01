@@ -53,7 +53,7 @@ class Bullet {
     }
 
     update(dt) {
-        // ホーミング処理
+        // ホーミング処理（敵弾）
         if (this.homing && this.owner === 'enemy') {
             const target = this.game ? this.game.player : null;
             if (target) {
@@ -73,6 +73,35 @@ class Bullet {
                 }
 
                 this.rotation = Math.atan2(this.vy, this.vx);
+            }
+        }
+
+        // プレイヤーの誘導弾（ファントムビーム等）
+        if (this.homing && this.owner === 'player' && this.target) {
+            // ターゲットが生存しているか確認
+            if (this.target.hp > 0 || (this.target.health !== undefined && this.target.health > 0)) {
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const angle = Math.atan2(dy, dx);
+                const currentAngle = Math.atan2(this.vy, this.vx);
+
+                // 現在の角度から目標角度へ滑らかに回転
+                let angleDiff = angle - currentAngle;
+                // 角度を-PI〜PIに正規化
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                // 回転量を制限
+                const maxTurn = this.homingStrength || 0.1;
+                const turn = Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+                const newAngle = currentAngle + turn;
+
+                // 速度を更新（弧を描く動き）
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                this.vx = Math.cos(newAngle) * speed;
+                this.vy = Math.sin(newAngle) * speed;
+
+                this.rotation = newAngle;
             }
         }
 
@@ -419,6 +448,37 @@ class Bullet {
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
+                break;
+
+            case 'phantom_beam':
+                // ファントムビーム（紫の誘導弾）
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#ff00ff';
+
+                // 外側のグロー
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = '#ff00ff';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.width, this.height, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 内側のコア
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // パルスエフェクト
+                const phantomPulse = Math.sin(Date.now() * 0.02) * 0.3 + 0.7;
+                ctx.globalAlpha = phantomPulse;
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.width * 1.2, this.height * 1.2, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
                 break;
 
             default:

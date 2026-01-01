@@ -84,6 +84,13 @@ class Player {
         this.options = [];
         this.maxOptions = 4;
 
+        // 全武器MAX時の特殊オプション（分身システム）
+        this.allMaxMode = false;
+        this.phantomOptions = []; // 分身オプション
+        this.phantomTrails = [];  // 残像用
+        this.phantomAngle = 0;    // 回転角度
+        this.phantomFireTimer = 0; // 発射タイマー
+
         // 入力
         this.input = {
             left: false,
@@ -127,6 +134,17 @@ class Player {
             this.invincible--;
         }
 
+        // シールド持続時間更新
+        if (this.shield && this.shieldDuration > 0) {
+            this.shieldDuration--;
+            if (this.shieldDuration <= 0) {
+                this.shield = false;
+            }
+        }
+
+        // 全武器MAXチェック
+        this.checkAllMaxMode();
+
         // 移動処理
         this.handleMovement(dt);
 
@@ -163,6 +181,11 @@ class Player {
 
         // オプション機体位置更新
         this.updateOptions();
+
+        // 特殊オプション（分身）更新
+        if (this.allMaxMode) {
+            this.updatePhantomOptions();
+        }
     }
 
     handleMovement(dt) {
@@ -888,17 +911,14 @@ class Player {
                     specialWeapon.activateCombinedMode();
                 }
                 break;
-            case 'score':
-                // スコア2倍ボーナス（10秒間）
-                if (this.game) {
-                    this.game.scoreMultiplier = 2;
-                    const gameRef = this.game;
-                    setTimeout(function() {
-                        if (gameRef) {
-                            gameRef.scoreMultiplier = 1;
-                        }
-                    }, 10000);
+            case 'shield':
+                // シールド（一定時間無敵）
+                this.shield = true;
+                this.shieldDuration = 600; // 10秒間（60fps * 10）
+                if (this.game && this.game.createExplosion) {
+                    this.game.createExplosion(this.x, this.y, 'shield');
                 }
+                console.log('シールド発動！');
                 break;
             default:
                 console.warn('Unknown powerup type:', type);
@@ -948,35 +968,36 @@ class Player {
     render(ctx) {
         ctx.save();
 
-        // 自機を目立たせる発光エフェクト
+        // 自機を目立たせる発光エフェクト（赤色で視認性向上）
         // 外側のグロー（常に表示）
-        const glowTime = Date.now() * 0.002;
+        const glowTime = Date.now() * 0.003;
         const glowPulse = Math.sin(glowTime) * 0.3 + 0.7; // 0.4〜1.0で脈動
 
-        // 大きな外側のグロー
-        ctx.shadowBlur = 30 * glowPulse;
-        ctx.shadowColor = '#00ffff';
-        ctx.globalAlpha = 0.6 * glowPulse;
-        ctx.fillStyle = '#00ffff';
+        // 大きな外側のグロー（赤色）
+        ctx.shadowBlur = 40 * glowPulse;
+        ctx.shadowColor = '#ff0000';
+        ctx.globalAlpha = 0.7 * glowPulse;
+        ctx.fillStyle = '#ff3300';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width * 1.5, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // 中間のグロー
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ffffff';
-        ctx.globalAlpha = 0.4 * glowPulse;
-        ctx.fillStyle = '#ffffff';
+        // 中間のグロー（オレンジ）
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#ff6600';
+        ctx.globalAlpha = 0.5 * glowPulse;
+        ctx.fillStyle = '#ff6600';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 1.3, 0, Math.PI * 2);
         ctx.fill();
 
-        // 内側の明るいコア
-        ctx.shadowBlur = 10;
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        // 内側の明るいコア（白〜黄色）
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ffff00';
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(255, 255, 200, 0.9)';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width * 0.3, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 0.5, 0, Math.PI * 2);
         ctx.fill();
 
         // シャドウをリセット
@@ -1000,6 +1021,54 @@ class Player {
             ctx.beginPath();
             ctx.arc(this.x, this.y, radius * 0.7, 0, Math.PI * 2);
             ctx.stroke();
+
+            // 満タンチャージ時の砲台エフェクト（チャージ弾が砲台に付着しているイメージ）
+            if (chargeRatio >= 0.95) {
+                // 砲台位置（自機の前方）
+                const cannonY = this.y - this.height - 5;
+                const pulseTime = Date.now() * 0.01;
+                const pulseFactor = Math.sin(pulseTime) * 0.3 + 0.7;
+
+                // 大きな青い光球（チャージ弾本体）
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = '#00ffff';
+                ctx.globalAlpha = 0.9 * pulseFactor;
+                ctx.fillStyle = '#00ffff';
+                ctx.beginPath();
+                ctx.arc(this.x, cannonY, 12 + pulseFactor * 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 内側のコア（白く輝く）
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ffffff';
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.x, cannonY, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // エネルギーリング（回転する）
+                ctx.globalAlpha = 0.6;
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    const ringAngle = pulseTime * 2 + i * Math.PI * 2 / 3;
+                    const ringX = this.x + Math.cos(ringAngle) * 8;
+                    const ringY = cannonY + Math.sin(ringAngle) * 4;
+                    ctx.beginPath();
+                    ctx.arc(ringX, ringY, 3, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // 「MAX」テキスト表示
+                ctx.globalAlpha = pulseFactor;
+                ctx.font = 'bold 10px Arial';
+                ctx.fillStyle = '#ffff00';
+                ctx.textAlign = 'center';
+                ctx.fillText('MAX', this.x, cannonY - 18);
+
+                ctx.shadowBlur = 0;
+            }
 
             ctx.globalAlpha = 1;
         }
@@ -1059,14 +1128,22 @@ class Player {
         );
         ctx.fill();
 
-        // シールド表示
+        // シールド表示（持続時間に応じて点滅）
         if (this.shield) {
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-            ctx.lineWidth = 3;
+            const shieldAlpha = this.shieldDuration < 120 ?
+                (Math.sin(Date.now() * 0.02) * 0.3 + 0.4) : 0.5;
+            ctx.strokeStyle = `rgba(0, 255, 150, ${shieldAlpha})`;
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00ff99';
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.width * 2.5, 0, Math.PI * 2);
             ctx.stroke();
+            ctx.shadowBlur = 0;
         }
+
+        // 分身オプション描画
+        this.renderPhantomOptions(ctx);
 
         ctx.restore();
     }
@@ -1301,5 +1378,256 @@ class Player {
                 }
             }
         });
+    }
+
+    // 全武器MAXチェック
+    checkAllMaxMode() {
+        const wasAllMax = this.allMaxMode;
+
+        // 全ての武器がMAX（レベル10）かチェック
+        const allMax = this.weapons.default.level >= 10 &&
+                       this.weapons.green.equipped && this.weapons.green.level >= 10 &&
+                       this.weapons.purple.equipped && this.weapons.purple.level >= 10 &&
+                       this.weapons.yellow.equipped && this.weapons.yellow.level >= 10;
+
+        this.allMaxMode = allMax;
+
+        // 初めてALL MAXになった時の演出
+        if (allMax && !wasAllMax) {
+            this.activateAllMaxMode();
+        }
+    }
+
+    // ALL MAXモード発動
+    activateAllMaxMode() {
+        console.log('ALL MAX MODE ACTIVATED!');
+
+        // 分身オプション3体を生成
+        this.phantomOptions = [];
+        for (let i = 0; i < 3; i++) {
+            this.phantomOptions.push({
+                angle: (Math.PI * 2 / 3) * i,
+                distance: 50,
+                x: this.x,
+                y: this.y
+            });
+        }
+
+        // 発動エフェクト
+        if (this.game && this.game.createExplosion) {
+            for (let i = 0; i < 8; i++) {
+                const angle = (Math.PI * 2 / 8) * i;
+                setTimeout(() => {
+                    this.game.createExplosion(
+                        this.x + Math.cos(angle) * 60,
+                        this.y + Math.sin(angle) * 60,
+                        'large'
+                    );
+                }, i * 50);
+            }
+        }
+
+        // テキスト表示
+        if (this.game && this.game.uiTexts) {
+            this.game.uiTexts.push({
+                text: 'ALL WEAPONS MAX!',
+                x: this.game.canvas.width / 2,
+                y: this.game.canvas.height / 2 - 100,
+                vy: -1,
+                alpha: 1.0,
+                lifeTime: 180,
+                color: '#ff00ff',
+                fontSize: 48,
+                style: 'bold',
+                shadow: true,
+                textAlign: 'center'
+            });
+            this.game.uiTexts.push({
+                text: 'PHANTOM BARRIER ACTIVATED',
+                x: this.game.canvas.width / 2,
+                y: this.game.canvas.height / 2 - 50,
+                vy: -1,
+                alpha: 1.0,
+                lifeTime: 180,
+                color: '#00ffff',
+                fontSize: 32,
+                style: 'bold',
+                shadow: true,
+                textAlign: 'center'
+            });
+        }
+
+        if (typeof playSFX === 'function') {
+            playSFX('allmax');
+        }
+    }
+
+    // 分身オプション更新
+    updatePhantomOptions() {
+        // 回転速度
+        this.phantomAngle += 0.05;
+
+        // 各分身の位置を更新
+        for (let i = 0; i < this.phantomOptions.length; i++) {
+            const phantom = this.phantomOptions[i];
+            const angle = this.phantomAngle + (Math.PI * 2 / 3) * i;
+
+            // 残像を記録
+            this.phantomTrails.push({
+                x: phantom.x,
+                y: phantom.y,
+                alpha: 0.5,
+                size: 8
+            });
+
+            // 位置更新
+            phantom.x = this.x + Math.cos(angle) * phantom.distance;
+            phantom.y = this.y + Math.sin(angle) * phantom.distance;
+        }
+
+        // 残像の減衰
+        for (let i = this.phantomTrails.length - 1; i >= 0; i--) {
+            this.phantomTrails[i].alpha -= 0.02;
+            this.phantomTrails[i].size *= 0.98;
+            if (this.phantomTrails[i].alpha <= 0) {
+                this.phantomTrails.splice(i, 1);
+            }
+        }
+
+        // 残像は最大100個まで
+        if (this.phantomTrails.length > 100) {
+            this.phantomTrails = this.phantomTrails.slice(-100);
+        }
+
+        // 発射タイマー
+        this.phantomFireTimer++;
+        if (this.phantomFireTimer >= 30) { // 0.5秒ごと
+            this.firePhantomBeam();
+            this.phantomFireTimer = 0;
+        }
+
+        // バリア機能: 敵弾との衝突判定
+        if (this.game && this.game.bullets) {
+            for (let i = this.game.bullets.length - 1; i >= 0; i--) {
+                const bullet = this.game.bullets[i];
+                if (bullet.owner === 'enemy') {
+                    // 各分身との距離をチェック
+                    for (const phantom of this.phantomOptions) {
+                        const dx = bullet.x - phantom.x;
+                        const dy = bullet.y - phantom.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < 20) {
+                            // 弾を消滅
+                            this.game.bullets.splice(i, 1);
+                            // エフェクト
+                            if (this.game.createExplosion) {
+                                this.game.createExplosion(bullet.x, bullet.y, 'small');
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 分身からの誘導ビーム発射
+    firePhantomBeam() {
+        if (!this.game || this.phantomOptions.length === 0) return;
+
+        // 各分身から1発ずつ発射
+        for (const phantom of this.phantomOptions) {
+            // 敵をターゲットとして探す（ボス以外）
+            let target = null;
+            let minDist = Infinity;
+
+            if (this.game.enemies && this.game.enemies.length > 0) {
+                for (const enemy of this.game.enemies) {
+                    const dx = enemy.x - phantom.x;
+                    const dy = enemy.y - phantom.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        target = enemy;
+                    }
+                }
+            }
+
+            // 弾を生成
+            if (typeof Bullet !== 'undefined') {
+                const bullet = new Bullet(phantom.x, phantom.y, 0, -8, 20, 'player', 'phantom_beam');
+                bullet.width = 10;
+                bullet.height = 20;
+                bullet.color = '#ff00ff';
+                bullet.glowColor = '#ff00ff';
+                bullet.penetrating = true;
+                bullet.pierceCount = 5;
+                bullet.game = this.game;
+
+                // ボス以外への誘導機能
+                if (target && !this.game.boss) {
+                    bullet.target = target;
+                    bullet.homing = true;
+                    bullet.homingStrength = 0.15;
+                }
+
+                this.game.bullets.push(bullet);
+            }
+        }
+
+        if (typeof playSFX === 'function') {
+            playSFX('phantom_beam');
+        }
+    }
+
+    // 分身描画
+    renderPhantomOptions(ctx) {
+        if (!this.allMaxMode) return;
+
+        // 残像を描画
+        for (const trail of this.phantomTrails) {
+            ctx.globalAlpha = trail.alpha;
+            ctx.fillStyle = '#ff00ff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ff00ff';
+            ctx.beginPath();
+            ctx.arc(trail.x, trail.y, trail.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 分身本体を描画
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff00ff';
+        for (const phantom of this.phantomOptions) {
+            // 外側のグロー
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = '#ff00ff';
+            ctx.beginPath();
+            ctx.arc(phantom.x, phantom.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 内側のコア
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(phantom.x, phantom.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 自機の小さな複製を描画
+            ctx.globalAlpha = 0.8;
+            if (this.imageLoaded && this.sprite) {
+                ctx.drawImage(
+                    this.sprite,
+                    phantom.x - 6,
+                    phantom.y - 8,
+                    12,
+                    16
+                );
+            }
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
     }
 }
