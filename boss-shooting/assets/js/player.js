@@ -66,8 +66,8 @@ class Player {
             this.imageLoaded = false;
         };
 
-        // 画像を読み込む（PNG画像が存在する場合）
-        this.sprite.src = `assets/images/player_ship.png`;
+        // 画像を読み込む（SVG画像）
+        this.sprite.src = `assets/images/player_ship_v2.svg`;
     }
 
     update(dt) {

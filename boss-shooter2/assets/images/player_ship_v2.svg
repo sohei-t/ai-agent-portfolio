@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- メイン機体 -->
+  <path d="M32 8 L24 28 L26 48 L32 52 L38 48 L40 28 Z"
+        fill="url(#bodyGradient)" stroke="#00ffff" stroke-width="1"/>
+
+  <!-- コックピット -->
+  <ellipse cx="32" cy="20" rx="4" ry="8" fill="#00ffff" opacity="0.8"/>
+  <ellipse cx="32" cy="20" rx="2" ry="6" fill="#ffffff" opacity="0.6"/>
+
+  <!-- 左翼 -->
+  <path d="M24 28 L8 38 L8 44 L24 36 Z"
+        fill="url(#wingGradient)" stroke="#00ccff" stroke-width="1"/>
+
+  <!-- 右翼 -->
+  <path d="M40 28 L56 38 L56 44 L40 36 Z"
+        fill="url(#wingGradient)" stroke="#00ccff" stroke-width="1"/>
+
+  <!-- エンジン左 -->
+  <circle cx="26" cy="46" r="3" fill="#ff6600" opacity="0.8"/>
+  <circle cx="26" cy="46" r="5" fill="#ffaa00" opacity="0.4"/>
+
+  <!-- エンジン右 -->
+  <circle cx="38" cy="46" r="3" fill="#ff6600" opacity="0.8"/>
+  <circle cx="38" cy="46" r="5" fill="#ffaa00" opacity="0.4"/>
+
+  <!-- エンジン中央 -->
+  <ellipse cx="32" cy="48" rx="2" ry="4" fill="#00ffff" opacity="0.9"/>
+  <ellipse cx="32" cy="50" rx="3" ry="6" fill="#00ffff" opacity="0.3"/>
+
+  <!-- グラデーション定義 -->
+  <defs>
+    <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4488ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2266dd;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1144aa;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="wingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3377ee;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1155cc;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- エンジンの光 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 装飾ライン -->
+  <line x1="32" y1="8" x2="32" y2="16" stroke="#00ffff" stroke-width="2" opacity="0.8"/>
+  <line x1="24" y1="30" x2="20" y2="34" stroke="#00ccff" stroke-width="1" opacity="0.6"/>
+  <line x1="40" y1="30" x2="44" y2="34" stroke="#00ccff" stroke-width="1" opacity="0.6"/>
+</svg>
