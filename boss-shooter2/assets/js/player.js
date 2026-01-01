@@ -948,35 +948,36 @@ class Player {
     render(ctx) {
         ctx.save();
 
-        // 自機を目立たせる発光エフェクト
+        // 自機を目立たせる発光エフェクト（赤色で視認性向上）
         // 外側のグロー（常に表示）
-        const glowTime = Date.now() * 0.002;
+        const glowTime = Date.now() * 0.003;
         const glowPulse = Math.sin(glowTime) * 0.3 + 0.7; // 0.4〜1.0で脈動
 
-        // 大きな外側のグロー
-        ctx.shadowBlur = 30 * glowPulse;
-        ctx.shadowColor = '#00ffff';
-        ctx.globalAlpha = 0.6 * glowPulse;
-        ctx.fillStyle = '#00ffff';
+        // 大きな外側のグロー（赤色）
+        ctx.shadowBlur = 40 * glowPulse;
+        ctx.shadowColor = '#ff0000';
+        ctx.globalAlpha = 0.7 * glowPulse;
+        ctx.fillStyle = '#ff3300';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width * 1.5, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // 中間のグロー
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ffffff';
-        ctx.globalAlpha = 0.4 * glowPulse;
-        ctx.fillStyle = '#ffffff';
+        // 中間のグロー（オレンジ）
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#ff6600';
+        ctx.globalAlpha = 0.5 * glowPulse;
+        ctx.fillStyle = '#ff6600';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 1.3, 0, Math.PI * 2);
         ctx.fill();
 
-        // 内側の明るいコア
-        ctx.shadowBlur = 10;
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        // 内側の明るいコア（白〜黄色）
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ffff00';
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(255, 255, 200, 0.9)';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width * 0.3, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.width * 0.5, 0, Math.PI * 2);
         ctx.fill();
 
         // シャドウをリセット
@@ -1000,6 +1001,54 @@ class Player {
             ctx.beginPath();
             ctx.arc(this.x, this.y, radius * 0.7, 0, Math.PI * 2);
             ctx.stroke();
+
+            // 満タンチャージ時の砲台エフェクト（チャージ弾が砲台に付着しているイメージ）
+            if (chargeRatio >= 0.95) {
+                // 砲台位置（自機の前方）
+                const cannonY = this.y - this.height - 5;
+                const pulseTime = Date.now() * 0.01;
+                const pulseFactor = Math.sin(pulseTime) * 0.3 + 0.7;
+
+                // 大きな青い光球（チャージ弾本体）
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = '#00ffff';
+                ctx.globalAlpha = 0.9 * pulseFactor;
+                ctx.fillStyle = '#00ffff';
+                ctx.beginPath();
+                ctx.arc(this.x, cannonY, 12 + pulseFactor * 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 内側のコア（白く輝く）
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ffffff';
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.x, cannonY, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // エネルギーリング（回転する）
+                ctx.globalAlpha = 0.6;
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    const ringAngle = pulseTime * 2 + i * Math.PI * 2 / 3;
+                    const ringX = this.x + Math.cos(ringAngle) * 8;
+                    const ringY = cannonY + Math.sin(ringAngle) * 4;
+                    ctx.beginPath();
+                    ctx.arc(ringX, ringY, 3, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // 「MAX」テキスト表示
+                ctx.globalAlpha = pulseFactor;
+                ctx.font = 'bold 10px Arial';
+                ctx.fillStyle = '#ffff00';
+                ctx.textAlign = 'center';
+                ctx.fillText('MAX', this.x, cannonY - 18);
+
+                ctx.shadowBlur = 0;
+            }
 
             ctx.globalAlpha = 1;
         }

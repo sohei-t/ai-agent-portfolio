@@ -29,41 +29,61 @@ class Powerup {
 
     setupType() {
         const types = {
-            // デフォルト武器レベルアップ（水色）
+            // デフォルト武器レベルアップ（水色・稲妻型）
             weapon_default: {
                 color: '#00ffff',
                 icon: 'B',
-                description: 'Beam Level Up'
+                description: 'Beam Level Up',
+                shape: 'lightning'
             },
-            // 緑武器レベルアップ
+            // 緑武器レベルアップ（扇型）
             weapon_green: {
                 color: '#00ff00',
                 icon: 'S',
-                description: 'Spread Level Up'
+                description: 'Spread Level Up',
+                shape: 'spread'
             },
-            // 紫武器レベルアップ
+            // 紫武器レベルアップ（レーザー型）
             weapon_purple: {
                 color: '#ff00ff',
                 icon: 'L',
-                description: 'Laser Level Up'
+                description: 'Laser Level Up',
+                shape: 'laser'
             },
-            // 黄色武器レベルアップ
+            // 黄色武器レベルアップ（波型）
             weapon_yellow: {
                 color: '#ffff00',
                 icon: 'W',
-                description: 'Wave Level Up'
+                description: 'Wave Level Up',
+                shape: 'wave'
             },
             // HP回復（ハートマーク）
             heart: {
                 color: '#ff0066',
                 icon: '❤',
-                description: 'HP Recovery'
+                description: 'HP Recovery',
+                shape: 'heart'
             },
-            // オプション機体
+            // 爆弾追加（爆弾型）
+            bomb: {
+                color: '#ff6600',
+                icon: '💣',
+                description: 'Bomb Add',
+                shape: 'bomb'
+            },
+            // スコア2倍（星型）
+            score: {
+                color: '#ffd700',
+                icon: '★',
+                description: 'Score x2',
+                shape: 'star'
+            },
+            // オプション機体（円形）
             option: {
-                color: '#00ffff',
+                color: '#00ccff',
                 icon: 'O',
-                description: 'Option Unit'
+                description: 'Option Unit',
+                shape: 'option'
             }
         };
 
@@ -71,6 +91,7 @@ class Powerup {
         this.color = config.color;
         this.icon = config.icon;
         this.description = config.description;
+        this.shape = config.shape;
     }
 
     update(dt) {
@@ -145,88 +166,96 @@ class Powerup {
         ctx.lineWidth = 2;
         ctx.globalAlpha = glowIntensity;
 
-        // アイテムタイプ別の形状描画
-        switch (this.type) {
-            case 'weapon':
-                // 稲妻型（攻撃的な形状）
+        // アイテムタイプ別の形状描画（shapeに基づく）
+        switch (this.shape) {
+            case 'lightning':
+                // 稲妻型（水色ビーム武器）
                 ctx.beginPath();
                 ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(-this.width / 4, -this.height / 6);
-                ctx.lineTo(this.width / 6, -this.height / 6);
-                ctx.lineTo(-this.width / 6, this.height / 6);
-                ctx.lineTo(this.width / 4, this.height / 6);
+                ctx.lineTo(-this.width / 3, -this.height / 6);
+                ctx.lineTo(this.width / 6, -this.height / 8);
+                ctx.lineTo(-this.width / 6, this.height / 8);
+                ctx.lineTo(this.width / 3, this.height / 6);
                 ctx.lineTo(0, this.height / 2);
+                ctx.lineTo(-this.width / 6, this.height / 6);
+                ctx.lineTo(this.width / 8, this.height / 10);
+                ctx.lineTo(-this.width / 8, -this.height / 10);
+                ctx.lineTo(this.width / 6, -this.height / 6);
                 ctx.closePath();
                 break;
 
-            case 'power':
-                // 炎型（パワーアップを表現）
+            case 'spread':
+                // 扇型（緑スプレッド武器）
                 ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
-                ctx.bezierCurveTo(
-                    -this.width / 2, -this.height / 3,
-                    -this.width / 3, this.height / 3,
-                    0, this.height / 2
-                );
-                ctx.bezierCurveTo(
-                    this.width / 3, this.height / 3,
-                    this.width / 2, -this.height / 3,
-                    0, -this.height / 2
-                );
-                ctx.closePath();
-                break;
-
-            case 'life':
-                // ハート型（より明確に）
-                const w = this.width / 2;
-                const h = this.height / 2;
-                ctx.beginPath();
-                ctx.moveTo(0, -h * 0.3);
-                ctx.bezierCurveTo(-w * 0.5, -h, -w, -h * 0.5, -w, 0);
-                ctx.bezierCurveTo(-w, h * 0.5, 0, h, 0, h);
-                ctx.bezierCurveTo(0, h, w, h * 0.5, w, 0);
-                ctx.bezierCurveTo(w, -h * 0.5, w * 0.5, -h, 0, -h * 0.3);
-                ctx.closePath();
-                break;
-
-            case 'bomb':
-                // 爆弾型（丸い本体と導火線）
-                ctx.beginPath();
-                ctx.arc(0, this.height / 6, this.width / 3, 0, Math.PI * 2);
-                ctx.moveTo(0, -this.height / 6);
-                ctx.lineTo(0, -this.height / 2);
-                // 導火線の火花
-                ctx.moveTo(-5, -this.height / 2);
-                ctx.lineTo(5, -this.height / 2);
-                break;
-
-            case 'shield':
-                // シールド型（盾の形）
-                ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
+                // 扇の本体
+                ctx.moveTo(0, this.height / 3);
                 ctx.lineTo(-this.width / 2, -this.height / 3);
-                ctx.lineTo(-this.width / 2, this.height / 3);
-                ctx.quadraticCurveTo(-this.width / 2, this.height / 2, 0, this.height / 2);
-                ctx.quadraticCurveTo(this.width / 2, this.height / 2, this.width / 2, this.height / 3);
+                ctx.lineTo(-this.width / 4, -this.height / 2);
+                ctx.lineTo(0, -this.height / 3);
+                ctx.lineTo(this.width / 4, -this.height / 2);
                 ctx.lineTo(this.width / 2, -this.height / 3);
                 ctx.closePath();
                 break;
 
-            case 'speed':
-                // 矢印型（スピードアップ）
+            case 'laser':
+                // レーザー型（紫レーザー武器）- 縦長の菱形
                 ctx.beginPath();
                 ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(-this.width / 2, 0);
                 ctx.lineTo(-this.width / 4, 0);
-                ctx.lineTo(-this.width / 4, this.height / 2);
-                ctx.lineTo(this.width / 4, this.height / 2);
+                ctx.lineTo(0, this.height / 2);
                 ctx.lineTo(this.width / 4, 0);
-                ctx.lineTo(this.width / 2, 0);
+                ctx.closePath();
+                // 中央のライン
+                ctx.moveTo(0, -this.height / 3);
+                ctx.lineTo(0, this.height / 3);
+                break;
+
+            case 'wave':
+                // 波型（黄色ウェーブ武器）
+                ctx.beginPath();
+                ctx.moveTo(-this.width / 2, 0);
+                // 波形を描画
+                ctx.bezierCurveTo(
+                    -this.width / 4, -this.height / 2,
+                    this.width / 4, this.height / 2,
+                    this.width / 2, 0
+                );
+                ctx.bezierCurveTo(
+                    this.width / 4, -this.height / 3,
+                    -this.width / 4, this.height / 3,
+                    -this.width / 2, 0
+                );
+                break;
+
+            case 'heart':
+                // ハート型（HP回復）
+                const w = this.width / 2;
+                const h = this.height / 2;
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.8);
+                ctx.bezierCurveTo(-w * 0.1, h * 0.5, -w, h * 0.3, -w, -h * 0.2);
+                ctx.bezierCurveTo(-w, -h * 0.8, -w * 0.3, -h, 0, -h * 0.5);
+                ctx.bezierCurveTo(w * 0.3, -h, w, -h * 0.8, w, -h * 0.2);
+                ctx.bezierCurveTo(w, h * 0.3, w * 0.1, h * 0.5, 0, h * 0.8);
                 ctx.closePath();
                 break;
 
-            case 'score':
-                // 星型（スコアアップ）
+            case 'bomb':
+                // 爆弾型
+                ctx.beginPath();
+                // 本体（円）
+                ctx.arc(0, this.height / 8, this.width / 3, 0, Math.PI * 2);
+                // 導火線
+                ctx.moveTo(0, -this.height / 8);
+                ctx.quadraticCurveTo(this.width / 4, -this.height / 3, 0, -this.height / 2);
+                // 火花
+                ctx.moveTo(-3, -this.height / 2);
+                ctx.lineTo(0, -this.height / 2 - 5);
+                ctx.lineTo(3, -this.height / 2);
+                break;
+
+            case 'star':
+                // 星型（スコア2倍）
                 ctx.beginPath();
                 for (let i = 0; i < 5; i++) {
                     const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
@@ -244,8 +273,16 @@ class Powerup {
                 ctx.closePath();
                 break;
 
+            case 'option':
+                // オプション機体（二重円）
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2.5, 0, Math.PI * 2);
+                ctx.moveTo(this.width / 4, 0);
+                ctx.arc(0, 0, this.width / 4, 0, Math.PI * 2);
+                break;
+
             default:
-                // その他特殊アイテム（ダイヤ型）
+                // その他（ダイヤ型）
                 ctx.beginPath();
                 ctx.moveTo(0, -this.height / 2);
                 ctx.lineTo(-this.width / 2, 0);

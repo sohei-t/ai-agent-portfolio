@@ -263,10 +263,10 @@ class Game {
 
             // 定期的にランダムアイテムを出現させる
             if (this.stageItemTimer >= this.nextItemSpawnTime) {
-                // ランダムにアイテムタイプを選択
+                // ランダムにアイテムタイプを選択（実際に使用されるもののみ）
                 const itemTypes = [
                     'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow',
-                    'heart', 'bomb', 'shield', 'speed', 'power', 'score', 'option'
+                    'heart', 'bomb', 'score', 'option'
                 ];
                 const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
 

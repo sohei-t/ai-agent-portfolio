@@ -2,10 +2,10 @@
 
 <div align="center">
 
-## 🎮 [PLAY LIVE DEMO](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/) | 📖 [ABOUT](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)
+## 🎮 [PLAY LIVE DEMO](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) | 📖 [ABOUT](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/about.html)
 
-[![Play Now](https://img.shields.io/badge/Play%20Now-Live%20Demo-00ff00?style=for-the-badge&logo=gamepad)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/)
-[![About](https://img.shields.io/badge/Learn%20More-About-0099ff?style=for-the-badge&logo=book)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)
+[![Play Now](https://img.shields.io/badge/Play%20Now-Live%20Demo-00ff00?style=for-the-badge&logo=gamepad)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/)
+[![About](https://img.shields.io/badge/Learn%20More-About-0099ff?style=for-the-badge&logo=book)](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/about.html)
 
 🌍 English | [🇯🇵 日本語](README_JP.md)
 

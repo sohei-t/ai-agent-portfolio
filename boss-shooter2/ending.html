@@ -376,28 +376,65 @@
         rankElement.textContent = `RANK: ${rank}`;
         rankElement.className = `rank ${rank}`;
 
-        // ボスギャラリー表示
+        // ボスギャラリー表示（1体ずつドラマチックに登場）
         const bossGrid = document.getElementById('bossGrid');
-        const totalBosses = 12; // boss_01.PNG から boss_11.PNG まで + True Omega
+        const totalBosses = 11; // boss_01.PNG から boss_11.PNG まで
+        const bossNames = [
+            'STAGE 1: Cyber Guardian',
+            'STAGE 2: Plasma Serpent',
+            'STAGE 3: Iron Golem',
+            'STAGE 4: Storm Bringer',
+            'STAGE 5: Shadow Lord',
+            'STAGE 6: Flame Emperor',
+            'STAGE 7: Frost Queen',
+            'STAGE 8: Thunder God',
+            'STAGE 9: Void Walker',
+            'STAGE 10: Final Dimension',
+            'TRUE FINAL: Omega Destroyer'
+        ];
 
-        for (let i = 1; i <= totalBosses; i++) {
+        // ボス登場音を再生する関数
+        function playBossAppearSound() {
+            const audio = new Audio();
+            audio.src = 'assets/audio/sfx/sfx_enemy_destroy.wav';
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        }
+
+        // ボスを1体ずつ表示
+        let currentBossIndex = 0;
+        const bossInterval = 800; // 0.8秒間隔
+
+        function showNextBoss() {
+            if (currentBossIndex >= totalBosses) {
+                // 全ボス表示完了後の演出
+                setTimeout(() => {
+                    const galleryTitle = document.querySelector('.gallery-title');
+                    if (galleryTitle) {
+                        galleryTitle.innerHTML = '🏆 ALL BOSSES DEFEATED! 🏆';
+                        galleryTitle.style.animation = 'rainbow 2s linear infinite, pulse 1s infinite';
+                    }
+                }, 500);
+                return;
+            }
+
+            const i = currentBossIndex + 1;
             const bossItem = document.createElement('div');
             bossItem.className = 'boss-item';
-            bossItem.style.animationDelay = `${i * 0.1}s`;
+            bossItem.style.opacity = '0';
+            bossItem.style.transform = 'scale(0) rotate(180deg)';
 
             const img = document.createElement('img');
-            if (i <= 11) {
-                img.src = `assets/images/boss_${String(i).padStart(2, '0')}.PNG`;
-            } else {
-                img.src = `assets/images/boss_11.PNG`; // True Omega
-            }
-            img.alt = `Boss ${i}`;
+            img.src = `assets/images/boss_${String(i).padStart(2, '0')}.PNG`;
+            img.alt = bossNames[currentBossIndex];
             img.onerror = function() {
-                // PNGが見つからない場合はSVGを試す
                 this.src = `assets/images/bosses/boss_${String(i).padStart(2, '0')}.svg`;
             };
 
             bossItem.appendChild(img);
+            bossItem.title = bossNames[currentBossIndex];
+
+            // クリックで再アニメーション
             bossItem.onclick = () => {
                 bossItem.style.animation = 'none';
                 setTimeout(() => {
@@ -406,7 +443,27 @@
             };
 
             bossGrid.appendChild(bossItem);
+
+            // 登場アニメーション
+            setTimeout(() => {
+                playBossAppearSound();
+                bossItem.style.transition = 'all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                bossItem.style.opacity = '1';
+                bossItem.style.transform = 'scale(1) rotate(0deg)';
+
+                // ゴールド枠エフェクト
+                bossItem.style.boxShadow = '0 0 20px rgba(255, 255, 0, 0.8)';
+                setTimeout(() => {
+                    bossItem.style.boxShadow = '';
+                }, 300);
+            }, 50);
+
+            currentBossIndex++;
+            setTimeout(showNextBoss, bossInterval);
         }
+
+        // 2秒後からボス表示開始
+        setTimeout(showNextBoss, 2000);
 
         // 星空背景
         const canvas = document.getElementById('stars');
