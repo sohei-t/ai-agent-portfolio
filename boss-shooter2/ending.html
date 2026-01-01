@@ -258,6 +258,126 @@
             }
         }
 
+        /* 大型ボス表示オーバーレイ */
+        #bossShowcase {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(ellipse at center, rgba(0,0,50,0.95) 0%, rgba(0,0,0,0.98) 100%);
+            /* アニメーションはJavaScriptから適用 */
+        }
+
+        @keyframes showcaseFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .showcase-content {
+            text-align: center;
+            animation: showcaseZoomIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes showcaseZoomIn {
+            from { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            to { transform: scale(1) rotate(0); opacity: 1; }
+        }
+
+        .showcase-boss-image {
+            max-width: 60vmin;
+            max-height: 50vmin;
+            filter: drop-shadow(0 0 30px rgba(255, 255, 0, 0.8))
+                    drop-shadow(0 0 60px rgba(255, 100, 0, 0.5));
+            animation: showcasePulse 2s ease-in-out infinite, showcaseFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes showcasePulse {
+            0%, 100% { filter: drop-shadow(0 0 30px rgba(255, 255, 0, 0.8)) drop-shadow(0 0 60px rgba(255, 100, 0, 0.5)); }
+            50% { filter: drop-shadow(0 0 50px rgba(255, 255, 0, 1)) drop-shadow(0 0 80px rgba(255, 100, 0, 0.8)); }
+        }
+
+        @keyframes showcaseFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .showcase-stage-label {
+            font-size: 1.5rem;
+            color: #ff6600;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 100, 0, 0.8);
+            animation: labelGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes labelGlow {
+            0%, 100% { text-shadow: 0 0 20px rgba(255, 100, 0, 0.8); }
+            50% { text-shadow: 0 0 40px rgba(255, 200, 0, 1); }
+        }
+
+        .showcase-boss-name {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-top: 20px;
+            background: linear-gradient(45deg, #ff0000, #ffff00, #ff6600);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: nameRainbow 2s linear infinite;
+            text-shadow: 0 0 30px rgba(255, 255, 0, 0.5);
+        }
+
+        @keyframes nameRainbow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .showcase-defeated {
+            font-size: 3rem;
+            color: #ff0000;
+            margin-top: 15px;
+            animation: defeatedStamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+        }
+
+        @keyframes defeatedStamp {
+            from { transform: scale(3) rotate(20deg); opacity: 0; }
+            to { transform: scale(1) rotate(-5deg); opacity: 1; }
+        }
+
+        .showcase-close-hint {
+            position: absolute;
+            bottom: 30px;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            animation: hintBlink 2s infinite;
+        }
+
+        @keyframes hintBlink {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* スパークエフェクト */
+        .spark {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffff00;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkFly 1s ease-out forwards;
+        }
+
+        @keyframes sparkFly {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
         /* ボタン */
         .buttons {
             display: flex;
@@ -319,6 +439,17 @@
         <img id="ending-victory" src="assets/images/ending_victory.png" alt="Victory" class="victory-image" onerror="this.style.display='none'">
         <img id="ending-earth" src="assets/images/ending_earth.png" alt="Earth" class="victory-image" onerror="this.style.display='none'">
         <img id="ending-heroes" src="assets/images/ending_heroes.png" alt="Heroes" class="victory-image" onerror="this.style.display='none'">
+    </div>
+
+    <!-- 大型ボス表示オーバーレイ -->
+    <div id="bossShowcase">
+        <div class="showcase-content">
+            <div class="showcase-stage-label" id="showcaseStage">STAGE 1</div>
+            <img class="showcase-boss-image" id="showcaseBossImage" src="" alt="Boss">
+            <div class="showcase-boss-name" id="showcaseBossName">Boss Name</div>
+            <div class="showcase-defeated">DEFEATED!</div>
+        </div>
+        <div class="showcase-close-hint">Click or tap to continue...</div>
     </div>
 
     <div class="container">
@@ -411,9 +542,16 @@
                 setTimeout(() => {
                     const galleryTitle = document.querySelector('.gallery-title');
                     if (galleryTitle) {
-                        galleryTitle.innerHTML = '🏆 ALL BOSSES DEFEATED! 🏆';
+                        galleryTitle.innerHTML = '🏆 ALL BOSSES DEFEATED! 🏆<br><small style="font-size:0.8rem;color:#00ffff;">Click a boss to view details</small>';
                         galleryTitle.style.animation = 'rainbow 2s linear infinite, pulse 1s infinite';
                     }
+                    // クリックイベントを更新
+                    updateBossClickEvents();
+
+                    // 2秒後に自動スライドショー開始
+                    setTimeout(() => {
+                        startBossSlideshow();
+                    }, 2000);
                 }, 500);
                 return;
             }
@@ -464,6 +602,166 @@
 
         // 2秒後からボス表示開始
         setTimeout(showNextBoss, 2000);
+
+        // 大型ボス表示機能
+        const bossShowcase = document.getElementById('bossShowcase');
+        const showcaseStage = document.getElementById('showcaseStage');
+        const showcaseBossImage = document.getElementById('showcaseBossImage');
+        const showcaseBossName = document.getElementById('showcaseBossName');
+        let showcaseAutoTimer = null;
+        let showcaseCurrentIndex = 0;
+        let showcaseMode = false;
+
+        // スパークエフェクトを生成
+        function createSparks(x, y, count = 20) {
+            for (let i = 0; i < count; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+                spark.style.left = x + 'px';
+                spark.style.top = y + 'px';
+
+                const angle = (Math.PI * 2 / count) * i;
+                const distance = 50 + Math.random() * 100;
+                spark.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                spark.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                spark.style.background = ['#ffff00', '#ff6600', '#ff0000', '#ffffff'][Math.floor(Math.random() * 4)];
+
+                document.body.appendChild(spark);
+                setTimeout(() => spark.remove(), 1000);
+            }
+        }
+
+        // ボスを大きく表示
+        function showBossShowcase(bossIndex) {
+            console.log('Showing boss showcase for index:', bossIndex);
+
+            if (bossIndex < 0 || bossIndex >= totalBosses) {
+                console.warn('Invalid boss index:', bossIndex);
+                return;
+            }
+
+            showcaseCurrentIndex = bossIndex;
+            const stageNum = bossIndex + 1;
+
+            // ステージラベルを設定
+            if (showcaseStage) {
+                showcaseStage.textContent = stageNum === 11 ? 'TRUE FINAL' : `STAGE ${stageNum}`;
+            }
+
+            // ボス画像を設定
+            if (showcaseBossImage) {
+                showcaseBossImage.src = `assets/images/boss_${String(stageNum).padStart(2, '0')}.PNG`;
+                showcaseBossImage.onerror = function() {
+                    this.src = `assets/images/bosses/boss_${String(stageNum).padStart(2, '0')}.svg`;
+                };
+            }
+
+            // ボス名を設定
+            if (showcaseBossName && bossNames[bossIndex]) {
+                showcaseBossName.textContent = bossNames[bossIndex];
+            }
+
+            // ショーケースを表示してアニメーション
+            if (bossShowcase) {
+                bossShowcase.style.display = 'flex';
+                bossShowcase.style.opacity = '1';
+
+                // アニメーションをリセット
+                bossShowcase.style.animation = 'none';
+                void bossShowcase.offsetWidth; // reflow
+                bossShowcase.style.animation = 'showcaseFadeIn 0.5s ease-out forwards';
+            }
+
+            const content = bossShowcase ? bossShowcase.querySelector('.showcase-content') : null;
+            if (content) {
+                content.style.animation = 'none';
+                void content.offsetWidth;
+                content.style.animation = 'showcaseZoomIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+            }
+
+            const defeated = bossShowcase ? bossShowcase.querySelector('.showcase-defeated') : null;
+            if (defeated) {
+                defeated.style.animation = 'none';
+                void defeated.offsetWidth;
+                setTimeout(() => {
+                    defeated.style.animation = 'defeatedStamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+                }, 500);
+            }
+
+            // スパークエフェクト
+            setTimeout(() => {
+                createSparks(window.innerWidth / 2, window.innerHeight / 2, 30);
+            }, 300);
+
+            // 効果音
+            try {
+                const audio = new Audio('assets/audio/sfx/sfx_enemy_destroy.wav');
+                audio.volume = 0.5;
+                audio.play().catch(() => {});
+            } catch(e) {
+                console.log('Audio play failed:', e);
+            }
+
+            showcaseMode = true;
+        }
+
+        // ショーケースを閉じる
+        function closeShowcase() {
+            bossShowcase.style.display = 'none';
+            showcaseMode = false;
+
+            // 自動スライドショーの場合は次へ
+            if (showcaseAutoTimer) {
+                clearTimeout(showcaseAutoTimer);
+                showcaseAutoTimer = null;
+            }
+        }
+
+        // 次のボスを表示（自動スライドショー用）
+        function showNextShowcase() {
+            console.log('showNextShowcase called, current index:', showcaseCurrentIndex);
+            if (showcaseCurrentIndex < totalBosses - 1) {
+                const nextIndex = showcaseCurrentIndex + 1;
+                console.log('Showing next boss at index:', nextIndex);
+                showBossShowcase(nextIndex);
+                showcaseAutoTimer = setTimeout(showNextShowcase, 4000);
+            } else {
+                console.log('Slideshow complete, closing showcase');
+                closeShowcase();
+            }
+        }
+
+        // クリックでショーケースを閉じて次へ進む（自動スライドショー中の場合）
+        if (bossShowcase) {
+            bossShowcase.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (showcaseAutoTimer) {
+                    // 自動スライドショー中：次のボスへ進む
+                    clearTimeout(showcaseAutoTimer);
+                    showNextShowcase();
+                } else {
+                    // 手動表示中：閉じる
+                    closeShowcase();
+                }
+            });
+        }
+
+        // 全ボス表示完了後に自動スライドショー開始
+        function startBossSlideshow() {
+            console.log('Starting boss slideshow');
+            showcaseCurrentIndex = -1;
+            showNextShowcase();
+        }
+
+        // ボスグリッドのクリックイベント更新（個別ボス表示）
+        function updateBossClickEvents() {
+            const bossItems = document.querySelectorAll('.boss-item');
+            bossItems.forEach((item, index) => {
+                item.onclick = () => {
+                    showBossShowcase(index);
+                };
+            });
+        }
 
         // 星空背景
         const canvas = document.getElementById('stars');

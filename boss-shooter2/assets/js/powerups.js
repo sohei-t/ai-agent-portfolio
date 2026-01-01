@@ -16,8 +16,8 @@ class Powerup {
         this.floatSpeed = 0.08;  // 浮遊アニメーション
 
         // 生存時間（画面外に出るか時間経過で消える）
-        this.lifeTime = 480;  // 8秒 * 60fps = 480フレーム
-        this.fadeStartTime = 420;  // 7秒目から点滅開始
+        this.lifeTime = 600;  // 10秒 * 60fps = 600フレーム
+        this.fadeStartTime = 540;  // 9秒目から点滅開始
 
         // ビジュアル
         this.rotation = 0;
@@ -71,12 +71,12 @@ class Powerup {
                 description: 'Bomb Add',
                 shape: 'bomb'
             },
-            // スコア2倍（星型）
-            score: {
-                color: '#ffd700',
-                icon: '★',
-                description: 'Score x2',
-                shape: 'star'
+            // シールド（盾型）
+            shield: {
+                color: '#00ff99',
+                icon: '🛡',
+                description: 'Shield',
+                shape: 'shield'
             },
             // オプション機体（円形）
             option: {
@@ -254,22 +254,15 @@ class Powerup {
                 ctx.lineTo(3, -this.height / 2);
                 break;
 
-            case 'star':
-                // 星型（スコア2倍）
+            case 'shield':
+                // シールド型（盾の形）
                 ctx.beginPath();
-                for (let i = 0; i < 5; i++) {
-                    const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
-                    const outerRadius = this.width / 2;
-                    const innerRadius = outerRadius * 0.4;
-                    const x1 = Math.cos(angle) * outerRadius;
-                    const y1 = Math.sin(angle) * outerRadius;
-                    const angle2 = angle + Math.PI / 5;
-                    const x2 = Math.cos(angle2) * innerRadius;
-                    const y2 = Math.sin(angle2) * innerRadius;
-                    if (i === 0) ctx.moveTo(x1, y1);
-                    else ctx.lineTo(x1, y1);
-                    ctx.lineTo(x2, y2);
-                }
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(-this.width / 2, -this.height / 3);
+                ctx.lineTo(-this.width / 2, this.height / 4);
+                ctx.quadraticCurveTo(-this.width / 2, this.height / 2, 0, this.height / 2);
+                ctx.quadraticCurveTo(this.width / 2, this.height / 2, this.width / 2, this.height / 4);
+                ctx.lineTo(this.width / 2, -this.height / 3);
                 ctx.closePath();
                 break;
 
@@ -310,13 +303,31 @@ class Powerup {
     }
 
     getHitbox() {
-        // 取得判定を適度に緩和（実際のサイズより少し大きめ）
-        const multiplier = 2.0;  // 判定を2倍に拡大（適正化）
+        // 取得判定を大幅に緩和（実際のサイズより大きめ）
+        const multiplier = 3.5;  // 判定を3.5倍に拡大（より緩和）
         return {
             x: this.x - this.width * multiplier / 2,
             y: this.y - this.height * multiplier / 2,
             width: this.width * multiplier,
             height: this.height * multiplier
         };
+    }
+
+    // プレイヤーに引き寄せられる処理（マグネット効果）
+    attractToPlayer(player) {
+        if (!player) return;
+
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // 引き寄せ範囲（150ピクセル以内）
+        const attractRadius = 150;
+        if (distance < attractRadius && distance > 0) {
+            // 距離が近いほど強く引き寄せる
+            const attractStrength = (1 - distance / attractRadius) * 5;
+            this.x += (dx / distance) * attractStrength;
+            this.y += (dy / distance) * attractStrength;
+        }
     }
 }
