@@ -1323,11 +1323,10 @@ class Game {
     }
 
     resizeCanvas() {
-        const container = document.getElementById('game-container');
         const isMobileDevice = isMobile();
 
-        // Get available space (almost full screen on mobile)
-        const padding = isMobileDevice ? 8 : 20;
+        // Get available space (full screen on mobile, with minimal padding)
+        const padding = isMobileDevice ? 0 : 10;
         const availWidth = window.innerWidth - padding * 2;
         const availHeight = window.innerHeight - padding * 2;
 
@@ -1336,8 +1335,9 @@ class Game {
         const scaleY = availHeight / GAME_HEIGHT;
         const scale = Math.min(scaleX, scaleY);
 
-        // Apply scale (with max limit on desktop)
-        const maxScale = isMobileDevice ? scale : Math.min(scale, 1);
+        // On mobile, allow larger scale to fill screen better
+        // On desktop, cap at 1.2x to avoid pixelation
+        const maxScale = isMobileDevice ? scale : Math.min(scale, 1.2);
 
         const canvasWidth = GAME_WIDTH * maxScale;
         const canvasHeight = GAME_HEIGHT * maxScale;
@@ -1347,10 +1347,10 @@ class Game {
 
         // Center the canvas
         this.canvas.style.position = 'absolute';
-        this.canvas.style.left = ((availWidth - canvasWidth) / 2 + padding) + 'px';
-        this.canvas.style.top = ((availHeight - canvasHeight) / 2 + padding) + 'px';
+        this.canvas.style.left = ((window.innerWidth - canvasWidth) / 2) + 'px';
+        this.canvas.style.top = ((window.innerHeight - canvasHeight) / 2) + 'px';
 
-        console.log(`[Resize] ${availWidth}x${availHeight} -> canvas ${canvasWidth.toFixed(0)}x${canvasHeight.toFixed(0)} (scale: ${maxScale.toFixed(2)})`);
+        console.log(`[Resize] Screen ${window.innerWidth}x${window.innerHeight} -> canvas ${canvasWidth.toFixed(0)}x${canvasHeight.toFixed(0)} (scale: ${maxScale.toFixed(2)})`);
     }
 
     start() {
@@ -1578,6 +1578,30 @@ class Game {
                 if (died) {
                     this.triggerKO('player', this.enemy);
                     return;
+                }
+            }
+        }
+
+        // Auto-kick for mobile: automatically kick when close to enemy
+        if (this.input.isMobileDevice && this.player.kickCooldown <= 0) {
+            const distanceToEnemy = Math.abs(this.player.x - this.enemy.x);
+            const heightDiff = Math.abs(this.player.y - this.enemy.y);
+            const autoKickRange = 55; // Slightly larger than kick range for easier triggering
+            const heightThreshold = 40; // Must be at similar height
+
+            if (distanceToEnemy < autoKickRange && heightDiff < heightThreshold) {
+                // Face the enemy before kicking
+                this.player.facingRight = this.enemy.x > this.player.x;
+
+                if (this.player.kick(this.enemy)) {
+                    const knockbackDir = this.player.facingRight ? 1 : -1;
+                    const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
+                    this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
+                    console.log('[Auto-Kick] Player kicked enemy!');
+                    if (died) {
+                        this.triggerKO('player', this.enemy);
+                        return;
+                    }
                 }
             }
         }
@@ -2199,8 +2223,8 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v4.2 - Mobile Touch Fix ===');
-    console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump');
+    console.log('=== ROBO BATTLE v4.3 - Full Screen + Auto-Kick ===');
+    console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump, Auto-kick when close!');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
     console.log('Tip: Play in landscape mode for best experience!');
     window.game = new Game();
