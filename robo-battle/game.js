@@ -1134,8 +1134,142 @@ class Game {
         // Input state for menus
         this.inputCooldown = 0;
 
+        // Setup mouse click handler
+        this.setupMouseHandler();
+
         // Load resources
         this.loadResources();
+    }
+
+    setupMouseHandler() {
+        this.canvas.addEventListener('click', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = GAME_WIDTH / rect.width;
+            const scaleY = GAME_HEIGHT / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            this.handleClick(x, y);
+        });
+    }
+
+    handleClick(x, y) {
+        switch (this.state) {
+            case GameState.TITLE:
+                this.handleTitleClick(x, y);
+                break;
+            case GameState.SETUP:
+                this.handleSetupClick(x, y);
+                break;
+            case GameState.RESULT:
+                this.handleResultClick(x, y);
+                break;
+        }
+    }
+
+    handleTitleClick(x, y) {
+        // Menu items: START GAME, HOW TO PLAY, CREDITS
+        const menuItems = 3;
+        const startY = 420;
+        const itemHeight = 40;
+
+        for (let i = 0; i < menuItems; i++) {
+            const itemY = startY + i * itemHeight - 20;
+            if (x >= 250 && x <= 550 && y >= itemY && y <= itemY + itemHeight) {
+                this.menuSelection = i;
+                // Execute selection
+                switch (i) {
+                    case 0: // Start Game
+                    case 1: // How to Play
+                    case 2: // Credits
+                        this.state = GameState.SETUP;
+                        break;
+                }
+                return;
+            }
+        }
+    }
+
+    handleSetupClick(x, y) {
+        // Parameter sliders (JUMP, WALK, BEAM, KICK)
+        const startY = 130;
+        for (let i = 0; i < 4; i++) {
+            const sliderY = startY + i * 60 - 15;
+            // Left arrow area (decrease)
+            if (x >= 200 && x <= 280 && y >= sliderY && y <= sliderY + 30) {
+                this.setupSelection = i;
+                this.adjustSetup(-1);
+                return;
+            }
+            // Slider bar area (click to set value)
+            if (x >= 300 && x <= 500 && y >= sliderY && y <= sliderY + 30) {
+                this.setupSelection = i;
+                return;
+            }
+            // Right arrow area (increase)
+            if (x >= 520 && x <= 600 && y >= sliderY && y <= sliderY + 30) {
+                this.setupSelection = i;
+                this.adjustSetup(1);
+                return;
+            }
+        }
+
+        // Stage selection
+        const stageY = startY + 4 * 60 + 20 - 15;
+        if (y >= stageY && y <= stageY + 30) {
+            this.setupSelection = 4;
+            if (x >= 200 && x <= 350) this.adjustSetup(-1);
+            if (x >= 400 && x <= 600) this.adjustSetup(1);
+            return;
+        }
+
+        // Difficulty selection
+        const diffY = stageY + 50;
+        if (y >= diffY && y <= diffY + 30) {
+            this.setupSelection = 5;
+            if (x >= 200 && x <= 350) this.adjustSetup(-1);
+            if (x >= 400 && x <= 600) this.adjustSetup(1);
+            return;
+        }
+
+        // START BATTLE button
+        const btnX = GAME_WIDTH / 2 - 100;  // 300
+        const btnY = GAME_HEIGHT - 100;      // 500
+        const btnWidth = 200;
+        const btnHeight = 50;
+
+        if (x >= btnX && x <= btnX + btnWidth && y >= btnY && y <= btnY + btnHeight) {
+            this.setupSelection = 6;
+            this.startBattle();
+            return;
+        }
+    }
+
+    handleResultClick(x, y) {
+        // Menu items: REMATCH, CHANGE SETTINGS, TITLE
+        const menuItems = 3;
+        const startY = 430;
+        const itemHeight = 40;
+
+        for (let i = 0; i < menuItems; i++) {
+            const itemY = startY + i * itemHeight - 20;
+            if (x >= 250 && x <= 550 && y >= itemY && y <= itemY + itemHeight) {
+                this.menuSelection = i;
+                switch (i) {
+                    case 0: // Rematch
+                        this.startBattle();
+                        break;
+                    case 1: // Change Settings
+                        this.state = GameState.SETUP;
+                        break;
+                    case 2: // Title
+                        this.state = GameState.TITLE;
+                        this.menuSelection = 0;
+                        break;
+                }
+                return;
+            }
+        }
     }
 
     async loadResources() {
