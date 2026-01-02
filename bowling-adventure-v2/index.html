@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="screen-orientation" content="portrait">
   <title>Bowling Adventure</title>
-  <script type="module" crossorigin src="/ai-agent-portfolio/bowling-adventure-v2/assets/index-_erBLQB5.js"></script>
-  <link rel="stylesheet" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/index-BsoxBeSI.css">
+  <script type="module" crossorigin src="/ai-agent-portfolio/bowling-adventure-v2/assets/index-bbFMKBbz.js"></script>
+  <link rel="stylesheet" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/index-sRVUkhIP.css">
 </head>
 <body>
   <!-- Landscape Warning Overlay -->
@@ -23,11 +23,38 @@
     <div id="title-screen" class="screen">
       <h1>Bowling Adventure</h1>
       <p class="subtitle">傾けて転がす！障害物ボーリング</p>
+
+      <!-- How to Play -->
+      <div class="how-to-play">
+        <h3>遊び方</h3>
+        <div class="instructions">
+          <div class="instruction-item">
+            <span class="instruction-icon">📱</span>
+            <span>前に傾ける → 加速</span>
+          </div>
+          <div class="instruction-item">
+            <span class="instruction-icon">↔️</span>
+            <span>左右に傾ける → 曲がる</span>
+          </div>
+          <div class="instruction-item">
+            <span class="instruction-icon">🎳</span>
+            <span>障害物を避けてピンを倒そう！</span>
+          </div>
+        </div>
+        <div class="zone-info">
+          <span class="zone-tag speed">⚡加速</span>
+          <span class="zone-tag slip">🧊滑る</span>
+          <span class="zone-tag chaos">🌀混乱</span>
+          <span class="zone-tag shrink">🔬縮小</span>
+          <span class="zone-tag giant">🔮巨大</span>
+        </div>
+      </div>
+
       <button id="gyro-btn" class="btn-secondary">傾きセンサーを有効化</button>
       <p id="gyro-status" class="status"></p>
       <button id="start-btn" class="btn-primary">START</button>
       <p class="hint">スマホ: 傾けて操作 / PC: 矢印キーで操作</p>
-      <p class="version">v2.3.0 - 2026.01.02 12:55</p>
+      <p class="version">v2.4.0 - 2026.01.02 13:05</p>
     </div>
 
     <!-- Game Screen -->
