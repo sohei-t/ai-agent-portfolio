@@ -470,11 +470,248 @@
         </div>
     </div>
 
-    <!-- BGM -->
-    <audio id="bgm" loop autoplay>
-        <source src="assets/audio/bgm/bgm_victory.mp3" type="audio/mpeg">
-        <source src="assets/audio/bgm_ending.wav" type="audio/wav">
-    </audio>
+    <script>
+        // ====================================
+        // Web Audio API プロシージャルBGM生成
+        // パッヘルベルのカノン風の勝利テーマ
+        // ====================================
+        class VictoryBGM {
+            constructor() {
+                this.audioContext = null;
+                this.isPlaying = false;
+                this.masterGain = null;
+                this.currentChord = 0;
+                this.tempo = 72; // BPM
+                this.beatDuration = 60 / this.tempo;
+
+                // パッヘルベルのカノン風コード進行（D major）
+                // D - A - Bm - F#m - G - D - G - A
+                this.chordProgression = [
+                    { root: 293.66, notes: [293.66, 369.99, 440.00] },  // D major
+                    { root: 220.00, notes: [220.00, 277.18, 329.63] },  // A major
+                    { root: 246.94, notes: [246.94, 293.66, 369.99] },  // Bm
+                    { root: 185.00, notes: [185.00, 220.00, 277.18] },  // F#m
+                    { root: 196.00, notes: [196.00, 246.94, 293.66] },  // G major
+                    { root: 293.66, notes: [293.66, 369.99, 440.00] },  // D major
+                    { root: 196.00, notes: [196.00, 246.94, 293.66] },  // G major
+                    { root: 220.00, notes: [220.00, 277.18, 329.63] },  // A major
+                ];
+
+                // メロディ（カノン風）
+                this.melody = [
+                    // 1小節目: D
+                    { note: 587.33, duration: 0.5 }, { note: 523.25, duration: 0.5 },
+                    { note: 587.33, duration: 0.5 }, { note: 659.25, duration: 0.5 },
+                    // 2小節目: A
+                    { note: 659.25, duration: 0.5 }, { note: 587.33, duration: 0.5 },
+                    { note: 523.25, duration: 0.5 }, { note: 493.88, duration: 0.5 },
+                    // 3小節目: Bm
+                    { note: 493.88, duration: 0.5 }, { note: 440.00, duration: 0.5 },
+                    { note: 493.88, duration: 0.5 }, { note: 523.25, duration: 0.5 },
+                    // 4小節目: F#m
+                    { note: 440.00, duration: 0.5 }, { note: 369.99, duration: 0.5 },
+                    { note: 440.00, duration: 0.5 }, { note: 493.88, duration: 0.5 },
+                    // 5小節目: G
+                    { note: 392.00, duration: 0.5 }, { note: 440.00, duration: 0.5 },
+                    { note: 493.88, duration: 0.5 }, { note: 523.25, duration: 0.5 },
+                    // 6小節目: D
+                    { note: 587.33, duration: 0.5 }, { note: 659.25, duration: 0.5 },
+                    { note: 587.33, duration: 0.5 }, { note: 523.25, duration: 0.5 },
+                    // 7小節目: G
+                    { note: 493.88, duration: 0.5 }, { note: 523.25, duration: 0.5 },
+                    { note: 587.33, duration: 0.5 }, { note: 659.25, duration: 0.5 },
+                    // 8小節目: A -> D (解決)
+                    { note: 659.25, duration: 1.0 }, { note: 587.33, duration: 1.0 },
+                ];
+            }
+
+            init() {
+                if (this.audioContext) return;
+
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.audioContext.createGain();
+                this.masterGain.gain.value = 0.25;
+                this.masterGain.connect(this.audioContext.destination);
+            }
+
+            // ストリングス風パッド音色
+            createPadOscillator(frequency, startTime, duration) {
+                const osc1 = this.audioContext.createOscillator();
+                const osc2 = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+
+                osc1.type = 'sawtooth';
+                osc1.frequency.value = frequency;
+                osc2.type = 'sawtooth';
+                osc2.frequency.value = frequency * 1.003; // デチューン
+
+                filter.type = 'lowpass';
+                filter.frequency.value = 800;
+                filter.Q.value = 1;
+
+                osc1.connect(filter);
+                osc2.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+
+                // エンベロープ（ゆっくりアタック、サステイン）
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.15, startTime + 0.3);
+                gain.gain.setValueAtTime(0.15, startTime + duration - 0.3);
+                gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+                osc1.start(startTime);
+                osc1.stop(startTime + duration);
+                osc2.start(startTime);
+                osc2.stop(startTime + duration);
+            }
+
+            // ベース音
+            createBass(frequency, startTime, duration) {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+
+                osc.type = 'triangle';
+                osc.frequency.value = frequency / 2; // 1オクターブ下
+
+                filter.type = 'lowpass';
+                filter.frequency.value = 300;
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+                gain.gain.setValueAtTime(0.15, startTime + duration * 0.8);
+                gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            }
+
+            // メロディ音（ブラス風）
+            createMelody(frequency, startTime, duration) {
+                const osc1 = this.audioContext.createOscillator();
+                const osc2 = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+
+                osc1.type = 'square';
+                osc1.frequency.value = frequency;
+                osc2.type = 'sawtooth';
+                osc2.frequency.value = frequency;
+
+                filter.type = 'lowpass';
+                filter.frequency.value = 2000;
+                filter.Q.value = 2;
+
+                osc1.connect(filter);
+                osc2.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+
+                // ブラス風のアタック
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.18, startTime + 0.05);
+                gain.gain.linearRampToValueAtTime(0.12, startTime + 0.1);
+                gain.gain.setValueAtTime(0.12, startTime + duration - 0.1);
+                gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+                osc1.start(startTime);
+                osc1.stop(startTime + duration);
+                osc2.start(startTime);
+                osc2.stop(startTime + duration);
+            }
+
+            // 1小節を演奏
+            playMeasure(chordIndex, startTime) {
+                const chord = this.chordProgression[chordIndex];
+                const measureDuration = this.beatDuration * 4;
+
+                // ベース
+                this.createBass(chord.root, startTime, measureDuration);
+
+                // コード（パッド）
+                chord.notes.forEach(note => {
+                    this.createPadOscillator(note, startTime, measureDuration);
+                });
+            }
+
+            // メロディを演奏
+            playMelodyLine(startTime) {
+                let time = startTime;
+                this.melody.forEach(note => {
+                    const duration = note.duration * this.beatDuration * 2;
+                    this.createMelody(note.note, time, duration * 0.9);
+                    time += duration;
+                });
+            }
+
+            // 全体を演奏（ループ）
+            play() {
+                if (!this.audioContext || this.isPlaying) return;
+
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+
+                this.isPlaying = true;
+
+                const playSection = () => {
+                    if (!this.isPlaying) return;
+
+                    const now = this.audioContext.currentTime;
+                    const measureDuration = this.beatDuration * 4;
+
+                    // 8小節のコード進行
+                    for (let i = 0; i < 8; i++) {
+                        this.playMeasure(i, now + i * measureDuration);
+                    }
+
+                    // メロディ
+                    this.playMelodyLine(now);
+
+                    // ループ
+                    const totalDuration = measureDuration * 8;
+                    setTimeout(() => playSection(), totalDuration * 1000 - 100);
+                };
+
+                playSection();
+            }
+
+            stop() {
+                this.isPlaying = false;
+            }
+
+            setVolume(vol) {
+                if (this.masterGain) {
+                    this.masterGain.gain.value = vol;
+                }
+            }
+        }
+
+        // BGMインスタンス
+        const victoryBGM = new VictoryBGM();
+
+        // ユーザー操作でBGM開始
+        function startBGM() {
+            victoryBGM.init();
+            victoryBGM.play();
+        }
+
+        // 最初のクリックでBGM開始
+        document.addEventListener('click', () => {
+            startBGM();
+        }, { once: true });
+
+        // タッチでも開始（モバイル対応）
+        document.addEventListener('touchstart', () => {
+            startBGM();
+        }, { once: true });
+    </script>
 
     <script>
         // スコアとランク表示
@@ -846,16 +1083,6 @@
             window.location.href = 'index.html';
         }
 
-        // BGM再生
-        const bgm = document.getElementById('bgm');
-        bgm.volume = 0.3;
-
-        // ユーザー操作でBGM開始
-        document.addEventListener('click', () => {
-            if (bgm.paused) {
-                bgm.play().catch(e => console.log('BGM play failed:', e));
-            }
-        }, { once: true });
     </script>
 </body>
 </html>
