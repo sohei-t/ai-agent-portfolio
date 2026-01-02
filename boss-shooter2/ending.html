@@ -522,30 +522,50 @@
 
             async init() {
                 if (this.audioContext) {
-                    // 既存のコンテキストがsuspendedならresume
+                    console.log('AudioContext exists, state:', this.audioContext.state);
                     if (this.audioContext.state === 'suspended') {
                         try {
-                            await this.audioContext.resume();
-                            console.log('AudioContext resumed');
+                            console.log('Attempting resume on existing context...');
+                            const resumePromise = this.audioContext.resume();
+                            await Promise.race([
+                                resumePromise,
+                                new Promise((_, reject) => setTimeout(() => reject('timeout'), 1000))
+                            ]);
+                            console.log('AudioContext resumed, new state:', this.audioContext.state);
                         } catch (e) {
-                            console.error('Resume failed:', e);
+                            console.error('Resume failed or timeout:', e);
+                            // タイムアウトの場合、新しいコンテキストを作成
+                            this.audioContext = null;
+                            return this.init();
                         }
                     }
-                    return true;
+                    return this.audioContext.state === 'running';
                 }
 
                 try {
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    console.log('Creating new AudioContext...');
+                    this.audioContext = new AudioContextClass();
                     this.masterGain = this.audioContext.createGain();
                     this.masterGain.gain.value = 0.3;
                     this.masterGain.connect(this.audioContext.destination);
                     console.log('AudioContext created, state:', this.audioContext.state);
 
                     if (this.audioContext.state === 'suspended') {
-                        await this.audioContext.resume();
-                        console.log('AudioContext resumed after creation');
+                        console.log('Context suspended, attempting resume...');
+                        try {
+                            const resumePromise = this.audioContext.resume();
+                            await Promise.race([
+                                resumePromise,
+                                new Promise((_, reject) => setTimeout(() => reject('timeout'), 1000))
+                            ]);
+                            console.log('Resume completed, state:', this.audioContext.state);
+                        } catch (e) {
+                            console.warn('Resume timeout/error, will retry on next gesture:', e);
+                            return false;
+                        }
                     }
-                    return true;
+                    return this.audioContext.state === 'running';
                 } catch (e) {
                     console.error('AudioContext init failed:', e);
                     return false;
@@ -739,32 +759,48 @@
 
         // BGM開始（複数回呼ばれても安全）
         async function startBGM() {
-            if (bgmStarted) return;
-            bgmStarted = true;
+            if (bgmStarted && victoryBGM.isPlaying) {
+                console.log('BGM already playing');
+                return;
+            }
 
             console.log('startBGM called');
             try {
-                await victoryBGM.init();
+                const initOk = await victoryBGM.init();
+                console.log('init result:', initOk, 'context state:', victoryBGM.audioContext?.state);
+
+                if (!initOk) {
+                    console.log('Init failed, will retry on next gesture');
+                    bgmStarted = false;
+                    return;
+                }
+
+                bgmStarted = true;
                 await victoryBGM.play();
-                console.log('BGM started successfully');
+                console.log('BGM started successfully, isPlaying:', victoryBGM.isPlaying);
+
+                // ボタンの表示を更新
+                const btn = document.getElementById('bgmButton');
+                if (btn && victoryBGM.isPlaying) {
+                    btn.textContent = '🔇 STOP';
+                }
             } catch (e) {
                 console.error('startBGM error:', e);
-                bgmStarted = false; // リトライ可能に
+                bgmStarted = false;
             }
         }
 
-        // 複数のイベントで開始を試みる（モバイル対応）
-        ['click', 'touchstart', 'touchend', 'keydown'].forEach(eventType => {
-            document.addEventListener(eventType, startBGM, { once: false, passive: true });
-        });
-
-        // 2秒後にもう一度試行（自動再生ポリシー対策）
-        setTimeout(() => {
+        // ユーザー操作からのみBGM開始（Safariは直接操作が必須）
+        function handleUserGesture(e) {
+            console.log('User gesture detected:', e.type);
             if (!bgmStarted) {
-                console.log('Attempting delayed BGM start');
                 startBGM();
             }
-        }, 2000);
+        }
+
+        ['click', 'touchend', 'keydown'].forEach(eventType => {
+            document.addEventListener(eventType, handleUserGesture, { passive: true });
+        });
 
         // 手動BGM開始ボタン用
         async function manualStartBGM() {
