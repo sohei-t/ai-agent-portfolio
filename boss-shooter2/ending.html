@@ -467,10 +467,13 @@
         <div class="buttons">
             <button class="btn btn-primary" onclick="newGame()">NEW GAME+</button>
             <button class="btn btn-secondary" onclick="goToTitle()">TITLE</button>
+            <button class="btn btn-secondary" id="bgmButton" onclick="manualStartBGM()" style="background: linear-gradient(45deg, #ff6600, #ffcc00);">🎵 BGM</button>
         </div>
     </div>
 
     <script>
+        console.log('=== Victory BGM Script Loading ===');
+
         // ====================================
         // Web Audio API プロシージャルBGM生成
         // パッヘルベルのカノン風の勝利テーマ
@@ -762,6 +765,29 @@
                 startBGM();
             }
         }, 2000);
+
+        // 手動BGM開始ボタン用
+        async function manualStartBGM() {
+            console.log('Manual BGM button clicked');
+            const btn = document.getElementById('bgmButton');
+
+            if (victoryBGM.isPlaying) {
+                // 停止
+                victoryBGM.stop();
+                if (btn) btn.textContent = '🎵 BGM';
+                bgmStarted = false;
+                console.log('BGM stopped');
+            } else {
+                // 開始
+                bgmStarted = false; // リセットして開始
+                await startBGM();
+                if (btn && victoryBGM.isPlaying) {
+                    btn.textContent = '🔇 STOP';
+                }
+            }
+        }
+
+        console.log('=== Victory BGM Script Loaded ===');
     </script>
 
     <script>
