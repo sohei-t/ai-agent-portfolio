@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Bowling Adventure</title>
-  <script type="module" crossorigin src="/assets/index-DgGZFBYZ.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-5Yke0Vhs.css">
+  <script type="module" crossorigin src="/ai-agent-portfolio/bowling-adventure-v2/assets/index-BUqOzWH4.js"></script>
+  <link rel="stylesheet" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/index-BHp4dDLc.css">
 </head>
 <body>
   <div id="app">
@@ -13,18 +13,67 @@
     <div id="title-screen" class="screen">
       <h1>Bowling Adventure</h1>
       <p class="subtitle">傾けて転がす！障害物ボーリング</p>
+      <button id="gyro-btn" class="btn-secondary">傾きセンサーを有効化</button>
+      <p id="gyro-status" class="status"></p>
       <button id="start-btn" class="btn-primary">START</button>
-      <p class="hint">スマートフォンを傾けて操作します</p>
+      <p class="hint">スマホ: 傾けて操作 / PC: 矢印キーで操作</p>
     </div>
 
     <!-- Game Screen -->
     <div id="game-screen" class="screen hidden">
       <div id="hud">
-        <div id="score-display">
-          <span id="current-score">0</span>
-        </div>
-        <div id="frame-display">
-          Frame: <span id="current-frame">1</span>/10
+        <!-- Bowling Scoreboard -->
+        <div id="scoreboard">
+          <div class="frame" data-frame="1">
+            <div class="frame-number">1</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="2">
+            <div class="frame-number">2</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="3">
+            <div class="frame-number">3</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="4">
+            <div class="frame-number">4</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="5">
+            <div class="frame-number">5</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="6">
+            <div class="frame-number">6</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="7">
+            <div class="frame-number">7</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="8">
+            <div class="frame-number">8</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame" data-frame="9">
+            <div class="frame-number">9</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
+          <div class="frame frame-10" data-frame="10">
+            <div class="frame-number">10</div>
+            <div class="throws"><span class="t1">-</span><span class="t2">-</span><span class="t3">-</span></div>
+            <div class="frame-score">-</div>
+          </div>
         </div>
       </div>
       <canvas id="game-canvas"></canvas>
@@ -32,13 +81,28 @@
         <div id="speed-bar"></div>
         <span id="speed-text">0%</span>
       </div>
+      <!-- Status Effects Indicator -->
+      <div id="status-effects">
+        <div id="effect-reverse" class="effect-badge hidden">🔄 REVERSE</div>
+        <div id="effect-shrink" class="effect-badge hidden">🔬 SHRINK</div>
+        <div id="effect-giant" class="effect-badge hidden">🔮 GIANT</div>
+        <div id="effect-slow" class="effect-badge hidden">🐌 SLOW</div>
+        <div id="effect-speed" class="effect-badge hidden">⚡ SPEED</div>
+        <div id="effect-slip" class="effect-badge hidden">🧊 SLIP</div>
+        <div id="effect-chaos" class="effect-badge hidden">🌀 CHAOS</div>
+        <div id="effect-shield" class="effect-badge hidden">🛡️ SHIELD</div>
+      </div>
+      <!-- Zone Warning -->
+      <div id="zone-warning" class="hidden"></div>
       <div id="message-overlay" class="hidden"></div>
     </div>
 
     <!-- Result Screen -->
     <div id="result-screen" class="screen hidden">
+      <div id="result-scoreboard"></div>
       <h2>Frame Result</h2>
       <div id="pins-knocked"></div>
+      <div id="total-score-display">Total: <span id="result-total">0</span></div>
       <button id="next-frame-btn" class="btn-primary">Next Frame</button>
     </div>
   </div>
