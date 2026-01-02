@@ -467,7 +467,7 @@
         <div id="pauseIndicator">PAUSED</div>
 
         <div id="titleScreen">
-            <h1>SPACE ODYSSEY</h1>
+            <h1 id="gameTitle">SPACE ODYSSEY</h1>
             <button class="menu-button" onclick="showDifficulty()">START GAME</button>
             <button class="menu-button" onclick="showSettings()">SETTINGS</button>
             <button class="menu-button" onclick="showHighScores()">HIGH SCORES</button>
@@ -552,5 +552,39 @@
     <script src="assets/js/boss_warning.js?v=2.2"></script>
     <script src="assets/js/stage_clear.js?v=2.2"></script>
     <script src="assets/js/special_weapons.js?v=2.2"></script>
+
+    <script>
+        // 隠しショートカット: タイトルをトリプルクリックでエンディングへ
+        (function() {
+            const title = document.getElementById('gameTitle');
+            let clickCount = 0;
+            let clickTimer = null;
+
+            if (title) {
+                title.style.cursor = 'default';
+                title.addEventListener('click', function(e) {
+                    clickCount++;
+
+                    if (clickTimer) {
+                        clearTimeout(clickTimer);
+                    }
+
+                    if (clickCount >= 3) {
+                        // トリプルクリック検出
+                        clickCount = 0;
+                        // テスト用スコアを設定
+                        localStorage.setItem('finalScore', '1234567');
+                        localStorage.setItem('stagesCleared', '11');
+                        window.location.href = 'ending.html';
+                    } else {
+                        // 500ms以内に次のクリックがなければリセット
+                        clickTimer = setTimeout(() => {
+                            clickCount = 0;
+                        }, 500);
+                    }
+                });
+            }
+        })();
+    </script>
 </body>
 </html>
