@@ -1155,16 +1155,23 @@ class Game {
     }
 
     handleClick(x, y) {
+        console.log(`[DEBUG] handleClick called. State: "${this.state}", GameState.SETUP: "${GameState.SETUP}"`);
+        console.log(`[DEBUG] State comparison: this.state === GameState.SETUP is ${this.state === GameState.SETUP}`);
         switch (this.state) {
             case GameState.TITLE:
+                console.log('[DEBUG] Routing to handleTitleClick');
                 this.handleTitleClick(x, y);
                 break;
             case GameState.SETUP:
+                console.log('[DEBUG] Routing to handleSetupClick');
                 this.handleSetupClick(x, y);
                 break;
             case GameState.RESULT:
+                console.log('[DEBUG] Routing to handleResultClick');
                 this.handleResultClick(x, y);
                 break;
+            default:
+                console.log(`[DEBUG] Unknown state: ${this.state}`);
         }
     }
 
@@ -2034,6 +2041,8 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
+    console.log('=== ROBO BATTLE v2.1 - Mouse Click Debug Version ===');
+    console.log('Click on canvas should produce debug output');
     window.game = new Game();
 });
 
