@@ -270,6 +270,9 @@ class Game {
             if (this.stageItemTimer >= this.nextItemSpawnTime) {
                 let itemType;
 
+                // アイテムは爆弾と武器強化のみ
+                const weaponItems = ['weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow'];
+
                 // ステージ10以降はMAXに達していない武器を優先
                 if (this.stage >= 10 && this.player && this.player.weapons) {
                     const nonMaxWeapons = [];
@@ -290,22 +293,23 @@ class Game {
                         }
                     }
 
-                    // MAXに達していない武器がある場合は80%の確率でそれを選択
-                    if (nonMaxWeapons.length > 0 && Math.random() < 0.8) {
+                    // MAXに達していない武器がある場合は90%の確率でそれを選択
+                    if (nonMaxWeapons.length > 0 && Math.random() < 0.9) {
                         itemType = nonMaxWeapons[Math.floor(Math.random() * nonMaxWeapons.length)];
                     } else {
-                        // その他のアイテム
-                        const otherItems = ['heart', 'bomb', 'shield', 'option'];
-                        itemType = otherItems[Math.floor(Math.random() * otherItems.length)];
+                        // 10%の確率で爆弾
+                        itemType = 'bomb';
                     }
                 } else {
-                    // ステージ9以前は従来のランダム
-                    const itemTypes = [
-                        'weapon_default', 'weapon_green', 'weapon_purple', 'weapon_yellow',
-                        'heart', 'bomb', 'shield', 'option'
-                    ];
-                    itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+                    // ステージ9以前：武器80%、爆弾20%
+                    if (Math.random() < 0.8) {
+                        itemType = weaponItems[Math.floor(Math.random() * weaponItems.length)];
+                    } else {
+                        itemType = 'bomb';
+                    }
                 }
+
+                console.log('アイテム出現:', itemType);
 
                 // 画面上部のランダムな位置に出現
                 const x = 50 + Math.random() * (this.canvas.width - 100);
@@ -574,28 +578,23 @@ class Game {
         if (typeof Powerup !== 'undefined') {
             let type;
 
-            // 有効なアイテムタイプのみ使用
-            const validItemTypes = [
+            // 武器と爆弾のみ
+            const weaponTypes = [
                 'weapon_default', 'weapon_default', 'weapon_default',  // 青武器（多め）
                 'weapon_green', 'weapon_green',  // 緑武器
                 'weapon_purple', 'weapon_purple',  // 紫武器
                 'weapon_yellow', 'weapon_yellow',  // 黄武器
-                'item-life', 'item-life',  // 残機増加（ハート）
-                'item-bomb', 'item-bomb',  // 爆弾レベルアップ
             ];
 
-            if (forceWeapon) {
-                // ボス戦中は武器アイテムを優先
-                const weaponTypes = [
-                    'weapon_default', 'weapon_default', 'weapon_default',
-                    'weapon_green', 'weapon_purple', 'weapon_yellow'
-                ];
+            if (forceWeapon || Math.random() < 0.8) {
+                // 80%で武器
                 type = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
             } else {
-                // 通常時：ランダムに選択
-                type = validItemTypes[Math.floor(Math.random() * validItemTypes.length)];
+                // 20%で爆弾
+                type = 'bomb';
             }
 
+            console.log('spawnPowerup:', type);
             const powerup = new Powerup(x, y, type);
             powerup.game = this;  // gameの参照を追加
             this.powerups.push(powerup);

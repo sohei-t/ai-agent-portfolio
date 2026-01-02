@@ -787,64 +787,86 @@ class Player {
     }
 
     powerUp(type) {
+        console.log('powerUp called with type:', type);
+
         switch (type) {
             // デフォルト武器レベルアップ
             case 'weapon_default':
                 const oldDefaultLevel = this.weapons.default.level;
+                console.log('青武器: 現在レベル', oldDefaultLevel);
                 this.weapons.default.level = Math.min(10, this.weapons.default.level + 1);
+                console.log('青武器: 新レベル', this.weapons.default.level);
                 if (this.weapons.default.level > oldDefaultLevel) {
                     this.triggerWeaponLevelUpEffect('default');
                     this.updateWeaponIndicators();
+                    console.log('青武器レベルアップ！', oldDefaultLevel, '→', this.weapons.default.level);
+                } else {
+                    console.log('青武器は既にMAX');
                 }
                 break;
 
             // 緑武器（spread）レベルアップ
             case 'weapon_green':
+                console.log('緑武器: equipped=', this.weapons.green.equipped, 'level=', this.weapons.green.level);
                 if (!this.weapons.green.equipped) {
                     this.weapons.green.equipped = true;
                     this.weapons.green.level = 1;
                     this.triggerWeaponLevelUpEffect('green');
                     this.updateWeaponIndicators();
+                    console.log('緑武器を新規装備！レベル1');
                 } else {
                     const oldLevel = this.weapons.green.level;
                     this.weapons.green.level = Math.min(10, this.weapons.green.level + 1);
                     if (this.weapons.green.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('green');
                         this.updateWeaponIndicators();
+                        console.log('緑武器レベルアップ！', oldLevel, '→', this.weapons.green.level);
+                    } else {
+                        console.log('緑武器は既にMAX');
                     }
                 }
                 break;
 
             // 紫武器（laser）レベルアップ
             case 'weapon_purple':
+                console.log('紫武器: equipped=', this.weapons.purple.equipped, 'level=', this.weapons.purple.level);
                 if (!this.weapons.purple.equipped) {
                     this.weapons.purple.equipped = true;
                     this.weapons.purple.level = 1;
                     this.triggerWeaponLevelUpEffect('purple');
                     this.updateWeaponIndicators();
+                    console.log('紫武器を新規装備！レベル1');
                 } else {
                     const oldLevel = this.weapons.purple.level;
                     this.weapons.purple.level = Math.min(10, this.weapons.purple.level + 1);
                     if (this.weapons.purple.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('purple');
                         this.updateWeaponIndicators();
+                        console.log('紫武器レベルアップ！', oldLevel, '→', this.weapons.purple.level);
+                    } else {
+                        console.log('紫武器は既にMAX');
                     }
                 }
                 break;
 
             // 黄色武器（wave）レベルアップ
             case 'weapon_yellow':
+                console.log('黄武器: equipped=', this.weapons.yellow.equipped, 'level=', this.weapons.yellow.level);
                 if (!this.weapons.yellow.equipped) {
                     this.weapons.yellow.equipped = true;
                     this.weapons.yellow.level = 1;
                     this.triggerWeaponLevelUpEffect('yellow');
                     this.updateWeaponIndicators();
+                    console.log('黄武器を新規装備！レベル1');
                 } else {
                     const oldLevel = this.weapons.yellow.level;
                     this.weapons.yellow.level = Math.min(10, this.weapons.yellow.level + 1);
                     if (this.weapons.yellow.level > oldLevel) {
                         this.triggerWeaponLevelUpEffect('yellow');
                         this.updateWeaponIndicators();
+                        console.log('黄武器レベルアップ！', oldLevel, '→', this.weapons.yellow.level);
+                    } else {
+                        console.log('黄武器は既にMAX');
                     }
                 }
                 break;
