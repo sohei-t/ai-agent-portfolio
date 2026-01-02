@@ -33,11 +33,19 @@ const ROBOT = {
     height: 64,
     maxHp: 100,
     invincibleTime: 500,
-    beamCooldown: 300,
+    beamCooldown: 500,    // 300 → 500ms に増加（ビームを遅くする）
     kickCooldown: 1000,
     kickRange: 30,
     kickHeight: 48,
     knockback: 8
+};
+
+// KO演出の設定
+const KO_SETTINGS = {
+    freezeTime: 1500,       // 1.5秒フリーズ
+    slowMotionFactor: 0.2,  // スローモーション係数
+    koTextScale: 3.0,       // KO!テキストの最大スケール
+    explosionDuration: 800  // 爆発エフェクト時間
 };
 
 // Beam constants
@@ -53,6 +61,7 @@ const GameState = {
     TITLE: 'title',
     SETUP: 'setup',
     BATTLE: 'battle',
+    KO: 'ko',           // NEW: KO演出状態
     RESULT: 'result',
     PAUSED: 'paused'
 };
@@ -299,6 +308,11 @@ class Robot {
     shoot(beams) {
         if (this.beamCooldown > 0) return null;
 
+        // 1発ずつルール: 自分のビームが画面上にあれば撃てない
+        const owner = this.isPlayer ? 'player' : 'enemy';
+        const existingBeam = beams.find(b => b.owner === owner && b.active);
+        if (existingBeam) return null;
+
         this.beamCooldown = ROBOT.beamCooldown;
         this.state = 'attack';
 
@@ -307,7 +321,7 @@ class Robot {
             this.y + this.height / 2 - BEAM.height / 2,
             this.facingRight ? 1 : -1,
             this.beamDamage,
-            this.isPlayer ? 'player' : 'enemy'
+            owner
         );
 
         beams.push(beam);
@@ -1134,6 +1148,12 @@ class Game {
         // Input state for menus
         this.inputCooldown = 0;
 
+        // KO演出用
+        this.koTimer = 0;
+        this.koTarget = null;      // 倒されたロボット
+        this.koEffects = [];       // KO演出用エフェクト
+        this.koTextScale = 0;      // KO!テキストのスケール
+
         // Setup mouse click handler
         this.setupMouseHandler();
 
@@ -1352,6 +1372,9 @@ class Game {
             case GameState.BATTLE:
                 this.updateBattle(deltaTime);
                 break;
+            case GameState.KO:
+                this.updateKO(deltaTime);
+                break;
             case GameState.RESULT:
                 this.updateResult(deltaTime);
                 break;
@@ -1538,8 +1561,7 @@ class Game {
                 const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
                 this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
                 if (died) {
-                    this.winner = 'player';
-                    this.state = GameState.RESULT;
+                    this.triggerKO('player', this.enemy);
                     return;
                 }
             }
@@ -1558,8 +1580,7 @@ class Game {
                 const died = this.player.takeDamage(this.enemy.kickDamage, knockbackDir);
                 this.effects.push(new Effect(this.player.x + this.player.width/2, this.player.y + this.player.height/2, 'hit'));
                 if (died) {
-                    this.winner = 'enemy';
-                    this.state = GameState.RESULT;
+                    this.triggerKO('enemy', this.player);
                     return;
                 }
             }
@@ -1580,8 +1601,7 @@ class Game {
                 const died = this.player.takeDamage(beam.damage, knockbackDir);
                 this.effects.push(new Effect(beam.x, beam.y, 'hit'));
                 if (died) {
-                    this.winner = 'enemy';
-                    this.state = GameState.RESULT;
+                    this.triggerKO('enemy', this.player);
                     return;
                 }
             }
@@ -1593,8 +1613,7 @@ class Game {
                 const died = this.enemy.takeDamage(beam.damage, knockbackDir);
                 this.effects.push(new Effect(beam.x, beam.y, 'hit'));
                 if (died) {
-                    this.winner = 'player';
-                    this.state = GameState.RESULT;
+                    this.triggerKO('player', this.enemy);
                     return;
                 }
             }
@@ -1641,6 +1660,65 @@ class Game {
         }
     }
 
+    // KO演出を開始
+    triggerKO(winner, defeatedRobot) {
+        this.winner = winner;
+        this.koTarget = defeatedRobot;
+        this.koTimer = 0;
+        this.koTextScale = 0;
+        this.koEffects = [];
+        this.state = GameState.KO;
+
+        // 敗者の位置に爆発エフェクトを大量生成
+        for (let i = 0; i < 8; i++) {
+            const offsetX = (Math.random() - 0.5) * defeatedRobot.width * 1.5;
+            const offsetY = (Math.random() - 0.5) * defeatedRobot.height * 1.5;
+            const effect = new Effect(
+                defeatedRobot.x + defeatedRobot.width / 2 + offsetX,
+                defeatedRobot.y + defeatedRobot.height / 2 + offsetY,
+                'explosion'
+            );
+            effect.maxFrames = 30;  // 長めに表示
+            this.koEffects.push(effect);
+        }
+
+        console.log(`[KO] ${winner} wins! KO演出開始`);
+    }
+
+    // KO演出の更新
+    updateKO(deltaTime) {
+        this.koTimer += deltaTime;
+
+        // KO!テキストのスケールアニメーション（ズームイン）
+        const scaleProgress = Math.min(this.koTimer / 300, 1);  // 300msでズームイン完了
+        this.koTextScale = scaleProgress * KO_SETTINGS.koTextScale;
+
+        // スローモーションでロボット更新
+        const slowDelta = deltaTime * KO_SETTINGS.slowMotionFactor;
+        const stage = STAGES[this.currentStage];
+        this.player.update(slowDelta, stage.platforms);
+        this.enemy.update(slowDelta, stage.platforms);
+
+        // エフェクト更新
+        for (const effect of this.koEffects) {
+            effect.update();
+        }
+        this.koEffects = this.koEffects.filter(e => e.active);
+
+        // 通常のエフェクトもスロー更新
+        for (const effect of this.effects) {
+            effect.update();
+        }
+        this.effects = this.effects.filter(e => e.active);
+
+        // フリーズ時間終了後、結果画面へ
+        if (this.koTimer >= KO_SETTINGS.freezeTime) {
+            this.state = GameState.RESULT;
+            this.menuSelection = 0;
+            console.log('[KO] 演出終了 → RESULT画面へ');
+        }
+    }
+
     render() {
         const ctx = this.ctx;
 
@@ -1657,6 +1735,9 @@ class Game {
                 break;
             case GameState.BATTLE:
                 this.renderBattle();
+                break;
+            case GameState.KO:
+                this.renderKO();
                 break;
             case GameState.RESULT:
                 this.renderResult();
@@ -2001,6 +2082,68 @@ class Game {
         ctx.fillText('Press ESC or P to resume', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
     }
 
+    // KO演出の描画
+    renderKO() {
+        const ctx = this.ctx;
+
+        // まず通常のバトル画面を描画
+        this.renderBattle();
+
+        // 画面全体を少し暗くする（フラッシュ効果）
+        const flashProgress = Math.min(this.koTimer / 200, 1);
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 * (1 - flashProgress)})`;
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // KOエフェクトを描画
+        for (const effect of this.koEffects) {
+            effect.render(ctx);
+        }
+
+        // KO!テキスト（スケールアニメーション付き）
+        if (this.koTextScale > 0) {
+            ctx.save();
+            ctx.translate(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50);
+            ctx.scale(this.koTextScale, this.koTextScale);
+
+            // 外枠
+            ctx.font = 'bold 72px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 8;
+            ctx.strokeText('KO!', 0, 0);
+
+            // グラデーション塗り
+            const gradient = ctx.createLinearGradient(-80, -40, 80, 40);
+            gradient.addColorStop(0, '#FF0000');
+            gradient.addColorStop(0.5, '#FFFF00');
+            gradient.addColorStop(1, '#FF0000');
+            ctx.fillStyle = gradient;
+            ctx.fillText('KO!', 0, 0);
+
+            // ハイライト
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.strokeText('KO!', 0, 0);
+
+            ctx.restore();
+        }
+
+        // 勝者表示（少し遅れて表示）
+        if (this.koTimer > 500) {
+            const winnerText = this.winner === 'player' ? 'YOU WIN!' : 'CPU WINS!';
+            const winnerColor = this.winner === 'player' ? '#FF3333' : '#3333FF';
+
+            ctx.font = 'bold 36px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = winnerColor;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.fillText(winnerText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
+            ctx.strokeText(winnerText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
+        }
+    }
+
     renderResult() {
         const ctx = this.ctx;
 
@@ -2041,8 +2184,8 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v2.1 - Mouse Click Debug Version ===');
-    console.log('Click on canvas should produce debug output');
+    console.log('=== ROBO BATTLE v3.0 - KO Animation & Beam Limit Update ===');
+    console.log('Features: KO freeze time, 1-beam rule, improved pacing');
     window.game = new Game();
 });
 
