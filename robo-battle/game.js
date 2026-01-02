@@ -713,7 +713,15 @@ class InputSystem {
         this.zoneGuideTimer = 0;
         this.showZoneGuide = false;
 
+        // Reference to game state (will be set by Game class)
+        this.gameStateGetter = null;
+
         this.setupListeners();
+    }
+
+    // Allow Game class to provide state getter
+    setGameStateGetter(getter) {
+        this.gameStateGetter = getter;
     }
 
     setupListeners() {
@@ -826,6 +834,14 @@ class InputSystem {
         // Ignore if touching UI elements
         const target = e.target;
         if (target.tagName === 'BUTTON' || target.closest('#gyro-permission') || target.closest('#loading')) {
+            return;
+        }
+
+        // Only intercept zone touches during BATTLE or KO states
+        // Let other states (TITLE, SETUP, RESULT) handle touches normally via canvas click
+        const currentState = this.gameStateGetter ? this.gameStateGetter() : null;
+        if (currentState !== GameState.BATTLE && currentState !== GameState.KO) {
+            // Don't prevent default - allow canvas click handler to work
             return;
         }
 
@@ -1073,6 +1089,7 @@ class Game {
 
         // Systems
         this.input = new InputSystem(this.canvas);
+        this.input.setGameStateGetter(() => this.state);  // Pass state getter
         this.ui = new UIRenderer(this.ctx);
         this.ai = null;
 
@@ -1262,9 +1279,13 @@ class Game {
         // Hide loading screen
         document.getElementById('loading').style.display = 'none';
 
-        // Resize canvas for mobile
+        // Resize canvas for mobile (including orientation changes)
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
+        window.addEventListener('orientationchange', () => {
+            // Delay to allow browser to complete rotation
+            setTimeout(() => this.resizeCanvas(), 100);
+        });
 
         // Start game
         this.state = GameState.TITLE;
@@ -1273,13 +1294,33 @@ class Game {
 
     resizeCanvas() {
         const container = document.getElementById('game-container');
-        const maxWidth = Math.min(container.clientWidth - 20, GAME_WIDTH);
-        const maxHeight = Math.min(container.clientHeight - 20, GAME_HEIGHT);
+        const isMobileDevice = isMobile();
 
-        const ratio = Math.min(maxWidth / GAME_WIDTH, maxHeight / GAME_HEIGHT);
+        // Get available space (almost full screen on mobile)
+        const padding = isMobileDevice ? 8 : 20;
+        const availWidth = window.innerWidth - padding * 2;
+        const availHeight = window.innerHeight - padding * 2;
 
-        this.canvas.style.width = (GAME_WIDTH * ratio) + 'px';
-        this.canvas.style.height = (GAME_HEIGHT * ratio) + 'px';
+        // Calculate optimal scale while maintaining aspect ratio
+        const scaleX = availWidth / GAME_WIDTH;
+        const scaleY = availHeight / GAME_HEIGHT;
+        const scale = Math.min(scaleX, scaleY);
+
+        // Apply scale (with max limit on desktop)
+        const maxScale = isMobileDevice ? scale : Math.min(scale, 1);
+
+        const canvasWidth = GAME_WIDTH * maxScale;
+        const canvasHeight = GAME_HEIGHT * maxScale;
+
+        this.canvas.style.width = canvasWidth + 'px';
+        this.canvas.style.height = canvasHeight + 'px';
+
+        // Center the canvas
+        this.canvas.style.position = 'absolute';
+        this.canvas.style.left = ((availWidth - canvasWidth) / 2 + padding) + 'px';
+        this.canvas.style.top = ((availHeight - canvasHeight) / 2 + padding) + 'px';
+
+        console.log(`[Resize] ${availWidth}x${availHeight} -> canvas ${canvasWidth.toFixed(0)}x${canvasHeight.toFixed(0)} (scale: ${maxScale.toFixed(2)})`);
     }
 
     start() {
@@ -2128,9 +2169,10 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v4.0 - Simplified Mobile Controls ===');
+    console.log('=== ROBO BATTLE v4.1 - Landscape Mobile Optimized ===');
     console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
+    console.log('Tip: Play in landscape mode for best experience!');
     window.game = new Game();
 });
 
