@@ -1123,16 +1123,46 @@ class Game {
     }
 
     setupMouseHandler() {
+        // Click handler (desktop)
         this.canvas.addEventListener('click', (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const scaleX = GAME_WIDTH / rect.width;
-            const scaleY = GAME_HEIGHT / rect.height;
-            const x = (e.clientX - rect.left) * scaleX;
-            const y = (e.clientY - rect.top) * scaleY;
-
-            console.log(`[DEBUG] Click at game coords: (${x.toFixed(0)}, ${y.toFixed(0)}), state: ${this.state}`);
-            this.handleClick(x, y);
+            this.processCanvasInput(e.clientX, e.clientY, 'click');
         });
+
+        // Touch handler (mobile) - critical for menu interactions
+        this.canvas.addEventListener('touchend', (e) => {
+            // Only handle touch for menu states (TITLE, SETUP, RESULT)
+            // During BATTLE/KO, the zone touch handler in InputSystem handles touches
+            if (this.state === GameState.BATTLE || this.state === GameState.KO) {
+                return;
+            }
+
+            if (e.changedTouches.length > 0) {
+                const touch = e.changedTouches[0];
+                this.processCanvasInput(touch.clientX, touch.clientY, 'touch');
+                // Prevent click event from also firing (avoid double handling)
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Also handle touchstart to provide immediate feedback
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (this.state === GameState.BATTLE || this.state === GameState.KO) {
+                return;
+            }
+            // Visual feedback could be added here
+            console.log('[Touch] Canvas touchstart in menu state');
+        }, { passive: true });
+    }
+
+    processCanvasInput(clientX, clientY, inputType) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = GAME_WIDTH / rect.width;
+        const scaleY = GAME_HEIGHT / rect.height;
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        console.log(`[DEBUG] ${inputType} at game coords: (${x.toFixed(0)}, ${y.toFixed(0)}), state: ${this.state}`);
+        this.handleClick(x, y);
     }
 
     handleClick(x, y) {
@@ -2169,7 +2199,7 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v4.1 - Landscape Mobile Optimized ===');
+    console.log('=== ROBO BATTLE v4.2 - Mobile Touch Fix ===');
     console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
     console.log('Tip: Play in landscape mode for best experience!');
