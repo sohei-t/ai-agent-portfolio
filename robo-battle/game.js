@@ -1149,6 +1149,7 @@ class Game {
             const x = (e.clientX - rect.left) * scaleX;
             const y = (e.clientY - rect.top) * scaleY;
 
+            console.log(`[DEBUG] Click at game coords: (${x.toFixed(0)}, ${y.toFixed(0)}), state: ${this.state}`);
             this.handleClick(x, y);
         });
     }
@@ -1238,11 +1239,17 @@ class Game {
         const btnWidth = 200;
         const btnHeight = 50;
 
+        console.log(`[DEBUG] START BATTLE button area: x=${btnX}-${btnX+btnWidth}, y=${btnY}-${btnY+btnHeight}`);
+        console.log(`[DEBUG] Click position: x=${x.toFixed(0)}, y=${y.toFixed(0)}`);
+        console.log(`[DEBUG] In button? x: ${x >= btnX && x <= btnX + btnWidth}, y: ${y >= btnY && y <= btnY + btnHeight}`);
+
         if (x >= btnX && x <= btnX + btnWidth && y >= btnY && y <= btnY + btnHeight) {
+            console.log('[DEBUG] START BATTLE clicked! Calling startBattle()');
             this.setupSelection = 6;
             this.startBattle();
             return;
         }
+        console.log('[DEBUG] Click not on any interactive element');
     }
 
     handleResultClick(x, y) {
@@ -1446,6 +1453,8 @@ class Game {
     }
 
     startBattle() {
+        console.log('[DEBUG] startBattle() called!');
+        console.log('[DEBUG] Current state before:', this.state);
         this.currentStage = this.settings.stage;
         const stage = STAGES[this.currentStage];
 
@@ -1489,6 +1498,9 @@ class Game {
 
         this.winner = null;
         this.state = GameState.BATTLE;
+        console.log('[DEBUG] State changed to:', this.state);
+        console.log('[DEBUG] Player created at:', this.player.x, this.player.y);
+        console.log('[DEBUG] Enemy created at:', this.enemy.x, this.enemy.y);
     }
 
     updateBattle(deltaTime) {
