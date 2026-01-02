@@ -680,7 +680,7 @@ class EnemyAI {
 }
 
 // ============================================================================
-// INPUT SYSTEM
+// INPUT SYSTEM (Simplified for Mobile)
 // ============================================================================
 
 class InputSystem {
@@ -691,10 +691,9 @@ class InputSystem {
         // Keyboard state
         this.keys = {};
 
-        // Touch state
+        // Mobile touch state (simplified: zone-based)
         this.touchActions = {
             shoot: false,
-            kick: false,
             jump: false
         };
 
@@ -705,23 +704,14 @@ class InputSystem {
             gamma: 0,
             beta: 0,
             sensitivity: 3.5,
-            deadZone: 2,
-            maxTilt: 20,
+            deadZone: 3,
+            maxTilt: 25,
             isLandscape: false
         };
 
-        // Joystick state
-        this.joystick = {
-            active: false,
-            baseX: 70,
-            baseY: 0,
-            stickX: 70,
-            stickY: 0,
-            touchId: null
-        };
-
-        // Control mode: 'gyro' or 'joystick'
-        this.controlMode = 'joystick';
+        // Zone guide visibility timer
+        this.zoneGuideTimer = 0;
+        this.showZoneGuide = false;
 
         this.setupListeners();
     }
@@ -740,165 +730,68 @@ class InputSystem {
         });
 
         if (this.isMobileDevice) {
-            this.setupMobileControls();
+            this.setupSimplifiedMobileControls();
         }
     }
 
-    setupMobileControls() {
-        // Touch zones
-        const zoneBeam = document.getElementById('zone-beam');
-        const zoneJump = document.getElementById('zone-jump');
-        const zoneKick = document.getElementById('zone-kick');
+    setupSimplifiedMobileControls() {
+        console.log('[Mobile] Setting up simplified tilt + zone tap controls');
 
-        // Touch handlers for action zones
-        const handleTouchStart = (action) => (e) => {
-            e.preventDefault();
-            this.touchActions[action] = true;
-        };
+        // Show gyro permission dialog on first touch
+        this.setupGyroPermission();
 
-        const handleTouchEnd = (action) => (e) => {
-            e.preventDefault();
-            this.touchActions[action] = false;
-        };
+        // Setup zone-based touch controls (top = shoot, bottom = jump)
+        this.setupZoneTouchControls();
 
-        if (zoneBeam) {
-            zoneBeam.addEventListener('touchstart', handleTouchStart('shoot'));
-            zoneBeam.addEventListener('touchend', handleTouchEnd('shoot'));
-        }
-
-        if (zoneJump) {
-            zoneJump.addEventListener('touchstart', handleTouchStart('jump'));
-            zoneJump.addEventListener('touchend', handleTouchEnd('jump'));
-        }
-
-        if (zoneKick) {
-            zoneKick.addEventListener('touchstart', handleTouchStart('kick'));
-            zoneKick.addEventListener('touchend', handleTouchEnd('kick'));
-        }
-
-        // Joystick
-        this.setupJoystick();
-
-        // Gyro
-        this.setupGyro();
-
-        // Control toggle buttons
-        const btnGyro = document.getElementById('btn-gyro');
-        const btnJoystick = document.getElementById('btn-joystick');
-
-        if (btnGyro) {
-            btnGyro.addEventListener('click', async () => {
-                const success = await this.enableGyro();
-                if (success) {
-                    this.controlMode = 'gyro';
-                    btnGyro.classList.add('active');
-                    btnJoystick.classList.remove('active');
-                    document.getElementById('joystick-container').style.display = 'none';
-                }
-            });
-        }
-
-        if (btnJoystick) {
-            btnJoystick.addEventListener('click', () => {
-                this.controlMode = 'joystick';
-                btnJoystick.classList.add('active');
-                btnGyro.classList.remove('active');
-                document.getElementById('joystick-container').style.display = 'block';
-            });
-        }
-
-        // Show joystick by default
-        const joystickContainer = document.getElementById('joystick-container');
-        if (joystickContainer) {
-            joystickContainer.style.display = 'block';
-        }
-
-        // Orientation change
+        // Orientation change detection
         window.addEventListener('orientationchange', () => {
             this.gyro.isLandscape = Math.abs(window.orientation) === 90;
-            this.updateJoystickPosition();
         });
-
-        // Initial orientation check
         this.gyro.isLandscape = Math.abs(window.orientation || 0) === 90;
     }
 
-    setupJoystick() {
-        const container = document.getElementById('joystick-container');
-        const stick = document.getElementById('joystick-stick');
+    setupGyroPermission() {
+        const permissionDialog = document.getElementById('gyro-permission');
+        const enableButton = document.getElementById('btn-enable-gyro');
 
-        if (!container || !stick) return;
+        if (!permissionDialog || !enableButton) return;
 
-        const handleStart = (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = container.getBoundingClientRect();
-
-            this.joystick.active = true;
-            this.joystick.touchId = touch.identifier;
-            this.joystick.baseX = rect.left + rect.width / 2;
-            this.joystick.baseY = rect.top + rect.height / 2;
+        // Show permission dialog on mobile
+        const showPermissionDialog = () => {
+            permissionDialog.style.display = 'block';
         };
 
-        const handleMove = (e) => {
-            if (!this.joystick.active) return;
-            e.preventDefault();
+        enableButton.addEventListener('click', async () => {
+            const success = await this.enableGyro();
+            permissionDialog.style.display = 'none';
 
-            for (const touch of e.touches) {
-                if (touch.identifier === this.joystick.touchId) {
-                    const dx = touch.clientX - this.joystick.baseX;
-                    const dy = touch.clientY - this.joystick.baseY;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const maxDist = 40;
-
-                    if (distance > maxDist) {
-                        this.joystick.stickX = this.joystick.baseX + (dx / distance) * maxDist;
-                        this.joystick.stickY = this.joystick.baseY + (dy / distance) * maxDist;
-                    } else {
-                        this.joystick.stickX = touch.clientX;
-                        this.joystick.stickY = touch.clientY;
-                    }
-
-                    // Update stick visual position
-                    const rect = container.getBoundingClientRect();
-                    const offsetX = this.joystick.stickX - rect.left - 20;
-                    const offsetY = this.joystick.stickY - rect.top - 20;
-                    stick.style.left = offsetX + 'px';
-                    stick.style.top = offsetY + 'px';
-                }
+            if (success) {
+                console.log('[Gyro] Permission granted, tilt control enabled');
+                // Show zone guide briefly
+                this.showZoneGuideBriefly();
+            } else {
+                console.log('[Gyro] Permission denied, game may be difficult to play');
+                alert('傾きセンサーが使用できません。ゲームの操作が制限されます。');
             }
-        };
+        });
 
-        const handleEnd = (e) => {
-            for (const touch of e.changedTouches) {
-                if (touch.identifier === this.joystick.touchId) {
-                    this.joystick.active = false;
-                    this.joystick.touchId = null;
-
-                    // Reset stick position
-                    stick.style.left = '30px';
-                    stick.style.top = '30px';
-                }
-            }
-        };
-
-        container.addEventListener('touchstart', handleStart);
-        container.addEventListener('touchmove', handleMove);
-        container.addEventListener('touchend', handleEnd);
-        container.addEventListener('touchcancel', handleEnd);
+        // Show dialog after a short delay
+        setTimeout(showPermissionDialog, 500);
     }
 
     async enableGyro() {
+        // iOS 13+ requires permission request via user gesture
         if (typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const permission = await DeviceOrientationEvent.requestPermission();
                 this.gyro.permissionGranted = (permission === 'granted');
             } catch (e) {
-                console.error('Gyro permission error:', e);
+                console.error('[Gyro] Permission request failed:', e);
                 return false;
             }
         } else {
+            // Android or older iOS - no permission needed
             this.gyro.permissionGranted = true;
         }
 
@@ -908,40 +801,86 @@ class InputSystem {
                 this.gyro.gamma = e.gamma || 0;
                 this.gyro.beta = e.beta || 0;
             });
+            return true;
         }
 
-        return this.gyro.permissionGranted;
+        return false;
     }
 
-    setupGyro() {
-        // Will be enabled on user interaction
+    setupZoneTouchControls() {
+        // Listen for touches on the entire document
+        document.addEventListener('touchstart', (e) => {
+            this.handleZoneTouch(e, true);
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            this.handleZoneTouch(e, false);
+        }, { passive: false });
+
+        document.addEventListener('touchcancel', (e) => {
+            this.handleZoneTouch(e, false);
+        }, { passive: false });
     }
 
-    updateJoystickPosition() {
-        const container = document.getElementById('joystick-container');
-        if (container) {
-            container.style.bottom = this.gyro.isLandscape ? '20px' : '100px';
+    handleZoneTouch(e, isStart) {
+        // Ignore if touching UI elements
+        const target = e.target;
+        if (target.tagName === 'BUTTON' || target.closest('#gyro-permission') || target.closest('#loading')) {
+            return;
+        }
+
+        e.preventDefault();
+
+        if (isStart) {
+            for (const touch of e.changedTouches) {
+                const y = touch.clientY;
+                const screenHeight = window.innerHeight;
+                const midPoint = screenHeight / 2;
+
+                // Create touch feedback effect
+                this.createTouchFeedback(touch.clientX, touch.clientY);
+
+                if (y < midPoint) {
+                    // Top half = Shoot beam
+                    this.touchActions.shoot = true;
+                    console.log('[Touch] Top zone - SHOOT');
+                } else {
+                    // Bottom half = Jump
+                    this.touchActions.jump = true;
+                    console.log('[Touch] Bottom zone - JUMP');
+                }
+            }
+        } else {
+            // On touch end, reset actions after a brief delay
+            // This allows the action to be registered for at least one frame
+            setTimeout(() => {
+                this.touchActions.shoot = false;
+                this.touchActions.jump = false;
+            }, 50);
         }
     }
 
-    getJoystickAxis() {
-        if (!this.joystick.active) return { x: 0, y: 0 };
+    createTouchFeedback(x, y) {
+        const feedback = document.createElement('div');
+        feedback.className = 'touch-feedback';
+        feedback.style.left = x + 'px';
+        feedback.style.top = y + 'px';
+        document.body.appendChild(feedback);
 
-        const container = document.getElementById('joystick-container');
-        if (!container) return { x: 0, y: 0 };
+        // Remove after animation completes
+        setTimeout(() => {
+            feedback.remove();
+        }, 300);
+    }
 
-        const rect = container.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        const dx = this.joystick.stickX - centerX;
-        const dy = this.joystick.stickY - centerY;
-        const maxDist = 40;
-
-        return {
-            x: clamp(dx / maxDist, -1, 1),
-            y: clamp(dy / maxDist, -1, 1)
-        };
+    showZoneGuideBriefly() {
+        const guide = document.getElementById('mobile-zone-guide');
+        if (guide) {
+            guide.classList.add('visible');
+            setTimeout(() => {
+                guide.classList.remove('visible');
+            }, 3000);
+        }
     }
 
     getGyroInput() {
@@ -949,36 +888,41 @@ class InputSystem {
             return { x: 0, y: 0 };
         }
 
-        let tiltX = this.gyro.isLandscape ? this.gyro.beta : this.gyro.gamma;
-        let tiltY = this.gyro.isLandscape ? -this.gyro.gamma : this.gyro.beta;
+        // Determine tilt based on orientation
+        let tiltX;
+        if (this.gyro.isLandscape) {
+            // Landscape: use beta for left/right
+            tiltX = this.gyro.beta;
+        } else {
+            // Portrait: use gamma for left/right
+            tiltX = this.gyro.gamma;
+        }
 
-        // Dead zone
-        if (Math.abs(tiltX) < this.gyro.deadZone) tiltX = 0;
-        if (Math.abs(tiltY) < this.gyro.deadZone) tiltY = 0;
+        // Apply dead zone
+        if (Math.abs(tiltX) < this.gyro.deadZone) {
+            tiltX = 0;
+        }
 
-        // Normalize
+        // Normalize and apply sensitivity
         const x = clamp(tiltX / this.gyro.maxTilt, -1, 1) * this.gyro.sensitivity;
-        const y = clamp(tiltY / this.gyro.maxTilt, -1, 1);
 
-        return { x, y };
+        return { x, y: 0 };
     }
 
     getInput() {
         if (this.isMobileDevice) {
-            const movement = this.controlMode === 'gyro'
-                ? this.getGyroInput()
-                : this.getJoystickAxis();
+            const movement = this.getGyroInput();
 
             return {
                 moveX: movement.x,
-                moveY: movement.y,
-                jump: this.touchActions.jump || movement.y < -0.5,
+                moveY: 0,
+                jump: this.touchActions.jump,
                 shoot: this.touchActions.shoot,
-                kick: this.touchActions.kick
+                kick: false  // Kick disabled on mobile for simplicity
             };
         }
 
-        // Keyboard input
+        // Keyboard input (unchanged)
         return {
             moveX: (this.keys['KeyD'] || this.keys['ArrowRight'] ? 1 : 0) -
                    (this.keys['KeyA'] || this.keys['ArrowLeft'] ? 1 : 0),
@@ -2184,8 +2128,9 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v3.0 - KO Animation & Beam Limit Update ===');
-    console.log('Features: KO freeze time, 1-beam rule, improved pacing');
+    console.log('=== ROBO BATTLE v4.0 - Simplified Mobile Controls ===');
+    console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump');
+    console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
     window.game = new Game();
 });
 
