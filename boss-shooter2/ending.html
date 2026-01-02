@@ -792,15 +792,33 @@
 
         // ユーザー操作からのみBGM開始（Safariは直接操作が必須）
         function handleUserGesture(e) {
-            console.log('User gesture detected:', e.type);
-            if (!bgmStarted) {
+            console.log('User gesture detected:', e.type, 'target:', e.target?.tagName);
+            if (!bgmStarted || !victoryBGM.isPlaying) {
                 startBGM();
             }
         }
 
-        ['click', 'touchend', 'keydown'].forEach(eventType => {
-            document.addEventListener(eventType, handleUserGesture, { passive: true });
+        // キャプチャフェーズで捕捉（他のハンドラより先に実行）
+        ['click', 'touchend', 'touchstart'].forEach(eventType => {
+            document.addEventListener(eventType, handleUserGesture, { capture: true, passive: true });
+            window.addEventListener(eventType, handleUserGesture, { capture: true, passive: true });
         });
+
+        // ページ読み込み完了後にも再設定
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded - adding body click handler');
+            document.body.addEventListener('click', handleUserGesture, { capture: true });
+            document.body.addEventListener('touchend', handleUserGesture, { capture: true });
+        });
+
+        // 即時実行でもbodyにハンドラ追加（DOMContentLoadedが既に終わっている場合）
+        if (document.body) {
+            console.log('Adding immediate body handlers');
+            document.body.onclick = function(e) {
+                console.log('body.onclick fired');
+                handleUserGesture(e);
+            };
+        }
 
         // 手動BGM開始ボタン用
         async function manualStartBGM() {
