@@ -441,7 +441,7 @@
         <img id="ending-heroes" src="assets/images/ending_heroes.png" alt="Heroes" class="victory-image" onerror="this.style.display='none'">
     </div>
 
-    <!-- BGM開始用オーバーレイ -->
+    <!-- BGM開始用オーバーレイ（autoplay時は非表示） -->
     <div id="startOverlay" style="
         position: fixed;
         top: 0;
@@ -479,6 +479,22 @@
             }
         </style>
     </div>
+
+    <!-- 音楽開始ヒント（autoplay時に表示） -->
+    <div id="musicHint" style="
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: #00ffff;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        z-index: 9998;
+        display: none;
+        animation: blink 1.5s ease-in-out infinite;
+    ">🎵 Tap anywhere for music</div>
 
     <!-- 大型ボス表示オーバーレイ -->
     <div id="bossShowcase">
@@ -823,6 +839,12 @@
                 if (btn && victoryBGM.isPlaying) {
                     btn.textContent = '🔇 STOP';
                 }
+
+                // 音楽ヒントを非表示
+                const hint = document.getElementById('musicHint');
+                if (hint) {
+                    hint.style.display = 'none';
+                }
             } catch (e) {
                 console.error('startBGM error:', e);
                 bgmStarted = false;
@@ -907,6 +929,40 @@
         }
 
         console.log('=== Victory BGM Script Loaded ===');
+
+        // autoplayパラメータをチェック
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAutoplay = urlParams.get('autoplay') === '1';
+        console.log('Autoplay mode:', isAutoplay);
+
+        if (isAutoplay) {
+            // オーバーレイを非表示にして、すぐにBGM開始を試みる
+            const overlay = document.getElementById('startOverlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+
+            // BGM開始を試みる
+            (async () => {
+                console.log('Attempting autoplay BGM start...');
+                await startBGM();
+
+                // BGMが開始されなかった場合はヒントを表示
+                setTimeout(() => {
+                    if (!victoryBGM.isPlaying) {
+                        console.log('BGM not playing, showing hint');
+                        const hint = document.getElementById('musicHint');
+                        if (hint) {
+                            hint.style.display = 'block';
+                        }
+                    } else {
+                        // BGM開始成功、ボタンを更新
+                        const btn = document.getElementById('bgmButton');
+                        if (btn) btn.textContent = '🔇 STOP';
+                    }
+                }, 500);
+            })();
+        }
     </script>
 
     <script>

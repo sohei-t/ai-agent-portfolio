@@ -698,9 +698,79 @@ class Game {
 
     victory() {
         this.state = 'victory';
-        // エンディング画面へ遷移
         const currentScore = this.score || 0;
-        window.location.href = `ending.html?score=${currentScore}`;
+
+        // スコアを保存
+        localStorage.setItem('finalScore', currentScore);
+        localStorage.setItem('stagesCleared', this.stage || 11);
+
+        // 「TAP TO CONTINUE」オーバーレイを表示
+        this.showVictoryOverlay(currentScore);
+    }
+
+    showVictoryOverlay(score) {
+        // オーバーレイを作成
+        const overlay = document.createElement('div');
+        overlay.id = 'victoryOverlay';
+        overlay.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: radial-gradient(ellipse at center, #000033 0%, #000011 100%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                cursor: pointer;
+            ">
+                <div style="
+                    font-size: 3rem;
+                    color: #ffff00;
+                    text-shadow: 0 0 30px rgba(255, 255, 0, 0.8);
+                    animation: victoryPulse 1.5s ease-in-out infinite;
+                    margin-bottom: 20px;
+                    font-family: 'Orbitron', sans-serif;
+                ">🏆 VICTORY! 🏆</div>
+                <div style="
+                    font-size: 1.5rem;
+                    color: #00ffff;
+                    margin-bottom: 30px;
+                    font-family: 'Orbitron', sans-serif;
+                ">SCORE: ${score.toLocaleString()}</div>
+                <div style="
+                    font-size: 1.2rem;
+                    color: #ffffff;
+                    animation: victoryBlink 1s ease-in-out infinite;
+                    font-family: 'Orbitron', sans-serif;
+                ">TAP TO CONTINUE</div>
+            </div>
+            <style>
+                @keyframes victoryPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                }
+                @keyframes victoryBlink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+            </style>
+        `;
+        document.body.appendChild(overlay);
+
+        // タップでエンディングへ（ユーザージェスチャー内で遷移）
+        const goToEnding = () => {
+            window.location.href = `ending.html?score=${score}&autoplay=1`;
+        };
+
+        overlay.addEventListener('click', goToEnding, { once: true });
+        overlay.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            goToEnding();
+        }, { once: true });
     }
 
     applySettings() {
