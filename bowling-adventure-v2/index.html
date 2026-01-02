@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="screen-orientation" content="portrait">
   <title>Bowling Adventure</title>
-  <script type="module" crossorigin src="/ai-agent-portfolio/bowling-adventure-v2/assets/index-CHeEEUqD.js"></script>
-  <link rel="stylesheet" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/index-sRVUkhIP.css">
+  <script type="module" crossorigin src="/ai-agent-portfolio/bowling-adventure-v2/assets/index-DmbmoUIy.js"></script>
+  <link rel="stylesheet" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/index-DFK3wp4p.css">
 </head>
 <body>
   <!-- Landscape Warning Overlay -->
@@ -21,7 +21,10 @@
   <div id="app">
     <!-- Title Screen -->
     <div id="title-screen" class="screen">
-      <h1>Bowling Adventure</h1>
+      <div class="title-header">
+        <h1>Bowling Adventure</h1>
+        <span class="version-badge">v2.6.0</span>
+      </div>
       <p class="subtitle">傾けて転がす！障害物ボーリング</p>
 
       <!-- How to Play -->
@@ -48,7 +51,6 @@
         <div class="zone-info">
           <span class="zone-tag speed">⚡加速</span>
           <span class="zone-tag slip">🧊滑る</span>
-          <span class="zone-tag chaos">🌀混乱</span>
           <span class="zone-tag shrink">🔬縮小</span>
           <span class="zone-tag giant">🔮巨大</span>
         </div>
@@ -58,7 +60,6 @@
       <p id="gyro-status" class="status"></p>
       <button id="start-btn" class="btn-primary">START</button>
       <p class="hint">スマホ: 傾けて操作 / PC: 矢印キーで操作</p>
-      <p class="version">v2.5.0 - 2026.01.02 14:30</p>
     </div>
 
     <!-- Game Screen -->
@@ -123,6 +124,7 @@
         <div id="speed-bar"></div>
         <span id="speed-text">0%</span>
       </div>
+      <div id="timer-display">10s</div>
       <!-- Status Effects Indicator -->
       <div id="status-effects">
         <div id="effect-reverse" class="effect-badge hidden">🔄 REVERSE</div>
