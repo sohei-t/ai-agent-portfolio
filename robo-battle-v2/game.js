@@ -55,6 +55,19 @@ const KO_SETTINGS = {
     explosionDuration: 800  // 爆発エフェクト時間
 };
 
+// Charge beam constants
+const CHARGE_BEAM = {
+    maxChargeTime: 3000,      // 3 seconds for max charge
+    maxDamageMultiplier: 3,   // 3x damage at max charge
+    minChargeTime: 100,       // Minimum time to register as charged
+    sizeMultiplierMax: 2.0,   // Beam size at max charge
+    chargeThresholds: {
+        low: 0.33,            // 1 second - yellow glow
+        mid: 0.66,            // 2 seconds - orange glow
+        max: 1.0              // 3 seconds - red glow + MAX indicator
+    }
+};
+
 // Beam constants
 const BEAM = {
     width: 20,
@@ -667,20 +680,55 @@ const SoundManager = {
     },
 
     // Sound effects
-    playBeamShoot() {
+    playBeamShoot(chargeLevel = 0) {
         if (!this.ctx) return;
         // Laser "pew" - frequency sweep down
+        // Charged shots are louder and longer
+        const duration = 0.15 + (chargeLevel * 0.2);  // Up to 0.35s for max charge
+        const volume = 0.3 + (chargeLevel * 0.3);     // Up to 0.6 for max charge
+        const startFreq = 880 + (chargeLevel * 440);  // Higher pitch for charged
+
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'square';
-        osc.frequency.setValueAtTime(880, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + duration);
+        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * volume, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.15);
+        osc.stop(this.ctx.currentTime + duration);
+
+        // Add bass rumble for charged shots
+        if (chargeLevel > 0.5) {
+            this.createTone(60 + (chargeLevel * 40), duration, 'sine', chargeLevel * 0.3);
+        }
+    },
+
+    playChargeMax() {
+        if (!this.ctx) return;
+        // "Ding" sound when charge is full
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+        osc1.frequency.value = 880;
+        osc2.frequency.value = 1320;  // Perfect fifth
+
+        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.4, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc1.stop(this.ctx.currentTime + 0.3);
+        osc2.stop(this.ctx.currentTime + 0.3);
     },
 
     playBeamHit() {
@@ -969,11 +1017,15 @@ const ParticleSystem = {
     },
 
     // Preset effects
-    beamTrail(x, y, isPlayer) {
-        this.emit(x, y, 2, {
+    beamTrail(x, y, isPlayer, chargeLevel = 0) {
+        // More particles for charged beams
+        const count = 2 + Math.floor(chargeLevel * 4);  // 2-6 particles
+        const size = 3 + (chargeLevel * 3);  // Bigger particles
+
+        this.emit(x, y, count, {
             color: isPlayer ? '#ff6600' : '#0088ff',
-            size: 3,
-            life: 15,
+            size: size,
+            life: 15 + (chargeLevel * 10),
             vx: (Math.random() - 0.5) * 2,
             vy: (Math.random() - 0.5) * 2,
             type: 'spark'
@@ -1040,6 +1092,36 @@ const ParticleSystem = {
             vx: (Math.random() - 0.5) * 8,
             vy: (Math.random() - 0.5) * 8,
         });
+    },
+
+    // Explosion when charged beam is released
+    chargeRelease(x, y, isPlayer, chargeLevel) {
+        const count = Math.floor(10 + chargeLevel * 20);  // 10-30 particles
+        const colors = isPlayer ?
+            ['#ff0000', '#ff6600', '#ffff00', '#ffffff'] :
+            ['#0000ff', '#0088ff', '#00ffff', '#ffffff'];
+
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count;
+            const speed = 3 + chargeLevel * 5;
+            this.emit(x, y, 1, {
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: 4 + chargeLevel * 4,
+                life: 20 + chargeLevel * 15,
+                vx: Math.cos(angle) * speed + (Math.random() - 0.5) * 2,
+                vy: Math.sin(angle) * speed + (Math.random() - 0.5) * 2,
+                type: 'spark'
+            });
+        }
+
+        // Core flash
+        if (chargeLevel > 0.5) {
+            this.emit(x, y, 5, {
+                color: '#ffffff',
+                size: 15 + chargeLevel * 10,
+                life: 10
+            });
+        }
     },
 
     update() {
@@ -1173,6 +1255,11 @@ class Robot {
         this.beamCooldown = 0;
         this.kickCooldown = 0;
 
+        // Charge beam state
+        this.isCharging = false;
+        this.chargeStartTime = 0;
+        this.chargeLevel = 0;  // 0-1, where 1 = max charge
+
         // Animation
         this.animFrame = 0;
         this.animTimer = 0;
@@ -1232,6 +1319,94 @@ class Robot {
         return false;
     }
 
+    // Start charging beam (called when shoot button pressed)
+    startCharging() {
+        if (this.beamCooldown > 0 || this.isCharging) return false;
+
+        // Check if already have a beam on screen
+        this.isCharging = true;
+        this.chargeStartTime = Date.now();
+        this.chargeLevel = 0;
+        this.state = 'attack';  // Show charging pose
+
+        return true;
+    }
+
+    // Update charge level (called every frame while charging)
+    updateCharge() {
+        if (!this.isCharging) return;
+
+        const chargeTime = Date.now() - this.chargeStartTime;
+        this.chargeLevel = Math.min(chargeTime / CHARGE_BEAM.maxChargeTime, 1.0);
+
+        // Play charge sound at MAX
+        if (this.chargeLevel >= 1.0 && !this._maxChargeSoundPlayed) {
+            SoundManager.playChargeMax();
+            this._maxChargeSoundPlayed = true;
+        }
+    }
+
+    // Cancel charging (e.g., if hit while charging)
+    cancelCharge() {
+        this.isCharging = false;
+        this.chargeLevel = 0;
+        this._maxChargeSoundPlayed = false;
+    }
+
+    // Release charged beam (called when shoot button released)
+    releaseChargedBeam(beams) {
+        if (!this.isCharging) return null;
+
+        // 1発ずつルール: 自分のビームが画面上にあれば撃てない
+        const owner = this.isPlayer ? 'player' : 'enemy';
+        const existingBeam = beams.find(b => b.owner === owner && b.active);
+        if (existingBeam) {
+            this.cancelCharge();
+            return null;
+        }
+
+        // Calculate charge multiplier (1x to 3x)
+        const chargeMultiplier = 1 + (this.chargeLevel * (CHARGE_BEAM.maxDamageMultiplier - 1));
+        const chargedDamage = Math.round(this.beamDamage * chargeMultiplier);
+
+        // Calculate beam size multiplier
+        const sizeMultiplier = 1 + (this.chargeLevel * (CHARGE_BEAM.sizeMultiplierMax - 1));
+
+        this.beamCooldown = ROBOT.beamCooldown;
+        this.state = 'attack';
+
+        // Create charged beam
+        const beamWidth = BEAM.width * sizeMultiplier;
+        const beamHeight = BEAM.height * sizeMultiplier;
+
+        const beam = new Beam(
+            this.facingRight ? this.x + this.width : this.x - beamWidth,
+            this.y + this.height / 2 - beamHeight / 2,
+            this.facingRight ? 1 : -1,
+            chargedDamage,
+            owner,
+            this.chargeLevel  // Pass charge level for visual effects
+        );
+
+        beams.push(beam);
+
+        // Play beam shoot sound (louder for charged shots)
+        SoundManager.playBeamShoot(this.chargeLevel);
+
+        // Enhanced particle effect for charged shot
+        const handX = this.facingRight ? this.x + this.width : this.x;
+        const handY = this.y + this.height / 2;
+        ParticleSystem.chargeRelease(handX, handY, this.isPlayer, this.chargeLevel);
+
+        // Reset charge state
+        this.isCharging = false;
+        this.chargeLevel = 0;
+        this._maxChargeSoundPlayed = false;
+
+        return beam;
+    }
+
+    // Quick shot (no charge) - for AI and quick taps
     shoot(beams) {
         if (this.beamCooldown > 0) return null;
 
@@ -1248,7 +1423,8 @@ class Robot {
             this.y + this.height / 2 - BEAM.height / 2,
             this.facingRight ? 1 : -1,
             this.beamDamage,
-            owner
+            owner,
+            0  // No charge
         );
 
         beams.push(beam);
@@ -1547,15 +1723,19 @@ class Robot {
 // ============================================================================
 
 class Beam {
-    constructor(x, y, direction, damage, owner) {
+    constructor(x, y, direction, damage, owner, chargeLevel = 0) {
         this.x = x;
         this.y = y;
-        this.width = BEAM.width;
-        this.height = BEAM.height;
         this.direction = direction;
         this.damage = damage;
         this.owner = owner;
         this.active = true;
+        this.chargeLevel = chargeLevel;
+
+        // Scale size based on charge level
+        const sizeMultiplier = 1 + (chargeLevel * (CHARGE_BEAM.sizeMultiplierMax - 1));
+        this.width = BEAM.width * sizeMultiplier;
+        this.height = BEAM.height * sizeMultiplier;
 
         this.sprite = svgToImage(owner === 'player' ? SPRITES.beamRed : SPRITES.beamBlue);
     }
@@ -1568,12 +1748,14 @@ class Beam {
             this.active = false;
         }
 
-        // Beam trail particles
-        if (this.active && Math.random() > 0.5) {
+        // Beam trail particles (more for charged beams)
+        const trailChance = 0.5 + (this.chargeLevel * 0.4);  // Up to 90% for max charge
+        if (this.active && Math.random() < trailChance) {
             ParticleSystem.beamTrail(
                 this.x + this.width / 2,
                 this.y + this.height / 2,
-                this.owner === 'player'
+                this.owner === 'player',
+                this.chargeLevel
             );
         }
     }
@@ -1585,6 +1767,18 @@ class Beam {
             ctx.translate(this.x + this.width / 2, 0);
             ctx.scale(-1, 1);
             ctx.translate(-this.x - this.width / 2, 0);
+        }
+
+        // Glow effect for charged beams
+        if (this.chargeLevel > 0.1) {
+            const glowSize = 10 + (this.chargeLevel * 20);
+            const glowAlpha = 0.3 + (this.chargeLevel * 0.4);
+            const glowColor = this.owner === 'player' ?
+                `rgba(255, ${Math.floor(100 - this.chargeLevel * 100)}, 0, ${glowAlpha})` :
+                `rgba(0, ${Math.floor(100 + this.chargeLevel * 100)}, 255, ${glowAlpha})`;
+
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = glowSize;
         }
 
         ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
@@ -1771,12 +1965,21 @@ class InputSystem {
 
         // Keyboard state
         this.keys = {};
+        this.prevKeys = {};  // Previous frame's key state
+
+        // Shoot button state tracking (for charge beam)
+        this.shootState = {
+            held: false,
+            justPressed: false,
+            justReleased: false
+        };
 
         // Mobile touch state (simplified: zone-based)
         this.touchActions = {
             shoot: false,
             jump: false
         };
+        this.prevTouchShoot = false;  // Previous frame's touch state
 
         // Gyro state
         this.gyro = {
@@ -2006,6 +2209,22 @@ class InputSystem {
         return { x, y: 0 };
     }
 
+    // Call this once per frame to update input states
+    updateInputStates() {
+        let currentShoot = false;
+
+        if (this.isMobileDevice) {
+            currentShoot = this.touchActions.shoot;
+        } else {
+            currentShoot = this.keys['KeyJ'] || this.keys['KeyZ'];
+        }
+
+        // Detect state transitions
+        this.shootState.justPressed = currentShoot && !this.shootState.held;
+        this.shootState.justReleased = !currentShoot && this.shootState.held;
+        this.shootState.held = currentShoot;
+    }
+
     getInput() {
         if (this.isMobileDevice) {
             const movement = this.getGyroInput();
@@ -2015,17 +2234,23 @@ class InputSystem {
                 moveY: 0,
                 jump: this.touchActions.jump,
                 shoot: this.touchActions.shoot,
+                shootDown: this.shootState.justPressed,
+                shootUp: this.shootState.justReleased,
+                shootHeld: this.shootState.held,
                 kick: false  // Kick disabled on mobile for simplicity
             };
         }
 
-        // Keyboard input (unchanged)
+        // Keyboard input
         return {
             moveX: (this.keys['KeyD'] || this.keys['ArrowRight'] ? 1 : 0) -
                    (this.keys['KeyA'] || this.keys['ArrowLeft'] ? 1 : 0),
             moveY: 0,
             jump: this.keys['KeyW'] || this.keys['ArrowUp'] || this.keys['Space'],
             shoot: this.keys['KeyJ'] || this.keys['KeyZ'],
+            shootDown: this.shootState.justPressed,
+            shootUp: this.shootState.justReleased,
+            shootHeld: this.shootState.held,
             kick: this.keys['KeyK'] || this.keys['KeyX']
         };
     }
@@ -2652,6 +2877,9 @@ class Game {
     }
 
     updateBattle(deltaTime) {
+        // Update input states for charge detection
+        this.input.updateInputStates();
+
         const input = this.input.getInput();
         const stage = STAGES[this.currentStage];
 
@@ -2669,8 +2897,20 @@ class Game {
             this.player.jump();
         }
 
-        if (input.shoot) {
-            this.player.shoot(this.beams);
+        // Charge beam mechanics
+        if (input.shootDown) {
+            // Start charging when button pressed
+            this.player.startCharging();
+        }
+
+        if (this.player.isCharging) {
+            // Update charge level while holding
+            this.player.updateCharge();
+
+            // Release charged beam when button released
+            if (input.shootUp) {
+                this.player.releaseChargedBeam(this.beams);
+            }
         }
 
         if (input.kick) {
@@ -3159,6 +3399,11 @@ class Game {
         this.player.render(ctx);
         this.enemy.render(ctx);
 
+        // Draw charge indicator if player is charging
+        if (this.player.isCharging) {
+            this.renderChargeIndicator(ctx, this.player);
+        }
+
         // Draw effects
         for (const effect of this.effects) {
             effect.render(ctx);
@@ -3192,6 +3437,96 @@ class Game {
 
         // Draw screen flash (outside shake transform)
         ScreenEffects.renderFlash(ctx);
+    }
+
+    renderChargeIndicator(ctx, robot) {
+        const chargeLevel = robot.chargeLevel;
+        const centerX = robot.x + robot.width / 2;
+        const centerY = robot.y + robot.height / 2;
+
+        // Determine color based on charge level
+        let color, glowColor;
+        if (chargeLevel >= 1.0) {
+            color = '#ff0000';
+            glowColor = 'rgba(255, 0, 0, 0.5)';
+        } else if (chargeLevel >= 0.66) {
+            color = '#ff6600';
+            glowColor = 'rgba(255, 102, 0, 0.4)';
+        } else if (chargeLevel >= 0.33) {
+            color = '#ffff00';
+            glowColor = 'rgba(255, 255, 0, 0.3)';
+        } else {
+            color = '#00ffff';
+            glowColor = 'rgba(0, 255, 255, 0.2)';
+        }
+
+        // Draw pulsing aura
+        const pulsePhase = (Date.now() % 500) / 500;
+        const pulseSize = 1 + Math.sin(pulsePhase * Math.PI * 2) * 0.2;
+        const auraRadius = (40 + chargeLevel * 30) * pulseSize;
+
+        ctx.save();
+
+        // Outer glow
+        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, auraRadius);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        gradient.addColorStop(0.5, glowColor);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, auraRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Charge bar below robot
+        const barWidth = 60;
+        const barHeight = 8;
+        const barX = centerX - barWidth / 2;
+        const barY = robot.y + robot.height + 10;
+
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+
+        // Border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+
+        // Fill
+        ctx.fillStyle = color;
+        ctx.fillRect(barX, barY, barWidth * chargeLevel, barHeight);
+
+        // MAX text when fully charged
+        if (chargeLevel >= 1.0) {
+            // Flashing effect
+            const flashAlpha = 0.5 + Math.sin(Date.now() / 100) * 0.5;
+
+            ctx.font = 'bold 16px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 0, ${flashAlpha})`;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText('MAX!', centerX, barY - 5);
+            ctx.fillText('MAX!', centerX, barY - 5);
+
+            // Electric sparks around the robot
+            for (let i = 0; i < 3; i++) {
+                const sparkAngle = Math.random() * Math.PI * 2;
+                const sparkDist = 30 + Math.random() * 20;
+                const sparkX = centerX + Math.cos(sparkAngle) * sparkDist;
+                const sparkY = centerY + Math.sin(sparkAngle) * sparkDist;
+
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(sparkX, sparkY);
+                ctx.lineTo(sparkX + (Math.random() - 0.5) * 15, sparkY + (Math.random() - 0.5) * 15);
+                ctx.stroke();
+            }
+        }
+
+        ctx.restore();
     }
 
     renderStageBackground(stage) {
