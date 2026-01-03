@@ -75,6 +75,48 @@ const BEAM = {
     speed: 12
 };
 
+// Item Mode constants
+const ITEMS = {
+    enabled: false,  // Default: off (set by setup screen)
+    spawnInterval: 8000,  // Spawn new item every 8 seconds
+    itemLifetime: 12000,  // Items disappear after 12 seconds
+    types: {
+        HP: {
+            healAmount: 40,
+            color: '#00ff00',
+            glowColor: 'rgba(0, 255, 0, 0.5)'
+        },
+        RAPID: {
+            duration: 8000,  // 8 seconds of rapid fire
+            cooldownMultiplier: 0.3,  // 70% faster beam
+            color: '#ffff00',
+            glowColor: 'rgba(255, 255, 0, 0.5)'
+        },
+        MEGA: {
+            duration: 5000,  // 5 seconds of mega beam
+            damageMultiplier: 2.5,
+            sizeMultiplier: 2.0,
+            color: '#ff00ff',
+            glowColor: 'rgba(255, 0, 255, 0.5)'
+        },
+        SHIELD: {
+            duration: 6000,  // 6 seconds of invincibility
+            color: '#00ffff',
+            glowColor: 'rgba(0, 255, 255, 0.5)'
+        }
+    },
+    warpZone: {
+        width: 60,
+        height: 80,
+        color: '#9900ff',
+        glowColor: 'rgba(153, 0, 255, 0.6)'
+    },
+    deathZone: {
+        color: '#ff0000',
+        glowColor: 'rgba(255, 0, 0, 0.4)'
+    }
+};
+
 // Game states
 const GameState = {
     LOADING: 'loading',
@@ -119,7 +161,18 @@ const STAGES = [
             { x: 650, y: 270, width: 100, height: 20, type: 'passthrough' },
             { x: 320, y: 340, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }  // Adjusted for height=96
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        // Items Mode features
+        warpZones: [
+            { entry: { x: 50, y: 200, w: 50, h: 70 }, exit: { x: 700, y: 200 } },  // Left roof → Right roof
+            { entry: { x: 700, y: 200, w: 50, h: 70 }, exit: { x: 50, y: 200 } }   // Right roof → Left roof
+        ],
+        deathZones: [],  // No death zones in this stage
+        itemSpawns: [
+            { x: 400, y: 300, types: ['HP', 'RAPID'] },
+            { x: 100, y: 220, types: ['MEGA', 'SHIELD'] },
+            { x: 700, y: 340, types: ['HP', 'RAPID'] }
+        ]
     },
     {
         name: 'Pyramid',
@@ -133,7 +186,15 @@ const STAGES = [
             { x: 300, y: 190, width: 200, height: 20, type: 'passthrough' },
             { x: 350, y: 110, width: 100, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        warpZones: [],
+        deathZones: [],  // Pyramid is safe
+        itemSpawns: [
+            { x: 400, y: 60, types: ['MEGA', 'SHIELD'] },  // Top of pyramid - rare items
+            { x: 300, y: 140, types: ['HP'] },
+            { x: 500, y: 140, types: ['RAPID'] },
+            { x: 250, y: 220, types: ['HP', 'RAPID'] }
+        ]
     },
     {
         name: 'Parthenon',
@@ -148,7 +209,18 @@ const STAGES = [
             { x: 80, y: 320, width: 640, height: 20, type: 'passthrough' },  // Top platform
             { x: 200, y: 190, width: 400, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 150, y: 192 }, enemy: { x: 550, y: 192 } }  // On top platform (320-128=192)
+        spawnPoints: { player: { x: 150, y: 192 }, enemy: { x: 550, y: 192 } },
+        // Warp zones to escape the side gaps!
+        warpZones: [
+            { entry: { x: 0, y: 380, w: 60, h: 130 }, exit: { x: 400, y: 140 } },    // Left gap → Center top
+            { entry: { x: 740, y: 380, w: 60, h: 130 }, exit: { x: 400, y: 140 } }   // Right gap → Center top
+        ],
+        deathZones: [],  // Warp zones make it safe now
+        itemSpawns: [
+            { x: 400, y: 140, types: ['HP', 'SHIELD'] },
+            { x: 200, y: 270, types: ['RAPID'] },
+            { x: 600, y: 270, types: ['MEGA'] }
+        ]
     },
     {
         name: 'Factory',
@@ -163,7 +235,21 @@ const STAGES = [
             { x: 550, y: 250, width: 150, height: 20, type: 'passthrough' },
             { x: 320, y: 170, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        warpZones: [
+            { entry: { x: 50, y: 180, w: 50, h: 70 }, exit: { x: 700, y: 180 } },
+            { entry: { x: 700, y: 180, w: 50, h: 70 }, exit: { x: 50, y: 180 } }
+        ],
+        deathZones: [
+            { x: 210, y: 460, w: 80, h: 50 },  // Dangerous machinery pit
+            { x: 510, y: 460, w: 80, h: 50 }
+        ],
+        itemSpawns: [
+            { x: 400, y: 360, types: ['HP', 'RAPID'] },
+            { x: 400, y: 120, types: ['MEGA', 'SHIELD'] },
+            { x: 175, y: 200, types: ['HP'] },
+            { x: 625, y: 200, types: ['RAPID'] }
+        ]
     },
     {
         name: 'Cave',
@@ -178,7 +264,17 @@ const STAGES = [
             { x: 600, y: 210, width: 200, height: 20, type: 'passthrough' },
             { x: 300, y: 130, width: 200, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        warpZones: [],
+        deathZones: [
+            { x: 260, y: 430, w: 280, h: 80 }  // Underground pit in center
+        ],
+        itemSpawns: [
+            { x: 400, y: 260, types: ['HP', 'SHIELD'] },
+            { x: 400, y: 80, types: ['MEGA'] },
+            { x: 100, y: 340, types: ['RAPID'] },
+            { x: 700, y: 340, types: ['HP'] }
+        ]
     },
     {
         name: 'Neo City',
@@ -195,7 +291,24 @@ const STAGES = [
             { x: 550, y: 140, width: 100, height: 20, type: 'passthrough' },
             { x: 350, y: 70, width: 100, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 30, y: 282 }, enemy: { x: 650, y: 282 } }  // On side platforms (410-128=282)
+        spawnPoints: { player: { x: 30, y: 282 }, enemy: { x: 650, y: 282 } },
+        // High-tech teleporters
+        warpZones: [
+            { entry: { x: 150, y: 60, w: 50, h: 80 }, exit: { x: 600, y: 60 } },   // Left top → Right top
+            { entry: { x: 600, y: 60, w: 50, h: 80 }, exit: { x: 150, y: 60 } },   // Right top → Left top
+            { entry: { x: 0, y: 440, w: 40, h: 70 }, exit: { x: 400, y: 190 } },   // Ground left → Center
+            { entry: { x: 760, y: 440, w: 40, h: 70 }, exit: { x: 400, y: 190 } }  // Ground right → Center
+        ],
+        deathZones: [
+            { x: 160, y: 460, w: 140, h: 50 },  // Laser pits
+            { x: 500, y: 460, w: 140, h: 50 }
+        ],
+        itemSpawns: [
+            { x: 400, y: 20, types: ['MEGA', 'SHIELD'] },  // Top - rare
+            { x: 400, y: 190, types: ['HP', 'RAPID'] },
+            { x: 200, y: 260, types: ['HP'] },
+            { x: 600, y: 260, types: ['RAPID'] }
+        ]
     }
 ];
 
@@ -843,6 +956,30 @@ const SoundManager = {
         });
     },
 
+    // Item pickup sound (pleasant chime)
+    playItemPickup() {
+        if (!this.ctx) return;
+        // Ascending arpeggio - sounds like collecting coins/power-ups
+        const notes = [523, 659, 784, 1047];  // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+            setTimeout(() => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+
+                const vol = this.sfxVolume * this.masterVolume * 0.25;
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }, i * 40);
+        });
+    },
+
     // BGM System - Procedural Chiptune
     titleBGMPattern: [
         // [note, duration, octave]
@@ -1124,6 +1261,68 @@ const ParticleSystem = {
         }
     },
 
+    // Warp zone teleportation effect
+    warpEffect(x, y, direction) {
+        const colors = ['#9900ff', '#cc00ff', '#ff00ff', '#ffffff'];
+        const count = 20;
+
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count;
+            const speed = direction === 'out' ? 4 : -3;  // Expand out or contract in
+            this.emit(x, y, 1, {
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: 5,
+                life: 25,
+                vx: Math.cos(angle) * speed * (0.5 + Math.random()),
+                vy: Math.sin(angle) * speed * (0.5 + Math.random()),
+                type: 'spark'
+            });
+        }
+
+        // Central flash
+        this.emit(x, y, 5, {
+            color: '#ffffff',
+            size: 20,
+            life: 15
+        });
+    },
+
+    // Item pickup effect
+    itemPickup(x, y, itemType) {
+        const config = ITEMS.types[itemType];
+        const color = config ? config.color : '#ffffff';
+
+        // Ring of particles expanding outward
+        for (let i = 0; i < 16; i++) {
+            const angle = (Math.PI * 2 * i) / 16;
+            this.emit(x, y, 1, {
+                color: color,
+                size: 4,
+                life: 20,
+                vx: Math.cos(angle) * 3,
+                vy: Math.sin(angle) * 3,
+                type: 'spark'
+            });
+        }
+
+        // Rising sparkles
+        this.emit(x, y, 8, {
+            color: '#ffffff',
+            size: 3,
+            life: 30,
+            vy: -3,
+            gravity: -0.05,
+            type: 'spark'
+        });
+
+        // Central flash
+        this.emit(x, y, 3, {
+            color: color,
+            size: 15,
+            life: 10
+        });
+    },
+
     update() {
         this.particles = this.particles.filter(p => {
             p.update();
@@ -1270,6 +1469,63 @@ class Robot {
 
         // Sprite
         this.sprite = svgToImage(isPlayer ? SPRITES.robotRed : SPRITES.robotBlue);
+
+        // Powerup state (for Items Mode)
+        this.powerups = {
+            rapid: { active: false, endTime: 0 },
+            mega: { active: false, endTime: 0 },
+            shield: { active: false, endTime: 0 }
+        };
+    }
+
+    // Apply a powerup effect
+    applyPowerup(type) {
+        const now = Date.now();
+        switch(type) {
+            case 'HP':
+                this.hp = Math.min(this.hp + ITEMS.types.HP.healAmount, this.maxHp);
+                break;
+            case 'RAPID':
+                this.powerups.rapid.active = true;
+                this.powerups.rapid.endTime = now + ITEMS.types.RAPID.duration;
+                break;
+            case 'MEGA':
+                this.powerups.mega.active = true;
+                this.powerups.mega.endTime = now + ITEMS.types.MEGA.duration;
+                break;
+            case 'SHIELD':
+                this.powerups.shield.active = true;
+                this.powerups.shield.endTime = now + ITEMS.types.SHIELD.duration;
+                this.isInvincible = true;  // Shield grants invincibility
+                break;
+        }
+    }
+
+    // Update powerup timers
+    updatePowerups() {
+        const now = Date.now();
+
+        if (this.powerups.rapid.active && now >= this.powerups.rapid.endTime) {
+            this.powerups.rapid.active = false;
+        }
+        if (this.powerups.mega.active && now >= this.powerups.mega.endTime) {
+            this.powerups.mega.active = false;
+        }
+        if (this.powerups.shield.active && now >= this.powerups.shield.endTime) {
+            this.powerups.shield.active = false;
+            // Only remove invincibility if not from damage
+            if (this.invincibleTimer <= 0) {
+                this.isInvincible = false;
+            }
+        }
+    }
+
+    // Get effective beam cooldown (modified by RAPID powerup)
+    get effectiveBeamCooldown() {
+        if (this.powerups.rapid.active) {
+            return ROBOT.beamCooldown * ITEMS.types.RAPID.cooldownMultiplier;
+        }
+        return ROBOT.beamCooldown;
     }
 
     get moveSpeed() {
@@ -1281,7 +1537,11 @@ class Robot {
     }
 
     get beamDamage() {
-        return 8 + (this.beamPower * 1.2);
+        let damage = 8 + (this.beamPower * 1.2);
+        if (this.powerups.mega.active) {
+            damage *= ITEMS.types.MEGA.damageMultiplier;
+        }
+        return damage;
     }
 
     get kickDamage() {
@@ -1784,6 +2044,135 @@ class Beam {
         ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
 
         ctx.restore();
+    }
+}
+
+// ============================================================================
+// ITEM CLASS (for Items Mode)
+// ============================================================================
+
+class Item {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type;  // 'HP', 'RAPID', 'MEGA', 'SHIELD'
+        this.width = 32;
+        this.height = 32;
+        this.active = true;
+        this.spawnTime = Date.now();
+        this.bobOffset = 0;
+        this.bobSpeed = 0.003;
+        this.glowPhase = 0;
+    }
+
+    update() {
+        // Lifetime check
+        if (Date.now() - this.spawnTime > ITEMS.itemLifetime) {
+            this.active = false;
+            return;
+        }
+
+        // Bobbing animation
+        this.bobOffset = Math.sin(Date.now() * this.bobSpeed) * 4;
+        this.glowPhase = (Date.now() * 0.005) % (Math.PI * 2);
+    }
+
+    render(ctx) {
+        const itemConfig = ITEMS.types[this.type];
+        const drawY = this.y + this.bobOffset;
+        const glowIntensity = 0.5 + Math.sin(this.glowPhase) * 0.3;
+
+        ctx.save();
+
+        // Outer glow
+        ctx.shadowColor = itemConfig.glowColor;
+        ctx.shadowBlur = 15 + glowIntensity * 10;
+
+        // Item shape based on type
+        ctx.fillStyle = itemConfig.color;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+
+        switch(this.type) {
+            case 'HP':
+                // Heart shape for HP
+                this.drawHeart(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4);
+                break;
+            case 'RAPID':
+                // Lightning bolt for Rapid
+                this.drawLightning(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4);
+                break;
+            case 'MEGA':
+                // Star for Mega
+                this.drawStar(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4, 5);
+                break;
+            case 'SHIELD':
+                // Shield shape
+                this.drawShield(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4);
+                break;
+        }
+
+        // Label below item
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 10px Courier New';
+        ctx.fillStyle = itemConfig.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(this.type, this.x + this.width/2, drawY + this.height + 12);
+
+        ctx.restore();
+    }
+
+    drawHeart(ctx, x, y, size) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + size * 0.3);
+        ctx.bezierCurveTo(x, y - size * 0.3, x - size, y - size * 0.3, x - size, y + size * 0.1);
+        ctx.bezierCurveTo(x - size, y + size * 0.6, x, y + size, x, y + size);
+        ctx.bezierCurveTo(x, y + size, x + size, y + size * 0.6, x + size, y + size * 0.1);
+        ctx.bezierCurveTo(x + size, y - size * 0.3, x, y - size * 0.3, x, y + size * 0.3);
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    drawLightning(ctx, x, y, size) {
+        ctx.beginPath();
+        ctx.moveTo(x - size * 0.1, y - size);
+        ctx.lineTo(x + size * 0.5, y - size);
+        ctx.lineTo(x + size * 0.1, y - size * 0.1);
+        ctx.lineTo(x + size * 0.6, y - size * 0.1);
+        ctx.lineTo(x - size * 0.3, y + size);
+        ctx.lineTo(x, y + size * 0.1);
+        ctx.lineTo(x - size * 0.5, y + size * 0.1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    drawStar(ctx, x, y, size, points) {
+        ctx.beginPath();
+        for (let i = 0; i < points * 2; i++) {
+            const radius = i % 2 === 0 ? size : size * 0.4;
+            const angle = (i * Math.PI) / points - Math.PI / 2;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    drawShield(ctx, x, y, size) {
+        ctx.beginPath();
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x + size, y - size * 0.5);
+        ctx.lineTo(x + size, y + size * 0.3);
+        ctx.quadraticCurveTo(x, y + size * 1.2, x, y + size * 1.2);
+        ctx.quadraticCurveTo(x, y + size * 1.2, x - size, y + size * 0.3);
+        ctx.lineTo(x - size, y - size * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
     }
 }
 
@@ -2450,8 +2839,13 @@ class Game {
         this.settings = {
             playerParams: { jump: 5, walk: 5, beam: 5, kick: 5 },
             difficulty: 'normal',
-            stage: 0
+            stage: 0,
+            itemsMode: false  // Items Mode toggle (warp zones, death zones, items)
         };
+
+        // Items Mode state
+        this.activeItems = [];      // Collectible items on stage
+        this.itemSpawnTimer = 0;    // Timer for spawning new items
 
         // UI state
         this.menuSelection = 0;
@@ -2605,9 +2999,18 @@ class Game {
             return;
         }
 
+        // Items Mode toggle (wider hitbox to fill gap before button)
+        const itemsY = diffY + 50;
+        if (y >= itemsY && y <= itemsY + 45) {  // Extended hitbox (475-520)
+            this.setupSelection = 6;
+            // Any click on the row toggles Items Mode
+            this.adjustSetup(1);
+            return;
+        }
+
         // START BATTLE button
         const btnX = GAME_WIDTH / 2 - 100;  // 300
-        const btnY = GAME_HEIGHT - 100;      // 500
+        const btnY = GAME_HEIGHT - 80;       // 520 (matches renderSetup)
         const btnWidth = 200;
         const btnHeight = 50;
 
@@ -2618,7 +3021,7 @@ class Game {
         if (x >= btnX && x <= btnX + btnWidth && y >= btnY && y <= btnY + btnHeight) {
             console.log('[DEBUG] START BATTLE clicked! Calling startBattle()');
             SoundManager.playMenuSelect();
-            this.setupSelection = 6;
+            this.setupSelection = 7;
             this.startBattle();
             return;
         }
@@ -2807,7 +3210,7 @@ class Game {
             this.inputCooldown = 150;
         }
         if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
-            this.setupSelection = Math.min(6, this.setupSelection + 1);
+            this.setupSelection = Math.min(7, this.setupSelection + 1);
             this.inputCooldown = 150;
         }
 
@@ -2822,7 +3225,7 @@ class Game {
         }
 
         // Start battle
-        if (this.setupSelection === 6 && (input.shoot || input.jump || this.input.keys['Enter'])) {
+        if (this.setupSelection === 7 && (input.shoot || input.jump || this.input.keys['Enter'])) {
             this.startBattle();
             this.inputCooldown = 200;
         }
@@ -2863,6 +3266,9 @@ class Game {
                 const currentIdx = difficulties.indexOf(this.settings.difficulty);
                 const newIdx = (currentIdx + direction + 3) % 3;
                 this.settings.difficulty = difficulties[newIdx];
+                break;
+            case 6: // Items Mode
+                this.settings.itemsMode = !this.settings.itemsMode;
                 break;
         }
     }
@@ -2911,6 +3317,10 @@ class Game {
         this.beams = [];
         this.effects = [];
         ParticleSystem.clear();
+
+        // Reset Items Mode state
+        this.activeItems = [];
+        this.itemSpawnTimer = 0;
 
         this.winner = null;
         this.state = GameState.BATTLE;
@@ -3077,6 +3487,86 @@ class Game {
         // Remove inactive beams
         this.beams = this.beams.filter(b => b.active);
 
+        // ====================================================================
+        // ITEMS MODE: Zone and Item Processing
+        // ====================================================================
+        if (this.settings.itemsMode) {
+            // Update powerups for both robots
+            this.player.updatePowerups();
+            this.enemy.updatePowerups();
+
+            // Check warp zones
+            for (const warp of stage.warpZones) {
+                // Player warp check
+                if (this.checkZoneCollision(this.player, warp.entry)) {
+                    this.teleportRobot(this.player, warp.exit);
+                }
+                // Enemy warp check
+                if (this.checkZoneCollision(this.enemy, warp.entry)) {
+                    this.teleportRobot(this.enemy, warp.exit);
+                }
+            }
+
+            // Check death zones
+            for (const death of stage.deathZones) {
+                // Player death zone check
+                if (this.checkZoneCollision(this.player, death)) {
+                    // Instant KO from death zone (unless shield is active)
+                    if (!this.player.powerups.shield.active) {
+                        this.player.hp = 0;
+                        ScreenEffects.flash('#ff0000', 0.6);
+                        this.triggerKO('enemy', this.player);
+                        return;
+                    }
+                }
+                // Enemy death zone check
+                if (this.checkZoneCollision(this.enemy, death)) {
+                    if (!this.enemy.powerups.shield.active) {
+                        this.enemy.hp = 0;
+                        ScreenEffects.flash('#0066ff', 0.6);
+                        this.triggerKO('player', this.enemy);
+                        return;
+                    }
+                }
+            }
+
+            // Item spawning
+            this.itemSpawnTimer += deltaTime;
+            if (this.itemSpawnTimer >= ITEMS.spawnInterval && stage.itemSpawns.length > 0) {
+                this.itemSpawnTimer = 0;
+                // Pick random spawn point
+                const spawnPoint = stage.itemSpawns[Math.floor(Math.random() * stage.itemSpawns.length)];
+                // Pick random item type from that spawn point's available types
+                const itemType = spawnPoint.types[Math.floor(Math.random() * spawnPoint.types.length)];
+                this.activeItems.push(new Item(spawnPoint.x - 16, spawnPoint.y - 16, itemType));
+            }
+
+            // Update and check item collisions
+            for (const item of this.activeItems) {
+                item.update();
+
+                // Player item pickup
+                if (item.active && checkCollision(item, this.player)) {
+                    item.active = false;
+                    this.player.applyPowerup(item.type);
+                    SoundManager.playItemPickup();
+                    // Visual feedback
+                    ParticleSystem.itemPickup(item.x + item.width/2, item.y + item.height/2, item.type);
+                }
+
+                // Enemy item pickup
+                if (item.active && checkCollision(item, this.enemy)) {
+                    item.active = false;
+                    this.enemy.applyPowerup(item.type);
+                    // Visual feedback
+                    ParticleSystem.itemPickup(item.x + item.width/2, item.y + item.height/2, item.type);
+                }
+            }
+
+            // Remove inactive items
+            this.activeItems = this.activeItems.filter(i => i.active);
+        }
+
         // Update effects
         for (const effect of this.effects) {
             effect.update();
@@ -3086,6 +3576,178 @@ class Game {
         // Update particle system and screen effects
         ParticleSystem.update();
         ScreenEffects.update();
+    }
+
+    // Check if a robot is in a zone (warp entry or death zone)
+    checkZoneCollision(robot, zone) {
+        const robotCenterX = robot.x + robot.width / 2;
+        const robotCenterY = robot.y + robot.height / 2;
+        return robotCenterX >= zone.x &&
+               robotCenterX <= zone.x + zone.w &&
+               robotCenterY >= zone.y &&
+               robotCenterY <= zone.y + zone.h;
+    }
+
+    // Teleport a robot to exit position with visual effect
+    teleportRobot(robot, exit) {
+        // Visual effect at source
+        ParticleSystem.warpEffect(robot.x + robot.width/2, robot.y + robot.height/2, 'out');
+
+        // Move robot
+        robot.x = exit.x - robot.width / 2;
+        robot.y = exit.y - robot.height / 2;
+        robot.velocityY = 0; // Reset falling velocity
+
+        // Visual effect at destination
+        ParticleSystem.warpEffect(robot.x + robot.width/2, robot.y + robot.height/2, 'in');
+
+        // Screen flash
+        ScreenEffects.flash('#9900ff', 0.3);
+    }
+
+    // Render a warp zone (purple portal effect)
+    renderWarpZone(ctx, zone) {
+        const time = Date.now() * 0.003;
+        const pulseAlpha = 0.3 + Math.sin(time) * 0.15;
+
+        ctx.save();
+
+        // Outer glow
+        ctx.shadowColor = ITEMS.warpZone.glowColor;
+        ctx.shadowBlur = 20 + Math.sin(time * 2) * 10;
+
+        // Portal background
+        ctx.fillStyle = `rgba(153, 0, 255, ${pulseAlpha})`;
+        ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+
+        // Border
+        ctx.strokeStyle = ITEMS.warpZone.color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+        // Inner swirl effect (simplified)
+        const centerX = zone.x + zone.w / 2;
+        const centerY = zone.y + zone.h / 2;
+        for (let i = 0; i < 3; i++) {
+            const angle = time * 2 + (i * Math.PI * 2 / 3);
+            const radius = 15 + i * 5;
+            const px = centerX + Math.cos(angle) * radius;
+            const py = centerY + Math.sin(angle) * radius * 0.5;
+
+            ctx.beginPath();
+            ctx.arc(px, py, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+        }
+
+        // WARP label
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 10px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('WARP', centerX, zone.y - 5);
+
+        ctx.restore();
+    }
+
+    // Render a death zone (red danger area)
+    renderDeathZone(ctx, zone) {
+        const time = Date.now() * 0.004;
+        const flashAlpha = 0.2 + Math.sin(time) * 0.1;
+
+        ctx.save();
+
+        // Danger stripes pattern
+        ctx.fillStyle = `rgba(255, 0, 0, ${flashAlpha})`;
+        ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+
+        // Warning stripes
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
+        ctx.lineWidth = 2;
+        const stripeSpacing = 12;
+        for (let i = 0; i < zone.w + zone.h; i += stripeSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(zone.x + i, zone.y);
+            ctx.lineTo(zone.x + i - zone.h, zone.y + zone.h);
+            ctx.stroke();
+        }
+
+        // Border
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+        // DANGER label
+        ctx.font = 'bold 10px Courier New';
+        ctx.fillStyle = '#ff0000';
+        ctx.textAlign = 'center';
+        ctx.fillText('DANGER', zone.x + zone.w / 2, zone.y - 5);
+
+        ctx.restore();
+    }
+
+    // Render powerup indicators above robot
+    renderPowerupIndicators(ctx, robot) {
+        const now = Date.now();
+        let iconX = robot.x + robot.width / 2 - 30;
+        const iconY = robot.y - 25;
+        const iconSize = 16;
+        const iconSpacing = 20;
+
+        ctx.save();
+
+        // Draw active powerup icons
+        if (robot.powerups.rapid.active) {
+            const remaining = (robot.powerups.rapid.endTime - now) / ITEMS.types.RAPID.duration;
+            this.drawPowerupIcon(ctx, iconX, iconY, 'RAPID', remaining);
+            iconX += iconSpacing;
+        }
+        if (robot.powerups.mega.active) {
+            const remaining = (robot.powerups.mega.endTime - now) / ITEMS.types.MEGA.duration;
+            this.drawPowerupIcon(ctx, iconX, iconY, 'MEGA', remaining);
+            iconX += iconSpacing;
+        }
+        if (robot.powerups.shield.active) {
+            const remaining = (robot.powerups.shield.endTime - now) / ITEMS.types.SHIELD.duration;
+            this.drawPowerupIcon(ctx, iconX, iconY, 'SHIELD', remaining);
+
+            // Draw shield aura around robot
+            ctx.shadowColor = ITEMS.types.SHIELD.glowColor;
+            ctx.shadowBlur = 15;
+            ctx.strokeStyle = ITEMS.types.SHIELD.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(
+                robot.x + robot.width / 2,
+                robot.y + robot.height / 2,
+                robot.width * 0.7,
+                robot.height * 0.6,
+                0, 0, Math.PI * 2
+            );
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    // Draw a single powerup icon with timer bar
+    drawPowerupIcon(ctx, x, y, type, remaining) {
+        const config = ITEMS.types[type];
+        const size = 14;
+
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(x - 2, y - 2, size + 4, size + 6);
+
+        // Icon
+        ctx.fillStyle = config.color;
+        ctx.fillRect(x, y, size, size);
+
+        // Timer bar below
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x, y + size + 1, size, 3);
+        ctx.fillStyle = config.color;
+        ctx.fillRect(x, y + size + 1, size * remaining, 3);
     }
 
     updateResult(deltaTime) {
@@ -3387,9 +4049,39 @@ class Game {
         ctx.fillText(this.settings.difficulty.toUpperCase(), 550, diffY);
         if (isDiffSelected) ctx.fillText('< >', 590, diffY);
 
+        // Items Mode toggle
+        const itemsY = diffY + 50;
+        const isItemsSelected = this.setupSelection === 6;
+        ctx.font = isItemsSelected ? 'bold 18px Courier New' : '16px Courier New';
+        ctx.fillStyle = isItemsSelected ? '#ffff00' : '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.fillText('ITEMS MODE', 200, itemsY);
+        ctx.textAlign = 'right';
+
+        // Show ON/OFF with color coding
+        if (this.settings.itemsMode) {
+            ctx.fillStyle = isItemsSelected ? '#00ff00' : '#00cc00';
+            ctx.fillText('ON', 550, itemsY);
+        } else {
+            ctx.fillStyle = isItemsSelected ? '#ff6666' : '#888888';
+            ctx.fillText('OFF', 550, itemsY);
+        }
+        if (isItemsSelected) {
+            ctx.fillStyle = isItemsSelected ? '#ffff00' : '#ffffff';
+            ctx.fillText('< >', 590, itemsY);
+        }
+
+        // Items Mode description (when selected)
+        if (isItemsSelected) {
+            ctx.font = '12px Courier New';
+            ctx.fillStyle = '#9900ff';
+            ctx.textAlign = 'center';
+            ctx.fillText('ワープゾーン・デスゾーン・回復アイテム・特殊武器が出現！', GAME_WIDTH / 2, itemsY + 22);
+        }
+
         // Start button
-        const btnY = GAME_HEIGHT - 100;
-        const isStartSelected = this.setupSelection === 6;
+        const btnY = GAME_HEIGHT - 80;
+        const isStartSelected = this.setupSelection === 7;
         ctx.fillStyle = isStartSelected ? '#0088ff' : '#0066cc';
         ctx.fillRect(GAME_WIDTH / 2 - 100, btnY, 200, 50);
         ctx.strokeStyle = isStartSelected ? '#00ffff' : '#00aaff';
@@ -3439,6 +4131,30 @@ class Game {
             // Platform top highlight
             ctx.fillStyle = platform.type === 'solid' ? '#6d6d8a' : 'rgba(109, 109, 138, 0.6)';
             ctx.fillRect(platform.x, platform.y, platform.width, 4);
+        }
+
+        // ====================================================================
+        // ITEMS MODE: Draw Zones and Items
+        // ====================================================================
+        if (this.settings.itemsMode) {
+            // Draw death zones (red danger areas)
+            for (const death of stage.deathZones) {
+                this.renderDeathZone(ctx, death);
+            }
+
+            // Draw warp zones (purple portals)
+            for (const warp of stage.warpZones) {
+                this.renderWarpZone(ctx, warp.entry);
+            }
+
+            // Draw items
+            for (const item of this.activeItems) {
+                item.render(ctx);
+            }
+
+            // Draw powerup indicators on robots
+            this.renderPowerupIndicators(ctx, this.player);
+            this.renderPowerupIndicators(ctx, this.enemy);
         }
 
         // Draw beams
