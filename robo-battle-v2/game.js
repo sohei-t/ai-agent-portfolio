@@ -38,7 +38,7 @@ const PHYSICS = {
 const ROBOT = {
     width: 96,
     height: 128,
-    maxHp: 100,
+    maxHp: 200,
     invincibleTime: 500,
     beamCooldown: 500,    // 300 → 500ms に増加（ビームを遅くする）
     kickCooldown: 1000,
