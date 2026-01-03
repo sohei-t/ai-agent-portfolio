@@ -32,21 +32,21 @@ export class SoundSystem {
     // Sound definitions
     this.soundDefs = {
       // BGM
-      bgm_title: { src: 'assets/audio/bgm_title.mp3', loop: true, volume: 0.3 },
-      bgm_game: { src: 'assets/audio/bgm_game.mp3', loop: true, volume: 0.3 },
-      bgm_victory: { src: 'assets/audio/bgm_victory.mp3', loop: false, volume: 0.4 },
-      bgm_gameover: { src: 'assets/audio/bgm_gameover.mp3', loop: false, volume: 0.4 },
+      bgm_title: { src: 'assets/audio/bgm_title.wav', loop: true, volume: 0.3 },
+      bgm_game: { src: 'assets/audio/bgm_game.wav', loop: true, volume: 0.3 },
+      bgm_victory: { src: 'assets/audio/bgm_victory.wav', loop: false, volume: 0.4 },
+      bgm_gameover: { src: 'assets/audio/bgm_gameover.wav', loop: false, volume: 0.4 },
 
       // SFX
-      sfx_bomb: { src: 'assets/audio/sfx_bomb.mp3', loop: false, volume: 0.6 },
-      sfx_explosion: { src: 'assets/audio/sfx_explosion.mp3', loop: false, volume: 0.7 },
-      sfx_missile: { src: 'assets/audio/sfx_missile.mp3', loop: false, volume: 0.5 },
-      sfx_hit: { src: 'assets/audio/sfx_hit.mp3', loop: false, volume: 0.6 },
-      sfx_powerup: { src: 'assets/audio/sfx_powerup.mp3', loop: false, volume: 0.5 },
-      sfx_engine: { src: 'assets/audio/sfx_engine.mp3', loop: true, volume: 0.2 },
-      sfx_button: { src: 'assets/audio/sfx_button.mp3', loop: false, volume: 0.4 },
-      sfx_countdown: { src: 'assets/audio/sfx_countdown.mp3', loop: false, volume: 0.5 },
-      sfx_start: { src: 'assets/audio/sfx_start.mp3', loop: false, volume: 0.6 }
+      sfx_bomb: { src: 'assets/audio/sfx_bomb.wav', loop: false, volume: 0.6 },
+      sfx_explosion: { src: 'assets/audio/sfx_explosion.wav', loop: false, volume: 0.7 },
+      sfx_missile: { src: 'assets/audio/sfx_missile.wav', loop: false, volume: 0.5 },
+      sfx_hit: { src: 'assets/audio/sfx_hit.wav', loop: false, volume: 0.6 },
+      sfx_powerup: { src: 'assets/audio/sfx_powerup.wav', loop: false, volume: 0.5 },
+      sfx_engine: { src: 'assets/audio/sfx_engine.wav', loop: true, volume: 0.2 },
+      sfx_button: { src: 'assets/audio/sfx_button.wav', loop: false, volume: 0.4 },
+      sfx_countdown: { src: 'assets/audio/sfx_countdown.wav', loop: false, volume: 0.5 },
+      sfx_start: { src: 'assets/audio/sfx_start.wav', loop: false, volume: 0.6 }
     };
   }
 
