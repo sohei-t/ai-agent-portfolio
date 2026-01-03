@@ -233,12 +233,14 @@ class CarBattleChase {
     });
 
     document.getElementById('btn-settings').addEventListener('click', () => {
+      this.hideScreen('title');
       this.game.setState(GameState.SETTINGS);
     });
 
     // Settings screen
     document.getElementById('btn-settings-back').addEventListener('click', () => {
       this.saveSettings();
+      this.hideScreen('settings');
       this.game.setState(GameState.TITLE);
     });
 
