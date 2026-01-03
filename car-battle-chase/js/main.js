@@ -70,7 +70,8 @@ class CarBattleChase {
     // Start game engine
     await this.game.start();
 
-    // Show title screen
+    // Hide loading screen and show title screen
+    this.hideScreen('loading');
     this.showScreen('title');
 
     console.log('Game initialized successfully');
@@ -162,8 +163,31 @@ class CarBattleChase {
    * Handle game state changes
    */
   handleStateChange(newState, prevState) {
+    // First hide all screens based on previous state
+    switch (prevState) {
+      case GameState.TITLE:
+        this.hideScreen('title');
+        break;
+      case GameState.SETTINGS:
+        this.hideScreen('settings');
+        break;
+      case GameState.PAUSED:
+        this.hideScreen('pause');
+        break;
+      case GameState.GAMEOVER:
+        this.hideScreen('gameover');
+        break;
+      case GameState.VICTORY:
+        this.hideScreen('victory');
+        break;
+    }
+
+    // Then show new screen
     switch (newState) {
       case GameState.TITLE:
+        this.hideScreen('game');
+        this.hideScreen('gameover');
+        this.hideScreen('victory');
         this.showScreen('title');
         break;
 
@@ -190,11 +214,6 @@ class CarBattleChase {
       case GameState.VICTORY:
         this.showScreen('victory');
         break;
-    }
-
-    // Hide pause screen when resuming
-    if (prevState === GameState.PAUSED && newState === GameState.PLAYING) {
-      this.hideScreen('pause');
     }
   }
 
@@ -373,6 +392,9 @@ class CarBattleChase {
 
     // Play button sound
     this.game.soundSystem.playSfx('sfx_button');
+
+    // Hide title screen before starting game
+    this.hideScreen('title');
 
     // Apply settings and start
     this.game.setDifficulty(this.settings.difficulty);
