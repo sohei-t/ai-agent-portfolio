@@ -6,7 +6,7 @@
  * - 1P vs CPU robot battle
  * - 6 stages (Urban, Pyramid, Parthenon, Factory, Cave, Neo City)
  * - 4 parameter customization (JUMP, WALK, BEAM, KICK)
- * - Mobile support (Gyro + Virtual Joystick) with auto-kick
+ * - Mobile support (Gyro + Zone Touch) with beam-kick (shoot at close range = kick)
  * - AI-generated 3D robot sprites (Vertex AI Imagen)
  * - Procedural chiptune BGM (Title & Battle)
  * - Sound effects (Beam, Hit, Kick, Jump, KO, Victory/Defeat)
@@ -2956,7 +2956,37 @@ class Game {
 
             // Release charged beam when button released
             if (input.shootUp) {
-                this.player.releaseChargedBeam(this.beams);
+                // Check if enemy is close - if so, kick instead of beam
+                const distanceToEnemy = Math.abs(this.player.x - this.enemy.x);
+                const heightDiff = Math.abs(this.player.y - this.enemy.y);
+                const kickRange = 60; // Range for kick-on-beam
+                const heightThreshold = 50;
+
+                if (distanceToEnemy < kickRange && heightDiff < heightThreshold && this.player.kickCooldown <= 0) {
+                    // Close range: Kick instead of beam
+                    this.player.cancelCharge(); // Cancel the charge
+
+                    // Face the enemy before kicking
+                    this.player.facingRight = this.enemy.x > this.player.x;
+
+                    if (this.player.kick(this.enemy)) {
+                        const knockbackDir = this.player.facingRight ? 1 : -1;
+                        const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
+                        this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
+
+                        // Kick sound
+                        SoundManager.playKick();
+
+                        console.log('[Beam-Kick] Player kicked enemy at close range!');
+                        if (died) {
+                            this.triggerKO('player', this.enemy);
+                            return;
+                        }
+                    }
+                } else {
+                    // Normal range: Fire charged beam
+                    this.player.releaseChargedBeam(this.beams);
+                }
             }
         }
 
@@ -2976,33 +3006,7 @@ class Game {
             }
         }
 
-        // Auto-kick for mobile: automatically kick when close to enemy
-        if (this.input.isMobileDevice && this.player.kickCooldown <= 0) {
-            const distanceToEnemy = Math.abs(this.player.x - this.enemy.x);
-            const heightDiff = Math.abs(this.player.y - this.enemy.y);
-            const autoKickRange = 55; // Slightly larger than kick range for easier triggering
-            const heightThreshold = 40; // Must be at similar height
-
-            if (distanceToEnemy < autoKickRange && heightDiff < heightThreshold) {
-                // Face the enemy before kicking
-                this.player.facingRight = this.enemy.x > this.player.x;
-
-                if (this.player.kick(this.enemy)) {
-                    const knockbackDir = this.player.facingRight ? 1 : -1;
-                    const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
-                    this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
-
-                    // Auto-kick sound
-                    SoundManager.playKick();
-
-                    console.log('[Auto-Kick] Player kicked enemy!');
-                    if (died) {
-                        this.triggerKO('player', this.enemy);
-                        return;
-                    }
-                }
-            }
-        }
+        // Auto-kick removed - now kick triggers when shooting beam at close range
 
         // Auto-aim (face enemy)
         this.player.facingRight = this.enemy.x > this.player.x;
