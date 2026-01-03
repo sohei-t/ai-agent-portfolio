@@ -301,6 +301,94 @@
                 padding-bottom: env(safe-area-inset-bottom);
             }
         }
+
+        /* ===== Mobile Control Hints (Outside Canvas) ===== */
+        .control-hint {
+            display: none;
+            position: fixed;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .control-hint-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid;
+            margin-bottom: 8px;
+        }
+
+        .control-hint-label {
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* JUMP hint - Left side, bottom area */
+        #hint-jump {
+            left: 15px;
+            bottom: 25%;
+        }
+
+        #hint-jump .control-hint-circle {
+            background: rgba(0, 255, 100, 0.25);
+            border-color: rgba(0, 255, 100, 0.7);
+        }
+
+        #hint-jump .control-hint-circle svg {
+            fill: rgba(255, 255, 255, 0.85);
+        }
+
+        #hint-jump .control-hint-label {
+            color: rgba(0, 255, 100, 0.9);
+        }
+
+        /* BEAM hint - Right side, top area */
+        #hint-beam {
+            right: 15px;
+            top: 25%;
+        }
+
+        #hint-beam .control-hint-circle {
+            background: rgba(255, 100, 0, 0.25);
+            border-color: rgba(255, 150, 0, 0.7);
+        }
+
+        #hint-beam .control-hint-circle svg {
+            stroke: rgba(255, 255, 255, 0.85);
+            fill: none;
+        }
+
+        #hint-beam .control-hint-label {
+            color: rgba(255, 150, 0, 0.9);
+        }
+
+        /* Show only on mobile in landscape */
+        @media (max-width: 1200px) and (orientation: landscape) {
+            .control-hint {
+                display: flex;
+            }
+        }
+
+        /* Hide on very small screens where there's no margin */
+        @media (max-width: 840px) and (orientation: landscape) {
+            .control-hint {
+                display: none;
+            }
+        }
+
+        /* Tablet landscape - show hints */
+        @media (min-width: 841px) and (max-width: 1400px) and (orientation: landscape) {
+            .control-hint {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
@@ -334,6 +422,31 @@
         <div class="icon">📱</div>
         <h2>横向きでプレイ</h2>
         <p>スマホを横に回転してください<br>Rotate your device for best experience</p>
+    </div>
+
+    <!-- Mobile Control Hints (Outside Canvas) -->
+    <div id="hint-jump" class="control-hint">
+        <div class="control-hint-circle">
+            <!-- Upward Arrow SVG -->
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path d="M16 4 L26 18 L20 18 L20 28 L12 28 L12 18 L6 18 Z"/>
+            </svg>
+        </div>
+        <span class="control-hint-label">JUMP</span>
+    </div>
+
+    <div id="hint-beam" class="control-hint">
+        <div class="control-hint-circle">
+            <!-- Crosshair/Target SVG -->
+            <svg width="36" height="36" viewBox="0 0 36 36" stroke-width="3">
+                <circle cx="18" cy="18" r="8"/>
+                <line x1="18" y1="2" x2="18" y2="10"/>
+                <line x1="18" y1="26" x2="18" y2="34"/>
+                <line x1="2" y1="18" x2="10" y2="18"/>
+                <line x1="26" y1="18" x2="34" y2="18"/>
+            </svg>
+        </div>
+        <span class="control-hint-label">BEAM</span>
     </div>
 
     <script src="game.js"></script>

@@ -1,5 +1,5 @@
 /**
- * ROBO BATTLE v5.3 - Mobile UX Enhanced
+ * ROBO BATTLE v5.4 - Mobile UX Enhanced
  * Single-file game implementation with AI-generated robot sprites
  *
  * Features:
@@ -13,7 +13,7 @@
  * - Particle system (Dust, Sparks, Explosions)
  * - Screen effects (Shake, Flash)
  * - Enhanced robot animation with joint-based limb movement
- * - Mobile control hints (JUMP/BEAM indicators)
+ * - Mobile control hints (JUMP/BEAM - outside canvas via HTML)
  * - 60FPS Canvas rendering
  */
 
@@ -3078,107 +3078,6 @@ class Game {
 
         // Draw screen flash (outside shake transform)
         ScreenEffects.renderFlash(ctx);
-
-        // Draw mobile control hints
-        if (this.input.isMobileDevice) {
-            this.renderMobileControlHints();
-        }
-    }
-
-    renderMobileControlHints() {
-        const ctx = this.ctx;
-        const padding = 30;
-        const circleRadius = 35;
-        const alpha = 0.4;  // Semi-transparent
-
-        ctx.save();
-
-        // ===== Bottom-Left: JUMP indicator =====
-        const jumpX = padding + circleRadius;
-        const jumpY = GAME_HEIGHT - padding - circleRadius;
-
-        // Circle background
-        ctx.beginPath();
-        ctx.arc(jumpX, jumpY, circleRadius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 255, 100, ${alpha})`;
-        ctx.fill();
-        ctx.strokeStyle = `rgba(0, 255, 100, ${alpha + 0.3})`;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // Jump arrow (upward pointing)
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha + 0.4})`;
-        ctx.beginPath();
-        ctx.moveTo(jumpX, jumpY - 18);  // Top point
-        ctx.lineTo(jumpX - 14, jumpY + 5);  // Bottom left
-        ctx.lineTo(jumpX - 5, jumpY + 5);
-        ctx.lineTo(jumpX - 5, jumpY + 15);
-        ctx.lineTo(jumpX + 5, jumpY + 15);
-        ctx.lineTo(jumpX + 5, jumpY + 5);
-        ctx.lineTo(jumpX + 14, jumpY + 5);  // Bottom right
-        ctx.closePath();
-        ctx.fill();
-
-        // JUMP text
-        ctx.font = 'bold 10px Courier New';
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha + 0.3})`;
-        ctx.textAlign = 'center';
-        ctx.fillText('JUMP', jumpX, jumpY + circleRadius + 15);
-
-        // ===== Top-Right: BEAM indicator =====
-        const beamX = GAME_WIDTH - padding - circleRadius;
-        const beamY = padding + circleRadius + 50;  // Below HP bar
-
-        // Circle background
-        ctx.beginPath();
-        ctx.arc(beamX, beamY, circleRadius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
-        ctx.fill();
-        ctx.strokeStyle = `rgba(255, 150, 0, ${alpha + 0.3})`;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // Beam/target symbol (crosshair-like)
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha + 0.4})`;
-        ctx.lineWidth = 3;
-        // Outer ring
-        ctx.beginPath();
-        ctx.arc(beamX, beamY, 15, 0, Math.PI * 2);
-        ctx.stroke();
-        // Cross lines
-        ctx.beginPath();
-        ctx.moveTo(beamX - 22, beamY);
-        ctx.lineTo(beamX - 10, beamY);
-        ctx.moveTo(beamX + 10, beamY);
-        ctx.lineTo(beamX + 22, beamY);
-        ctx.moveTo(beamX, beamY - 22);
-        ctx.lineTo(beamX, beamY - 10);
-        ctx.moveTo(beamX, beamY + 10);
-        ctx.lineTo(beamX, beamY + 22);
-        ctx.stroke();
-        // Center dot
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha + 0.4})`;
-        ctx.beginPath();
-        ctx.arc(beamX, beamY, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // BEAM text
-        ctx.font = 'bold 10px Courier New';
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha + 0.3})`;
-        ctx.textAlign = 'center';
-        ctx.fillText('BEAM', beamX, beamY + circleRadius + 15);
-
-        // ===== Zone divider hint line =====
-        ctx.strokeStyle = `rgba(255, 255, 255, 0.15)`;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([10, 10]);
-        ctx.beginPath();
-        ctx.moveTo(0, GAME_HEIGHT / 2);
-        ctx.lineTo(GAME_WIDTH, GAME_HEIGHT / 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.restore();
     }
 
     renderStageBackground(stage) {
@@ -3425,7 +3324,7 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v5.3 - Mobile UX Enhanced ===');
+    console.log('=== ROBO BATTLE v5.4 - Mobile UX Enhanced ===');
     console.log('🎨 Features: Animated sprites + Procedural BGM + Sound Effects!');
     console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump, Auto-kick when close!');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
