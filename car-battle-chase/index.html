@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a0a2e">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self';">
+  <title>Car Battle Chase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="screen active">
+    <div class="loading-content">
+      <div class="loading-car">
+        <div class="car-body"></div>
+        <div class="car-wheels">
+          <span class="wheel"></span>
+          <span class="wheel"></span>
+        </div>
+      </div>
+      <div class="loading-road">
+        <div class="road-line"></div>
+      </div>
+      <h2 class="loading-text">Loading<span class="dots">...</span></h2>
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Title Screen -->
+  <div id="title-screen" class="screen">
+    <div class="title-bg">
+      <div class="stars"></div>
+      <div class="floating-cars">
+        <div class="float-car car-1"></div>
+        <div class="float-car car-2"></div>
+        <div class="float-car car-3"></div>
+      </div>
+    </div>
+    <div class="title-content">
+      <div class="logo-container">
+        <h1 class="game-title">
+          <span class="title-car">CAR</span>
+          <span class="title-battle">BATTLE</span>
+          <span class="title-chase">CHASE</span>
+        </h1>
+        <div class="title-decoration">
+          <span class="deco-star">★</span>
+          <span class="deco-star">★</span>
+          <span class="deco-star">★</span>
+        </div>
+      </div>
+
+      <div class="menu-buttons">
+        <button id="btn-start" class="menu-btn primary">
+          <span class="btn-icon">🏁</span>
+          <span class="btn-text">START</span>
+        </button>
+        <button id="btn-settings" class="menu-btn">
+          <span class="btn-icon">⚙️</span>
+          <span class="btn-text">SETTINGS</span>
+        </button>
+        <button id="btn-about" class="menu-btn">
+          <span class="btn-icon">📖</span>
+          <span class="btn-text">ABOUT</span>
+        </button>
+      </div>
+
+      <div class="highscore-display">
+        <span class="trophy">🏆</span>
+        <span class="score-label">BEST:</span>
+        <span id="highscore-value" class="score-value">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Screen -->
+  <div id="settings-screen" class="screen">
+    <div class="screen-header">
+      <button id="btn-settings-back" class="back-btn">◀</button>
+      <h2>SETTINGS</h2>
+    </div>
+    <div class="settings-content">
+      <div class="setting-group">
+        <h3>🎮 CONTROLS</h3>
+        <div class="control-toggle">
+          <button id="control-joystick" class="control-btn active" data-mode="joystick">
+            <span class="control-icon">🕹️</span>
+            <span>Joystick</span>
+          </button>
+          <button id="control-gyro" class="control-btn" data-mode="gyro">
+            <span class="control-icon">📱</span>
+            <span>Tilt</span>
+          </button>
+        </div>
+        <p id="gyro-status" class="gyro-status"></p>
+      </div>
+
+      <div class="setting-group">
+        <h3>🎯 DIFFICULTY</h3>
+        <div class="difficulty-select">
+          <button class="diff-btn" data-diff="easy">EASY</button>
+          <button class="diff-btn active" data-diff="normal">NORMAL</button>
+          <button class="diff-btn" data-diff="hard">HARD</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h3>🔊 SOUND</h3>
+        <div class="volume-control">
+          <label>BGM</label>
+          <input type="range" id="bgm-volume" min="0" max="100" value="30">
+          <span class="volume-value">30%</span>
+        </div>
+        <div class="volume-control">
+          <label>SFX</label>
+          <input type="range" id="sfx-volume" min="0" max="100" value="50">
+          <span class="volume-value">50%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen" class="screen">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hud">
+      <div class="hud-top">
+        <div class="hud-health">
+          <div class="health-icon">❤️</div>
+          <div class="health-bar">
+            <div id="health-fill" class="health-fill"></div>
+          </div>
+          <span id="health-text">100</span>
+        </div>
+        <div class="hud-score">
+          <span class="score-icon">⭐</span>
+          <span id="score-display">0</span>
+        </div>
+      </div>
+
+      <div class="hud-bottom-left">
+        <div class="ammo-display">
+          <div class="ammo-item">
+            <span class="ammo-icon">💣</span>
+            <span id="bomb-count" class="ammo-count">5</span>
+          </div>
+          <div class="ammo-item">
+            <span class="ammo-icon">🚀</span>
+            <span id="missile-count" class="ammo-count">3</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-pause" class="pause-btn">⏸️</button>
+    </div>
+
+    <!-- Touch Controls -->
+    <div id="touch-controls" class="touch-controls">
+      <div id="joystick-zone" class="joystick-zone">
+        <div id="joystick-base" class="joystick-base">
+          <div id="joystick-stick" class="joystick-stick"></div>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button id="btn-bomb" class="action-btn bomb-btn" data-action="bomb">
+          <span class="btn-emoji">💣</span>
+        </button>
+        <button id="btn-missile" class="action-btn missile-btn" data-action="missile">
+          <span class="btn-emoji">🚀</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Screen -->
+  <div id="pause-screen" class="screen overlay">
+    <div class="pause-modal">
+      <h2>PAUSED</h2>
+      <div class="pause-buttons">
+        <button id="btn-resume" class="pause-menu-btn">▶️ RESUME</button>
+        <button id="btn-restart" class="pause-menu-btn">🔄 RESTART</button>
+        <button id="btn-quit" class="pause-menu-btn">🏠 QUIT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameover-screen" class="screen overlay">
+    <div class="gameover-modal">
+      <h2 class="gameover-title">GAME OVER</h2>
+      <div class="gameover-stats">
+        <div class="stat-row">
+          <span class="stat-label">SCORE</span>
+          <span id="final-score" class="stat-value">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">TIME</span>
+          <span id="survival-time" class="stat-value">0:00</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">ENEMIES</span>
+          <span id="enemies-defeated" class="stat-value">0</span>
+        </div>
+      </div>
+      <div class="gameover-buttons">
+        <button id="btn-retry" class="gameover-btn primary">🔄 RETRY</button>
+        <button id="btn-title" class="gameover-btn">🏠 TITLE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Victory Screen -->
+  <div id="victory-screen" class="screen overlay">
+    <div class="victory-modal">
+      <div class="confetti"></div>
+      <h2 class="victory-title">VICTORY!</h2>
+      <div class="victory-rating">
+        <span class="star filled">★</span>
+        <span class="star filled">★</span>
+        <span class="star">★</span>
+      </div>
+      <div class="victory-stats">
+        <div class="stat-row">
+          <span class="stat-label">FINAL SCORE</span>
+          <span id="victory-score" class="stat-value">0</span>
+        </div>
+      </div>
+      <div class="victory-buttons">
+        <button id="btn-next" class="victory-btn primary">➡️ NEXT</button>
+        <button id="btn-victory-title" class="victory-btn">🏠 TITLE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Countdown Overlay -->
+  <div id="countdown-overlay" class="screen overlay">
+    <div id="countdown-number" class="countdown-number">3</div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
