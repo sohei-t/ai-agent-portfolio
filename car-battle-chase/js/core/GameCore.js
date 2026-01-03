@@ -492,7 +492,7 @@ export class GameCore {
 
     const bombData = this.player.fireBomb();
     if (bombData) {
-      const bomb = this.bombPool.get();
+      const bomb = this.bombPool.acquire();
       bomb.init(bombData.x, bombData.y, bombData.vx, bombData.vy, bombData.owner);
       this.bombs.push(bomb);
       this.soundSystem.playSfx('sfx_bomb');
@@ -511,7 +511,7 @@ export class GameCore {
       // Find nearest enemy as target
       const target = this.collisionSystem.findNearest(this.player, this.enemies);
 
-      const missile = this.missilePool.get();
+      const missile = this.missilePool.acquire();
       missile.init(
         missileData.x,
         missileData.y,
@@ -530,7 +530,7 @@ export class GameCore {
    * Spawn enemy bomb
    */
   spawnEnemyBomb(attackData) {
-    const bomb = this.bombPool.get();
+    const bomb = this.bombPool.acquire();
     bomb.init(
       attackData.x,
       attackData.y,
@@ -559,7 +559,7 @@ export class GameCore {
       difficulties[Math.min(2, diffIndex + 1)] :
       difficulties[diffIndex];
 
-    const enemy = this.enemyPool.get();
+    const enemy = this.enemyPool.acquire();
     enemy.position.set(pos.x, pos.y);
     enemy.applyDifficulty(difficulty);
     enemy.setTarget(this.player);
@@ -571,7 +571,7 @@ export class GameCore {
    * Spawn powerup
    */
   spawnPowerup(x, y) {
-    const powerup = this.powerupPool.get();
+    const powerup = this.powerupPool.acquire();
     const type = getRandomPowerUpType();
     powerup.init(x, y, type);
     this.powerups.push(powerup);
