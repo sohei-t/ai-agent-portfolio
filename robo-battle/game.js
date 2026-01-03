@@ -1,12 +1,14 @@
 /**
- * ROBO BATTLE - Simple Integrated Edition (Prototype B)
- * Single-file game implementation for optimal loading performance
+ * ROBO BATTLE v5.0 - High-Quality Sprites Edition
+ * Single-file game implementation with AI-generated robot sprites
  *
  * Features:
  * - 1P vs CPU robot battle
  * - 6 stages (Urban, Pyramid, Parthenon, Factory, Cave, Neo City)
  * - 4 parameter customization (JUMP, WALK, BEAM, KICK)
- * - Mobile support (Gyro + Virtual Joystick)
+ * - Mobile support (Gyro + Virtual Joystick) with auto-kick
+ * - AI-generated 3D robot sprites (Vertex AI Imagen)
+ * - Enhanced canvas fallback with gradients and glow effects
  * - 60FPS Canvas rendering
  */
 
@@ -187,6 +189,178 @@ const SPRITES = {
     beamRed: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 8"><ellipse cx="16" cy="4" rx="14" ry="3" fill="#FF6600" opacity="0.5"/><ellipse cx="16" cy="4" rx="10" ry="2" fill="#FF0000"/><ellipse cx="16" cy="4" rx="6" ry="1" fill="#FFFF00"/></svg>`,
     beamBlue: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 8"><ellipse cx="16" cy="4" rx="14" ry="3" fill="#0066FF" opacity="0.5"/><ellipse cx="16" cy="4" rx="10" ry="2" fill="#0088FF"/><ellipse cx="16" cy="4" rx="6" ry="1" fill="#00FFFF"/></svg>`,
     effectHit: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#FFFF00" opacity="0.3"/><circle cx="16" cy="16" r="8" fill="#FF6600" opacity="0.5"/><circle cx="16" cy="16" r="4" fill="#FFFFFF"/><line x1="16" y1="4" x2="16" y2="12" stroke="#FFFF00" stroke-width="2"/><line x1="16" y1="20" x2="16" y2="28" stroke="#FFFF00" stroke-width="2"/><line x1="4" y1="16" x2="12" y2="16" stroke="#FFFF00" stroke-width="2"/><line x1="20" y1="16" x2="28" y2="16" stroke="#FFFF00" stroke-width="2"/></svg>`
+};
+
+// ============================================================================
+// HIGH-QUALITY SPRITE SYSTEM (PNG + Enhanced Canvas Fallback)
+// ============================================================================
+
+const SpriteLoader = {
+    sprites: {},
+    loaded: false,
+    useHighQuality: true, // Enable high-quality rendering
+
+    // Sprite file paths
+    spriteFiles: {
+        player_idle: 'assets/sprites/player_idle.png',
+        enemy_idle: 'assets/sprites/enemy_idle.png'
+    },
+
+    // Load all PNG sprites
+    async loadAll() {
+        const promises = [];
+
+        for (const [key, path] of Object.entries(this.spriteFiles)) {
+            const img = new Image();
+            promises.push(new Promise((resolve) => {
+                img.onload = () => {
+                    this.sprites[key] = img;
+                    console.log(`✅ Sprite loaded: ${key}`);
+                    resolve(true);
+                };
+                img.onerror = () => {
+                    console.log(`⚠️ Sprite not found: ${key}, using fallback`);
+                    this.sprites[key] = null;
+                    resolve(false);
+                };
+                img.src = path;
+            }));
+        }
+
+        await Promise.all(promises);
+        this.loaded = true;
+        console.log('🎨 Sprite system initialized');
+    },
+
+    // Get sprite for a robot state
+    getSprite(isPlayer, state) {
+        const prefix = isPlayer ? 'player' : 'enemy';
+        const key = `${prefix}_${state}`;
+        return this.sprites[key] || null;
+    },
+
+    // Check if high-quality sprite is available
+    hasSprite(isPlayer, state) {
+        return this.getSprite(isPlayer, state) !== null;
+    }
+};
+
+// Enhanced Canvas Robot Renderer (for poses without PNG sprites)
+const EnhancedRobotRenderer = {
+    // Draw a high-quality robot with gradients and glow
+    draw(ctx, x, y, width, height, isPlayer, state, facingRight, animFrame) {
+        ctx.save();
+
+        // Colors based on player/enemy
+        const colors = isPlayer ? {
+            primary: '#FF2222',
+            secondary: '#CC0000',
+            dark: '#990000',
+            glow: '#FF6600',
+            visor: '#00FFFF'
+        } : {
+            primary: '#2266FF',
+            secondary: '#0044CC',
+            dark: '#003399',
+            glow: '#0088FF',
+            visor: '#FF3333'
+        };
+
+        // Scale factor (64x64 base to actual size)
+        const scale = width / 64;
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        // Body glow effect
+        ctx.shadowColor = colors.glow;
+        ctx.shadowBlur = 8;
+
+        // Head with gradient
+        const headGrad = ctx.createLinearGradient(20, 8, 44, 28);
+        headGrad.addColorStop(0, colors.primary);
+        headGrad.addColorStop(0.5, colors.secondary);
+        headGrad.addColorStop(1, colors.dark);
+
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.roundRect(20, 8, 24, 20, 4);
+        ctx.fill();
+
+        // Visor (eyes)
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = colors.visor;
+        ctx.fillStyle = colors.visor;
+        ctx.beginPath();
+        ctx.ellipse(28, 16, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(36, 16, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = colors.glow;
+
+        // Torso with gradient
+        const torsoGrad = ctx.createLinearGradient(24, 28, 40, 52);
+        torsoGrad.addColorStop(0, colors.secondary);
+        torsoGrad.addColorStop(1, colors.dark);
+        ctx.fillStyle = torsoGrad;
+        ctx.fillRect(24, 28, 16, 24);
+
+        // Chest detail
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(28, 32, 8, 4);
+        ctx.fillStyle = colors.primary;
+        ctx.fillRect(30, 34, 4, 1);
+
+        // Arms with animation
+        const armOffset = state === 'walk' ? Math.sin(animFrame * 0.5) * 3 : 0;
+        const armY = state === 'attack' ? 12 : 16;
+
+        ctx.fillStyle = colors.primary;
+        ctx.fillRect(12, armY + armOffset, 8, 16);
+        ctx.fillRect(44, armY - armOffset, 8, 16);
+
+        // Arm joints
+        ctx.fillStyle = colors.dark;
+        ctx.beginPath();
+        ctx.arc(16, armY + 8 + armOffset, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(48, armY + 8 - armOffset, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Legs with walking animation
+        const legOffset = state === 'walk' ? Math.sin(animFrame * 0.5) * 4 : 0;
+        const legY = state === 'jump' ? 48 : 52;
+
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(24, legY, 6, 12 - (state === 'jump' ? 4 : 0));
+        ctx.fillRect(34, legY, 6, 12 - (state === 'jump' ? 4 : 0));
+
+        // Feet
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(22, 62 - (state === 'jump' ? 4 : 0), 10, 4);
+        ctx.fillRect(32, 62 - (state === 'jump' ? 4 : 0), 10, 4);
+
+        // Beam charging effect for attack state
+        if (state === 'attack') {
+            const beamX = facingRight ? 52 : 12;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = colors.visor;
+            ctx.fillStyle = colors.visor;
+            ctx.beginPath();
+            ctx.arc(beamX, 24, 6 + Math.sin(Date.now() * 0.02) * 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Damage effect
+        if (state === 'hurt') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fillRect(0, 0, 64, 64);
+        }
+
+        ctx.restore();
+    }
 };
 
 // ============================================================================
@@ -463,8 +637,46 @@ class Robot {
             ctx.translate(-this.x - this.width / 2, 0);
         }
 
-        // Draw sprite
-        ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
+        // Try to use high-quality PNG sprite first
+        const hqSprite = SpriteLoader.getSprite(this.isPlayer, 'idle');
+
+        if (SpriteLoader.useHighQuality && hqSprite) {
+            // Use PNG sprite with proper sizing
+            // PNG is 512x512, we need to crop/fit it to 48x64
+            const spriteSize = Math.min(hqSprite.width, hqSprite.height);
+            const sx = (hqSprite.width - spriteSize) / 2;
+            const sy = (hqSprite.height - spriteSize) / 2;
+
+            // Add glow effect for high-quality sprites
+            ctx.shadowColor = this.isPlayer ? '#FF4400' : '#0066FF';
+            ctx.shadowBlur = 10;
+
+            ctx.drawImage(
+                hqSprite,
+                sx, sy, spriteSize, spriteSize, // source
+                this.x - 8, this.y - 8, this.width + 16, this.height + 16 // destination (slightly larger for impact)
+            );
+
+            // Add overlay effect based on state
+            if (this.state === 'attack') {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.isPlayer ? '#00FFFF' : '#FF3333';
+            }
+        } else if (SpriteLoader.useHighQuality) {
+            // Use enhanced canvas rendering as fallback
+            EnhancedRobotRenderer.draw(
+                ctx,
+                this.x, this.y,
+                this.width, this.height,
+                this.isPlayer,
+                this.state,
+                this.facingRight,
+                this.animFrame
+            );
+        } else {
+            // Fall back to SVG sprite
+            ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
+        }
 
         ctx.restore();
     }
@@ -1301,10 +1513,19 @@ class Game {
         // Simulate loading
         const loadingProgress = document.getElementById('loading-progress');
 
-        for (let i = 0; i <= 100; i += 10) {
+        // Load high-quality sprites (parallel with progress bar)
+        console.log('🎨 Loading high-quality sprites...');
+        const spriteLoadPromise = SpriteLoader.loadAll();
+
+        for (let i = 0; i <= 80; i += 10) {
             loadingProgress.style.width = i + '%';
             await new Promise(r => setTimeout(r, 50));
         }
+
+        // Wait for sprites to finish loading
+        await spriteLoadPromise;
+        loadingProgress.style.width = '100%';
+        await new Promise(r => setTimeout(r, 100));
 
         // Hide loading screen
         document.getElementById('loading').style.display = 'none';
@@ -1801,9 +2022,26 @@ class Game {
         // Logo
         this.ui.drawLogo(GAME_WIDTH / 2, 150);
 
-        // Robots
-        ctx.drawImage(svgToImage(SPRITES.robotRed), 200, 250, 96, 128);
-        ctx.drawImage(svgToImage(SPRITES.robotBlue), 504, 250, 96, 128);
+        // Robots (use high-quality sprites if available)
+        const playerSprite = SpriteLoader.getSprite(true, 'idle');
+        const enemySprite = SpriteLoader.getSprite(false, 'idle');
+
+        ctx.save();
+        ctx.shadowColor = '#FF4400';
+        ctx.shadowBlur = 15;
+        if (playerSprite) {
+            ctx.drawImage(playerSprite, 180, 230, 120, 160);
+        } else {
+            ctx.drawImage(svgToImage(SPRITES.robotRed), 200, 250, 96, 128);
+        }
+
+        ctx.shadowColor = '#0066FF';
+        if (enemySprite) {
+            ctx.drawImage(enemySprite, 500, 230, 120, 160);
+        } else {
+            ctx.drawImage(svgToImage(SPRITES.robotBlue), 504, 250, 96, 128);
+        }
+        ctx.restore();
 
         // VS
         ctx.font = 'bold 48px Courier New';
@@ -2201,9 +2439,18 @@ class Game {
         ctx.fillText(isPlayerWinner ? 'YOU WIN!' : 'YOU LOSE...', GAME_WIDTH / 2, 150);
         ctx.strokeText(isPlayerWinner ? 'YOU WIN!' : 'YOU LOSE...', GAME_WIDTH / 2, 150);
 
-        // Winner robot
-        const winnerSprite = isPlayerWinner ? SPRITES.robotRed : SPRITES.robotBlue;
-        ctx.drawImage(svgToImage(winnerSprite), GAME_WIDTH / 2 - 64, 200, 128, 170);
+        // Winner robot (use high-quality sprites if available)
+        const hqWinnerSprite = SpriteLoader.getSprite(isPlayerWinner, 'idle');
+        ctx.save();
+        ctx.shadowColor = isPlayerWinner ? '#FF4400' : '#0066FF';
+        ctx.shadowBlur = 20;
+        if (hqWinnerSprite) {
+            ctx.drawImage(hqWinnerSprite, GAME_WIDTH / 2 - 75, 180, 150, 200);
+        } else {
+            const winnerSprite = isPlayerWinner ? SPRITES.robotRed : SPRITES.robotBlue;
+            ctx.drawImage(svgToImage(winnerSprite), GAME_WIDTH / 2 - 64, 200, 128, 170);
+        }
+        ctx.restore();
 
         // Menu
         const menuItems = ['REMATCH', 'CHANGE SETTINGS', 'TITLE'];
@@ -2223,7 +2470,8 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v4.3 - Full Screen + Auto-Kick ===');
+    console.log('=== ROBO BATTLE v5.0 - High-Quality Sprites Edition ===');
+    console.log('🎨 New: AI-generated 3D robot sprites with enhanced visuals!');
     console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump, Auto-kick when close!');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
     console.log('Tip: Play in landscape mode for best experience!');
