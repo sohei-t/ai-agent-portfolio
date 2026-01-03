@@ -4,7 +4,7 @@
 
 ## 🎮 Play Now
 
-**[Live Demo](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/)**
+**[🕹️ Live Demo](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/)** | **[📖 About](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/about.html)** | **[🔊 音声解説](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/explanation.mp3)**
 
 ## 🤖 ゲーム概要
 
