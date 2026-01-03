@@ -91,96 +91,98 @@ const COLORS = {
 // STAGE DATA
 // ============================================================================
 
+// Ground Y adjusted to match background road position (Y≈510)
+// Robot height = 96, so spawn Y = 510 - 96 = 414
 const STAGES = [
     {
         name: 'Urban City',
         displayName: '市街地',
         bgColor: '#1a1a2e',
         platforms: [
-            { x: 0, y: 520, width: 800, height: 80, type: 'solid' },
-            { x: 50, y: 400, width: 120, height: 20, type: 'passthrough' },
-            { x: 50, y: 280, width: 100, height: 20, type: 'passthrough' },
-            { x: 630, y: 400, width: 120, height: 20, type: 'passthrough' },
-            { x: 650, y: 280, width: 100, height: 20, type: 'passthrough' },
-            { x: 320, y: 350, width: 160, height: 20, type: 'passthrough' }
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },  // Ground matches road
+            { x: 50, y: 390, width: 120, height: 20, type: 'passthrough' },
+            { x: 50, y: 270, width: 100, height: 20, type: 'passthrough' },
+            { x: 630, y: 390, width: 120, height: 20, type: 'passthrough' },
+            { x: 650, y: 270, width: 100, height: 20, type: 'passthrough' },
+            { x: 320, y: 340, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 450 }, enemy: { x: 650, y: 450 } }
+        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
     },
     {
         name: 'Pyramid',
         displayName: 'ピラミッド',
         bgColor: '#ff9966',
         platforms: [
-            { x: 0, y: 520, width: 800, height: 80, type: 'solid' },
-            { x: 150, y: 440, width: 500, height: 20, type: 'passthrough' },
-            { x: 200, y: 360, width: 400, height: 20, type: 'passthrough' },
-            { x: 250, y: 280, width: 300, height: 20, type: 'passthrough' },
-            { x: 300, y: 200, width: 200, height: 20, type: 'passthrough' },
-            { x: 350, y: 120, width: 100, height: 20, type: 'passthrough' }
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 150, y: 430, width: 500, height: 20, type: 'passthrough' },
+            { x: 200, y: 350, width: 400, height: 20, type: 'passthrough' },
+            { x: 250, y: 270, width: 300, height: 20, type: 'passthrough' },
+            { x: 300, y: 190, width: 200, height: 20, type: 'passthrough' },
+            { x: 350, y: 110, width: 100, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 450 }, enemy: { x: 650, y: 450 } }
+        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
     },
     {
         name: 'Parthenon',
         displayName: 'パルテノン神殿',
         bgColor: '#87ceeb',
         platforms: [
-            { x: 0, y: 520, width: 800, height: 80, type: 'solid' },
-            { x: 100, y: 350, width: 80, height: 170, type: 'solid' },
-            { x: 250, y: 350, width: 80, height: 170, type: 'solid' },
-            { x: 470, y: 350, width: 80, height: 170, type: 'solid' },
-            { x: 620, y: 350, width: 80, height: 170, type: 'solid' },
-            { x: 80, y: 330, width: 640, height: 20, type: 'passthrough' },
-            { x: 200, y: 200, width: 400, height: 20, type: 'passthrough' }
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 100, y: 340, width: 80, height: 170, type: 'solid' },  // Pillars
+            { x: 250, y: 340, width: 80, height: 170, type: 'solid' },
+            { x: 470, y: 340, width: 80, height: 170, type: 'solid' },
+            { x: 620, y: 340, width: 80, height: 170, type: 'solid' },
+            { x: 80, y: 320, width: 640, height: 20, type: 'passthrough' },  // Top platform
+            { x: 200, y: 190, width: 400, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 150, y: 260 }, enemy: { x: 600, y: 260 } }
+        spawnPoints: { player: { x: 150, y: 224 }, enemy: { x: 600, y: 224 } }  // On top platform
     },
     {
         name: 'Factory',
         displayName: '工場地帯',
         bgColor: '#2c3e50',
         platforms: [
-            { x: 0, y: 520, width: 800, height: 80, type: 'solid' },
-            { x: 0, y: 380, width: 200, height: 20, type: 'passthrough' },
-            { x: 300, y: 420, width: 200, height: 20, type: 'passthrough' },
-            { x: 600, y: 380, width: 200, height: 20, type: 'passthrough' },
-            { x: 100, y: 260, width: 150, height: 20, type: 'passthrough' },
-            { x: 550, y: 260, width: 150, height: 20, type: 'passthrough' },
-            { x: 320, y: 180, width: 160, height: 20, type: 'passthrough' }
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 0, y: 370, width: 200, height: 20, type: 'passthrough' },
+            { x: 300, y: 410, width: 200, height: 20, type: 'passthrough' },
+            { x: 600, y: 370, width: 200, height: 20, type: 'passthrough' },
+            { x: 100, y: 250, width: 150, height: 20, type: 'passthrough' },
+            { x: 550, y: 250, width: 150, height: 20, type: 'passthrough' },
+            { x: 320, y: 170, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 450 }, enemy: { x: 650, y: 450 } }
+        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
     },
     {
         name: 'Cave',
         displayName: '洞窟',
         bgColor: '#1a1a1a',
         platforms: [
-            { x: 0, y: 520, width: 800, height: 80, type: 'solid' },
-            { x: 0, y: 400, width: 250, height: 20, type: 'passthrough' },
-            { x: 550, y: 400, width: 250, height: 20, type: 'passthrough' },
-            { x: 200, y: 320, width: 400, height: 20, type: 'passthrough' },
-            { x: 0, y: 220, width: 200, height: 20, type: 'passthrough' },
-            { x: 600, y: 220, width: 200, height: 20, type: 'passthrough' },
-            { x: 300, y: 140, width: 200, height: 20, type: 'passthrough' }
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 0, y: 390, width: 250, height: 20, type: 'passthrough' },
+            { x: 550, y: 390, width: 250, height: 20, type: 'passthrough' },
+            { x: 200, y: 310, width: 400, height: 20, type: 'passthrough' },
+            { x: 0, y: 210, width: 200, height: 20, type: 'passthrough' },
+            { x: 600, y: 210, width: 200, height: 20, type: 'passthrough' },
+            { x: 300, y: 130, width: 200, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 450 }, enemy: { x: 650, y: 450 } }
+        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
     },
     {
         name: 'Neo City',
         displayName: '未来都市',
         bgColor: '#0d0221',
         platforms: [
-            { x: 0, y: 520, width: 800, height: 80, type: 'solid' },
-            { x: 0, y: 420, width: 150, height: 20, type: 'passthrough' },
-            { x: 650, y: 420, width: 150, height: 20, type: 'passthrough' },
-            { x: 100, y: 320, width: 200, height: 20, type: 'passthrough' },
-            { x: 500, y: 320, width: 200, height: 20, type: 'passthrough' },
-            { x: 300, y: 250, width: 200, height: 20, type: 'passthrough' },
-            { x: 150, y: 150, width: 100, height: 20, type: 'passthrough' },
-            { x: 550, y: 150, width: 100, height: 20, type: 'passthrough' },
-            { x: 350, y: 80, width: 100, height: 20, type: 'passthrough' }
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 0, y: 410, width: 150, height: 20, type: 'passthrough' },
+            { x: 650, y: 410, width: 150, height: 20, type: 'passthrough' },
+            { x: 100, y: 310, width: 200, height: 20, type: 'passthrough' },
+            { x: 500, y: 310, width: 200, height: 20, type: 'passthrough' },
+            { x: 300, y: 240, width: 200, height: 20, type: 'passthrough' },
+            { x: 150, y: 140, width: 100, height: 20, type: 'passthrough' },
+            { x: 550, y: 140, width: 100, height: 20, type: 'passthrough' },
+            { x: 350, y: 70, width: 100, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 50, y: 350 }, enemy: { x: 700, y: 350 } }
+        spawnPoints: { player: { x: 50, y: 314 }, enemy: { x: 680, y: 314 } }  // On side platforms
     }
 ];
 
