@@ -348,13 +348,17 @@ class CarBattleChase {
       this.game.togglePause();
     });
 
-    // Action buttons
+    // Action buttons - directly call the game's weapon methods
     document.getElementById('btn-bomb').addEventListener('click', () => {
-      this.game.inputSystem.triggerAction('bomb');
+      if (this.game && this.game.player && this.game.player.active) {
+        this.game.fireBomb();
+      }
     });
 
     document.getElementById('btn-missile').addEventListener('click', () => {
-      this.game.inputSystem.triggerAction('missile');
+      if (this.game && this.game.player && this.game.player.active) {
+        this.game.fireMissile();
+      }
     });
 
     // Touch event handling for canvas
