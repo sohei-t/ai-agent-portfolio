@@ -1,5 +1,5 @@
 /**
- * ROBO BATTLE v5.4 - Mobile UX Enhanced
+ * ROBO BATTLE V2.0 - Photorealistic 3D Graphics Edition
  * Single-file game implementation with AI-generated robot sprites
  *
  * Features:
@@ -202,19 +202,47 @@ const SPRITES = {
 
 const SpriteLoader = {
     sprites: {},
+    backgrounds: {},
     loaded: false,
     useHighQuality: true, // Enable high-quality rendering
 
-    // Sprite file paths
+    // Sprite file paths - All photorealistic 3D sprites
     spriteFiles: {
+        // Player sprites
         player_idle: 'assets/sprites/player_idle.png',
-        enemy_idle: 'assets/sprites/enemy_idle.png'
+        player_walk1: 'assets/sprites/player_walk1.png',
+        player_walk2: 'assets/sprites/player_walk2.png',
+        player_jump: 'assets/sprites/player_jump.png',
+        player_beam: 'assets/sprites/player_beam.png',
+        player_kick: 'assets/sprites/player_kick.png',
+        player_hit: 'assets/sprites/player_hit.png',
+        player_ko: 'assets/sprites/player_ko.png',
+        // Enemy sprites
+        enemy_idle: 'assets/sprites/enemy_idle.png',
+        enemy_walk1: 'assets/sprites/enemy_walk1.png',
+        enemy_walk2: 'assets/sprites/enemy_walk2.png',
+        enemy_jump: 'assets/sprites/enemy_jump.png',
+        enemy_beam: 'assets/sprites/enemy_beam.png',
+        enemy_kick: 'assets/sprites/enemy_kick.png',
+        enemy_hit: 'assets/sprites/enemy_hit.png',
+        enemy_ko: 'assets/sprites/enemy_ko.png'
     },
 
-    // Load all PNG sprites
+    // Background file paths - Photorealistic AI-generated backgrounds
+    backgroundFiles: {
+        'Urban City': 'assets/backgrounds/bg_neo_city.jpg',
+        'Pyramid': 'assets/backgrounds/bg_pyramid.jpg',
+        'Parthenon': 'assets/backgrounds/bg_parthenon.jpg',
+        'Factory': 'assets/backgrounds/bg_factory.jpg',
+        'Cave': 'assets/backgrounds/bg_cave.jpg',
+        'Neo City': 'assets/backgrounds/bg_final_arena.jpg'
+    },
+
+    // Load all PNG sprites and JPG backgrounds
     async loadAll() {
         const promises = [];
 
+        // Load sprites
         for (const [key, path] of Object.entries(this.spriteFiles)) {
             const img = new Image();
             promises.push(new Promise((resolve) => {
@@ -232,21 +260,71 @@ const SpriteLoader = {
             }));
         }
 
+        // Load backgrounds
+        for (const [key, path] of Object.entries(this.backgroundFiles)) {
+            const img = new Image();
+            promises.push(new Promise((resolve) => {
+                img.onload = () => {
+                    this.backgrounds[key] = img;
+                    console.log(`✅ Background loaded: ${key}`);
+                    resolve(true);
+                };
+                img.onerror = () => {
+                    console.log(`⚠️ Background not found: ${key}, using fallback`);
+                    this.backgrounds[key] = null;
+                    resolve(false);
+                };
+                img.src = path;
+            }));
+        }
+
         await Promise.all(promises);
         this.loaded = true;
-        console.log('🎨 Sprite system initialized');
+        console.log('🎨 V2 Sprite & Background system initialized');
     },
 
-    // Get sprite for a robot state
-    getSprite(isPlayer, state) {
+    // Get sprite for a robot state with animation frame support
+    getSprite(isPlayer, state, animFrame = 0) {
         const prefix = isPlayer ? 'player' : 'enemy';
-        const key = `${prefix}_${state}`;
-        return this.sprites[key] || null;
+        let key;
+
+        // Map states to sprite files
+        switch (state) {
+            case 'walk':
+                // Alternate between walk1 and walk2
+                key = `${prefix}_walk${(Math.floor(animFrame / 8) % 2) + 1}`;
+                break;
+            case 'attack':
+                // Use beam sprite for attack state
+                key = `${prefix}_beam`;
+                break;
+            case 'hurt':
+                key = `${prefix}_hit`;
+                break;
+            case 'ko':
+            case 'defeated':
+                key = `${prefix}_ko`;
+                break;
+            default:
+                key = `${prefix}_${state}`;
+        }
+
+        return this.sprites[key] || this.sprites[`${prefix}_idle`] || null;
+    },
+
+    // Get background image for a stage
+    getBackground(stageName) {
+        return this.backgrounds[stageName] || null;
     },
 
     // Check if high-quality sprite is available
     hasSprite(isPlayer, state) {
         return this.getSprite(isPlayer, state) !== null;
+    },
+
+    // Check if background is available
+    hasBackground(stageName) {
+        return this.backgrounds[stageName] !== null;
     }
 };
 
@@ -1391,8 +1469,8 @@ class Robot {
         ctx.scale(this.facingRight ? scaleX : -scaleX, scaleY);
         ctx.translate(-this.width / 2, -this.height / 2);
 
-        // Try to use high-quality PNG sprite first
-        const hqSprite = SpriteLoader.getSprite(this.isPlayer, 'idle');
+        // Try to use high-quality PNG sprite first (with state-specific sprites)
+        const hqSprite = SpriteLoader.getSprite(this.isPlayer, this.state, this.animFrame);
 
         if (SpriteLoader.useHighQuality && hqSprite) {
             // Use PNG sprite with proper sizing
@@ -1402,25 +1480,34 @@ class Robot {
 
             // Add glow effect for high-quality sprites
             ctx.shadowColor = this.isPlayer ? '#FF4400' : '#0066FF';
-            ctx.shadowBlur = this.state === 'attack' ? 20 : 10;
+            ctx.shadowBlur = this.state === 'attack' ? 25 : (this.state === 'hurt' ? 15 : 10);
 
-            // Draw with slight padding for glow
+            // Draw with slight padding for glow - larger for photorealistic sprites
             ctx.drawImage(
                 hqSprite,
                 sx, sy, spriteSize, spriteSize,
-                -8, -8, this.width + 16, this.height + 16
+                -12, -12, this.width + 24, this.height + 24
             );
 
             // Attack glow overlay
             if (this.state === 'attack') {
                 ctx.shadowColor = this.isPlayer ? '#00FFFF' : '#FF3333';
-                ctx.shadowBlur = 25;
-                ctx.globalAlpha = 0.3;
+                ctx.shadowBlur = 30;
+                ctx.globalAlpha = 0.4;
                 ctx.drawImage(
                     hqSprite,
                     sx, sy, spriteSize, spriteSize,
-                    -8, -8, this.width + 16, this.height + 16
+                    -12, -12, this.width + 24, this.height + 24
                 );
+            }
+
+            // Hurt flash effect
+            if (this.state === 'hurt') {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(-12, -12, this.width + 24, this.height + 24);
+                ctx.globalCompositeOperation = 'source-over';
             }
         } else if (SpriteLoader.useHighQuality) {
             // Use enhanced canvas rendering as fallback
@@ -3019,12 +3106,21 @@ class Game {
         ctx.save();
         ctx.translate(shake.x, shake.y);
 
-        // Background
-        ctx.fillStyle = stage.bgColor;
-        ctx.fillRect(-shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
-
-        // Draw stage-specific background elements
-        this.renderStageBackground(stage);
+        // Background - Use AI-generated image if available
+        const bgImage = SpriteLoader.getBackground(stage.name);
+        if (bgImage) {
+            // Draw photorealistic AI-generated background
+            ctx.drawImage(bgImage, -shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
+            // Add slight darkening overlay for better robot visibility
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(-shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
+        } else {
+            // Fallback to solid color + procedural elements
+            ctx.fillStyle = stage.bgColor;
+            ctx.fillRect(-shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
+            // Draw stage-specific background elements
+            this.renderStageBackground(stage);
+        }
 
         // Draw platforms
         for (const platform of stage.platforms) {
@@ -3324,8 +3420,8 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v5.4 - Mobile UX Enhanced ===');
-    console.log('🎨 Features: Animated sprites + Procedural BGM + Sound Effects!');
+    console.log('=== ROBO BATTLE V2.0 - Photorealistic 3D Graphics ===');
+    console.log('🎨 Features: AI-generated 3D Sprites + Photorealistic Backgrounds!');
     console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump, Auto-kick when close!');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
     console.log('Tip: Play in landscape mode for best experience!');
