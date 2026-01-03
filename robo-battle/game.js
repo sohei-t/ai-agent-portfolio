@@ -630,52 +630,124 @@ class Robot {
             ctx.globalAlpha = 0.5;
         }
 
-        // Flip sprite if facing left
-        if (!this.facingRight) {
-            ctx.translate(this.x + this.width / 2, 0);
-            ctx.scale(-1, 1);
-            ctx.translate(-this.x - this.width / 2, 0);
+        // Calculate animation transforms based on state
+        const time = Date.now();
+        let offsetX = 0, offsetY = 0;
+        let scaleX = 1, scaleY = 1;
+        let rotation = 0;
+
+        // State-based animations
+        switch (this.state) {
+            case 'idle':
+                // Subtle breathing animation
+                scaleX = 1 + Math.sin(time * 0.003) * 0.02;
+                scaleY = 1 + Math.sin(time * 0.003 + Math.PI) * 0.02;
+                offsetY = Math.sin(time * 0.002) * 1;
+                break;
+
+            case 'walk':
+                // Bob up/down + lean in movement direction
+                offsetY = Math.abs(Math.sin(this.animFrame * 0.8)) * -4;
+                rotation = Math.sin(this.animFrame * 0.4) * 0.05;
+                // Leg swing simulation via slight scale
+                scaleX = 1 + Math.sin(this.animFrame * 0.8) * 0.03;
+                break;
+
+            case 'jump':
+                if (this.velocityY < 0) {
+                    // Rising - stretch vertically
+                    scaleY = 1.15;
+                    scaleX = 0.9;
+                } else {
+                    // Falling - slight squash
+                    scaleY = 0.95;
+                    scaleX = 1.05;
+                }
+                // Slight rotation based on horizontal movement
+                rotation = this.velocityX * 0.01;
+                break;
+
+            case 'attack':
+                // Recoil effect + arm extension simulation
+                const attackPhase = (time % 300) / 300;
+                if (attackPhase < 0.3) {
+                    // Wind up
+                    scaleX = 0.9;
+                    offsetX = this.facingRight ? -3 : 3;
+                } else if (attackPhase < 0.5) {
+                    // Fire!
+                    scaleX = 1.1;
+                    offsetX = this.facingRight ? 5 : -5;
+                } else {
+                    // Recover
+                    scaleX = 1 + (1 - attackPhase) * 0.1;
+                }
+                rotation = this.facingRight ? -0.05 : 0.05;
+                break;
+
+            case 'hurt':
+                // Shake effect
+                offsetX = Math.sin(time * 0.05) * 4;
+                offsetY = Math.cos(time * 0.07) * 2;
+                scaleX = 0.95;
+                scaleY = 1.05;
+                break;
         }
+
+        // Apply transforms
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
+
+        ctx.translate(centerX + offsetX, centerY + offsetY);
+        ctx.rotate(rotation);
+        ctx.scale(this.facingRight ? scaleX : -scaleX, scaleY);
+        ctx.translate(-this.width / 2, -this.height / 2);
 
         // Try to use high-quality PNG sprite first
         const hqSprite = SpriteLoader.getSprite(this.isPlayer, 'idle');
 
         if (SpriteLoader.useHighQuality && hqSprite) {
             // Use PNG sprite with proper sizing
-            // PNG is 512x512, we need to crop/fit it to 48x64
             const spriteSize = Math.min(hqSprite.width, hqSprite.height);
             const sx = (hqSprite.width - spriteSize) / 2;
             const sy = (hqSprite.height - spriteSize) / 2;
 
             // Add glow effect for high-quality sprites
             ctx.shadowColor = this.isPlayer ? '#FF4400' : '#0066FF';
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = this.state === 'attack' ? 20 : 10;
 
+            // Draw with slight padding for glow
             ctx.drawImage(
                 hqSprite,
-                sx, sy, spriteSize, spriteSize, // source
-                this.x - 8, this.y - 8, this.width + 16, this.height + 16 // destination (slightly larger for impact)
+                sx, sy, spriteSize, spriteSize,
+                -8, -8, this.width + 16, this.height + 16
             );
 
-            // Add overlay effect based on state
+            // Attack glow overlay
             if (this.state === 'attack') {
-                ctx.shadowBlur = 20;
                 ctx.shadowColor = this.isPlayer ? '#00FFFF' : '#FF3333';
+                ctx.shadowBlur = 25;
+                ctx.globalAlpha = 0.3;
+                ctx.drawImage(
+                    hqSprite,
+                    sx, sy, spriteSize, spriteSize,
+                    -8, -8, this.width + 16, this.height + 16
+                );
             }
         } else if (SpriteLoader.useHighQuality) {
             // Use enhanced canvas rendering as fallback
             EnhancedRobotRenderer.draw(
                 ctx,
-                this.x, this.y,
+                0, 0,
                 this.width, this.height,
                 this.isPlayer,
                 this.state,
-                this.facingRight,
+                true, // Always facing right (flip handled above)
                 this.animFrame
             );
         } else {
             // Fall back to SVG sprite
-            ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
+            ctx.drawImage(this.sprite, 0, 0, this.width, this.height);
         }
 
         ctx.restore();
@@ -2470,8 +2542,8 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v5.0 - High-Quality Sprites Edition ===');
-    console.log('🎨 New: AI-generated 3D robot sprites with enhanced visuals!');
+    console.log('=== ROBO BATTLE v5.1 - Animated Sprites Edition ===');
+    console.log('🎨 New: Transparent sprites + programmatic animations!');
     console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump, Auto-kick when close!');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
     console.log('Tip: Play in landscape mode for best experience!');
