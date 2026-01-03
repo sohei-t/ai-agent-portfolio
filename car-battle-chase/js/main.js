@@ -425,6 +425,17 @@ class CarBattleChase {
     const screen = this.screens[screenId];
     if (screen) {
       screen.classList.add('active');
+
+      // Resize canvas when game screen becomes visible
+      if (screenId === 'game' && this.game) {
+        // Use requestAnimationFrame to ensure DOM has updated
+        requestAnimationFrame(() => {
+          this.setupCanvas();
+          if (this.game.handleResize) {
+            this.game.handleResize();
+          }
+        });
+      }
     }
   }
 
