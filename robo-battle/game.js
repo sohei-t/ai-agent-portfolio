@@ -246,10 +246,13 @@ const SpriteLoader = {
 };
 
 // Enhanced Canvas Robot Renderer (for poses without PNG sprites)
+// With dynamic arm/leg animations for more movement
 const EnhancedRobotRenderer = {
-    // Draw a high-quality robot with gradients and glow
+    // Draw a high-quality robot with gradients, glow, and detailed limb animation
     draw(ctx, x, y, width, height, isPlayer, state, facingRight, animFrame) {
         ctx.save();
+
+        const time = Date.now();
 
         // Colors based on player/enemy
         const colors = isPlayer ? {
@@ -257,13 +260,15 @@ const EnhancedRobotRenderer = {
             secondary: '#CC0000',
             dark: '#990000',
             glow: '#FF6600',
-            visor: '#00FFFF'
+            visor: '#00FFFF',
+            joint: '#666666'
         } : {
             primary: '#2266FF',
             secondary: '#0044CC',
             dark: '#003399',
             glow: '#0088FF',
-            visor: '#FF3333'
+            visor: '#FF3333',
+            joint: '#555555'
         };
 
         // Scale factor (64x64 base to actual size)
@@ -271,33 +276,111 @@ const EnhancedRobotRenderer = {
         ctx.translate(x, y);
         ctx.scale(scale, scale);
 
+        // Calculate animation values based on state
+        let headBob = 0, bodyTilt = 0;
+        let leftArmAngle = 0, rightArmAngle = 0;
+        let leftLegAngle = 0, rightLegAngle = 0;
+        let leftArmExtend = 0, rightArmExtend = 0;
+
+        switch (state) {
+            case 'idle':
+                // Subtle breathing
+                headBob = Math.sin(time * 0.003) * 1;
+                leftArmAngle = Math.sin(time * 0.002) * 0.05;
+                rightArmAngle = Math.sin(time * 0.002 + Math.PI) * 0.05;
+                break;
+
+            case 'walk':
+                // Walking cycle with arm/leg swing
+                const walkCycle = animFrame * 0.8;
+                headBob = Math.abs(Math.sin(walkCycle)) * -2;
+                bodyTilt = Math.sin(walkCycle * 0.5) * 0.03;
+                leftArmAngle = Math.sin(walkCycle) * 0.4;
+                rightArmAngle = Math.sin(walkCycle + Math.PI) * 0.4;
+                leftLegAngle = Math.sin(walkCycle + Math.PI) * 0.35;
+                rightLegAngle = Math.sin(walkCycle) * 0.35;
+                break;
+
+            case 'jump':
+                // Arms up, legs tucked
+                leftArmAngle = -0.6;
+                rightArmAngle = -0.6;
+                leftLegAngle = 0.4;
+                rightLegAngle = 0.4;
+                break;
+
+            case 'attack':
+                // Punch/shoot pose - front arm extended
+                const attackPhase = (time % 250) / 250;
+                if (attackPhase < 0.4) {
+                    // Wind up
+                    rightArmAngle = -0.3;
+                    rightArmExtend = -3;
+                } else {
+                    // Strike!
+                    rightArmAngle = 0.1;
+                    rightArmExtend = 8;
+                }
+                leftArmAngle = 0.2; // Back arm bracing
+                bodyTilt = facingRight ? -0.05 : 0.05;
+                break;
+
+            case 'hurt':
+                // Recoil pose
+                const hurtShake = Math.sin(time * 0.05) * 0.1;
+                headBob = -3;
+                bodyTilt = 0.1 + hurtShake;
+                leftArmAngle = 0.3;
+                rightArmAngle = 0.3;
+                break;
+        }
+
         // Body glow effect
         ctx.shadowColor = colors.glow;
         ctx.shadowBlur = 8;
 
-        // Head with gradient
-        const headGrad = ctx.createLinearGradient(20, 8, 44, 28);
-        headGrad.addColorStop(0, colors.primary);
-        headGrad.addColorStop(0.5, colors.secondary);
-        headGrad.addColorStop(1, colors.dark);
+        // === LEGS (draw first, behind body) ===
+        ctx.save();
 
-        ctx.fillStyle = headGrad;
-        ctx.beginPath();
-        ctx.roundRect(20, 8, 24, 20, 4);
-        ctx.fill();
+        // Left leg
+        ctx.save();
+        ctx.translate(27, 52);
+        ctx.rotate(leftLegAngle);
+        // Upper leg
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 8 : 10);
+        // Lower leg
+        ctx.translate(0, state === 'jump' ? 6 : 8);
+        ctx.rotate(state === 'jump' ? 0.3 : leftLegAngle * 0.3);
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 6 : 8);
+        // Foot
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(-5, state === 'jump' ? 4 : 6, 10, 4);
+        ctx.restore();
 
-        // Visor (eyes)
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = colors.visor;
-        ctx.fillStyle = colors.visor;
-        ctx.beginPath();
-        ctx.ellipse(28, 16, 4, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(36, 16, 4, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = colors.glow;
+        // Right leg
+        ctx.save();
+        ctx.translate(37, 52);
+        ctx.rotate(rightLegAngle);
+        // Upper leg
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 8 : 10);
+        // Lower leg
+        ctx.translate(0, state === 'jump' ? 6 : 8);
+        ctx.rotate(state === 'jump' ? 0.3 : rightLegAngle * 0.3);
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 6 : 8);
+        // Foot
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(-5, state === 'jump' ? 4 : 6, 10, 4);
+        ctx.restore();
+
+        ctx.restore();
+
+        // === TORSO ===
+        ctx.save();
+        ctx.translate(32, 40);
+        ctx.rotate(bodyTilt);
+        ctx.translate(-32, -40);
 
         // Torso with gradient
         const torsoGrad = ctx.createLinearGradient(24, 28, 40, 52);
@@ -310,56 +393,634 @@ const EnhancedRobotRenderer = {
         ctx.fillStyle = colors.dark;
         ctx.fillRect(28, 32, 8, 4);
         ctx.fillStyle = colors.primary;
-        ctx.fillRect(30, 34, 4, 1);
+        ctx.fillRect(30, 34, 4, 2);
+        // Energy core glow
+        ctx.shadowColor = colors.visor;
+        ctx.shadowBlur = 5;
+        ctx.fillStyle = colors.visor;
+        ctx.fillRect(31, 35, 2, 1);
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = colors.glow;
 
-        // Arms with animation
-        const armOffset = state === 'walk' ? Math.sin(animFrame * 0.5) * 3 : 0;
-        const armY = state === 'attack' ? 12 : 16;
+        ctx.restore();
 
+        // === HEAD ===
+        ctx.save();
+        ctx.translate(32, 18 + headBob);
+        ctx.rotate(bodyTilt * 0.5);
+        ctx.translate(-32, -18);
+
+        // Head with gradient
+        const headGrad = ctx.createLinearGradient(20, 8, 44, 28);
+        headGrad.addColorStop(0, colors.primary);
+        headGrad.addColorStop(0.5, colors.secondary);
+        headGrad.addColorStop(1, colors.dark);
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.roundRect(20, 8, 24, 20, 4);
+        ctx.fill();
+
+        // Antenna
+        ctx.fillStyle = colors.joint;
+        ctx.fillRect(30, 2, 4, 8);
+        ctx.fillStyle = colors.visor;
+        ctx.beginPath();
+        ctx.arc(32, 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Visor (eyes) with glow
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = colors.visor;
+        ctx.fillStyle = colors.visor;
+        const eyeFlicker = state === 'hurt' ? (Math.random() > 0.5 ? 0.3 : 1) : 1;
+        ctx.globalAlpha = eyeFlicker;
+        ctx.beginPath();
+        ctx.ellipse(28, 16, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(36, 16, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = colors.glow;
+
+        ctx.restore();
+
+        // === ARMS ===
+        // Left arm (back arm when facing right)
+        ctx.save();
+        ctx.translate(20, 32);
+        ctx.rotate(leftArmAngle);
+        // Shoulder joint
+        ctx.fillStyle = colors.joint;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Upper arm
         ctx.fillStyle = colors.primary;
-        ctx.fillRect(12, armY + armOffset, 8, 16);
-        ctx.fillRect(44, armY - armOffset, 8, 16);
-
-        // Arm joints
-        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-4, 0, 8, 12);
+        // Elbow joint
+        ctx.translate(0, 12);
+        ctx.fillStyle = colors.joint;
         ctx.beginPath();
-        ctx.arc(16, armY + 8 + armOffset, 3, 0, Math.PI * 2);
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.beginPath();
-        ctx.arc(48, armY + 8 - armOffset, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Legs with walking animation
-        const legOffset = state === 'walk' ? Math.sin(animFrame * 0.5) * 4 : 0;
-        const legY = state === 'jump' ? 48 : 52;
-
-        ctx.fillStyle = colors.dark;
-        ctx.fillRect(24, legY, 6, 12 - (state === 'jump' ? 4 : 0));
-        ctx.fillRect(34, legY, 6, 12 - (state === 'jump' ? 4 : 0));
-
-        // Feet
+        // Lower arm
+        ctx.rotate(leftArmAngle * 0.5);
         ctx.fillStyle = colors.secondary;
-        ctx.fillRect(22, 62 - (state === 'jump' ? 4 : 0), 10, 4);
-        ctx.fillRect(32, 62 - (state === 'jump' ? 4 : 0), 10, 4);
+        ctx.fillRect(-3, 0, 6, 10);
+        // Hand
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-4, 8, 8, 5);
+        ctx.restore();
+
+        // Right arm (front arm when facing right)
+        ctx.save();
+        ctx.translate(44 + rightArmExtend, 32);
+        ctx.rotate(rightArmAngle);
+        // Shoulder joint
+        ctx.fillStyle = colors.joint;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Upper arm
+        ctx.fillStyle = colors.primary;
+        ctx.fillRect(-4, 0, 8, 12);
+        // Elbow joint
+        ctx.translate(0, 12);
+        ctx.fillStyle = colors.joint;
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+        // Lower arm
+        ctx.rotate(rightArmAngle * 0.5);
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(-3, 0, 6, 10);
+        // Hand/Beam emitter
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-4, 8, 8, 5);
 
         // Beam charging effect for attack state
-        if (state === 'attack') {
-            const beamX = facingRight ? 52 : 12;
+        if (state === 'attack' && rightArmExtend > 0) {
             ctx.shadowBlur = 20;
             ctx.shadowColor = colors.visor;
             ctx.fillStyle = colors.visor;
             ctx.beginPath();
-            ctx.arc(beamX, 24, 6 + Math.sin(Date.now() * 0.02) * 2, 0, Math.PI * 2);
+            ctx.arc(0, 15, 5 + Math.sin(time * 0.02) * 2, 0, Math.PI * 2);
             ctx.fill();
         }
+        ctx.restore();
 
-        // Damage effect
+        // Damage effect overlay
         if (state === 'hurt') {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.fillRect(0, 0, 64, 64);
         }
 
         ctx.restore();
+    }
+};
+
+// ============================================================================
+// SOUND SYSTEM (Web Audio API - Procedural Chiptune)
+// ============================================================================
+
+const SoundManager = {
+    ctx: null,
+    initialized: false,
+    musicEnabled: true,
+    sfxEnabled: true,
+    masterVolume: 0.5,
+    musicVolume: 0.3,
+    sfxVolume: 0.6,
+
+    // BGM state
+    currentBGM: null,
+    bgmInterval: null,
+    bgmNotes: [],
+    bgmIndex: 0,
+
+    init() {
+        if (this.initialized) return;
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.initialized = true;
+            console.log('🔊 Sound system initialized');
+        } catch (e) {
+            console.log('⚠️ Web Audio not supported');
+        }
+    },
+
+    resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+
+    // Create oscillator with envelope
+    createTone(freq, duration, type = 'square', volume = 0.3) {
+        if (!this.ctx || !this.sfxEnabled) return;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.value = freq;
+
+        const now = this.ctx.currentTime;
+        const vol = volume * this.sfxVolume * this.masterVolume;
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration);
+    },
+
+    // Sound effects
+    playBeamShoot() {
+        if (!this.ctx) return;
+        // Laser "pew" - frequency sweep down
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.15);
+    },
+
+    playBeamHit() {
+        if (!this.ctx) return;
+        // Impact - noise burst + low thump
+        const noise = this.ctx.createBufferSource();
+        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        noise.buffer = noiseBuffer;
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.4, this.ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+        noise.start();
+
+        // Low thump
+        this.createTone(80, 0.1, 'sine', 0.5);
+    },
+
+    playKick() {
+        if (!this.ctx) return;
+        // Punch sound
+        this.createTone(150, 0.08, 'sine', 0.4);
+        this.createTone(100, 0.1, 'triangle', 0.3);
+    },
+
+    playJump() {
+        if (!this.ctx) return;
+        // Boing - frequency sweep up
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.15);
+    },
+
+    playKO() {
+        if (!this.ctx) return;
+        // Explosion - noise + descending tones
+        const noise = this.ctx.createBufferSource();
+        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.5, this.ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        noise.buffer = noiseBuffer;
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.5, this.ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, this.ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+        noise.start();
+
+        // Descending tone
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.4);
+        oscGain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, this.ctx.currentTime);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.5);
+    },
+
+    playMenuSelect() {
+        if (!this.ctx) return;
+        this.createTone(660, 0.08, 'square', 0.2);
+        setTimeout(() => this.createTone(880, 0.08, 'square', 0.2), 50);
+    },
+
+    playVictory() {
+        if (!this.ctx) return;
+        const notes = [523, 659, 784, 1047];
+        notes.forEach((freq, i) => {
+            setTimeout(() => this.createTone(freq, 0.2, 'square', 0.3), i * 150);
+        });
+    },
+
+    playDefeat() {
+        if (!this.ctx) return;
+        const notes = [392, 349, 330, 262];
+        notes.forEach((freq, i) => {
+            setTimeout(() => this.createTone(freq, 0.3, 'sawtooth', 0.2), i * 200);
+        });
+    },
+
+    // BGM System - Procedural Chiptune
+    titleBGMPattern: [
+        // [note, duration, octave]
+        ['C', 0.2, 4], ['E', 0.2, 4], ['G', 0.2, 4], ['C', 0.2, 5],
+        ['G', 0.2, 4], ['E', 0.2, 4], ['C', 0.2, 4], ['G', 0.2, 3],
+        ['A', 0.2, 3], ['C', 0.2, 4], ['E', 0.2, 4], ['A', 0.2, 4],
+        ['E', 0.2, 4], ['C', 0.2, 4], ['A', 0.2, 3], ['E', 0.2, 3],
+    ],
+
+    battleBGMPattern: [
+        // More intense pattern
+        ['E', 0.15, 4], ['E', 0.15, 4], ['E', 0.15, 5], ['E', 0.15, 4],
+        ['G', 0.15, 4], ['G', 0.15, 4], ['E', 0.15, 4], ['D', 0.15, 4],
+        ['C', 0.15, 4], ['C', 0.15, 4], ['D', 0.15, 4], ['E', 0.15, 4],
+        ['D', 0.15, 4], ['C', 0.15, 4], ['B', 0.15, 3], ['G', 0.15, 3],
+        ['A', 0.15, 3], ['A', 0.15, 3], ['B', 0.15, 3], ['C', 0.15, 4],
+        ['D', 0.15, 4], ['E', 0.15, 4], ['D', 0.15, 4], ['C', 0.15, 4],
+    ],
+
+    noteToFreq(note, octave) {
+        const notes = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
+        const semitone = notes[note];
+        return 440 * Math.pow(2, (semitone - 9) / 12 + (octave - 4));
+    },
+
+    playBGM(type = 'title') {
+        if (!this.ctx || !this.musicEnabled) return;
+
+        this.stopBGM();
+        this.bgmNotes = type === 'title' ? this.titleBGMPattern : this.battleBGMPattern;
+        this.bgmIndex = 0;
+
+        const playNext = () => {
+            if (!this.musicEnabled || !this.ctx) {
+                this.stopBGM();
+                return;
+            }
+
+            const note = this.bgmNotes[this.bgmIndex];
+            const freq = this.noteToFreq(note[0], note[2]);
+            const duration = note[1];
+
+            // Main melody
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type === 'title' ? 'triangle' : 'square';
+            osc.frequency.value = freq;
+
+            const vol = this.musicVolume * this.masterVolume * 0.3;
+            gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration * 0.9);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+
+            // Bass (one octave lower)
+            if (this.bgmIndex % 4 === 0) {
+                const bass = this.ctx.createOscillator();
+                const bassGain = this.ctx.createGain();
+                bass.type = 'triangle';
+                bass.frequency.value = freq / 2;
+                bassGain.gain.setValueAtTime(vol * 0.5, this.ctx.currentTime);
+                bassGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration * 2);
+                bass.connect(bassGain);
+                bassGain.connect(this.ctx.destination);
+                bass.start();
+                bass.stop(this.ctx.currentTime + duration * 2);
+            }
+
+            this.bgmIndex = (this.bgmIndex + 1) % this.bgmNotes.length;
+        };
+
+        playNext();
+        this.bgmInterval = setInterval(playNext, type === 'title' ? 200 : 150);
+    },
+
+    stopBGM() {
+        if (this.bgmInterval) {
+            clearInterval(this.bgmInterval);
+            this.bgmInterval = null;
+        }
+    },
+
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        if (!this.musicEnabled) {
+            this.stopBGM();
+        }
+        return this.musicEnabled;
+    }
+};
+
+// ============================================================================
+// ENHANCED PARTICLE SYSTEM
+// ============================================================================
+
+class Particle {
+    constructor(x, y, options = {}) {
+        this.x = x;
+        this.y = y;
+        this.vx = options.vx || (Math.random() - 0.5) * 4;
+        this.vy = options.vy || (Math.random() - 0.5) * 4;
+        this.life = options.life || 30;
+        this.maxLife = this.life;
+        this.size = options.size || 4;
+        this.color = options.color || '#ffff00';
+        this.gravity = options.gravity || 0;
+        this.friction = options.friction || 0.98;
+        this.type = options.type || 'circle'; // circle, spark, smoke
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.life--;
+    }
+
+    render(ctx) {
+        const alpha = this.life / this.maxLife;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        if (this.type === 'spark') {
+            // Spark with trail
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x - this.vx * 3, this.y - this.vy * 3);
+            ctx.stroke();
+        } else if (this.type === 'smoke') {
+            // Smoke puff
+            const size = this.size * (1 + (1 - alpha) * 2);
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Circle particle
+            ctx.fillStyle = this.color;
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 5;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    get isAlive() {
+        return this.life > 0;
+    }
+}
+
+const ParticleSystem = {
+    particles: [],
+
+    emit(x, y, count, options = {}) {
+        for (let i = 0; i < count; i++) {
+            this.particles.push(new Particle(x, y, {
+                ...options,
+                vx: options.vx !== undefined ? options.vx + (Math.random() - 0.5) * 2 : (Math.random() - 0.5) * 6,
+                vy: options.vy !== undefined ? options.vy + (Math.random() - 0.5) * 2 : (Math.random() - 0.5) * 6,
+            }));
+        }
+    },
+
+    // Preset effects
+    beamTrail(x, y, isPlayer) {
+        this.emit(x, y, 2, {
+            color: isPlayer ? '#ff6600' : '#0088ff',
+            size: 3,
+            life: 15,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            type: 'spark'
+        });
+    },
+
+    hit(x, y) {
+        // Sparks
+        this.emit(x, y, 12, {
+            color: '#ffff00',
+            size: 3,
+            life: 20,
+            type: 'spark'
+        });
+        // Core flash
+        this.emit(x, y, 5, {
+            color: '#ffffff',
+            size: 8,
+            life: 10
+        });
+    },
+
+    explosion(x, y) {
+        // Fire
+        this.emit(x, y, 30, {
+            color: '#ff4400',
+            size: 8,
+            life: 40,
+            gravity: 0.1
+        });
+        // Smoke
+        this.emit(x, y, 15, {
+            color: '#666666',
+            size: 10,
+            life: 50,
+            gravity: -0.05,
+            type: 'smoke'
+        });
+        // Sparks
+        this.emit(x, y, 20, {
+            color: '#ffff00',
+            size: 4,
+            life: 30,
+            type: 'spark'
+        });
+    },
+
+    dust(x, y) {
+        this.emit(x, y, 5, {
+            color: '#aa9977',
+            size: 4,
+            life: 20,
+            vy: -1,
+            gravity: 0.1,
+            type: 'smoke'
+        });
+    },
+
+    charge(x, y, isPlayer) {
+        this.emit(x, y, 3, {
+            color: isPlayer ? '#00ffff' : '#ff3333',
+            size: 5,
+            life: 15,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+        });
+    },
+
+    update() {
+        this.particles = this.particles.filter(p => {
+            p.update();
+            return p.isAlive;
+        });
+    },
+
+    render(ctx) {
+        this.particles.forEach(p => p.render(ctx));
+    },
+
+    clear() {
+        this.particles = [];
+    }
+};
+
+// ============================================================================
+// SCREEN EFFECTS
+// ============================================================================
+
+const ScreenEffects = {
+    shakeAmount: 0,
+    shakeDuration: 0,
+    flashAlpha: 0,
+    flashColor: '#ffffff',
+
+    shake(amount = 5, duration = 10) {
+        this.shakeAmount = amount;
+        this.shakeDuration = duration;
+    },
+
+    flash(color = '#ffffff', alpha = 0.5) {
+        this.flashColor = color;
+        this.flashAlpha = alpha;
+    },
+
+    update() {
+        if (this.shakeDuration > 0) {
+            this.shakeDuration--;
+            if (this.shakeDuration === 0) {
+                this.shakeAmount = 0;
+            }
+        }
+        if (this.flashAlpha > 0) {
+            this.flashAlpha -= 0.05;
+        }
+    },
+
+    getShakeOffset() {
+        if (this.shakeAmount === 0) return { x: 0, y: 0 };
+        return {
+            x: (Math.random() - 0.5) * this.shakeAmount * 2,
+            y: (Math.random() - 0.5) * this.shakeAmount * 2
+        };
+    },
+
+    renderFlash(ctx) {
+        if (this.flashAlpha > 0) {
+            ctx.save();
+            ctx.fillStyle = this.flashColor;
+            ctx.globalAlpha = this.flashAlpha;
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.restore();
+        }
     }
 };
 
@@ -474,6 +1135,13 @@ class Robot {
             this.velocityY = this.jumpVelocity;
             this.onGround = false;
             this.state = 'jump';
+
+            // Play jump sound
+            SoundManager.playJump();
+
+            // Dust particles at feet
+            ParticleSystem.dust(this.x + this.width / 2, this.y + this.height);
+
             return true;
         }
         return false;
@@ -499,6 +1167,15 @@ class Robot {
         );
 
         beams.push(beam);
+
+        // Play beam shoot sound
+        SoundManager.playBeamShoot();
+
+        // Charge particle effect at hand
+        const handX = this.facingRight ? this.x + this.width : this.x;
+        const handY = this.y + this.height / 2;
+        ParticleSystem.charge(handX, handY, this.isPlayer);
+
         return beam;
     }
 
@@ -536,6 +1213,12 @@ class Robot {
         // Invincibility
         this.isInvincible = true;
         this.invincibleTimer = ROBOT.invincibleTime;
+
+        // Screen shake on damage
+        ScreenEffects.shake(damage > 20 ? 8 : 5, 12);
+
+        // Hit particles at robot center
+        ParticleSystem.hit(this.x + this.width / 2, this.y + this.height / 2);
 
         return this.hp <= 0;
     }
@@ -778,6 +1461,15 @@ class Beam {
         // Out of bounds
         if (this.x < -this.width || this.x > GAME_WIDTH) {
             this.active = false;
+        }
+
+        // Beam trail particles
+        if (this.active && Math.random() > 0.5) {
+            ParticleSystem.beamTrail(
+                this.x + this.width / 2,
+                this.y + this.height / 2,
+                this.owner === 'player'
+            );
         }
     }
 
@@ -1480,6 +2172,7 @@ class Game {
             const itemY = startY + i * itemHeight - 20;
             if (x >= 250 && x <= 550 && y >= itemY && y <= itemY + itemHeight) {
                 this.menuSelection = i;
+                SoundManager.playMenuSelect();
                 // Execute selection
                 switch (i) {
                     case 0: // Start Game
@@ -1547,6 +2240,7 @@ class Game {
 
         if (x >= btnX && x <= btnX + btnWidth && y >= btnY && y <= btnY + btnHeight) {
             console.log('[DEBUG] START BATTLE clicked! Calling startBattle()');
+            SoundManager.playMenuSelect();
             this.setupSelection = 6;
             this.startBattle();
             return;
@@ -1564,16 +2258,19 @@ class Game {
             const itemY = startY + i * itemHeight - 20;
             if (x >= 250 && x <= 550 && y >= itemY && y <= itemY + itemHeight) {
                 this.menuSelection = i;
+                SoundManager.playMenuSelect();
                 switch (i) {
                     case 0: // Rematch
                         this.startBattle();
                         break;
                     case 1: // Change Settings
                         this.state = GameState.SETUP;
+                        SoundManager.playBGM('title');
                         break;
                     case 2: // Title
                         this.state = GameState.TITLE;
                         this.menuSelection = 0;
+                        SoundManager.playBGM('title');
                         break;
                 }
                 return;
@@ -1612,6 +2309,8 @@ class Game {
 
         // Start game
         this.state = GameState.TITLE;
+        // Start title BGM (will only play after user interaction)
+        SoundManager.playBGM('title');
         this.start();
     }
 
@@ -1704,6 +2403,7 @@ class Game {
         }
 
         if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys['Space']) {
+            SoundManager.playMenuSelect();
             switch (this.menuSelection) {
                 case 0: // Start Game
                     this.state = GameState.SETUP;
@@ -1833,9 +2533,14 @@ class Game {
         // Clear projectiles and effects
         this.beams = [];
         this.effects = [];
+        ParticleSystem.clear();
 
         this.winner = null;
         this.state = GameState.BATTLE;
+
+        // Start battle BGM
+        SoundManager.playBGM('battle');
+
         console.log('[DEBUG] State changed to:', this.state);
         console.log('[DEBUG] Player created at:', this.player.x, this.player.y);
         console.log('[DEBUG] Enemy created at:', this.enemy.x, this.enemy.y);
@@ -1868,6 +2573,10 @@ class Game {
                 const knockbackDir = this.player.facingRight ? 1 : -1;
                 const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
                 this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
+
+                // Kick sound
+                SoundManager.playKick();
+
                 if (died) {
                     this.triggerKO('player', this.enemy);
                     return;
@@ -1890,6 +2599,10 @@ class Game {
                     const knockbackDir = this.player.facingRight ? 1 : -1;
                     const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
                     this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
+
+                    // Auto-kick sound
+                    SoundManager.playKick();
+
                     console.log('[Auto-Kick] Player kicked enemy!');
                     if (died) {
                         this.triggerKO('player', this.enemy);
@@ -1911,6 +2624,10 @@ class Game {
                 const knockbackDir = this.enemy.facingRight ? 1 : -1;
                 const died = this.player.takeDamage(this.enemy.kickDamage, knockbackDir);
                 this.effects.push(new Effect(this.player.x + this.player.width/2, this.player.y + this.player.height/2, 'hit'));
+
+                // AI kick sound
+                SoundManager.playKick();
+
                 if (died) {
                     this.triggerKO('enemy', this.player);
                     return;
@@ -1932,6 +2649,11 @@ class Game {
                 const knockbackDir = beam.direction;
                 const died = this.player.takeDamage(beam.damage, knockbackDir);
                 this.effects.push(new Effect(beam.x, beam.y, 'hit'));
+
+                // Beam hit sound and effects
+                SoundManager.playBeamHit();
+                ScreenEffects.flash('#ff0000', 0.2);
+
                 if (died) {
                     this.triggerKO('enemy', this.player);
                     return;
@@ -1944,6 +2666,11 @@ class Game {
                 const knockbackDir = beam.direction;
                 const died = this.enemy.takeDamage(beam.damage, knockbackDir);
                 this.effects.push(new Effect(beam.x, beam.y, 'hit'));
+
+                // Beam hit sound and effects
+                SoundManager.playBeamHit();
+                ScreenEffects.flash('#0066ff', 0.2);
+
                 if (died) {
                     this.triggerKO('player', this.enemy);
                     return;
@@ -1959,6 +2686,10 @@ class Game {
             effect.update();
         }
         this.effects = this.effects.filter(e => e.active);
+
+        // Update particle system and screen effects
+        ParticleSystem.update();
+        ScreenEffects.update();
     }
 
     updateResult(deltaTime) {
@@ -1976,16 +2707,19 @@ class Game {
         }
 
         if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys['Space']) {
+            SoundManager.playMenuSelect();
             switch (this.menuSelection) {
                 case 0: // Rematch
                     this.startBattle();
                     break;
                 case 1: // Change Settings
                     this.state = GameState.SETUP;
+                    SoundManager.playBGM('title');
                     break;
                 case 2: // Title
                     this.state = GameState.TITLE;
                     this.menuSelection = 0;
+                    SoundManager.playBGM('title');
                     break;
             }
             this.inputCooldown = 200;
@@ -2001,6 +2735,22 @@ class Game {
         this.koEffects = [];
         this.state = GameState.KO;
 
+        // Stop battle BGM
+        SoundManager.stopBGM();
+
+        // KO sound effect
+        SoundManager.playKO();
+
+        // Screen shake and flash
+        ScreenEffects.shake(15, 30);
+        ScreenEffects.flash('#ffffff', 0.8);
+
+        // Particle explosion
+        ParticleSystem.explosion(
+            defeatedRobot.x + defeatedRobot.width / 2,
+            defeatedRobot.y + defeatedRobot.height / 2
+        );
+
         // 敗者の位置に爆発エフェクトを大量生成
         for (let i = 0; i < 8; i++) {
             const offsetX = (Math.random() - 0.5) * defeatedRobot.width * 1.5;
@@ -2013,6 +2763,15 @@ class Game {
             effect.maxFrames = 30;  // 長めに表示
             this.koEffects.push(effect);
         }
+
+        // Victory/Defeat sound (delayed)
+        setTimeout(() => {
+            if (winner === 'player') {
+                SoundManager.playVictory();
+            } else {
+                SoundManager.playDefeat();
+            }
+        }, 600);
 
         console.log(`[KO] ${winner} wins! KO演出開始`);
     }
@@ -2042,6 +2801,10 @@ class Game {
             effect.update();
         }
         this.effects = this.effects.filter(e => e.active);
+
+        // Update particle system and screen effects
+        ParticleSystem.update();
+        ScreenEffects.update();
 
         // フリーズ時間終了後、結果画面へ
         if (this.koTimer >= KO_SETTINGS.freezeTime) {
@@ -2246,9 +3009,14 @@ class Game {
         const ctx = this.ctx;
         const stage = STAGES[this.currentStage];
 
+        // Apply screen shake
+        const shake = ScreenEffects.getShakeOffset();
+        ctx.save();
+        ctx.translate(shake.x, shake.y);
+
         // Background
         ctx.fillStyle = stage.bgColor;
-        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        ctx.fillRect(-shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
 
         // Draw stage-specific background elements
         this.renderStageBackground(stage);
@@ -2296,6 +3064,15 @@ class Game {
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.fillText(stage.displayName, GAME_WIDTH / 2, 35);
+
+        // Draw particles
+        ParticleSystem.render(ctx);
+
+        // Restore from shake transform
+        ctx.restore();
+
+        // Draw screen flash (outside shake transform)
+        ScreenEffects.renderFlash(ctx);
     }
 
     renderStageBackground(stage) {
@@ -2542,12 +3319,26 @@ class Game {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('=== ROBO BATTLE v5.1 - Animated Sprites Edition ===');
-    console.log('🎨 New: Transparent sprites + programmatic animations!');
+    console.log('=== ROBO BATTLE v5.2 - Sound & Effects Edition ===');
+    console.log('🎨 Features: Animated sprites + Procedural BGM + Sound Effects!');
     console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump, Auto-kick when close!');
     console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
     console.log('Tip: Play in landscape mode for best experience!');
     window.game = new Game();
+
+    // Initialize sound on first user interaction (browser requirement)
+    const initSound = () => {
+        SoundManager.init();
+        SoundManager.resume();
+        console.log('🔊 Sound initialized on user interaction');
+        // Remove listeners after first activation
+        document.removeEventListener('click', initSound);
+        document.removeEventListener('touchstart', initSound);
+        document.removeEventListener('keydown', initSound);
+    };
+    document.addEventListener('click', initSound);
+    document.addEventListener('touchstart', initSound);
+    document.addEventListener('keydown', initSound);
 });
 
 // Export for testing
