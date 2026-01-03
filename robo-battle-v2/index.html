@@ -120,8 +120,8 @@
 
         .zone-hint {
             position: absolute;
-            left: 0;
-            right: 0;
+            top: 0;
+            bottom: 0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -130,23 +130,23 @@
             pointer-events: none;
         }
 
-        .zone-hint-top {
-            top: 10px;
-            height: 40px;
+        .zone-hint-left {
+            left: 10px;
+            width: 60px;
         }
 
-        .zone-hint-bottom {
-            bottom: 10px;
-            height: 40px;
+        .zone-hint-right {
+            right: 10px;
+            width: 60px;
         }
 
         .zone-divider {
             position: absolute;
-            left: 10%;
-            right: 10%;
-            top: 50%;
-            height: 2px;
-            background: linear-gradient(90deg,
+            top: 10%;
+            bottom: 10%;
+            left: 50%;
+            width: 2px;
+            background: linear-gradient(180deg,
                 transparent 0%,
                 rgba(255, 255, 255, 0.3) 20%,
                 rgba(255, 255, 255, 0.3) 80%,
@@ -268,21 +268,21 @@
             }
 
             /* In landscape, zone hints at screen edges */
-            .zone-hint-top {
-                top: 5px;
+            .zone-hint-left {
+                left: 5px;
                 font-size: 12px;
-                height: 30px;
+                width: 50px;
             }
 
-            .zone-hint-bottom {
-                bottom: 5px;
+            .zone-hint-right {
+                right: 5px;
                 font-size: 12px;
-                height: 30px;
+                width: 50px;
             }
 
             .zone-divider {
-                left: 5%;
-                right: 5%;
+                top: 5%;
+                bottom: 5%;
             }
         }
 
@@ -330,10 +330,11 @@
             letter-spacing: 1px;
         }
 
-        /* JUMP hint - Left side, bottom area */
+        /* JUMP hint - Left side, centered vertically */
         #hint-jump {
             left: 15px;
-            bottom: 10%;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         #hint-jump .control-hint-circle {
@@ -349,10 +350,11 @@
             color: rgba(0, 255, 100, 0.9);
         }
 
-        /* BEAM hint - Right side, top area */
+        /* BEAM hint - Right side, centered vertically */
         #hint-beam {
             right: 15px;
-            top: 10%;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         #hint-beam .control-hint-circle {
@@ -403,11 +405,11 @@
         <canvas id="gameCanvas" width="800" height="600"></canvas>
     </div>
 
-    <!-- Simplified mobile zone guide -->
+    <!-- Simplified mobile zone guide (Left/Right split) -->
     <div id="mobile-zone-guide">
-        <div class="zone-hint zone-hint-top">TAP: BEAM</div>
+        <div class="zone-hint zone-hint-left">JUMP</div>
         <div class="zone-divider"></div>
-        <div class="zone-hint zone-hint-bottom">TAP: JUMP</div>
+        <div class="zone-hint zone-hint-right">BEAM</div>
     </div>
 
     <!-- Gyro permission dialog (iOS requires user gesture) -->

@@ -34,17 +34,17 @@ const PHYSICS = {
     airResistance: 0.95
 };
 
-// Robot constants (2x larger: 72x96 → 96x128)
+// Robot constants (restored to original size: 72x96)
 const ROBOT = {
-    width: 96,
-    height: 128,
+    width: 72,
+    height: 96,
     maxHp: 200,
     invincibleTime: 500,
     beamCooldown: 500,    // 300 → 500ms に増加（ビームを遅くする）
     kickCooldown: 1000,
-    kickRange: 40,        // Scaled up with size
-    kickHeight: 64,       // Scaled up with size
-    knockback: 10         // Slightly stronger knockback for larger robots
+    kickRange: 30,        // Original size
+    kickHeight: 48,       // Original size
+    knockback: 8          // Original knockback
 };
 
 // KO演出の設定
@@ -105,7 +105,7 @@ const COLORS = {
 // ============================================================================
 
 // Ground Y adjusted to match background road position (Y≈510)
-// Robot height = 128, so spawn Y = 510 - 128 = 382
+// Robot height = 96, so spawn Y = 510 - 96 = 414
 const STAGES = [
     {
         name: 'Urban City',
@@ -119,7 +119,7 @@ const STAGES = [
             { x: 650, y: 270, width: 100, height: 20, type: 'passthrough' },
             { x: 320, y: 340, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }  // Adjusted for height=128
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }  // Adjusted for height=96
     },
     {
         name: 'Pyramid',
@@ -133,7 +133,7 @@ const STAGES = [
             { x: 300, y: 190, width: 200, height: 20, type: 'passthrough' },
             { x: 350, y: 110, width: 100, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }
     },
     {
         name: 'Parthenon',
@@ -163,7 +163,7 @@ const STAGES = [
             { x: 550, y: 250, width: 150, height: 20, type: 'passthrough' },
             { x: 320, y: 170, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }
     },
     {
         name: 'Cave',
@@ -178,7 +178,7 @@ const STAGES = [
             { x: 600, y: 210, width: 200, height: 20, type: 'passthrough' },
             { x: 300, y: 130, width: 200, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } }
     },
     {
         name: 'Neo City',
@@ -1974,12 +1974,16 @@ class InputSystem {
             justReleased: false
         };
 
-        // Mobile touch state (simplified: zone-based)
+        // Mobile touch state (zone-based with multi-touch tracking)
         this.touchActions = {
             shoot: false,
             jump: false
         };
         this.prevTouchShoot = false;  // Previous frame's touch state
+
+        // Multi-touch tracking: Map of touchId → 'beam' or 'jump'
+        // This allows tracking which finger is doing which action
+        this.activeTouches = new Map();
 
         // Gyro state
         this.gyro = {
@@ -2032,7 +2036,7 @@ class InputSystem {
         // Show gyro permission dialog on first touch
         this.setupGyroPermission();
 
-        // Setup zone-based touch controls (top = shoot, bottom = jump)
+        // Setup zone-based touch controls (left = jump, right = beam)
         this.setupZoneTouchControls();
 
         // Orientation change detection
@@ -2102,19 +2106,19 @@ class InputSystem {
     setupZoneTouchControls() {
         // Listen for touches on the entire document
         document.addEventListener('touchstart', (e) => {
-            this.handleZoneTouch(e, true);
+            this.handleZoneTouch(e, 'start');
         }, { passive: false });
 
         document.addEventListener('touchend', (e) => {
-            this.handleZoneTouch(e, false);
+            this.handleZoneTouch(e, 'end');
         }, { passive: false });
 
         document.addEventListener('touchcancel', (e) => {
-            this.handleZoneTouch(e, false);
+            this.handleZoneTouch(e, 'end');
         }, { passive: false });
     }
 
-    handleZoneTouch(e, isStart) {
+    handleZoneTouch(e, eventType) {
         // Ignore if touching UI elements
         const target = e.target;
         if (target.tagName === 'BUTTON' || target.closest('#gyro-permission') || target.closest('#loading')) {
@@ -2131,32 +2135,75 @@ class InputSystem {
 
         e.preventDefault();
 
-        if (isStart) {
+        const screenWidth = window.innerWidth;
+        const midPointX = screenWidth / 2;
+
+        if (eventType === 'start') {
             for (const touch of e.changedTouches) {
-                const y = touch.clientY;
-                const screenHeight = window.innerHeight;
-                const midPoint = screenHeight / 2;
+                const x = touch.clientX;
+                const touchId = touch.identifier;
 
                 // Create touch feedback effect
                 this.createTouchFeedback(touch.clientX, touch.clientY);
 
-                if (y < midPoint) {
-                    // Top half = Shoot beam
-                    this.touchActions.shoot = true;
-                    console.log('[Touch] Top zone - SHOOT');
-                } else {
-                    // Bottom half = Jump
+                if (x < midPointX) {
+                    // Left half = Jump
+                    this.activeTouches.set(touchId, 'jump');
                     this.touchActions.jump = true;
-                    console.log('[Touch] Bottom zone - JUMP');
+                    console.log('[Touch] Left zone - JUMP (id:', touchId, ')');
+                } else {
+                    // Right half = Beam
+                    this.activeTouches.set(touchId, 'beam');
+                    this.touchActions.shoot = true;
+                    console.log('[Touch] Right zone - BEAM (id:', touchId, ')');
                 }
             }
-        } else {
-            // On touch end, reset actions after a brief delay
-            // This allows the action to be registered for at least one frame
-            setTimeout(() => {
-                this.touchActions.shoot = false;
-                this.touchActions.jump = false;
-            }, 50);
+        } else if (eventType === 'end') {
+            for (const touch of e.changedTouches) {
+                const touchId = touch.identifier;
+                const action = this.activeTouches.get(touchId);
+
+                if (action) {
+                    console.log('[Touch] Released:', action, '(id:', touchId, ')');
+                    this.activeTouches.delete(touchId);
+
+                    // Check if any other touches are still active for this action
+                    let hasOtherBeamTouch = false;
+                    let hasOtherJumpTouch = false;
+                    for (const [id, a] of this.activeTouches) {
+                        if (a === 'beam') hasOtherBeamTouch = true;
+                        if (a === 'jump') hasOtherJumpTouch = true;
+                    }
+
+                    // Only reset the action if no other touches are active for it
+                    if (action === 'beam' && !hasOtherBeamTouch) {
+                        // Beam released - this triggers charge beam fire
+                        // Set shoot to false after a brief delay to allow detection
+                        setTimeout(() => {
+                            // Double-check no new beam touches were added
+                            let stillHasBeamTouch = false;
+                            for (const [id, a] of this.activeTouches) {
+                                if (a === 'beam') stillHasBeamTouch = true;
+                            }
+                            if (!stillHasBeamTouch) {
+                                this.touchActions.shoot = false;
+                            }
+                        }, 50);
+                    }
+
+                    if (action === 'jump' && !hasOtherJumpTouch) {
+                        setTimeout(() => {
+                            let stillHasJumpTouch = false;
+                            for (const [id, a] of this.activeTouches) {
+                                if (a === 'jump') stillHasJumpTouch = true;
+                            }
+                            if (!stillHasJumpTouch) {
+                                this.touchActions.jump = false;
+                            }
+                        }, 50);
+                    }
+                }
+            }
         }
     }
 
