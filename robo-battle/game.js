@@ -1,5 +1,5 @@
 /**
- * ROBO BATTLE v5.0 - High-Quality Sprites Edition
+ * ROBO BATTLE v5.2 - Sound & Effects Edition
  * Single-file game implementation with AI-generated robot sprites
  *
  * Features:
@@ -8,7 +8,11 @@
  * - 4 parameter customization (JUMP, WALK, BEAM, KICK)
  * - Mobile support (Gyro + Virtual Joystick) with auto-kick
  * - AI-generated 3D robot sprites (Vertex AI Imagen)
- * - Enhanced canvas fallback with gradients and glow effects
+ * - Procedural chiptune BGM (Title & Battle)
+ * - Sound effects (Beam, Hit, Kick, Jump, KO, Victory/Defeat)
+ * - Particle system (Dust, Sparks, Explosions)
+ * - Screen effects (Shake, Flash)
+ * - Enhanced robot animation with joint-based limb movement
  * - 60FPS Canvas rendering
  */
 
