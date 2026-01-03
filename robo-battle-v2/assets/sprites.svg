@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- ROBO BATTLE - Sprite Collection -->
+  <!-- All game sprites in a single SVG file for optimal loading -->
+
+  <defs>
+    <!-- Red Robot (Player) -->
+    <symbol id="robot-red-idle" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#FF0000" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#CC0000"/>
+      <rect x="12" y="16" width="8" height="16" fill="#FF0000"/>
+      <rect x="44" y="16" width="8" height="16" fill="#FF0000"/>
+      <rect x="24" y="52" width="6" height="12" fill="#990000"/>
+      <rect x="34" y="52" width="6" height="12" fill="#990000"/>
+      <circle cx="28" cy="16" r="3" fill="#FFFF00"/>
+      <circle cx="36" cy="16" r="3" fill="#FFFF00"/>
+    </symbol>
+
+    <symbol id="robot-red-walk1" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#FF0000" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#CC0000"/>
+      <rect x="12" y="16" width="8" height="16" fill="#FF0000"/>
+      <rect x="44" y="16" width="8" height="16" fill="#FF0000"/>
+      <rect x="20" y="52" width="6" height="12" fill="#990000" transform="rotate(-15 23 58)"/>
+      <rect x="38" y="52" width="6" height="12" fill="#990000" transform="rotate(15 41 58)"/>
+      <circle cx="28" cy="16" r="3" fill="#FFFF00"/>
+      <circle cx="36" cy="16" r="3" fill="#FFFF00"/>
+    </symbol>
+
+    <symbol id="robot-red-walk2" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#FF0000" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#CC0000"/>
+      <rect x="12" y="16" width="8" height="16" fill="#FF0000"/>
+      <rect x="44" y="16" width="8" height="16" fill="#FF0000"/>
+      <rect x="20" y="52" width="6" height="12" fill="#990000" transform="rotate(15 23 58)"/>
+      <rect x="38" y="52" width="6" height="12" fill="#990000" transform="rotate(-15 41 58)"/>
+      <circle cx="28" cy="16" r="3" fill="#FFFF00"/>
+      <circle cx="36" cy="16" r="3" fill="#FFFF00"/>
+    </symbol>
+
+    <symbol id="robot-red-jump" viewBox="0 0 64 64">
+      <rect x="20" y="4" width="24" height="20" fill="#FF0000" rx="4"/>
+      <rect x="24" y="24" width="16" height="24" fill="#CC0000"/>
+      <rect x="8" y="12" width="12" height="12" fill="#FF0000" transform="rotate(-30 14 18)"/>
+      <rect x="44" y="12" width="12" height="12" fill="#FF0000" transform="rotate(30 50 18)"/>
+      <rect x="22" y="44" width="6" height="10" fill="#990000" transform="rotate(-20 25 49)"/>
+      <rect x="36" y="44" width="6" height="10" fill="#990000" transform="rotate(20 39 49)"/>
+      <circle cx="28" cy="12" r="3" fill="#FFFF00"/>
+      <circle cx="36" cy="12" r="3" fill="#FFFF00"/>
+    </symbol>
+
+    <symbol id="robot-red-attack" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#FF0000" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#CC0000"/>
+      <rect x="44" y="14" width="20" height="8" fill="#FF0000"/>
+      <rect x="60" y="16" width="4" height="4" fill="#FFFF00"/>
+      <rect x="12" y="20" width="8" height="12" fill="#FF0000"/>
+      <rect x="24" y="52" width="6" height="12" fill="#990000"/>
+      <rect x="34" y="52" width="6" height="12" fill="#990000"/>
+      <circle cx="28" cy="16" r="3" fill="#FFFF00"/>
+      <circle cx="36" cy="16" r="3" fill="#FFFF00"/>
+    </symbol>
+
+    <symbol id="robot-red-hurt" viewBox="0 0 64 64">
+      <g transform="rotate(-10 32 32)">
+        <rect x="20" y="10" width="24" height="20" fill="#FF0000" rx="4"/>
+        <rect x="24" y="30" width="16" height="24" fill="#CC0000"/>
+        <rect x="12" y="18" width="8" height="16" fill="#FF0000"/>
+        <rect x="44" y="18" width="8" height="16" fill="#FF0000"/>
+        <rect x="24" y="54" width="6" height="10" fill="#990000"/>
+        <rect x="34" y="54" width="6" height="10" fill="#990000"/>
+      </g>
+      <polygon points="45,18 52,12 48,22" fill="#FFFF00"/>
+      <polygon points="50,30 58,26 54,36" fill="#FFFF00"/>
+    </symbol>
+
+    <!-- Blue Robot (Enemy) -->
+    <symbol id="robot-blue-idle" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#0066FF" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#0044CC"/>
+      <rect x="12" y="16" width="8" height="16" fill="#0066FF"/>
+      <rect x="44" y="16" width="8" height="16" fill="#0066FF"/>
+      <rect x="24" y="52" width="6" height="12" fill="#003399"/>
+      <rect x="34" y="52" width="6" height="12" fill="#003399"/>
+      <circle cx="28" cy="16" r="3" fill="#00FFFF"/>
+      <circle cx="36" cy="16" r="3" fill="#00FFFF"/>
+    </symbol>
+
+    <symbol id="robot-blue-walk1" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#0066FF" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#0044CC"/>
+      <rect x="12" y="16" width="8" height="16" fill="#0066FF"/>
+      <rect x="44" y="16" width="8" height="16" fill="#0066FF"/>
+      <rect x="20" y="52" width="6" height="12" fill="#003399" transform="rotate(-15 23 58)"/>
+      <rect x="38" y="52" width="6" height="12" fill="#003399" transform="rotate(15 41 58)"/>
+      <circle cx="28" cy="16" r="3" fill="#00FFFF"/>
+      <circle cx="36" cy="16" r="3" fill="#00FFFF"/>
+    </symbol>
+
+    <symbol id="robot-blue-walk2" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#0066FF" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#0044CC"/>
+      <rect x="12" y="16" width="8" height="16" fill="#0066FF"/>
+      <rect x="44" y="16" width="8" height="16" fill="#0066FF"/>
+      <rect x="20" y="52" width="6" height="12" fill="#003399" transform="rotate(15 23 58)"/>
+      <rect x="38" y="52" width="6" height="12" fill="#003399" transform="rotate(-15 41 58)"/>
+      <circle cx="28" cy="16" r="3" fill="#00FFFF"/>
+      <circle cx="36" cy="16" r="3" fill="#00FFFF"/>
+    </symbol>
+
+    <symbol id="robot-blue-jump" viewBox="0 0 64 64">
+      <rect x="20" y="4" width="24" height="20" fill="#0066FF" rx="4"/>
+      <rect x="24" y="24" width="16" height="24" fill="#0044CC"/>
+      <rect x="8" y="12" width="12" height="12" fill="#0066FF" transform="rotate(-30 14 18)"/>
+      <rect x="44" y="12" width="12" height="12" fill="#0066FF" transform="rotate(30 50 18)"/>
+      <rect x="22" y="44" width="6" height="10" fill="#003399" transform="rotate(-20 25 49)"/>
+      <rect x="36" y="44" width="6" height="10" fill="#003399" transform="rotate(20 39 49)"/>
+      <circle cx="28" cy="12" r="3" fill="#00FFFF"/>
+      <circle cx="36" cy="12" r="3" fill="#00FFFF"/>
+    </symbol>
+
+    <symbol id="robot-blue-attack" viewBox="0 0 64 64">
+      <rect x="20" y="8" width="24" height="20" fill="#0066FF" rx="4"/>
+      <rect x="24" y="28" width="16" height="24" fill="#0044CC"/>
+      <rect x="0" y="14" width="20" height="8" fill="#0066FF"/>
+      <rect x="0" y="16" width="4" height="4" fill="#00FFFF"/>
+      <rect x="44" y="20" width="8" height="12" fill="#0066FF"/>
+      <rect x="24" y="52" width="6" height="12" fill="#003399"/>
+      <rect x="34" y="52" width="6" height="12" fill="#003399"/>
+      <circle cx="28" cy="16" r="3" fill="#00FFFF"/>
+      <circle cx="36" cy="16" r="3" fill="#00FFFF"/>
+    </symbol>
+
+    <symbol id="robot-blue-hurt" viewBox="0 0 64 64">
+      <g transform="rotate(10 32 32)">
+        <rect x="20" y="10" width="24" height="20" fill="#0066FF" rx="4"/>
+        <rect x="24" y="30" width="16" height="24" fill="#0044CC"/>
+        <rect x="12" y="18" width="8" height="16" fill="#0066FF"/>
+        <rect x="44" y="18" width="8" height="16" fill="#0066FF"/>
+        <rect x="24" y="54" width="6" height="10" fill="#003399"/>
+        <rect x="34" y="54" width="6" height="10" fill="#003399"/>
+      </g>
+      <polygon points="19,18 12,12 16,22" fill="#00FFFF"/>
+      <polygon points="14,30 6,26 10,36" fill="#00FFFF"/>
+    </symbol>
+
+    <!-- Beams -->
+    <symbol id="beam-red" viewBox="0 0 32 8">
+      <ellipse cx="16" cy="4" rx="14" ry="3" fill="#FF6600" opacity="0.5"/>
+      <ellipse cx="16" cy="4" rx="10" ry="2" fill="#FF0000"/>
+      <ellipse cx="16" cy="4" rx="6" ry="1" fill="#FFFF00"/>
+    </symbol>
+
+    <symbol id="beam-blue" viewBox="0 0 32 8">
+      <ellipse cx="16" cy="4" rx="14" ry="3" fill="#0066FF" opacity="0.5"/>
+      <ellipse cx="16" cy="4" rx="10" ry="2" fill="#0088FF"/>
+      <ellipse cx="16" cy="4" rx="6" ry="1" fill="#00FFFF"/>
+    </symbol>
+
+    <!-- Effects -->
+    <symbol id="effect-hit" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="12" fill="#FFFF00" opacity="0.3"/>
+      <circle cx="16" cy="16" r="8" fill="#FF6600" opacity="0.5"/>
+      <circle cx="16" cy="16" r="4" fill="#FFFFFF"/>
+      <line x1="16" y1="4" x2="16" y2="12" stroke="#FFFF00" stroke-width="2"/>
+      <line x1="16" y1="20" x2="16" y2="28" stroke="#FFFF00" stroke-width="2"/>
+      <line x1="4" y1="16" x2="12" y2="16" stroke="#FFFF00" stroke-width="2"/>
+      <line x1="20" y1="16" x2="28" y2="16" stroke="#FFFF00" stroke-width="2"/>
+    </symbol>
+
+    <symbol id="effect-explosion" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="28" fill="#FF3300" opacity="0.4"/>
+      <circle cx="32" cy="32" r="20" fill="#FF6600" opacity="0.6"/>
+      <circle cx="32" cy="32" r="12" fill="#FFFF00" opacity="0.8"/>
+      <circle cx="32" cy="32" r="6" fill="#FFFFFF"/>
+      <polygon points="32,4 36,24 56,20 40,32 56,44 36,40 32,60 28,40 8,44 24,32 8,20 28,24" fill="#FF9900" opacity="0.7"/>
+    </symbol>
+
+    <symbol id="effect-dust" viewBox="0 0 24 16">
+      <ellipse cx="12" cy="12" rx="10" ry="4" fill="#8B7355" opacity="0.4"/>
+      <circle cx="6" cy="10" r="3" fill="#A08070" opacity="0.3"/>
+      <circle cx="18" cy="10" r="3" fill="#A08070" opacity="0.3"/>
+      <circle cx="12" cy="8" r="2" fill="#C0B0A0" opacity="0.2"/>
+    </symbol>
+
+    <symbol id="effect-muzzle" viewBox="0 0 16 16">
+      <polygon points="8,0 9,6 16,8 9,10 8,16 7,10 0,8 7,6" fill="#FFFFFF"/>
+      <polygon points="8,2 9,6 14,8 9,10 8,14 7,10 2,8 7,6" fill="#FFFF00"/>
+    </symbol>
+
+    <!-- UI Elements -->
+    <symbol id="ui-hp-bar-frame" viewBox="0 0 200 30">
+      <rect x="2" y="2" width="196" height="26" fill="#333" rx="4"/>
+      <rect x="4" y="4" width="192" height="22" fill="#1a1a1a" rx="3"/>
+      <rect x="0" y="0" width="200" height="30" fill="none" stroke="#666" stroke-width="2" rx="5"/>
+      <rect x="2" y="2" width="196" height="2" fill="#888"/>
+    </symbol>
+
+    <symbol id="ui-button" viewBox="0 0 150 40">
+      <rect x="2" y="2" width="146" height="36" fill="#0066cc" rx="5"/>
+      <rect x="4" y="4" width="142" height="16" fill="#0088ff" rx="4"/>
+      <rect x="4" y="20" width="142" height="16" fill="#0044aa" rx="4"/>
+      <rect x="0" y="0" width="150" height="40" fill="none" stroke="#00aaff" stroke-width="2" rx="6"/>
+    </symbol>
+
+    <symbol id="ui-logo" viewBox="0 0 400 100">
+      <text x="200" y="50" text-anchor="middle" font-family="Impact, sans-serif" font-size="48" fill="#ff3333" stroke="#ffff00" stroke-width="2">ROBO</text>
+      <text x="200" y="85" text-anchor="middle" font-family="Impact, sans-serif" font-size="32" fill="#3333ff" stroke="#00ffff" stroke-width="1">BATTLE</text>
+    </symbol>
+
+    <symbol id="ui-vs" viewBox="0 0 100 80">
+      <polygon points="10,40 25,20 25,60" fill="#ff3333"/>
+      <polygon points="90,40 75,20 75,60" fill="#3333ff"/>
+      <text x="50" y="55" text-anchor="middle" font-family="Impact, sans-serif" font-size="36" fill="#ffff00" stroke="#ff6600" stroke-width="2">VS</text>
+    </symbol>
+  </defs>
+</svg>
