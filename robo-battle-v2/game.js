@@ -36,8 +36,8 @@ const PHYSICS = {
 
 // Robot constants
 const ROBOT = {
-    width: 48,
-    height: 64,
+    width: 72,
+    height: 96,
     maxHp: 100,
     invincibleTime: 500,
     beamCooldown: 500,    // 300 → 500ms に増加（ビームを遅くする）
@@ -1466,11 +1466,22 @@ class Robot {
 
         ctx.translate(centerX + offsetX, centerY + offsetY);
         ctx.rotate(rotation);
-        ctx.scale(this.facingRight ? scaleX : -scaleX, scaleY);
-        ctx.translate(-this.width / 2, -this.height / 2);
 
         // Try to use high-quality PNG sprite first (with state-specific sprites)
         const hqSprite = SpriteLoader.getSprite(this.isPlayer, this.state, this.animFrame);
+
+        // For HQ sprites: player sprites are RIGHT facing, enemy sprites are LEFT facing
+        // So we only flip when facing direction doesn't match sprite's native direction
+        if (SpriteLoader.useHighQuality && hqSprite) {
+            // Player sprites face RIGHT, Enemy sprites face LEFT (both toward each other)
+            // Flip only when character turns away from their default direction
+            const shouldFlip = this.isPlayer ? !this.facingRight : this.facingRight;
+            ctx.scale(shouldFlip ? -scaleX : scaleX, scaleY);
+        } else {
+            // SVG fallback: original logic
+            ctx.scale(this.facingRight ? scaleX : -scaleX, scaleY);
+        }
+        ctx.translate(-this.width / 2, -this.height / 2);
 
         if (SpriteLoader.useHighQuality && hqSprite) {
             // Use PNG sprite with proper sizing
@@ -2953,20 +2964,25 @@ class Game {
         const playerSprite = SpriteLoader.getSprite(true, 'idle');
         const enemySprite = SpriteLoader.getSprite(false, 'idle');
 
+        // Draw player robot (sprites are RIGHT facing, draw normally)
         ctx.save();
         ctx.shadowColor = '#FF4400';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 20;
         if (playerSprite) {
-            ctx.drawImage(playerSprite, 180, 230, 120, 160);
+            ctx.drawImage(playerSprite, 100, 210, 180, 240);
         } else {
-            ctx.drawImage(svgToImage(SPRITES.robotRed), 200, 250, 96, 128);
+            ctx.drawImage(svgToImage(SPRITES.robotRed), 120, 230, 144, 192);
         }
+        ctx.restore();
 
+        // Draw enemy robot (sprites are LEFT facing, draw normally)
+        ctx.save();
         ctx.shadowColor = '#0066FF';
+        ctx.shadowBlur = 20;
         if (enemySprite) {
-            ctx.drawImage(enemySprite, 500, 230, 120, 160);
+            ctx.drawImage(enemySprite, 520, 210, 180, 240);
         } else {
-            ctx.drawImage(svgToImage(SPRITES.robotBlue), 504, 250, 96, 128);
+            ctx.drawImage(svgToImage(SPRITES.robotBlue), 540, 230, 144, 192);
         }
         ctx.restore();
 
