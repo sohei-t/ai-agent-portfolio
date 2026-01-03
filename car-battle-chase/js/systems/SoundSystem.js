@@ -103,8 +103,14 @@ export class SoundSystem {
       return null;
     }
 
+    // Return cached sound
     if (this.sounds[name]) {
       return this.sounds[name];
+    }
+
+    // Return null marker for already-failed sounds
+    if (this.sounds[name] === null) {
+      return null;
     }
 
     try {
@@ -124,7 +130,9 @@ export class SoundSystem {
       console.log('Loaded sound:', name);
       return this.sounds[name];
     } catch (error) {
-      console.warn('Failed to load sound:', name, error.message);
+      // Mark as failed to prevent repeated fetch attempts
+      this.sounds[name] = null;
+      console.warn('Audio unavailable:', name, '- game continues without sound');
       return null;
     }
   }
