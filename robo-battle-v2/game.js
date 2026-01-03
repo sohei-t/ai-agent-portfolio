@@ -34,17 +34,17 @@ const PHYSICS = {
     airResistance: 0.95
 };
 
-// Robot constants
+// Robot constants (2x larger: 72x96 → 96x128)
 const ROBOT = {
-    width: 72,
-    height: 96,
+    width: 96,
+    height: 128,
     maxHp: 100,
     invincibleTime: 500,
     beamCooldown: 500,    // 300 → 500ms に増加（ビームを遅くする）
     kickCooldown: 1000,
-    kickRange: 30,
-    kickHeight: 48,
-    knockback: 8
+    kickRange: 40,        // Scaled up with size
+    kickHeight: 64,       // Scaled up with size
+    knockback: 10         // Slightly stronger knockback for larger robots
 };
 
 // KO演出の設定
@@ -92,7 +92,7 @@ const COLORS = {
 // ============================================================================
 
 // Ground Y adjusted to match background road position (Y≈510)
-// Robot height = 96, so spawn Y = 510 - 96 = 414
+// Robot height = 128, so spawn Y = 510 - 128 = 382
 const STAGES = [
     {
         name: 'Urban City',
@@ -106,7 +106,7 @@ const STAGES = [
             { x: 650, y: 270, width: 100, height: 20, type: 'passthrough' },
             { x: 320, y: 340, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
+        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }  // Adjusted for height=128
     },
     {
         name: 'Pyramid',
@@ -120,7 +120,7 @@ const STAGES = [
             { x: 300, y: 190, width: 200, height: 20, type: 'passthrough' },
             { x: 350, y: 110, width: 100, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
+        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }
     },
     {
         name: 'Parthenon',
@@ -135,7 +135,7 @@ const STAGES = [
             { x: 80, y: 320, width: 640, height: 20, type: 'passthrough' },  // Top platform
             { x: 200, y: 190, width: 400, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 150, y: 224 }, enemy: { x: 600, y: 224 } }  // On top platform
+        spawnPoints: { player: { x: 150, y: 192 }, enemy: { x: 550, y: 192 } }  // On top platform (320-128=192)
     },
     {
         name: 'Factory',
@@ -150,7 +150,7 @@ const STAGES = [
             { x: 550, y: 250, width: 150, height: 20, type: 'passthrough' },
             { x: 320, y: 170, width: 160, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
+        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }
     },
     {
         name: 'Cave',
@@ -165,7 +165,7 @@ const STAGES = [
             { x: 600, y: 210, width: 200, height: 20, type: 'passthrough' },
             { x: 300, y: 130, width: 200, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 100, y: 414 }, enemy: { x: 650, y: 414 } }
+        spawnPoints: { player: { x: 80, y: 382 }, enemy: { x: 620, y: 382 } }
     },
     {
         name: 'Neo City',
@@ -182,7 +182,7 @@ const STAGES = [
             { x: 550, y: 140, width: 100, height: 20, type: 'passthrough' },
             { x: 350, y: 70, width: 100, height: 20, type: 'passthrough' }
         ],
-        spawnPoints: { player: { x: 50, y: 314 }, enemy: { x: 680, y: 314 } }  // On side platforms
+        spawnPoints: { player: { x: 30, y: 282 }, enemy: { x: 650, y: 282 } }  // On side platforms (410-128=282)
     }
 ];
 
