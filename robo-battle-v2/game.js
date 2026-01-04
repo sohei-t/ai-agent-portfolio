@@ -110,10 +110,12 @@ const ITEMS = {
         height: 80,
         color: '#9900ff',
         glowColor: 'rgba(153, 0, 255, 0.6)',
-        // Dynamic warp zone settings
-        spawnIntervalMin: 4000,   // Minimum 4 seconds between spawns
-        spawnIntervalMax: 6000,   // Maximum 6 seconds between spawns
-        lifetime: 5000            // Warp zone lasts 5 seconds
+        // Dynamic warp zone settings (UX optimized)
+        spawnIntervalMin: 10000,  // Minimum 10 seconds between spawns
+        spawnIntervalMax: 15000,  // Maximum 15 seconds between spawns
+        lifetime: 8000,           // Warp zone lasts 8 seconds (more time to use)
+        warningTime: 1500,        // 1.5 second warning before activation
+        maxActive: 1              // Only 1 warp zone at a time (less chaotic)
     },
     deathZone: {
         color: '#ff0000',
@@ -166,11 +168,8 @@ const STAGES = [
             { x: 320, y: 340, width: 160, height: 20, type: 'passthrough' }
         ],
         spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
-        // Items Mode features
-        warpZones: [
-            { entry: { x: 50, y: 200, w: 50, h: 70 }, exit: { x: 700, y: 200 } },  // Left roof → Right roof
-            { entry: { x: 700, y: 200, w: 50, h: 70 }, exit: { x: 50, y: 200 } }   // Right roof → Left roof
-        ],
+        // Items Mode features (warp zones are now dynamic only)
+        warpZones: [],
         deathZones: [],  // No death zones in this stage
         itemSpawns: [
             { x: 400, y: 300, types: ['HP', 'RAPID'] },
@@ -214,11 +213,8 @@ const STAGES = [
             { x: 200, y: 190, width: 400, height: 20, type: 'passthrough' }
         ],
         spawnPoints: { player: { x: 150, y: 192 }, enemy: { x: 550, y: 192 } },
-        // Warp zones to escape the side gaps!
-        warpZones: [
-            { entry: { x: 0, y: 380, w: 60, h: 130 }, exit: { x: 400, y: 140 } },    // Left gap → Center top
-            { entry: { x: 740, y: 380, w: 60, h: 130 }, exit: { x: 400, y: 140 } }   // Right gap → Center top
-        ],
+        // Warp zones are now dynamic only
+        warpZones: [],
         deathZones: [],  // Warp zones make it safe now
         itemSpawns: [
             { x: 400, y: 140, types: ['HP', 'SHIELD'] },
@@ -240,10 +236,7 @@ const STAGES = [
             { x: 320, y: 170, width: 160, height: 20, type: 'passthrough' }
         ],
         spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
-        warpZones: [
-            { entry: { x: 50, y: 180, w: 50, h: 70 }, exit: { x: 700, y: 180 } },
-            { entry: { x: 700, y: 180, w: 50, h: 70 }, exit: { x: 50, y: 180 } }
-        ],
+        warpZones: [],  // Dynamic only
         deathZones: [
             { x: 210, y: 460, w: 80, h: 50 },  // Dangerous machinery pit
             { x: 510, y: 460, w: 80, h: 50 }
@@ -296,13 +289,8 @@ const STAGES = [
             { x: 350, y: 70, width: 100, height: 20, type: 'passthrough' }
         ],
         spawnPoints: { player: { x: 30, y: 282 }, enemy: { x: 650, y: 282 } },
-        // High-tech teleporters
-        warpZones: [
-            { entry: { x: 150, y: 60, w: 50, h: 80 }, exit: { x: 600, y: 60 } },   // Left top → Right top
-            { entry: { x: 600, y: 60, w: 50, h: 80 }, exit: { x: 150, y: 60 } },   // Right top → Left top
-            { entry: { x: 0, y: 440, w: 40, h: 70 }, exit: { x: 400, y: 190 } },   // Ground left → Center
-            { entry: { x: 760, y: 440, w: 40, h: 70 }, exit: { x: 400, y: 190 } }  // Ground right → Center
-        ],
+        // Warp zones are now dynamic only
+        warpZones: [],
         deathZones: [
             { x: 160, y: 460, w: 140, h: 50 },  // Laser pits
             { x: 500, y: 460, w: 140, h: 50 }
@@ -3512,14 +3500,14 @@ class Game {
                 this.enemy.warpCooldown -= deltaTime;
             }
 
-            // Check warp zones (both static and dynamic)
-            const allWarpZones = [...stage.warpZones, ...(this.activeWarpZones || [])];
-            for (const warp of allWarpZones) {
-                // Player warp check (only if cooldown is 0)
+            // Check warp zones (dynamic only - static zones removed for better UX)
+            const activeWarps = (this.activeWarpZones || []).filter(w => w.isActive);
+            for (const warp of activeWarps) {
+                // Player warp check (only if cooldown is 0 and warp is active)
                 if (this.player.warpCooldown <= 0 && this.checkZoneCollision(this.player, warp.entry)) {
                     this.teleportRobot(this.player, warp.exit);
                 }
-                // Enemy warp check (only if cooldown is 0)
+                // Enemy warp check (only if cooldown is 0 and warp is active)
                 if (this.enemy.warpCooldown <= 0 && this.checkZoneCollision(this.enemy, warp.entry)) {
                     this.teleportRobot(this.enemy, warp.exit);
                 }
@@ -3559,11 +3547,12 @@ class Game {
                 this.activeItems.push(new Item(spawnPoint.x - 16, spawnPoint.y - 16, itemType));
             }
 
-            // Dynamic warp zone spawning
+            // Dynamic warp zone spawning (UX optimized: less frequent, with warning)
             this.warpSpawnTimer += deltaTime;
             const warpInterval = ITEMS.warpZone.spawnIntervalMin +
                 Math.random() * (ITEMS.warpZone.spawnIntervalMax - ITEMS.warpZone.spawnIntervalMin);
-            if (this.warpSpawnTimer >= warpInterval && this.activeWarpZones.length < 2) {
+            const maxWarpZones = ITEMS.warpZone.maxActive || 1;
+            if (this.warpSpawnTimer >= warpInterval && this.activeWarpZones.length < maxWarpZones) {
                 this.warpSpawnTimer = 0;
                 // Generate random entry and exit positions on platforms
                 const platforms = stage.platforms.filter(p => p.width >= 80); // Need space for warp zone
@@ -3587,18 +3576,30 @@ class Game {
                         entry: { x: entryX, y: entryY, w: warpWidth, h: warpHeight },
                         exit: { x: exitX + warpWidth/2, y: exitY + warpHeight/2 },
                         spawnTime: Date.now(),
-                        lifetime: ITEMS.warpZone.lifetime
+                        warningTime: ITEMS.warpZone.warningTime || 1500,
+                        lifetime: ITEMS.warpZone.lifetime,
+                        isActive: false  // Starts in warning state
                     });
 
-                    // Visual effect at spawn
+                    // Visual effect for warning (spawn preview)
                     ParticleSystem.warpEffect(entryX + warpWidth/2, entryY + warpHeight/2, 'in');
                 }
             }
 
-            // Update and remove expired warp zones
+            // Update warp zones: handle warning → active transition and expiration
             const now = Date.now();
             this.activeWarpZones = this.activeWarpZones.filter(warp => {
-                if (now - warp.spawnTime >= warp.lifetime) {
+                const age = now - warp.spawnTime;
+
+                // Transition from warning to active state
+                if (!warp.isActive && age >= warp.warningTime) {
+                    warp.isActive = true;
+                    // Visual effect when becoming active
+                    ParticleSystem.warpEffect(warp.entry.x + warp.entry.w/2, warp.entry.y + warp.entry.h/2, 'in');
+                }
+
+                // Remove expired warp zones
+                if (age >= warp.lifetime + warp.warningTime) {
                     // Visual effect on despawn
                     ParticleSystem.warpEffect(warp.entry.x + warp.entry.w/2, warp.entry.y + warp.entry.h/2, 'out');
                     return false;
@@ -3674,47 +3675,69 @@ class Game {
     }
 
     // Render a warp zone (purple portal effect)
-    renderWarpZone(ctx, zone, alpha = 1.0) {
+    renderWarpZone(ctx, zone, alpha = 1.0, isWarning = false) {
         const time = Date.now() * 0.003;
         const pulseAlpha = (0.3 + Math.sin(time) * 0.15) * alpha;
 
         ctx.save();
         ctx.globalAlpha = alpha;
 
-        // Outer glow
-        ctx.shadowColor = ITEMS.warpZone.glowColor;
-        ctx.shadowBlur = 20 + Math.sin(time * 2) * 10;
+        // Different visual style for warning vs active state
+        if (isWarning) {
+            // Warning state: yellow/orange outline, dashed border
+            ctx.shadowColor = 'rgba(255, 200, 0, 0.8)';
+            ctx.shadowBlur = 15 + Math.sin(time * 4) * 10;
 
-        // Portal background
-        ctx.fillStyle = `rgba(153, 0, 255, ${pulseAlpha})`;
-        ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+            // Dashed border
+            ctx.setLineDash([8, 4]);
+            ctx.strokeStyle = '#ffcc00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
 
-        // Border
-        ctx.strokeStyle = ITEMS.warpZone.color;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+            // Warning label
+            ctx.setLineDash([]);
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 10px Courier New';
+            ctx.fillStyle = '#ffcc00';
+            ctx.textAlign = 'center';
+            const centerX = zone.x + zone.w / 2;
+            ctx.fillText('WARP!', centerX, zone.y - 5);
+        } else {
+            // Active state: full purple portal
+            ctx.shadowColor = ITEMS.warpZone.glowColor;
+            ctx.shadowBlur = 20 + Math.sin(time * 2) * 10;
 
-        // Inner swirl effect (simplified)
-        const centerX = zone.x + zone.w / 2;
-        const centerY = zone.y + zone.h / 2;
-        for (let i = 0; i < 3; i++) {
-            const angle = time * 2 + (i * Math.PI * 2 / 3);
-            const radius = 15 + i * 5;
-            const px = centerX + Math.cos(angle) * radius;
-            const py = centerY + Math.sin(angle) * radius * 0.5;
+            // Portal background
+            ctx.fillStyle = `rgba(153, 0, 255, ${pulseAlpha})`;
+            ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
 
-            ctx.beginPath();
-            ctx.arc(px, py, 4, 0, Math.PI * 2);
+            // Border
+            ctx.strokeStyle = ITEMS.warpZone.color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+            // Inner swirl effect (simplified)
+            const centerX = zone.x + zone.w / 2;
+            const centerY = zone.y + zone.h / 2;
+            for (let i = 0; i < 3; i++) {
+                const angle = time * 2 + (i * Math.PI * 2 / 3);
+                const radius = 15 + i * 5;
+                const px = centerX + Math.cos(angle) * radius;
+                const py = centerY + Math.sin(angle) * radius * 0.5;
+
+                ctx.beginPath();
+                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            }
+
+            // WARP label
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 10px Courier New';
             ctx.fillStyle = '#ffffff';
-            ctx.fill();
+            ctx.textAlign = 'center';
+            ctx.fillText('WARP', centerX, zone.y - 5);
         }
-
-        // WARP label
-        ctx.shadowBlur = 0;
-        ctx.font = 'bold 10px Courier New';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.fillText('WARP', centerX, zone.y - 5);
 
         ctx.restore();
     }
@@ -4211,19 +4234,28 @@ class Game {
                 this.renderDeathZone(ctx, death);
             }
 
-            // Draw warp zones (purple portals) - both static and dynamic
-            for (const warp of stage.warpZones) {
-                this.renderWarpZone(ctx, warp.entry);
-            }
-            // Draw dynamic warp zones with fade effect
+            // Draw dynamic warp zones (static zones removed for better UX)
             for (const warp of (this.activeWarpZones || [])) {
                 const age = Date.now() - warp.spawnTime;
-                const fadeStart = warp.lifetime - 1500; // Start fading 1.5s before despawn
+                const totalLifetime = warp.lifetime + warp.warningTime;
+                const fadeStart = totalLifetime - 1500; // Start fading 1.5s before despawn
+
                 let alpha = 1.0;
+                let isWarning = !warp.isActive;
+
+                // Fade out near end
                 if (age > fadeStart) {
                     alpha = 1.0 - (age - fadeStart) / 1500;
                 }
-                this.renderWarpZone(ctx, warp.entry, alpha);
+
+                // During warning: blink effect
+                if (isWarning) {
+                    const blinkRate = 8; // Blinks per second
+                    const blink = Math.sin(age * 0.001 * blinkRate * Math.PI * 2);
+                    alpha = 0.3 + blink * 0.3; // Pulsing between 0.0 and 0.6
+                }
+
+                this.renderWarpZone(ctx, warp.entry, alpha, isWarning);
             }
 
             // Draw items
