@@ -37,20 +37,20 @@ export class MonacoRacing {
     this.roadCenterX = 0;           // Road center position (shifts for curves)
     this.roadSegments = [];         // Road segment data
     this.segmentHeight = 20;        // Height of each road segment
-    this.visibleSegments = 40;      // How many segments visible on screen
+    this.visibleSegments = 50;      // More segments visible for wider view (was 40)
 
-    // Scrolling
+    // Scrolling - SLOWED DOWN for better playability
     this.scrollSpeed = 0;           // Current scroll speed
-    this.baseScrollSpeed = 400;     // Base pixels per second
-    this.maxScrollSpeed = 800;      // Maximum speed
+    this.baseScrollSpeed = 150;     // Base pixels per second (was 400)
+    this.maxScrollSpeed = 350;      // Maximum speed (was 800)
     this.distance = 0;              // Total distance traveled
 
-    // Player car
+    // Player car - smaller for better visibility
     this.player = {
       x: 0,                         // Horizontal position
       y: 0,                         // Vertical position (fixed near bottom)
-      width: 40,
-      height: 70,
+      width: 32,                    // Smaller car (was 40)
+      height: 56,                   // Smaller car (was 70)
       speed: 0,                     // 0-1 acceleration
       angle: 0,                     // Rotation from steering
       spinning: false,
@@ -135,9 +135,9 @@ export class MonacoRacing {
     this.setupUI();
     this.setupGyroControls();
 
-    // Position player
+    // Position player - lower on screen for more reaction time
     this.player.x = this.width / 2;
-    this.player.y = this.height * 0.75;
+    this.player.y = this.height * 0.82;
 
     // Load assets (images and audio)
     console.log('Loading assets...');
@@ -359,8 +359,8 @@ export class MonacoRacing {
     // Update visible segments based on height
     this.visibleSegments = Math.ceil(this.height / this.segmentHeight) + 5;
 
-    // Update player Y position
-    this.player.y = this.height * 0.75;
+    // Update player Y position - lower for more reaction time
+    this.player.y = this.height * 0.82;
   }
 
   /**
@@ -493,6 +493,18 @@ export class MonacoRacing {
   showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId)?.classList.add('active');
+
+    // Handle BGM for different screens
+    if (screenId === 'title-screen') {
+      // Play title BGM when showing title screen
+      this.soundSystem.playBgm('title');
+    } else if (screenId === 'game-screen') {
+      // BGM is handled in startRace() after countdown
+    } else if (screenId === 'settings-screen' || screenId === 'howto-screen') {
+      // Keep title BGM playing on settings/howto
+    } else if (screenId === 'results-screen') {
+      // BGM is handled in gameOver() or finishRace()
+    }
   }
 
   /**
@@ -507,7 +519,16 @@ export class MonacoRacing {
    * Start the race
    */
   async startRace() {
+    // Prevent double-start (important for BGM double-play prevention)
+    if (this.state === 'countdown' || this.state === 'racing') {
+      console.log('Race already in progress, ignoring startRace call');
+      return;
+    }
+
     console.log('Starting Monaco GP Race...');
+
+    // CRITICAL: Stop ALL BGM before anything else (prevents double-play)
+    this.soundSystem.stopBgm();
 
     // Initialize audio context (must be from user gesture)
     await this.soundSystem.init();
@@ -524,9 +545,9 @@ export class MonacoRacing {
     this.traffic = [];
     this.obstacles = [];
 
-    // Reset player
+    // Reset player - lower position for more reaction time
     this.player.x = this.width / 2;
-    this.player.y = this.height * 0.75;
+    this.player.y = this.height * 0.82;
     this.player.speed = 0;
     this.player.angle = 0;
     this.player.spinning = false;
@@ -878,9 +899,9 @@ export class MonacoRacing {
     this.traffic.push({
       x: roadCenter + laneOffset,
       y: -100,
-      width: 35,
-      height: 60,
-      speed: 150 + Math.random() * 200, // Slower than max player speed
+      width: 28,                    // Smaller (was 35)
+      height: 48,                   // Smaller (was 60)
+      speed: 80 + Math.random() * 100, // Much slower traffic (was 150 + 200)
       color: colors[Math.floor(Math.random() * colors.length)],
       imageKey: key,
       image: image,
