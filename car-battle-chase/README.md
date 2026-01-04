@@ -64,6 +64,7 @@ project/public/
 
 ## Version History
 
+- **v1.5.0**: Lap-based racing system (3 laps), multiple random courses, roadside scenery, BGM single-audio fix
 - **v1.4.0**: iOS Safari BGM fixes, extended course length for longer gameplay
 - **v1.3.0**: Improved gyro sensitivity, 180-second game time
 - **v1.2.0**: Speed optimization, smaller cars for better visibility

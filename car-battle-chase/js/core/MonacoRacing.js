@@ -68,13 +68,21 @@ export class MonacoRacing {
     this.obstacles = [];            // Puddles, oil slicks, etc.
     this.obstacleSpawnTimer = 0;
 
-    // Game state
+    // Game state - LAP-BASED (not time-based)
     this.state = 'ready';           // ready, countdown, racing, finished, gameover
-    this.timeRemaining = 180;       // Seconds (was 90, doubled for longer play)
+    this.totalLaps = 3;             // Race is 3 laps
+    this.currentLap = 1;
+    this.lapDistance = 0;           // Distance in current lap
+    this.lapTimes = [];             // Array of lap times in seconds
+    this.currentLapTime = 0;        // Current lap timer
+    this.totalTime = 0;             // Total race time
+    this.bestLapTime = parseFloat(localStorage.getItem('bestLapTime') || '999');
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('monacoHighScore') || '0');
-    this.checkpoints = 0;
     this.carsOvertaken = 0;
+
+    // Selected course
+    this.selectedCourse = 0;
 
     // Visual effects
     this.dayNightCycle = 0;         // 0 = day, 1 = night
@@ -101,20 +109,60 @@ export class MonacoRacing {
     this.itemSpawnInterval = 15;    // Seconds between item spawns
     this.itemPickups = [];          // Items on track
 
-    // Course definition - different zones (length x5 for longer play)
-    this.zones = [
-      { name: 'City Start', length: 5000, baseWidth: 350, curve: 0, surface: 'asphalt', night: false },
-      { name: 'Highway', length: 7500, baseWidth: 400, curve: 0.3, surface: 'asphalt', night: false },
-      { name: 'Mountain Pass', length: 10000, baseWidth: 250, curve: 0.6, surface: 'asphalt', night: false },
-      { name: 'Tunnel', length: 4000, baseWidth: 200, curve: 0.2, surface: 'asphalt', night: true },
-      { name: 'Coastal Road', length: 7500, baseWidth: 300, curve: 0.5, surface: 'asphalt', night: false },
-      { name: 'Rain Zone', length: 5000, baseWidth: 300, curve: 0.3, surface: 'wet', night: false },
-      { name: 'Ice Bridge', length: 2500, baseWidth: 180, curve: 0.1, surface: 'ice', night: false },
-      { name: 'Final Stretch', length: 6000, baseWidth: 350, curve: 0.4, surface: 'asphalt', night: false }
+    // Multiple course configurations
+    this.courses = [
+      {
+        name: 'City Grand Prix',
+        description: 'Urban streets and downtown tunnels',
+        zones: [
+          { name: 'Downtown', length: 3000, baseWidth: 320, curve: 0.2, surface: 'asphalt', night: false, scenery: 'city' },
+          { name: 'Business District', length: 2500, baseWidth: 280, curve: 0.4, surface: 'asphalt', night: false, scenery: 'city' },
+          { name: 'Underground', length: 2000, baseWidth: 240, curve: 0.3, surface: 'asphalt', night: true, scenery: 'tunnel' },
+          { name: 'Park Avenue', length: 2500, baseWidth: 350, curve: 0.1, surface: 'asphalt', night: false, scenery: 'city' }
+        ]
+      },
+      {
+        name: 'Coastal Highway',
+        description: 'Seaside roads with ocean views',
+        zones: [
+          { name: 'Beach Road', length: 3000, baseWidth: 350, curve: 0.3, surface: 'asphalt', night: false, scenery: 'coastal' },
+          { name: 'Cliff Side', length: 2500, baseWidth: 250, curve: 0.6, surface: 'asphalt', night: false, scenery: 'mountain' },
+          { name: 'Seaside Town', length: 2000, baseWidth: 300, curve: 0.2, surface: 'asphalt', night: false, scenery: 'city' },
+          { name: 'Sunset Strip', length: 2500, baseWidth: 380, curve: 0.4, surface: 'asphalt', night: false, scenery: 'coastal' }
+        ]
+      },
+      {
+        name: 'Mountain Challenge',
+        description: 'Treacherous mountain passes',
+        zones: [
+          { name: 'Forest Road', length: 2500, baseWidth: 300, curve: 0.3, surface: 'asphalt', night: false, scenery: 'mountain' },
+          { name: 'Alpine Pass', length: 3000, baseWidth: 220, curve: 0.7, surface: 'asphalt', night: false, scenery: 'mountain' },
+          { name: 'Ice Bridge', length: 2000, baseWidth: 200, curve: 0.2, surface: 'ice', night: false, scenery: 'ice' },
+          { name: 'Summit', length: 2500, baseWidth: 280, curve: 0.5, surface: 'asphalt', night: false, scenery: 'mountain' }
+        ]
+      },
+      {
+        name: 'Night Circuit',
+        description: 'Racing under the stars',
+        zones: [
+          { name: 'Neon City', length: 2500, baseWidth: 320, curve: 0.3, surface: 'asphalt', night: true, scenery: 'city' },
+          { name: 'Dark Highway', length: 3000, baseWidth: 380, curve: 0.2, surface: 'asphalt', night: true, scenery: 'highway' },
+          { name: 'Rain Section', length: 2500, baseWidth: 300, curve: 0.4, surface: 'wet', night: true, scenery: 'rain' },
+          { name: 'Final Sprint', length: 2000, baseWidth: 350, curve: 0.1, surface: 'asphalt', night: true, scenery: 'city' }
+        ]
+      }
     ];
+
+    // Current course zones (selected randomly or by player)
+    this.zones = this.courses[0].zones;
     this.currentZoneIndex = 0;
     this.zoneProgress = 0;
-    this.totalCourseLength = this.zones.reduce((sum, z) => sum + z.length, 0);
+    this.lapLength = this.zones.reduce((sum, z) => sum + z.length, 0);
+    this.totalCourseLength = this.lapLength * this.totalLaps;
+
+    // Scenery objects on track sides
+    this.sceneryObjects = [];
+    this.scenerySpawnTimer = 0;
 
     // Performance
     this.lastTime = 0;
@@ -525,7 +573,7 @@ export class MonacoRacing {
       return;
     }
 
-    console.log('Starting Monaco GP Race...');
+    console.log('Starting Race...');
 
     // CRITICAL: Stop ALL BGM before anything else (prevents double-play)
     this.soundSystem.stopBgm();
@@ -533,17 +581,29 @@ export class MonacoRacing {
     // Initialize audio context (must be from user gesture)
     await this.soundSystem.init();
 
-    // Reset game state
+    // Select random course
+    this.selectedCourse = Math.floor(Math.random() * this.courses.length);
+    this.zones = this.courses[this.selectedCourse].zones;
+    this.lapLength = this.zones.reduce((sum, z) => sum + z.length, 0);
+    this.totalCourseLength = this.lapLength * this.totalLaps;
+
+    console.log(`Selected course: ${this.courses[this.selectedCourse].name}`);
+
+    // Reset lap-based state
     this.distance = 0;
+    this.lapDistance = 0;
+    this.currentLap = 1;
+    this.lapTimes = [];
+    this.currentLapTime = 0;
+    this.totalTime = 0;
     this.score = 0;
-    this.timeRemaining = 180;  // 3 minutes for longer play (was 90)
-    this.checkpoints = 0;
     this.carsOvertaken = 0;
     this.currentZoneIndex = 0;
     this.zoneProgress = 0;
     this.scrollSpeed = 0;
     this.traffic = [];
     this.obstacles = [];
+    this.sceneryObjects = [];
 
     // Reset player - lower position for more reaction time
     this.player.x = this.width / 2;
@@ -557,6 +617,9 @@ export class MonacoRacing {
 
     // Show game screen
     this.showScreen('game-screen');
+
+    // Show course name
+    this.showCourseNamePopup();
 
     // Show control mode toggle on mobile
     const toggle = document.getElementById('control-mode-toggle');
@@ -587,6 +650,49 @@ export class MonacoRacing {
     this.state = 'racing';
     this.lastTime = performance.now();
     this.gameLoop(this.lastTime);
+  }
+
+  /**
+   * Show course name popup at race start
+   */
+  showCourseNamePopup() {
+    const course = this.courses[this.selectedCourse];
+    const popup = document.createElement('div');
+    popup.className = 'course-name-popup';
+    popup.innerHTML = `
+      <div class="course-name">${course.name}</div>
+      <div class="course-desc">${course.description}</div>
+      <div class="course-laps">${this.totalLaps} LAPS</div>
+    `;
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 100;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      animation: fadeInOut 3s ease-in-out forwards;
+    `;
+
+    // Add animation style
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        80% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      .course-name { font-size: 1.5rem; color: #0ff; text-shadow: 0 0 10px #0ff; margin-bottom: 10px; }
+      .course-desc { font-size: 0.7rem; color: #fff; margin-bottom: 10px; font-family: sans-serif; }
+      .course-laps { font-size: 1rem; color: #ff0; }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
   }
 
   /**
@@ -632,16 +738,12 @@ export class MonacoRacing {
   }
 
   /**
-   * Update game state
+   * Update game state - LAP-BASED RACING
    */
   update(dt) {
-    // Update timer
-    this.timeRemaining -= dt;
-    if (this.timeRemaining <= 0) {
-      this.timeRemaining = 0;
-      this.gameOver();
-      return;
-    }
+    // Update timers
+    this.currentLapTime += dt;
+    this.totalTime += dt;
 
     // Update player
     this.updatePlayer(dt);
@@ -650,7 +752,14 @@ export class MonacoRacing {
     this.scrollSpeed = this.baseScrollSpeed + (this.player.speed * this.maxScrollSpeed);
 
     // Update distance
-    this.distance += this.scrollSpeed * dt;
+    const distanceThisFrame = this.scrollSpeed * dt;
+    this.distance += distanceThisFrame;
+    this.lapDistance += distanceThisFrame;
+
+    // Check for lap completion
+    if (this.lapDistance >= this.lapLength) {
+      this.completeLap();
+    }
 
     // Update road segments (scroll)
     this.updateRoadSegments(dt);
@@ -664,16 +773,8 @@ export class MonacoRacing {
     // Check collisions
     this.checkCollisions();
 
-    // Update score
-    this.score = Math.floor(this.distance / 10);
-
-    // Check for checkpoint (every 2000 distance)
-    const newCheckpoints = Math.floor(this.distance / 2000);
-    if (newCheckpoints > this.checkpoints) {
-      this.checkpoints = newCheckpoints;
-      this.timeRemaining += 15; // Bonus time
-      this.showCheckpointPopup();
-    }
+    // Update score based on speed and overtakes
+    this.score = Math.floor(this.distance / 10) + (this.carsOvertaken * 100);
 
     // Update slowmo effect
     if (this.slowmoActive) {
@@ -686,6 +787,9 @@ export class MonacoRacing {
     // Spawn and update item pickups
     this.updateItemPickups(dt);
 
+    // Update scenery objects
+    this.updateScenery(dt);
+
     // Update screen shake
     if (this.screenShake > 0) {
       this.screenShake -= dt * 5;
@@ -697,11 +801,150 @@ export class MonacoRacing {
 
     // Update HUD
     this.updateHUD();
+  }
 
-    // Check for finish
-    if (this.distance >= this.totalCourseLength) {
-      this.finishRace();
+  /**
+   * Complete a lap
+   */
+  completeLap() {
+    // Record lap time
+    this.lapTimes.push(this.currentLapTime);
+
+    // Check for best lap
+    if (this.currentLapTime < this.bestLapTime) {
+      this.bestLapTime = this.currentLapTime;
+      localStorage.setItem('bestLapTime', this.bestLapTime.toString());
     }
+
+    // Show lap complete popup
+    this.showLapCompletePopup(this.currentLap, this.currentLapTime);
+
+    // Play lap complete sound
+    this.soundSystem.playSfx('lap_complete');
+
+    // Check if race is complete
+    if (this.currentLap >= this.totalLaps) {
+      this.finishRace();
+      return;
+    }
+
+    // Start next lap
+    this.currentLap++;
+    this.lapDistance = 0;
+    this.currentLapTime = 0;
+
+    // Reset zone progress for new lap
+    this.currentZoneIndex = 0;
+    this.zoneProgress = 0;
+  }
+
+  /**
+   * Show lap complete popup
+   */
+  showLapCompletePopup(lap, time) {
+    const popup = document.getElementById('lap-popup');
+    const lapNumEl = document.getElementById('lap-complete-num');
+    const lapTimeEl = document.getElementById('lap-time');
+
+    if (popup && lapNumEl && lapTimeEl) {
+      lapNumEl.textContent = lap;
+      lapTimeEl.textContent = this.formatTime(time);
+      popup.classList.add('active');
+
+      setTimeout(() => {
+        popup.classList.remove('active');
+      }, 2000);
+    }
+  }
+
+  /**
+   * Format time as M:SS.mm
+   */
+  formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Update scenery objects
+   */
+  updateScenery(dt) {
+    // Move scenery down
+    for (let i = this.sceneryObjects.length - 1; i >= 0; i--) {
+      const obj = this.sceneryObjects[i];
+      obj.y += this.scrollSpeed * dt;
+
+      // Remove if off screen
+      if (obj.y > this.height + 100) {
+        this.sceneryObjects.splice(i, 1);
+      }
+    }
+
+    // Spawn new scenery
+    this.scenerySpawnTimer -= dt;
+    if (this.scenerySpawnTimer <= 0) {
+      this.spawnScenery();
+      this.scenerySpawnTimer = 0.3 + Math.random() * 0.5; // Spawn every 0.3-0.8 seconds
+    }
+  }
+
+  /**
+   * Spawn scenery object
+   */
+  spawnScenery() {
+    const currentSegment = this.roadSegments[0];
+    if (!currentSegment) return;
+
+    const zone = this.zones[this.currentZoneIndex];
+    const sceneryType = zone?.scenery || 'city';
+
+    // Calculate road center (includes curve)
+    const roadCenterX = this.width / 2 + (currentSegment.curve || 0);
+    const roadWidth = currentSegment.width || this.roadWidth;
+
+    // Determine which side to spawn on
+    const side = Math.random() < 0.5 ? 'left' : 'right';
+    const roadEdge = side === 'left'
+      ? roadCenterX - roadWidth / 2
+      : roadCenterX + roadWidth / 2;
+
+    // Offset from road edge
+    const offset = 30 + Math.random() * 60;
+    const x = side === 'left' ? roadEdge - offset : roadEdge + offset;
+
+    // Keep within screen bounds
+    if (x < 20 || x > this.width - 20) return;
+
+    // Get scenery config based on zone type
+    const sceneryConfig = this.getSceneryConfig(sceneryType);
+
+    this.sceneryObjects.push({
+      x: x,
+      y: -50,
+      type: sceneryType,
+      variant: Math.floor(Math.random() * sceneryConfig.variants),
+      width: sceneryConfig.width,
+      height: sceneryConfig.height,
+      color: sceneryConfig.color
+    });
+  }
+
+  /**
+   * Get scenery configuration for zone type
+   */
+  getSceneryConfig(type) {
+    const configs = {
+      city: { variants: 3, width: 40, height: 60, color: '#445' },
+      highway: { variants: 2, width: 30, height: 20, color: '#666' },
+      mountain: { variants: 3, width: 35, height: 40, color: '#2a5' },
+      coastal: { variants: 2, width: 30, height: 50, color: '#4a8' },
+      tunnel: { variants: 1, width: 50, height: 30, color: '#333' },
+      ice: { variants: 2, width: 25, height: 35, color: '#aef' },
+      rain: { variants: 2, width: 30, height: 25, color: '#558' }
+    };
+    return configs[type] || configs.city;
   }
 
   /**
@@ -1063,7 +1306,8 @@ export class MonacoRacing {
     this.player.spinTime = 2;
     this.player.speed = 0;
     this.screenShake = 1;
-    this.timeRemaining -= 5; // Penalty
+    // Add 3 seconds penalty to current lap time
+    this.currentLapTime += 3;
     this.soundSystem.playSfx('crash');
   }
 
@@ -1079,23 +1323,27 @@ export class MonacoRacing {
   }
 
   /**
-   * Update HUD elements
+   * Update HUD elements - LAP-BASED DISPLAY
    */
   updateHUD() {
-    // Position/Progress
+    // Current lap time display (show in position area)
     const posEl = document.getElementById('current-position');
     if (posEl) {
-      const progress = Math.floor((this.distance / this.totalCourseLength) * 100);
-      posEl.textContent = Math.min(100, progress);
+      // Show current lap time in seconds with 1 decimal
+      posEl.textContent = this.currentLapTime.toFixed(1);
     }
 
-    // Update suffix to show %
+    // Update suffix to show "s" for seconds
     const suffixEl = document.querySelector('.position-suffix');
-    if (suffixEl) suffixEl.textContent = '%';
+    if (suffixEl) suffixEl.textContent = 's';
 
-    // Lap -> Time remaining
+    // Update total display (shows total /X)
+    const totalEl = document.querySelector('.position-total');
+    if (totalEl) totalEl.textContent = '';
+
+    // Lap counter
     const lapEl = document.getElementById('current-lap');
-    if (lapEl) lapEl.textContent = Math.ceil(this.timeRemaining);
+    if (lapEl) lapEl.textContent = this.currentLap;
 
     // Speed meter
     const speedFill = document.getElementById('speed-fill');
@@ -1103,11 +1351,13 @@ export class MonacoRacing {
       speedFill.style.height = `${this.player.speed * 100}%`;
     }
 
-    // Score (use item-icon for score display)
-    const itemIcon = document.getElementById('item-icon');
-    if (itemIcon) {
-      itemIcon.textContent = this.score;
-      itemIcon.style.fontSize = '14px';
+    // Item display (shows item icon when item is held, otherwise score)
+    if (!this.item) {
+      const itemIcon = document.getElementById('item-icon');
+      if (itemIcon) {
+        itemIcon.textContent = this.score;
+        itemIcon.style.fontSize = '14px';
+      }
     }
   }
 
@@ -1155,7 +1405,7 @@ export class MonacoRacing {
   }
 
   /**
-   * Finish the race (completed course)
+   * Finish the race (completed all laps)
    */
   finishRace() {
     this.state = 'finished';
@@ -1164,10 +1414,19 @@ export class MonacoRacing {
     this.soundSystem.stopBgm();
     this.soundSystem.playBgm('victory');
 
-    // Bonus points for finishing
-    this.score += Math.floor(this.timeRemaining) * 100;
+    // Calculate best lap from all laps
+    const bestLap = Math.min(...this.lapTimes);
 
-    // Update high score
+    // Save best lap time if it's a record
+    if (bestLap < this.bestLapTime) {
+      this.bestLapTime = bestLap;
+      localStorage.setItem('bestLapTime', bestLap.toString());
+    }
+
+    // Update high score (based on total time - lower is better, but we store points)
+    const timeBonus = Math.max(0, 300 - this.totalTime) * 10; // Bonus for fast times
+    this.score += timeBonus + (this.carsOvertaken * 50);
+
     if (this.score > this.highScore) {
       this.highScore = this.score;
       localStorage.setItem('monacoHighScore', this.highScore.toString());
@@ -1175,7 +1434,7 @@ export class MonacoRacing {
 
     const titleEl = document.querySelector('.results-title');
     if (titleEl) {
-      titleEl.textContent = '🏆 COURSE COMPLETE! 🏆';
+      titleEl.textContent = '🏆 RACE COMPLETE! 🏆';
       titleEl.className = 'results-title victory';
     }
 
@@ -1183,16 +1442,62 @@ export class MonacoRacing {
   }
 
   /**
-   * Show results screen
+   * Show results screen with lap times
    */
   showResults() {
     const resultTime = document.getElementById('result-time');
     const resultBestLap = document.getElementById('result-best-lap');
     const resultItems = document.getElementById('result-items');
 
-    if (resultTime) resultTime.textContent = this.score.toLocaleString();
-    if (resultBestLap) resultBestLap.textContent = this.highScore.toLocaleString();
+    // Show total time
+    if (resultTime) resultTime.textContent = this.formatTime(this.totalTime);
+
+    // Show best lap
+    const bestLap = this.lapTimes.length > 0 ? Math.min(...this.lapTimes) : 0;
+    if (resultBestLap) resultBestLap.textContent = this.formatTime(bestLap);
+
+    // Show cars overtaken
     if (resultItems) resultItems.textContent = this.carsOvertaken;
+
+    // Update lap times in rankings list
+    const rankingsList = document.getElementById('rankings-list');
+    if (rankingsList && this.lapTimes.length > 0) {
+      rankingsList.innerHTML = '';
+
+      // Add course name header
+      const courseHeader = document.createElement('div');
+      courseHeader.className = 'rank-entry';
+      courseHeader.style.cssText = 'background: rgba(0, 255, 255, 0.2); border-left: 3px solid #0ff;';
+      courseHeader.innerHTML = `
+        <span class="rank-pos" style="color: #0ff;">COURSE</span>
+        <span class="rank-name" style="color: #fff;">${this.courses[this.selectedCourse].name}</span>
+        <span class="rank-time"></span>
+      `;
+      rankingsList.appendChild(courseHeader);
+
+      // Add each lap time
+      this.lapTimes.forEach((time, index) => {
+        const entry = document.createElement('div');
+        entry.className = 'rank-entry' + (time === bestLap ? ' player' : '');
+        entry.innerHTML = `
+          <span class="rank-pos">LAP ${index + 1}</span>
+          <span class="rank-name">${time === bestLap ? '⭐ BEST' : ''}</span>
+          <span class="rank-time">${this.formatTime(time)}</span>
+        `;
+        rankingsList.appendChild(entry);
+      });
+
+      // Add total time
+      const totalEntry = document.createElement('div');
+      totalEntry.className = 'rank-entry';
+      totalEntry.style.cssText = 'background: rgba(255, 255, 0, 0.2); border-left: 3px solid #ff0;';
+      totalEntry.innerHTML = `
+        <span class="rank-pos" style="color: #ff0;">TOTAL</span>
+        <span class="rank-name"></span>
+        <span class="rank-time" style="color: #ff0; font-weight: bold;">${this.formatTime(this.totalTime)}</span>
+      `;
+      rankingsList.appendChild(totalEntry);
+    }
 
     setTimeout(() => this.showScreen('results-screen'), 1500);
   }
@@ -1216,6 +1521,9 @@ export class MonacoRacing {
     // Clear with grass/ground color
     ctx.fillStyle = this.isNight ? '#0a1a0a' : '#2d5a2d';
     ctx.fillRect(0, 0, this.width, this.height);
+
+    // Render scenery (behind road)
+    this.renderScenery(ctx);
 
     // Render road
     this.renderRoad(ctx);
@@ -1712,6 +2020,120 @@ export class MonacoRacing {
     ctx.font = 'bold 16px "Press Start 2P", monospace';
     ctx.textAlign = 'center';
     ctx.fillText(currentSegment.zoneName || '', this.width / 2, 80);
+  }
+
+  /**
+   * Render scenery objects on track sides
+   */
+  renderScenery(ctx) {
+    for (const obj of this.sceneryObjects) {
+      ctx.save();
+      ctx.translate(obj.x, obj.y);
+
+      const w = obj.width;
+      const h = obj.height;
+
+      // Draw based on scenery type
+      switch (obj.type) {
+        case 'city':
+          // Buildings
+          ctx.fillStyle = this.isNight ? '#1a1a2e' : obj.color;
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+          // Windows
+          ctx.fillStyle = this.isNight ? '#ff0' : '#87CEEB';
+          const windowSize = 5;
+          for (let wy = -h / 2 + 8; wy < h / 2 - 8; wy += 12) {
+            for (let wx = -w / 2 + 6; wx < w / 2 - 6; wx += 10) {
+              if (Math.random() > 0.3 || this.isNight) {
+                ctx.fillRect(wx, wy, windowSize, windowSize);
+              }
+            }
+          }
+          break;
+
+        case 'highway':
+          // Highway barriers/signs
+          ctx.fillStyle = '#888';
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+          ctx.fillStyle = '#ff0';
+          ctx.fillRect(-w / 2 + 2, -h / 2 + 2, w - 4, 4);
+          break;
+
+        case 'mountain':
+          // Trees (pine tree shape)
+          ctx.fillStyle = '#1a5f1a';
+          ctx.beginPath();
+          ctx.moveTo(0, -h / 2);
+          ctx.lineTo(w / 2, h / 3);
+          ctx.lineTo(w / 4, h / 3);
+          ctx.lineTo(w / 3, h / 2);
+          ctx.lineTo(-w / 3, h / 2);
+          ctx.lineTo(-w / 4, h / 3);
+          ctx.lineTo(-w / 2, h / 3);
+          ctx.closePath();
+          ctx.fill();
+          // Trunk
+          ctx.fillStyle = '#4a3020';
+          ctx.fillRect(-w / 8, h / 3, w / 4, h / 6);
+          break;
+
+        case 'coastal':
+          // Palm trees
+          ctx.fillStyle = '#4a3020';
+          ctx.fillRect(-3, -h / 4, 6, h / 2 + h / 4);
+          // Fronds
+          ctx.fillStyle = '#2d8a2d';
+          for (let i = 0; i < 5; i++) {
+            ctx.save();
+            ctx.translate(0, -h / 4);
+            ctx.rotate((i - 2) * 0.6);
+            ctx.beginPath();
+            ctx.ellipse(0, -10, 4, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+          break;
+
+        case 'tunnel':
+          // Tunnel wall segment
+          ctx.fillStyle = '#333';
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+          ctx.fillStyle = '#ff6600';
+          ctx.beginPath();
+          ctx.arc(0, 0, 4, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+
+        case 'ice':
+          // Ice crystals
+          ctx.fillStyle = '#aaddff';
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(0, -h / 2);
+          ctx.lineTo(w / 3, 0);
+          ctx.lineTo(0, h / 2);
+          ctx.lineTo(-w / 3, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          break;
+
+        case 'rain':
+          // Puddle/wet ground
+          ctx.fillStyle = 'rgba(100, 150, 200, 0.4)';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+
+        default:
+          // Generic scenery
+          ctx.fillStyle = obj.color;
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+      }
+
+      ctx.restore();
+    }
   }
 
   /**

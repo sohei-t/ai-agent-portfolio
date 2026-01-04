@@ -1,14 +1,16 @@
 /**
  * SoundSystem.js - Audio Management for Racing Game
+ * v2.0 - Single Audio Element for BGM (iOS Safari fix)
  *
- * Handles BGM and SFX with volume control and graceful fallback
+ * Uses a single audio element for BGM to guarantee only one track plays at a time.
+ * This completely eliminates the BGM duplication issue on iOS Safari.
  */
 
 export class SoundSystem {
   constructor() {
-    // Volume settings (lower BGM volume to reduce perceived doubling)
+    // Volume settings
     this.masterVolume = 0.7;
-    this.bgmVolume = 0.25;
+    this.bgmVolume = 0.35;
     this.sfxVolume = 0.5;
 
     // Mute states
@@ -18,8 +20,12 @@ export class SoundSystem {
     // Audio context for better control
     this.audioContext = null;
 
-    // BGM tracks
-    this.bgm = {
+    // SINGLE BGM audio element (guarantees only one BGM at a time)
+    this.bgmPlayer = null;
+    this.currentBgm = null;
+
+    // BGM track URLs (loaded but not as Audio elements)
+    this.bgmTracks = {
       title: null,
       race: null,
       highway: null,
@@ -27,7 +33,16 @@ export class SoundSystem {
       gameover: null
     };
 
-    // SFX sounds
+    // Which tracks should loop
+    this.bgmLoopSettings = {
+      title: true,
+      race: true,
+      highway: true,
+      victory: false,
+      gameover: false
+    };
+
+    // SFX sounds (keep as separate elements for overlapping)
     this.sfx = {
       engine_idle: null,
       engine_rev: null,
@@ -44,15 +59,9 @@ export class SoundSystem {
       item_slowmo: null,
       puddle: null,
       oil_slip: null,
+      lap_complete: null,
       button: null
     };
-
-    // Currently playing BGM
-    this.currentBgm = null;
-
-    // Transition state (prevents race conditions on iOS)
-    this._isTransitioning = false;
-    this._pendingTrack = null;
 
     // Base path for audio files
     this.basePath = './assets/audio/';
@@ -73,7 +82,13 @@ export class SoundSystem {
         await this.audioContext.resume();
       }
 
-      console.log('Audio context initialized');
+      // Create single BGM player
+      if (!this.bgmPlayer) {
+        this.bgmPlayer = new Audio();
+        this.bgmPlayer.preload = 'auto';
+      }
+
+      console.log('Audio context initialized (Single BGM mode)');
       return true;
     } catch (error) {
       console.warn('Audio context not available:', error);
@@ -96,14 +111,16 @@ export class SoundSystem {
   async _loadAllAudio() {
     const loadPromises = [];
 
-    // Load BGM
-    for (const key of Object.keys(this.bgm)) {
-      loadPromises.push(this._loadAudio(`bgm_${key}.wav`, 'bgm', key));
+    // Store BGM URLs (don't create Audio elements)
+    for (const key of Object.keys(this.bgmTracks)) {
+      this.bgmTracks[key] = this.basePath + `bgm_${key}.wav`;
+      // Preload by creating temporary Audio and loading
+      loadPromises.push(this._preloadAudio(this.bgmTracks[key], `bgm_${key}`));
     }
 
     // Load SFX
     for (const key of Object.keys(this.sfx)) {
-      loadPromises.push(this._loadAudio(`sfx_${key}.wav`, 'sfx', key));
+      loadPromises.push(this._loadSfx(`sfx_${key}.wav`, key));
     }
 
     const results = await Promise.allSettled(loadPromises);
@@ -117,19 +134,34 @@ export class SoundSystem {
     return { loaded, failed };
   }
 
-  async _loadAudio(filename, type, key) {
+  async _preloadAudio(url, name) {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio();
+      audio.src = url;
+      audio.preload = 'auto';
+
+      audio.addEventListener('canplaythrough', () => {
+        console.log(`Preloaded: ${name}`);
+        resolve(url);
+      }, { once: true });
+
+      audio.addEventListener('error', (e) => {
+        console.warn(`Failed to preload ${name}:`, e);
+        reject(e);
+      }, { once: true });
+
+      audio.load();
+    });
+  }
+
+  async _loadSfx(filename, key) {
     return new Promise((resolve, reject) => {
       const audio = new Audio();
       audio.src = this.basePath + filename;
       audio.preload = 'auto';
 
       audio.addEventListener('canplaythrough', () => {
-        if (type === 'bgm') {
-          this.bgm[key] = audio;
-          audio.loop = key !== 'victory' && key !== 'gameover';
-        } else {
-          this.sfx[key] = audio;
-        }
+        this.sfx[key] = audio;
         resolve(audio);
       }, { once: true });
 
@@ -138,107 +170,75 @@ export class SoundSystem {
         reject(e);
       }, { once: true });
 
-      // Start loading
       audio.load();
     });
   }
 
   /**
-   * Play BGM track with transition safety
+   * Play BGM track (uses single audio element - guaranteed no duplication)
    */
   playBgm(track) {
-    // Prevent playing the same track again
-    if (this.currentBgm === track) {
+    // Prevent playing the same track
+    if (this.currentBgm === track && this.bgmPlayer && !this.bgmPlayer.paused) {
       console.log(`BGM ${track} already playing, skipping`);
       return;
     }
 
-    // Prevent rapid transitions (debounce)
-    if (this._isTransitioning) {
-      console.log(`BGM transition in progress, queueing ${track}`);
-      this._pendingTrack = track;
-      return;
-    }
-
-    this._isTransitioning = true;
-
-    // Stop ALL BGM tracks first
-    this.stopBgm();
-
-    const audio = this.bgm[track];
-    if (!audio) {
+    const trackUrl = this.bgmTracks[track];
+    if (!trackUrl) {
       console.warn(`BGM track not found: ${track}`);
-      this._isTransitioning = false;
       return;
     }
 
-    console.log(`Playing BGM: ${track}`);
+    console.log(`Playing BGM: ${track} (Single Audio Mode)`);
 
-    // Small delay to ensure previous audio is fully stopped (iOS fix)
-    setTimeout(() => {
-      audio.volume = this.bgmMuted ? 0 : this.bgmVolume * this.masterVolume;
-      audio.currentTime = 0;
-      audio.play().catch(e => console.warn('BGM play failed:', e));
+    // Stop current playback first
+    if (this.bgmPlayer) {
+      this.bgmPlayer.pause();
+      this.bgmPlayer.currentTime = 0;
+    }
 
-      this.currentBgm = track;
-      this._isTransitioning = false;
+    // Create new player if needed
+    if (!this.bgmPlayer) {
+      this.bgmPlayer = new Audio();
+    }
 
-      // Play any queued track
-      if (this._pendingTrack && this._pendingTrack !== track) {
-        const pending = this._pendingTrack;
-        this._pendingTrack = null;
-        this.playBgm(pending);
-      }
-    }, 100);
+    // Set new track
+    this.bgmPlayer.src = trackUrl;
+    this.bgmPlayer.loop = this.bgmLoopSettings[track] || false;
+    this.bgmPlayer.volume = this.bgmMuted ? 0 : this.bgmVolume * this.masterVolume;
+
+    // Play with error handling
+    const playPromise = this.bgmPlayer.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(e => {
+        console.warn('BGM play failed:', e);
+      });
+    }
+
+    this.currentBgm = track;
   }
 
   /**
-   * Stop current BGM (and ensure all BGM tracks are stopped)
-   * Uses aggressive stop method for iOS Safari compatibility
+   * Stop BGM (simple and reliable with single audio element)
    */
   stopBgm() {
-    console.log('stopBgm called - stopping ALL BGM tracks');
+    console.log('stopBgm called');
 
-    // Stop ALL BGM tracks to prevent double-playing
-    for (const [key, audio] of Object.entries(this.bgm)) {
-      if (audio) {
-        try {
-          // iOS Safari: need to be thorough
-          audio.pause();
-          audio.currentTime = 0;
-          // Ensure audio is not in a playing state
-          audio.muted = true;
-          // Small delay then unmute (helps iOS)
-          setTimeout(() => {
-            if (audio) audio.muted = false;
-          }, 50);
-        } catch (e) {
-          console.warn(`Error stopping BGM ${key}:`, e);
-        }
-      }
+    if (this.bgmPlayer) {
+      this.bgmPlayer.pause();
+      this.bgmPlayer.currentTime = 0;
     }
+
     this.currentBgm = null;
-    this._isTransitioning = false;
-  }
-
-  /**
-   * Force stop a specific track (for debugging)
-   */
-  forceStopTrack(track) {
-    const audio = this.bgm[track];
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-      console.log(`Force stopped: ${track}`);
-    }
   }
 
   /**
    * Pause current BGM
    */
   pauseBgm() {
-    if (this.currentBgm && this.bgm[this.currentBgm]) {
-      this.bgm[this.currentBgm].pause();
+    if (this.bgmPlayer && this.currentBgm) {
+      this.bgmPlayer.pause();
     }
   }
 
@@ -246,8 +246,8 @@ export class SoundSystem {
    * Resume current BGM
    */
   resumeBgm() {
-    if (this.currentBgm && this.bgm[this.currentBgm]) {
-      this.bgm[this.currentBgm].play().catch(e => console.warn('Resume failed:', e));
+    if (this.bgmPlayer && this.currentBgm) {
+      this.bgmPlayer.play().catch(e => console.warn('Resume failed:', e));
     }
   }
 
@@ -259,14 +259,16 @@ export class SoundSystem {
 
     const audio = this.sfx[effect];
     if (!audio) {
-      console.warn(`SFX not found: ${effect}`);
+      // Don't warn for missing effects, just skip
       return;
     }
 
     // Clone audio for overlapping sounds
     const clone = audio.cloneNode();
     clone.volume = this.sfxVolume * this.masterVolume;
-    clone.play().catch(e => console.warn('SFX play failed:', e));
+    clone.play().catch(e => {
+      // Silently ignore SFX failures (common on iOS without interaction)
+    });
   }
 
   /**
@@ -310,11 +312,8 @@ export class SoundSystem {
   }
 
   _updateVolumes() {
-    // Update BGM volume
-    for (const audio of Object.values(this.bgm)) {
-      if (audio) {
-        audio.volume = this.bgmMuted ? 0 : this.bgmVolume * this.masterVolume;
-      }
+    if (this.bgmPlayer) {
+      this.bgmPlayer.volume = this.bgmMuted ? 0 : this.bgmVolume * this.masterVolume;
     }
   }
 
@@ -324,10 +323,9 @@ export class SoundSystem {
   destroy() {
     this.stopBgm();
 
-    for (const audio of Object.values(this.bgm)) {
-      if (audio) {
-        audio.src = '';
-      }
+    if (this.bgmPlayer) {
+      this.bgmPlayer.src = '';
+      this.bgmPlayer = null;
     }
 
     for (const audio of Object.values(this.sfx)) {
