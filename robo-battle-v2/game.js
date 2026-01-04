@@ -109,7 +109,11 @@ const ITEMS = {
         width: 60,
         height: 80,
         color: '#9900ff',
-        glowColor: 'rgba(153, 0, 255, 0.6)'
+        glowColor: 'rgba(153, 0, 255, 0.6)',
+        // Dynamic warp zone settings
+        spawnIntervalMin: 4000,   // Minimum 4 seconds between spawns
+        spawnIntervalMax: 6000,   // Maximum 6 seconds between spawns
+        lifetime: 5000            // Warp zone lasts 5 seconds
     },
     deathZone: {
         color: '#ff0000',
@@ -1476,6 +1480,9 @@ class Robot {
             mega: { active: false, endTime: 0 },
             shield: { active: false, endTime: 0 }
         };
+
+        // Warp cooldown (prevents infinite warp loop)
+        this.warpCooldown = 0;
     }
 
     // Apply a powerup effect
@@ -3321,6 +3328,8 @@ class Game {
         // Reset Items Mode state
         this.activeItems = [];
         this.itemSpawnTimer = 0;
+        this.activeWarpZones = [];
+        this.warpSpawnTimer = 0;
 
         this.winner = null;
         this.state = GameState.BATTLE;
@@ -3495,14 +3504,23 @@ class Game {
             this.player.updatePowerups();
             this.enemy.updatePowerups();
 
-            // Check warp zones
-            for (const warp of stage.warpZones) {
-                // Player warp check
-                if (this.checkZoneCollision(this.player, warp.entry)) {
+            // Update warp cooldowns
+            if (this.player.warpCooldown > 0) {
+                this.player.warpCooldown -= deltaTime;
+            }
+            if (this.enemy.warpCooldown > 0) {
+                this.enemy.warpCooldown -= deltaTime;
+            }
+
+            // Check warp zones (both static and dynamic)
+            const allWarpZones = [...stage.warpZones, ...(this.activeWarpZones || [])];
+            for (const warp of allWarpZones) {
+                // Player warp check (only if cooldown is 0)
+                if (this.player.warpCooldown <= 0 && this.checkZoneCollision(this.player, warp.entry)) {
                     this.teleportRobot(this.player, warp.exit);
                 }
-                // Enemy warp check
-                if (this.checkZoneCollision(this.enemy, warp.entry)) {
+                // Enemy warp check (only if cooldown is 0)
+                if (this.enemy.warpCooldown <= 0 && this.checkZoneCollision(this.enemy, warp.entry)) {
                     this.teleportRobot(this.enemy, warp.exit);
                 }
             }
@@ -3540,6 +3558,53 @@ class Game {
                 const itemType = spawnPoint.types[Math.floor(Math.random() * spawnPoint.types.length)];
                 this.activeItems.push(new Item(spawnPoint.x - 16, spawnPoint.y - 16, itemType));
             }
+
+            // Dynamic warp zone spawning
+            this.warpSpawnTimer += deltaTime;
+            const warpInterval = ITEMS.warpZone.spawnIntervalMin +
+                Math.random() * (ITEMS.warpZone.spawnIntervalMax - ITEMS.warpZone.spawnIntervalMin);
+            if (this.warpSpawnTimer >= warpInterval && this.activeWarpZones.length < 2) {
+                this.warpSpawnTimer = 0;
+                // Generate random entry and exit positions on platforms
+                const platforms = stage.platforms.filter(p => p.width >= 80); // Need space for warp zone
+                if (platforms.length >= 2) {
+                    const shuffled = platforms.sort(() => Math.random() - 0.5);
+                    const entryPlatform = shuffled[0];
+                    const exitPlatform = shuffled[1];
+
+                    const warpWidth = ITEMS.warpZone.width;
+                    const warpHeight = ITEMS.warpZone.height;
+
+                    // Entry zone (random position on platform)
+                    const entryX = entryPlatform.x + Math.random() * (entryPlatform.width - warpWidth);
+                    const entryY = entryPlatform.y - warpHeight;
+
+                    // Exit zone (random position on different platform)
+                    const exitX = exitPlatform.x + Math.random() * (exitPlatform.width - warpWidth);
+                    const exitY = exitPlatform.y - warpHeight;
+
+                    this.activeWarpZones.push({
+                        entry: { x: entryX, y: entryY, w: warpWidth, h: warpHeight },
+                        exit: { x: exitX + warpWidth/2, y: exitY + warpHeight/2 },
+                        spawnTime: Date.now(),
+                        lifetime: ITEMS.warpZone.lifetime
+                    });
+
+                    // Visual effect at spawn
+                    ParticleSystem.warpEffect(entryX + warpWidth/2, entryY + warpHeight/2, 'in');
+                }
+            }
+
+            // Update and remove expired warp zones
+            const now = Date.now();
+            this.activeWarpZones = this.activeWarpZones.filter(warp => {
+                if (now - warp.spawnTime >= warp.lifetime) {
+                    // Visual effect on despawn
+                    ParticleSystem.warpEffect(warp.entry.x + warp.entry.w/2, warp.entry.y + warp.entry.h/2, 'out');
+                    return false;
+                }
+                return true;
+            });
 
             // Update and check item collisions
             for (const item of this.activeItems) {
@@ -3590,6 +3655,9 @@ class Game {
 
     // Teleport a robot to exit position with visual effect
     teleportRobot(robot, exit) {
+        // Set warp cooldown to prevent immediate re-warp
+        robot.warpCooldown = 1500; // 1.5 seconds
+
         // Visual effect at source
         ParticleSystem.warpEffect(robot.x + robot.width/2, robot.y + robot.height/2, 'out');
 
@@ -3606,11 +3674,12 @@ class Game {
     }
 
     // Render a warp zone (purple portal effect)
-    renderWarpZone(ctx, zone) {
+    renderWarpZone(ctx, zone, alpha = 1.0) {
         const time = Date.now() * 0.003;
-        const pulseAlpha = 0.3 + Math.sin(time) * 0.15;
+        const pulseAlpha = (0.3 + Math.sin(time) * 0.15) * alpha;
 
         ctx.save();
+        ctx.globalAlpha = alpha;
 
         // Outer glow
         ctx.shadowColor = ITEMS.warpZone.glowColor;
@@ -4142,9 +4211,19 @@ class Game {
                 this.renderDeathZone(ctx, death);
             }
 
-            // Draw warp zones (purple portals)
+            // Draw warp zones (purple portals) - both static and dynamic
             for (const warp of stage.warpZones) {
                 this.renderWarpZone(ctx, warp.entry);
+            }
+            // Draw dynamic warp zones with fade effect
+            for (const warp of (this.activeWarpZones || [])) {
+                const age = Date.now() - warp.spawnTime;
+                const fadeStart = warp.lifetime - 1500; // Start fading 1.5s before despawn
+                let alpha = 1.0;
+                if (age > fadeStart) {
+                    alpha = 1.0 - (age - fadeStart) / 1500;
+                }
+                this.renderWarpZone(ctx, warp.entry, alpha);
             }
 
             // Draw items
