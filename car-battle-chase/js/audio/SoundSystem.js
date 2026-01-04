@@ -50,6 +50,10 @@ export class SoundSystem {
     // Currently playing BGM
     this.currentBgm = null;
 
+    // Transition state (prevents race conditions on iOS)
+    this._isTransitioning = false;
+    this._pendingTrack = null;
+
     // Base path for audio files
     this.basePath = './assets/audio/';
 
@@ -140,7 +144,7 @@ export class SoundSystem {
   }
 
   /**
-   * Play BGM track
+   * Play BGM track with transition safety
    */
   playBgm(track) {
     // Prevent playing the same track again
@@ -149,35 +153,84 @@ export class SoundSystem {
       return;
     }
 
+    // Prevent rapid transitions (debounce)
+    if (this._isTransitioning) {
+      console.log(`BGM transition in progress, queueing ${track}`);
+      this._pendingTrack = track;
+      return;
+    }
+
+    this._isTransitioning = true;
+
     // Stop ALL BGM tracks first
     this.stopBgm();
 
     const audio = this.bgm[track];
     if (!audio) {
       console.warn(`BGM track not found: ${track}`);
+      this._isTransitioning = false;
       return;
     }
 
     console.log(`Playing BGM: ${track}`);
-    audio.volume = this.bgmMuted ? 0 : this.bgmVolume * this.masterVolume;
-    audio.currentTime = 0;
-    audio.play().catch(e => console.warn('BGM play failed:', e));
 
-    this.currentBgm = track;
+    // Small delay to ensure previous audio is fully stopped (iOS fix)
+    setTimeout(() => {
+      audio.volume = this.bgmMuted ? 0 : this.bgmVolume * this.masterVolume;
+      audio.currentTime = 0;
+      audio.play().catch(e => console.warn('BGM play failed:', e));
+
+      this.currentBgm = track;
+      this._isTransitioning = false;
+
+      // Play any queued track
+      if (this._pendingTrack && this._pendingTrack !== track) {
+        const pending = this._pendingTrack;
+        this._pendingTrack = null;
+        this.playBgm(pending);
+      }
+    }, 100);
   }
 
   /**
    * Stop current BGM (and ensure all BGM tracks are stopped)
+   * Uses aggressive stop method for iOS Safari compatibility
    */
   stopBgm() {
+    console.log('stopBgm called - stopping ALL BGM tracks');
+
     // Stop ALL BGM tracks to prevent double-playing
     for (const [key, audio] of Object.entries(this.bgm)) {
       if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
+        try {
+          // iOS Safari: need to be thorough
+          audio.pause();
+          audio.currentTime = 0;
+          // Ensure audio is not in a playing state
+          audio.muted = true;
+          // Small delay then unmute (helps iOS)
+          setTimeout(() => {
+            if (audio) audio.muted = false;
+          }, 50);
+        } catch (e) {
+          console.warn(`Error stopping BGM ${key}:`, e);
+        }
       }
     }
     this.currentBgm = null;
+    this._isTransitioning = false;
+  }
+
+  /**
+   * Force stop a specific track (for debugging)
+   */
+  forceStopTrack(track) {
+    const audio = this.bgm[track];
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      console.log(`Force stopped: ${track}`);
+    }
   }
 
   /**

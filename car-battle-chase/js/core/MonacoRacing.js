@@ -101,16 +101,16 @@ export class MonacoRacing {
     this.itemSpawnInterval = 15;    // Seconds between item spawns
     this.itemPickups = [];          // Items on track
 
-    // Course definition - different zones
+    // Course definition - different zones (length x5 for longer play)
     this.zones = [
-      { name: 'City Start', length: 1000, baseWidth: 350, curve: 0, surface: 'asphalt', night: false },
-      { name: 'Highway', length: 1500, baseWidth: 400, curve: 0.3, surface: 'asphalt', night: false },
-      { name: 'Mountain Pass', length: 2000, baseWidth: 250, curve: 0.6, surface: 'asphalt', night: false },
-      { name: 'Tunnel', length: 800, baseWidth: 200, curve: 0.2, surface: 'asphalt', night: true },
-      { name: 'Coastal Road', length: 1500, baseWidth: 300, curve: 0.5, surface: 'asphalt', night: false },
-      { name: 'Rain Zone', length: 1000, baseWidth: 300, curve: 0.3, surface: 'wet', night: false },
-      { name: 'Ice Bridge', length: 500, baseWidth: 180, curve: 0.1, surface: 'ice', night: false },
-      { name: 'Final Stretch', length: 1200, baseWidth: 350, curve: 0.4, surface: 'asphalt', night: false }
+      { name: 'City Start', length: 5000, baseWidth: 350, curve: 0, surface: 'asphalt', night: false },
+      { name: 'Highway', length: 7500, baseWidth: 400, curve: 0.3, surface: 'asphalt', night: false },
+      { name: 'Mountain Pass', length: 10000, baseWidth: 250, curve: 0.6, surface: 'asphalt', night: false },
+      { name: 'Tunnel', length: 4000, baseWidth: 200, curve: 0.2, surface: 'asphalt', night: true },
+      { name: 'Coastal Road', length: 7500, baseWidth: 300, curve: 0.5, surface: 'asphalt', night: false },
+      { name: 'Rain Zone', length: 5000, baseWidth: 300, curve: 0.3, surface: 'wet', night: false },
+      { name: 'Ice Bridge', length: 2500, baseWidth: 180, curve: 0.1, surface: 'ice', night: false },
+      { name: 'Final Stretch', length: 6000, baseWidth: 350, curve: 0.4, surface: 'asphalt', night: false }
     ];
     this.currentZoneIndex = 0;
     this.zoneProgress = 0;
