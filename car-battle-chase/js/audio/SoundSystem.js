@@ -139,14 +139,24 @@ export class SoundSystem {
       const audio = new Audio();
       audio.src = url;
       audio.preload = 'auto';
+      audio.volume = 0; // Mute during preload to prevent accidental playback
+
+      const cleanup = () => {
+        // CRITICAL: Clean up the temporary audio element to prevent ghost playback
+        audio.pause();
+        audio.src = '';
+        audio.load(); // Reset the audio element
+      };
 
       audio.addEventListener('canplaythrough', () => {
         console.log(`Preloaded: ${name}`);
+        cleanup();
         resolve(url);
       }, { once: true });
 
       audio.addEventListener('error', (e) => {
         console.warn(`Failed to preload ${name}:`, e);
+        cleanup();
         reject(e);
       }, { once: true });
 
