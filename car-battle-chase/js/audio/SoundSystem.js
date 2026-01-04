@@ -20,6 +20,10 @@ export class SoundSystem {
     // Audio context for better control
     this.audioContext = null;
 
+    // CRITICAL: Track user interaction state (iOS requires user gesture for audio)
+    this.userInteracted = false;
+    this.pendingBgm = null; // BGM to play after first interaction
+
     // SINGLE BGM audio element (guarantees only one BGM at a time)
     this.bgmPlayer = null;
     this.currentBgm = null;
@@ -76,6 +80,9 @@ export class SoundSystem {
    */
   async init() {
     try {
+      // Mark that user has interacted (critical for iOS)
+      this.userInteracted = true;
+
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
       if (this.audioContext.state === 'suspended') {
@@ -86,6 +93,14 @@ export class SoundSystem {
       if (!this.bgmPlayer) {
         this.bgmPlayer = new Audio();
         this.bgmPlayer.preload = 'auto';
+      }
+
+      // If there was a pending BGM request, play it now
+      if (this.pendingBgm) {
+        console.log(`Playing pending BGM: ${this.pendingBgm}`);
+        const pendingTrack = this.pendingBgm;
+        this.pendingBgm = null;
+        this.playBgm(pendingTrack);
       }
 
       console.log('Audio context initialized (Single BGM mode)');
@@ -188,6 +203,13 @@ export class SoundSystem {
    * Play BGM track (uses single audio element - guaranteed no duplication)
    */
   playBgm(track) {
+    // CRITICAL: If user hasn't interacted yet, store as pending (iOS fix)
+    if (!this.userInteracted) {
+      console.log(`BGM ${track} deferred until user interaction`);
+      this.pendingBgm = track;
+      return;
+    }
+
     // Prevent playing the same track
     if (this.currentBgm === track && this.bgmPlayer && !this.bgmPlayer.paused) {
       console.log(`BGM ${track} already playing, skipping`);
@@ -234,6 +256,9 @@ export class SoundSystem {
    */
   stopBgm() {
     console.log('stopBgm called');
+
+    // Clear any pending BGM request (critical for iOS)
+    this.pendingBgm = null;
 
     if (this.bgmPlayer) {
       this.bgmPlayer.pause();
