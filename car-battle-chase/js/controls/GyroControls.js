@@ -25,15 +25,15 @@ export class GyroControls {
     this.neutralGamma = 0;
     this.calibrated = false;
 
-    // Sensitivity settings
-    this.steeringSensitivity = 3.5;   // Higher = more responsive
-    this.accelSensitivity = 2.0;
+    // Sensitivity settings - REDUCED for better control
+    this.steeringSensitivity = 1.2;   // Lower = less responsive (was 3.5)
+    this.accelSensitivity = 2.5;      // Slightly higher for better speed control
     this.brakeSensitivity = 2.0;
 
     // Thresholds
-    this.accelThreshold = -10;   // Tilt forward beyond this = accelerate
-    this.brakeThreshold = 20;    // Tilt back beyond this = brake
-    this.steeringDeadzone = 3;   // Ignore small tilts
+    this.accelThreshold = -8;    // Easier to accelerate (was -10)
+    this.brakeThreshold = 15;    // Easier to brake (was 20)
+    this.steeringDeadzone = 8;   // Larger deadzone to prevent over-steering (was 3)
 
     // Output values (normalized -1 to 1 or 0 to 1)
     this.steerValue = 0;    // -1 (left) to 1 (right)
@@ -44,8 +44,8 @@ export class GyroControls {
     this.onTap = null;      // Callback for tap action
     this.tapZones = [];     // Exclusion zones (buttons)
 
-    // Smoothing
-    this.smoothingFactor = 0.3;  // Lower = smoother but more latency
+    // Smoothing - more smoothing for easier control
+    this.smoothingFactor = 0.2;  // Lower = smoother but more latency (was 0.3)
 
     // Check availability
     this.checkAvailability();

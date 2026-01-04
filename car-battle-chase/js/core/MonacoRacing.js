@@ -70,7 +70,7 @@ export class MonacoRacing {
 
     // Game state
     this.state = 'ready';           // ready, countdown, racing, finished, gameover
-    this.timeRemaining = 90;        // Seconds
+    this.timeRemaining = 180;       // Seconds (was 90, doubled for longer play)
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('monacoHighScore') || '0');
     this.checkpoints = 0;
@@ -536,7 +536,7 @@ export class MonacoRacing {
     // Reset game state
     this.distance = 0;
     this.score = 0;
-    this.timeRemaining = 90;
+    this.timeRemaining = 180;  // 3 minutes for longer play (was 90)
     this.checkpoints = 0;
     this.carsOvertaken = 0;
     this.currentZoneIndex = 0;
