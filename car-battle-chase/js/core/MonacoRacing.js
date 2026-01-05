@@ -544,10 +544,12 @@ export class MonacoRacing {
 
     // Handle BGM for different screens
     if (screenId === 'title-screen') {
-      // Play title BGM when showing title screen
+      // Play title BGM when showing title screen (only works after user interaction)
       this.soundSystem.playBgm('title');
     } else if (screenId === 'game-screen') {
-      // BGM is handled in startRace() after countdown
+      // CRITICAL: Stop any playing BGM when entering game screen
+      // Race BGM is started in startRace() after countdown
+      this.soundSystem.stopBgm();
     } else if (screenId === 'settings-screen' || screenId === 'howto-screen') {
       // Keep title BGM playing on settings/howto
     } else if (screenId === 'results-screen') {
@@ -642,6 +644,10 @@ export class MonacoRacing {
     // Start countdown
     this.state = 'countdown';
     await this.runCountdown();
+
+    // CRITICAL: Stop any lingering audio AGAIN right before starting race BGM
+    // This ensures title BGM is fully stopped on iOS Safari
+    this.soundSystem.stopBgm();
 
     // Start race music
     this.soundSystem.playBgm('race');

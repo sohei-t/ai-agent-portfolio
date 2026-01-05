@@ -83,24 +83,20 @@ export class SoundSystem {
       // Mark that user has interacted (critical for iOS)
       this.userInteracted = true;
 
+      // Clear any pending BGM - we don't auto-play on init
+      // Title BGM will play when user navigates back to title from other screens
+      this.pendingBgm = null;
+
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
 
-      // Create single BGM player
+      // Create single BGM player (fresh instance)
       if (!this.bgmPlayer) {
         this.bgmPlayer = new Audio();
         this.bgmPlayer.preload = 'auto';
-      }
-
-      // If there was a pending BGM request, play it now
-      if (this.pendingBgm) {
-        console.log(`Playing pending BGM: ${this.pendingBgm}`);
-        const pendingTrack = this.pendingBgm;
-        this.pendingBgm = null;
-        this.playBgm(pendingTrack);
       }
 
       console.log('Audio context initialized (Single BGM mode)');
@@ -252,10 +248,10 @@ export class SoundSystem {
   }
 
   /**
-   * Stop BGM (simple and reliable with single audio element)
+   * Stop BGM (aggressive cleanup for iOS Safari)
    */
   stopBgm() {
-    console.log('stopBgm called');
+    console.log('stopBgm called - aggressive cleanup');
 
     // Clear any pending BGM request (critical for iOS)
     this.pendingBgm = null;
@@ -263,6 +259,9 @@ export class SoundSystem {
     if (this.bgmPlayer) {
       this.bgmPlayer.pause();
       this.bgmPlayer.currentTime = 0;
+      // CRITICAL: Clear src to fully stop any pending playback
+      this.bgmPlayer.src = '';
+      this.bgmPlayer.load(); // Reset the element
     }
 
     this.currentBgm = null;
