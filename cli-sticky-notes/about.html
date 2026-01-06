@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI Sticky Notes - About</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Kalam:wght@400;700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0a0b;
+      --bg-card: #141416;
+      --bg-elevated: #1c1c1f;
+      --text-primary: #f0f0f0;
+      --text-secondary: #8a8a8e;
+      --text-muted: #5a5a5e;
+      --terminal-green: #00ff88;
+      --terminal-glow: rgba(0, 255, 136, 0.15);
+
+      /* Sticky Note Colors */
+      --note-yellow: #fff9c4;
+      --note-yellow-dark: #ffd54f;
+      --note-green: #c8e6c9;
+      --note-green-dark: #81c784;
+      --note-blue: #bbdefb;
+      --note-blue-dark: #64b5f6;
+      --note-pink: #f8bbd0;
+      --note-pink-dark: #f06292;
+      --note-purple: #e1bee7;
+      --note-purple-dark: #ba68c8;
+      --note-orange: #ffe0b2;
+      --note-orange-dark: #ffb74d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+      );
+      z-index: 9999;
+    }
+
+    /* Noise texture */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.02;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      z-index: 9998;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 1.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      background: linear-gradient(to bottom, var(--bg-dark), transparent);
+    }
+
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--terminal-green);
+      text-shadow: 0 0 20px var(--terminal-glow);
+    }
+
+    .logo span {
+      color: var(--text-secondary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+      color: var(--terminal-green);
+    }
+
+    /* Hero Section */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 3rem;
+      position: relative;
+    }
+
+    .hero-content {
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-text h1 {
+      font-size: 4rem;
+      font-weight: 600;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-text h1 .highlight {
+      color: var(--terminal-green);
+      text-shadow: 0 0 40px var(--terminal-glow);
+    }
+
+    .hero-text p {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 480px;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.3s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--terminal-green);
+      color: var(--bg-dark);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 30px var(--terminal-glow);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--text-muted);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--terminal-green);
+      color: var(--terminal-green);
+    }
+
+    /* Sticky Notes Animation */
+    .hero-visual {
+      position: relative;
+      height: 500px;
+      perspective: 1000px;
+    }
+
+    .sticky-note {
+      position: absolute;
+      width: 180px;
+      padding: 1.25rem;
+      border-radius: 2px;
+      font-family: 'Kalam', cursive;
+      font-size: 1rem;
+      line-height: 1.4;
+      box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.3),
+        0 10px 40px rgba(0, 0, 0, 0.2);
+      transform-origin: top center;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .sticky-note::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      width: 40px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 2px;
+    }
+
+    .note-1 {
+      background: var(--note-yellow);
+      color: #5d4037;
+      top: 10%;
+      left: 10%;
+      transform: rotate(-5deg);
+      animation-delay: 0s;
+    }
+
+    .note-2 {
+      background: var(--note-blue);
+      color: #1565c0;
+      top: 5%;
+      right: 15%;
+      transform: rotate(8deg);
+      animation-delay: -1s;
+    }
+
+    .note-3 {
+      background: var(--note-pink);
+      color: #ad1457;
+      top: 45%;
+      left: 5%;
+      transform: rotate(3deg);
+      animation-delay: -2s;
+    }
+
+    .note-4 {
+      background: var(--note-green);
+      color: #2e7d32;
+      top: 40%;
+      right: 5%;
+      transform: rotate(-7deg);
+      animation-delay: -3s;
+    }
+
+    .note-5 {
+      background: var(--note-purple);
+      color: #7b1fa2;
+      bottom: 15%;
+      left: 25%;
+      transform: rotate(5deg);
+      animation-delay: -4s;
+    }
+
+    .note-6 {
+      background: var(--note-orange);
+      color: #e65100;
+      bottom: 10%;
+      right: 20%;
+      transform: rotate(-4deg);
+      animation-delay: -5s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(var(--rotation, 0deg)); }
+      50% { transform: translateY(-15px) rotate(var(--rotation, 0deg)); }
+    }
+
+    .note-1 { --rotation: -5deg; }
+    .note-2 { --rotation: 8deg; }
+    .note-3 { --rotation: 3deg; }
+    .note-4 { --rotation: -7deg; }
+    .note-5 { --rotation: 5deg; }
+    .note-6 { --rotation: -4deg; }
+
+    /* Terminal window in hero */
+    .terminal-window {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--bg-elevated);
+    }
+
+    .terminal-header {
+      padding: 0.75rem 1rem;
+      background: var(--bg-elevated);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot.red { background: #ff5f56; }
+    .terminal-dot.yellow { background: #ffbd2e; }
+    .terminal-dot.green { background: #27c93f; }
+
+    .terminal-body {
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .terminal-line {
+      margin-bottom: 0.5rem;
+    }
+
+    .terminal-prompt {
+      color: var(--terminal-green);
+    }
+
+    .terminal-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--terminal-green);
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    /* Features Section */
+    .features {
+      padding: 8rem 3rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .section-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--terminal-green);
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .section-title {
+      font-size: 2.5rem;
+      font-weight: 600;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 2rem;
+      border: 1px solid var(--bg-elevated);
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--terminal-green), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--terminal-green);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      font-size: 1.5rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    /* Shortcuts Section */
+    .shortcuts {
+      padding: 8rem 3rem;
+      background: var(--bg-card);
+    }
+
+    .shortcuts-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .shortcut-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .shortcut-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-dark);
+      border-radius: 8px;
+      border: 1px solid var(--bg-elevated);
+    }
+
+    .shortcut-action {
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    .shortcut-keys {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .key {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg-elevated);
+      border-radius: 6px;
+      border: 1px solid var(--text-muted);
+      box-shadow: 0 2px 0 var(--text-muted);
+      color: var(--text-primary);
+    }
+
+    .key-plus {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+
+    /* Colors Section */
+    .colors {
+      padding: 8rem 3rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .colors-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1.5rem;
+    }
+
+    .color-card {
+      text-align: center;
+    }
+
+    .color-preview {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s;
+    }
+
+    .color-preview:hover {
+      transform: scale(1.05) rotate(-2deg);
+    }
+
+    .color-preview::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 24px;
+      background: inherit;
+      filter: brightness(0.85);
+    }
+
+    .color-preview.yellow { background: var(--note-yellow); }
+    .color-preview.green { background: var(--note-green); }
+    .color-preview.blue { background: var(--note-blue); }
+    .color-preview.pink { background: var(--note-pink); }
+    .color-preview.purple { background: var(--note-purple); }
+    .color-preview.orange { background: var(--note-orange); }
+
+    .color-name {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .color-use {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Tech Stack */
+    .tech {
+      padding: 8rem 3rem;
+      background: var(--bg-card);
+    }
+
+    .tech-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .tech-item {
+      text-align: center;
+      padding: 2rem;
+      background: var(--bg-dark);
+      border-radius: 12px;
+      border: 1px solid var(--bg-elevated);
+    }
+
+    .tech-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .tech-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .tech-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* Footer */
+    footer {
+      padding: 4rem 3rem;
+      text-align: center;
+      border-top: 1px solid var(--bg-elevated);
+    }
+
+    .footer-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--terminal-green);
+      margin-bottom: 1rem;
+    }
+
+    .footer-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-text a {
+      color: var(--terminal-green);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero-text p {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-cta {
+        justify-content: center;
+      }
+
+      .hero-visual {
+        display: none;
+      }
+
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .colors-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 1rem 1.5rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding: 6rem 1.5rem;
+      }
+
+      .hero-text h1 {
+        font-size: 2.5rem;
+      }
+
+      .features,
+      .shortcuts,
+      .colors,
+      .tech {
+        padding: 4rem 1.5rem;
+      }
+
+      .features-grid,
+      .tech-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .colors-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .shortcut-item {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+    }
+
+    /* Scroll animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.6s ease-out;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">cli<span>_</span>sticky<span>_</span>notes</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#shortcuts">Shortcuts</a>
+      <a href="#colors">Colors</a>
+      <a href="#tech">Tech</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1>Notes for<br><span class="highlight">Terminal</span> People</h1>
+        <p>Manage multiple terminal sessions with floating sticky notes. Global hotkeys let you capture thoughts without leaving your workflow.</p>
+        <div class="hero-cta">
+          <a href="#" class="btn btn-primary">npm start</a>
+          <a href="#features" class="btn btn-secondary">Learn More</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="sticky-note note-1">Server logs<br>check port 3000</div>
+        <div class="sticky-note note-2">git rebase -i<br>HEAD~5</div>
+        <div class="sticky-note note-3">URGENT!<br>Fix auth bug</div>
+        <div class="sticky-note note-4">npm test<br>all passing</div>
+        <div class="sticky-note note-5">Idea: cache<br>API responses</div>
+        <div class="sticky-note note-6">Meeting @2pm<br>standup call</div>
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line"><span class="terminal-prompt">$</span> npm start</div>
+            <div class="terminal-line">CLI Sticky Notes v1.0</div>
+            <div class="terminal-line">Shortcuts registered</div>
+            <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cursor"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="section-header fade-in">
+      <span class="section-tag">// features</span>
+      <h2 class="section-title">Built for Productivity</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon">&#x2318;</div>
+        <h3>Global Hotkeys</h3>
+        <p>Create notes instantly from anywhere without switching focus. Your terminal stays active.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">&#x1F4CB;</div>
+        <h3>Quick Clipboard</h3>
+        <p>Paste clipboard content directly into a new note with a single shortcut.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">&#x1F3A8;</div>
+        <h3>Color Coding</h3>
+        <p>Six vibrant colors to categorize and visually organize your notes at a glance.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">&#x1F4CC;</div>
+        <h3>Always on Top</h3>
+        <p>Pin important notes to stay visible above all windows while you work.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">&#x1F4BE;</div>
+        <h3>Auto Save</h3>
+        <p>Notes are saved automatically. Position, size, and content persist between sessions.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">&#x1F5A5;</div>
+        <h3>System Tray</h3>
+        <p>Quick access from the menu bar. Create, show, or hide all notes instantly.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="shortcuts" id="shortcuts">
+    <div class="shortcuts-content">
+      <div class="section-header fade-in">
+        <span class="section-tag">// shortcuts</span>
+        <h2 class="section-title">Keyboard First</h2>
+      </div>
+      <div class="shortcut-list">
+        <div class="shortcut-item fade-in">
+          <span class="shortcut-action">Create new note</span>
+          <div class="shortcut-keys">
+            <span class="key">&#x2318; Cmd</span>
+            <span class="key-plus">+</span>
+            <span class="key">&#x21E7; Shift</span>
+            <span class="key-plus">+</span>
+            <span class="key">N</span>
+          </div>
+        </div>
+        <div class="shortcut-item fade-in">
+          <span class="shortcut-action">Quick note from clipboard</span>
+          <div class="shortcut-keys">
+            <span class="key">&#x2318; Cmd</span>
+            <span class="key-plus">+</span>
+            <span class="key">&#x21E7; Shift</span>
+            <span class="key-plus">+</span>
+            <span class="key">V</span>
+          </div>
+        </div>
+        <div class="shortcut-item fade-in">
+          <span class="shortcut-action">Toggle all notes</span>
+          <div class="shortcut-keys">
+            <span class="key">&#x2318; Cmd</span>
+            <span class="key-plus">+</span>
+            <span class="key">&#x21E7; Shift</span>
+            <span class="key-plus">+</span>
+            <span class="key">H</span>
+          </div>
+        </div>
+        <div class="shortcut-item fade-in">
+          <span class="shortcut-action">Hide current note</span>
+          <div class="shortcut-keys">
+            <span class="key">Esc</span>
+          </div>
+        </div>
+        <div class="shortcut-item fade-in">
+          <span class="shortcut-action">Save note</span>
+          <div class="shortcut-keys">
+            <span class="key">&#x2318; Cmd</span>
+            <span class="key-plus">+</span>
+            <span class="key">S</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="colors" id="colors">
+    <div class="section-header fade-in">
+      <span class="section-tag">// colors</span>
+      <h2 class="section-title">Six Themes</h2>
+    </div>
+    <div class="colors-grid">
+      <div class="color-card fade-in">
+        <div class="color-preview yellow"></div>
+        <div class="color-name">Yellow</div>
+        <div class="color-use">General notes</div>
+      </div>
+      <div class="color-card fade-in">
+        <div class="color-preview green"></div>
+        <div class="color-name">Green</div>
+        <div class="color-use">Done / Success</div>
+      </div>
+      <div class="color-card fade-in">
+        <div class="color-preview blue"></div>
+        <div class="color-name">Blue</div>
+        <div class="color-use">Info / Reference</div>
+      </div>
+      <div class="color-card fade-in">
+        <div class="color-preview pink"></div>
+        <div class="color-name">Pink</div>
+        <div class="color-use">Important</div>
+      </div>
+      <div class="color-card fade-in">
+        <div class="color-preview purple"></div>
+        <div class="color-name">Purple</div>
+        <div class="color-use">Ideas</div>
+      </div>
+      <div class="color-card fade-in">
+        <div class="color-preview orange"></div>
+        <div class="color-name">Orange</div>
+        <div class="color-use">Warning</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tech" id="tech">
+    <div class="tech-content">
+      <div class="section-header fade-in">
+        <span class="section-tag">// tech_stack</span>
+        <h2 class="section-title">Under the Hood</h2>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-item fade-in">
+          <div class="tech-icon">&#x26A1;</div>
+          <div class="tech-name">Electron</div>
+          <div class="tech-desc">Cross-platform desktop framework</div>
+        </div>
+        <div class="tech-item fade-in">
+          <div class="tech-icon">&#x1F4BE;</div>
+          <div class="tech-name">electron-store</div>
+          <div class="tech-desc">Persistent local storage</div>
+        </div>
+        <div class="tech-item fade-in">
+          <div class="tech-icon">&#x1F512;</div>
+          <div class="tech-name">Offline First</div>
+          <div class="tech-desc">No external APIs required</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">cli_sticky_notes</div>
+    <p class="footer-text">
+      Made with Electron and love for terminal productivity.<br>
+      <a href="https://github.com">View on GitHub</a>
+    </p>
+  </footer>
+
+  <script>
+    // Scroll animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, index * 100);
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Smooth scroll for nav links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
