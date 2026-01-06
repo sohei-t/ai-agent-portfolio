@@ -5232,6 +5232,15 @@ class Game {
         this.onNetworkBattleStart = (data) => {
             console.log('[Online] Battle start signal received', data);
             console.log('[CLIENT] About to call startBattle() - isHost:', this.isHost);
+            console.log('[CLIENT] Current state:', this.state);
+
+            // IMPORTANT: Only start battle if we're NOT already in BATTLE state
+            // This prevents infinite loop when host sends battleStart during rematch
+            // while also sending gameState with RESULT
+            if (this.state === GameState.BATTLE) {
+                console.log('[CLIENT] Already in BATTLE state - ignoring battleStart message');
+                return;
+            }
 
             // Apply ALL settings from HOST before starting battle
             // Stage/Background
@@ -5368,6 +5377,14 @@ class Game {
 
             // Sync game state (KO, RESULT, etc.)
             if (state.gameState && state.gameState !== this.state) {
+                // IMPORTANT: Validate state transitions to prevent infinite loops
+                // Only allow RESULT state if coming from KO (proper game end flow)
+                // Don't allow BATTLE -> RESULT directly (must go through KO)
+                if (state.gameState === GameState.RESULT && this.state === GameState.BATTLE) {
+                    console.log('[Client] Ignoring invalid state transition: BATTLE -> RESULT (must go through KO)');
+                    return;
+                }
+
                 console.log(`[Client] State sync: ${this.state} -> ${state.gameState}`);
                 const previousState = this.state;
                 this.state = state.gameState;
