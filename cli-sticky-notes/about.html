@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CLI Sticky Notes - About</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Kalam:wght@400;700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Kalam:wght@400;700&family=Space+Grotesk:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-dark: #0a0a0b;
@@ -17,79 +17,40 @@
       --text-muted: #5a5a5e;
       --terminal-green: #00ff88;
       --terminal-glow: rgba(0, 255, 136, 0.15);
-
-      /* Sticky Note Colors */
       --note-yellow: #fff9c4;
-      --note-yellow-dark: #ffd54f;
       --note-green: #c8e6c9;
-      --note-green-dark: #81c784;
       --note-blue: #bbdefb;
-      --note-blue-dark: #64b5f6;
       --note-pink: #f8bbd0;
-      --note-pink-dark: #f06292;
       --note-purple: #e1bee7;
-      --note-purple-dark: #ba68c8;
       --note-orange: #ffe0b2;
-      --note-orange-dark: #ffb74d;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Noto Sans JP', 'Space Grotesk', sans-serif;
       background: var(--bg-dark);
       color: var(--text-primary);
       line-height: 1.6;
       overflow-x: hidden;
     }
 
-    /* Scanline overlay */
+    body[data-lang="en"] { font-family: 'Space Grotesk', sans-serif; }
+
     body::before {
       content: '';
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       pointer-events: none;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.03) 2px,
-        rgba(0, 0, 0, 0.03) 4px
-      );
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
       z-index: 9999;
     }
 
-    /* Noise texture */
-    body::after {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      opacity: 0.02;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      z-index: 9998;
-    }
-
-    /* Navigation */
     nav {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       padding: 1.5rem 3rem;
       display: flex;
       justify-content: space-between;
@@ -105,9 +66,12 @@
       color: var(--terminal-green);
       text-shadow: 0 0 20px var(--terminal-glow);
     }
+    .logo span { color: var(--text-secondary); }
 
-    .logo span {
-      color: var(--text-secondary);
+    .nav-right {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
     }
 
     .nav-links {
@@ -121,19 +85,45 @@
       font-size: 0.9rem;
       transition: color 0.3s;
     }
+    .nav-links a:hover { color: var(--terminal-green); }
 
-    .nav-links a:hover {
-      color: var(--terminal-green);
+    /* Language Switcher */
+    .lang-switch {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--bg-elevated);
+      padding: 0.25rem;
+      border-radius: 6px;
     }
 
-    /* Hero Section */
+    .lang-btn {
+      padding: 0.4rem 0.75rem;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .lang-btn.active {
+      background: var(--terminal-green);
+      color: var(--bg-dark);
+    }
+
+    .lang-btn:hover:not(.active) {
+      color: var(--text-primary);
+    }
+
+    /* Hero */
     .hero {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 6rem 3rem;
-      position: relative;
     }
 
     .hero-content {
@@ -145,9 +135,9 @@
     }
 
     .hero-text h1 {
-      font-size: 4rem;
+      font-size: 3.5rem;
       font-weight: 600;
-      line-height: 1.1;
+      line-height: 1.2;
       margin-bottom: 1.5rem;
     }
 
@@ -157,7 +147,7 @@
     }
 
     .hero-text p {
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       color: var(--text-secondary);
       margin-bottom: 2rem;
       max-width: 480px;
@@ -166,7 +156,6 @@
     .hero-cta {
       display: flex;
       gap: 1rem;
-      align-items: center;
     }
 
     .btn {
@@ -185,7 +174,6 @@
       background: var(--terminal-green);
       color: var(--bg-dark);
     }
-
     .btn-primary:hover {
       box-shadow: 0 0 30px var(--terminal-glow);
       transform: translateY(-2px);
@@ -196,17 +184,15 @@
       color: var(--text-primary);
       border: 1px solid var(--text-muted);
     }
-
     .btn-secondary:hover {
       border-color: var(--terminal-green);
       color: var(--terminal-green);
     }
 
-    /* Sticky Notes Animation */
+    /* Hero Visual */
     .hero-visual {
       position: relative;
       height: 500px;
-      perspective: 1000px;
     }
 
     .sticky-note {
@@ -217,102 +203,41 @@
       font-family: 'Kalam', cursive;
       font-size: 1rem;
       line-height: 1.4;
-      box-shadow:
-        0 4px 6px rgba(0, 0, 0, 0.3),
-        0 10px 40px rgba(0, 0, 0, 0.2);
-      transform-origin: top center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3), 0 10px 40px rgba(0,0,0,0.2);
       animation: float 6s ease-in-out infinite;
     }
 
     .sticky-note::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 50%;
+      top: 0; left: 50%;
       transform: translateX(-50%) translateY(-50%);
-      width: 40px;
-      height: 8px;
-      background: rgba(0, 0, 0, 0.15);
+      width: 40px; height: 8px;
+      background: rgba(0,0,0,0.15);
       border-radius: 2px;
     }
 
-    .note-1 {
-      background: var(--note-yellow);
-      color: #5d4037;
-      top: 10%;
-      left: 10%;
-      transform: rotate(-5deg);
-      animation-delay: 0s;
-    }
-
-    .note-2 {
-      background: var(--note-blue);
-      color: #1565c0;
-      top: 5%;
-      right: 15%;
-      transform: rotate(8deg);
-      animation-delay: -1s;
-    }
-
-    .note-3 {
-      background: var(--note-pink);
-      color: #ad1457;
-      top: 45%;
-      left: 5%;
-      transform: rotate(3deg);
-      animation-delay: -2s;
-    }
-
-    .note-4 {
-      background: var(--note-green);
-      color: #2e7d32;
-      top: 40%;
-      right: 5%;
-      transform: rotate(-7deg);
-      animation-delay: -3s;
-    }
-
-    .note-5 {
-      background: var(--note-purple);
-      color: #7b1fa2;
-      bottom: 15%;
-      left: 25%;
-      transform: rotate(5deg);
-      animation-delay: -4s;
-    }
-
-    .note-6 {
-      background: var(--note-orange);
-      color: #e65100;
-      bottom: 10%;
-      right: 20%;
-      transform: rotate(-4deg);
-      animation-delay: -5s;
-    }
+    .note-1 { background: var(--note-yellow); color: #5d4037; top: 10%; left: 10%; transform: rotate(-5deg); --rotation: -5deg; }
+    .note-2 { background: var(--note-blue); color: #1565c0; top: 5%; right: 15%; transform: rotate(8deg); --rotation: 8deg; animation-delay: -1s; }
+    .note-3 { background: var(--note-pink); color: #ad1457; top: 45%; left: 5%; transform: rotate(3deg); --rotation: 3deg; animation-delay: -2s; }
+    .note-4 { background: var(--note-green); color: #2e7d32; top: 40%; right: 5%; transform: rotate(-7deg); --rotation: -7deg; animation-delay: -3s; }
+    .note-5 { background: var(--note-purple); color: #7b1fa2; bottom: 15%; left: 25%; transform: rotate(5deg); --rotation: 5deg; animation-delay: -4s; }
+    .note-6 { background: var(--note-orange); color: #e65100; bottom: 10%; right: 20%; transform: rotate(-4deg); --rotation: -4deg; animation-delay: -5s; }
 
     @keyframes float {
       0%, 100% { transform: translateY(0) rotate(var(--rotation, 0deg)); }
       50% { transform: translateY(-15px) rotate(var(--rotation, 0deg)); }
     }
 
-    .note-1 { --rotation: -5deg; }
-    .note-2 { --rotation: 8deg; }
-    .note-3 { --rotation: 3deg; }
-    .note-4 { --rotation: -7deg; }
-    .note-5 { --rotation: 5deg; }
-    .note-6 { --rotation: -4deg; }
-
-    /* Terminal window in hero */
     .terminal-window {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       width: 280px;
       background: var(--bg-card);
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       border: 1px solid var(--bg-elevated);
     }
 
@@ -323,12 +248,7 @@
       gap: 0.5rem;
     }
 
-    .terminal-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-    }
-
+    .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
     .terminal-dot.red { background: #ff5f56; }
     .terminal-dot.yellow { background: #ffbd2e; }
     .terminal-dot.green { background: #27c93f; }
@@ -340,40 +260,25 @@
       color: var(--text-secondary);
     }
 
-    .terminal-line {
-      margin-bottom: 0.5rem;
-    }
-
-    .terminal-prompt {
-      color: var(--terminal-green);
-    }
-
+    .terminal-line { margin-bottom: 0.5rem; }
+    .terminal-prompt { color: var(--terminal-green); }
     .terminal-cursor {
       display: inline-block;
-      width: 8px;
-      height: 14px;
+      width: 8px; height: 14px;
       background: var(--terminal-green);
       animation: blink 1s step-end infinite;
       vertical-align: middle;
       margin-left: 2px;
     }
 
-    @keyframes blink {
-      50% { opacity: 0; }
-    }
+    @keyframes blink { 50% { opacity: 0; } }
 
-    /* Features Section */
-    .features {
-      padding: 8rem 3rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    /* Sections */
+    .features, .colors { padding: 8rem 3rem; max-width: 1200px; margin: 0 auto; }
+    .shortcuts, .tech { padding: 8rem 3rem; background: var(--bg-card); }
+    .shortcuts-content, .tech-content { max-width: 900px; margin: 0 auto; }
 
-    .section-header {
-      text-align: center;
-      margin-bottom: 4rem;
-    }
-
+    .section-header { text-align: center; margin-bottom: 4rem; }
     .section-tag {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.85rem;
@@ -381,17 +286,9 @@
       margin-bottom: 1rem;
       display: block;
     }
+    .section-title { font-size: 2.5rem; font-weight: 600; }
 
-    .section-title {
-      font-size: 2.5rem;
-      font-weight: 600;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2rem;
-    }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
 
     .feature-card {
       background: var(--bg-card);
@@ -406,9 +303,7 @@
     .feature-card::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 3px;
       background: linear-gradient(90deg, var(--terminal-green), transparent);
       opacity: 0;
@@ -419,14 +314,10 @@
       transform: translateY(-4px);
       border-color: var(--terminal-green);
     }
-
-    .feature-card:hover::before {
-      opacity: 1;
-    }
+    .feature-card:hover::before { opacity: 1; }
 
     .feature-icon {
-      width: 48px;
-      height: 48px;
+      width: 48px; height: 48px;
       background: var(--bg-elevated);
       border-radius: 10px;
       display: flex;
@@ -436,34 +327,10 @@
       font-size: 1.5rem;
     }
 
-    .feature-card h3 {
-      font-size: 1.1rem;
-      font-weight: 500;
-      margin-bottom: 0.75rem;
-    }
+    .feature-card h3 { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.75rem; }
+    .feature-card p { color: var(--text-secondary); font-size: 0.95rem; }
 
-    .feature-card p {
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-    }
-
-    /* Shortcuts Section */
-    .shortcuts {
-      padding: 8rem 3rem;
-      background: var(--bg-card);
-    }
-
-    .shortcuts-content {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .shortcut-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
+    .shortcut-list { display: flex; flex-direction: column; gap: 1rem; }
     .shortcut-item {
       display: flex;
       justify-content: space-between;
@@ -474,15 +341,8 @@
       border: 1px solid var(--bg-elevated);
     }
 
-    .shortcut-action {
-      font-size: 1rem;
-      color: var(--text-primary);
-    }
-
-    .shortcut-keys {
-      display: flex;
-      gap: 0.5rem;
-    }
+    .shortcut-action { font-size: 1rem; color: var(--text-primary); }
+    .shortcut-keys { display: flex; gap: 0.5rem; }
 
     .key {
       font-family: 'JetBrains Mono', monospace;
@@ -495,28 +355,10 @@
       color: var(--text-primary);
     }
 
-    .key-plus {
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-    }
+    .key-plus { color: var(--text-muted); display: flex; align-items: center; }
 
-    /* Colors Section */
-    .colors {
-      padding: 8rem 3rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .colors-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 1.5rem;
-    }
-
-    .color-card {
-      text-align: center;
-    }
+    .colors-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.5rem; }
+    .color-card { text-align: center; }
 
     .color-preview {
       width: 100%;
@@ -525,20 +367,14 @@
       margin-bottom: 1rem;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
       transition: transform 0.3s;
     }
-
-    .color-preview:hover {
-      transform: scale(1.05) rotate(-2deg);
-    }
-
+    .color-preview:hover { transform: scale(1.05) rotate(-2deg); }
     .color-preview::after {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 24px;
       background: inherit;
       filter: brightness(0.85);
@@ -551,34 +387,10 @@
     .color-preview.purple { background: var(--note-purple); }
     .color-preview.orange { background: var(--note-orange); }
 
-    .color-name {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-    }
+    .color-name { font-size: 0.9rem; color: var(--text-secondary); }
+    .color-use { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
 
-    .color-use {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 0.25rem;
-    }
-
-    /* Tech Stack */
-    .tech {
-      padding: 8rem 3rem;
-      background: var(--bg-card);
-    }
-
-    .tech-content {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .tech-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2rem;
-    }
-
+    .tech-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
     .tech-item {
       text-align: center;
       padding: 2rem;
@@ -586,31 +398,20 @@
       border-radius: 12px;
       border: 1px solid var(--bg-elevated);
     }
-
-    .tech-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-
+    .tech-icon { font-size: 2.5rem; margin-bottom: 1rem; }
     .tech-name {
       font-family: 'JetBrains Mono', monospace;
       font-size: 1rem;
       font-weight: 500;
       margin-bottom: 0.5rem;
     }
+    .tech-desc { font-size: 0.85rem; color: var(--text-secondary); }
 
-    .tech-desc {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-
-    /* Footer */
     footer {
       padding: 4rem 3rem;
       text-align: center;
       border-top: 1px solid var(--bg-elevated);
     }
-
     .footer-logo {
       font-family: 'JetBrains Mono', monospace;
       font-size: 1.5rem;
@@ -618,127 +419,68 @@
       color: var(--terminal-green);
       margin-bottom: 1rem;
     }
-
-    .footer-text {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    .footer-text a {
-      color: var(--terminal-green);
-      text-decoration: none;
-    }
+    .footer-text { color: var(--text-muted); font-size: 0.9rem; }
+    .footer-text a { color: var(--terminal-green); text-decoration: none; }
 
     /* Responsive */
     @media (max-width: 1024px) {
-      .hero-content {
-        grid-template-columns: 1fr;
-        text-align: center;
-      }
-
-      .hero-text p {
-        margin-left: auto;
-        margin-right: auto;
-      }
-
-      .hero-cta {
-        justify-content: center;
-      }
-
-      .hero-visual {
-        display: none;
-      }
-
-      .features-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .colors-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
+      .hero-content { grid-template-columns: 1fr; text-align: center; }
+      .hero-text p { margin-left: auto; margin-right: auto; }
+      .hero-cta { justify-content: center; }
+      .hero-visual { display: none; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .colors-grid { grid-template-columns: repeat(3, 1fr); }
     }
 
     @media (max-width: 768px) {
-      nav {
-        padding: 1rem 1.5rem;
-      }
-
-      .nav-links {
-        display: none;
-      }
-
-      .hero {
-        padding: 6rem 1.5rem;
-      }
-
-      .hero-text h1 {
-        font-size: 2.5rem;
-      }
-
-      .features,
-      .shortcuts,
-      .colors,
-      .tech {
-        padding: 4rem 1.5rem;
-      }
-
-      .features-grid,
-      .tech-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .colors-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .shortcut-item {
-        flex-direction: column;
-        gap: 1rem;
-        text-align: center;
-      }
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .hero { padding: 6rem 1.5rem; }
+      .hero-text h1 { font-size: 2.5rem; }
+      .features, .shortcuts, .colors, .tech { padding: 4rem 1.5rem; }
+      .features-grid, .tech-grid { grid-template-columns: 1fr; }
+      .colors-grid { grid-template-columns: repeat(2, 1fr); }
+      .shortcut-item { flex-direction: column; gap: 1rem; text-align: center; }
     }
 
-    /* Scroll animations */
-    .fade-in {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: all 0.6s ease-out;
-    }
-
-    .fade-in.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .fade-in { opacity: 0; transform: translateY(30px); transition: all 0.6s ease-out; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
   </style>
 </head>
-<body>
+<body data-lang="ja">
   <nav>
     <div class="logo">cli<span>_</span>sticky<span>_</span>notes</div>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#shortcuts">Shortcuts</a>
-      <a href="#colors">Colors</a>
-      <a href="#tech">Tech</a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#features" data-i18n="nav.features">機能</a>
+        <a href="#shortcuts" data-i18n="nav.shortcuts">ショートカット</a>
+        <a href="#colors" data-i18n="nav.colors">カラー</a>
+        <a href="#tech" data-i18n="nav.tech">技術</a>
+      </div>
+      <div class="lang-switch">
+        <button class="lang-btn active" data-lang="ja">日本語</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
     </div>
   </nav>
 
   <section class="hero">
     <div class="hero-content">
       <div class="hero-text">
-        <h1>Notes for<br><span class="highlight">Terminal</span> People</h1>
-        <p>Manage multiple terminal sessions with floating sticky notes. Global hotkeys let you capture thoughts without leaving your workflow.</p>
+        <h1 data-i18n="hero.title"><span class="highlight">ターミナル</span>ユーザーの<br>ための付箋</h1>
+        <p data-i18n="hero.description">複数のターミナルセッションをフローティング付箋で管理。グローバルホットキーで作業を中断せずにメモを残せます。</p>
         <div class="hero-cta">
           <a href="#" class="btn btn-primary">npm start</a>
-          <a href="#features" class="btn btn-secondary">Learn More</a>
+          <a href="#features" class="btn btn-secondary" data-i18n="hero.learn_more">詳しく見る</a>
         </div>
       </div>
       <div class="hero-visual">
-        <div class="sticky-note note-1">Server logs<br>check port 3000</div>
+        <div class="sticky-note note-1" data-i18n="note.1">サーバーログ<br>port 3000確認</div>
         <div class="sticky-note note-2">git rebase -i<br>HEAD~5</div>
-        <div class="sticky-note note-3">URGENT!<br>Fix auth bug</div>
-        <div class="sticky-note note-4">npm test<br>all passing</div>
-        <div class="sticky-note note-5">Idea: cache<br>API responses</div>
-        <div class="sticky-note note-6">Meeting @2pm<br>standup call</div>
+        <div class="sticky-note note-3" data-i18n="note.3">至急！<br>認証バグ修正</div>
+        <div class="sticky-note note-4" data-i18n="note.4">npm test<br>全て合格</div>
+        <div class="sticky-note note-5" data-i18n="note.5">アイデア：<br>APIキャッシュ</div>
+        <div class="sticky-note note-6" data-i18n="note.6">14時 MTG<br>スタンドアップ</div>
         <div class="terminal-window">
           <div class="terminal-header">
             <span class="terminal-dot red"></span>
@@ -759,38 +501,38 @@
   <section class="features" id="features">
     <div class="section-header fade-in">
       <span class="section-tag">// features</span>
-      <h2 class="section-title">Built for Productivity</h2>
+      <h2 class="section-title" data-i18n="features.title">生産性を高める機能</h2>
     </div>
     <div class="features-grid">
       <div class="feature-card fade-in">
         <div class="feature-icon">&#x2318;</div>
-        <h3>Global Hotkeys</h3>
-        <p>Create notes instantly from anywhere without switching focus. Your terminal stays active.</p>
+        <h3 data-i18n="features.hotkeys.title">グローバルホットキー</h3>
+        <p data-i18n="features.hotkeys.desc">どのアプリを使っていてもフォーカスを切り替えずに付箋を作成。ターミナルはアクティブなまま。</p>
       </div>
       <div class="feature-card fade-in">
         <div class="feature-icon">&#x1F4CB;</div>
-        <h3>Quick Clipboard</h3>
-        <p>Paste clipboard content directly into a new note with a single shortcut.</p>
+        <h3 data-i18n="features.clipboard.title">クイックペースト</h3>
+        <p data-i18n="features.clipboard.desc">クリップボードの内容を1つのショートカットで新しい付箋に貼り付け。</p>
       </div>
       <div class="feature-card fade-in">
         <div class="feature-icon">&#x1F3A8;</div>
-        <h3>Color Coding</h3>
-        <p>Six vibrant colors to categorize and visually organize your notes at a glance.</p>
+        <h3 data-i18n="features.colors.title">カラーコーディング</h3>
+        <p data-i18n="features.colors.desc">6色のテーマで視覚的に分類・整理。一目で内容を把握できます。</p>
       </div>
       <div class="feature-card fade-in">
         <div class="feature-icon">&#x1F4CC;</div>
-        <h3>Always on Top</h3>
-        <p>Pin important notes to stay visible above all windows while you work.</p>
+        <h3 data-i18n="features.pin.title">常に最前面</h3>
+        <p data-i18n="features.pin.desc">重要な付箋をピン留めして、他のウィンドウより常に上に表示。</p>
       </div>
       <div class="feature-card fade-in">
         <div class="feature-icon">&#x1F4BE;</div>
-        <h3>Auto Save</h3>
-        <p>Notes are saved automatically. Position, size, and content persist between sessions.</p>
+        <h3 data-i18n="features.save.title">自動保存</h3>
+        <p data-i18n="features.save.desc">付箋は自動的に保存。位置、サイズ、内容はセッション間で保持されます。</p>
       </div>
       <div class="feature-card fade-in">
         <div class="feature-icon">&#x1F5A5;</div>
-        <h3>System Tray</h3>
-        <p>Quick access from the menu bar. Create, show, or hide all notes instantly.</p>
+        <h3 data-i18n="features.tray.title">システムトレイ</h3>
+        <p data-i18n="features.tray.desc">メニューバーからクイックアクセス。付箋の作成・表示・非表示を瞬時に。</p>
       </div>
     </div>
   </section>
@@ -799,11 +541,11 @@
     <div class="shortcuts-content">
       <div class="section-header fade-in">
         <span class="section-tag">// shortcuts</span>
-        <h2 class="section-title">Keyboard First</h2>
+        <h2 class="section-title" data-i18n="shortcuts.title">キーボードファースト</h2>
       </div>
       <div class="shortcut-list">
         <div class="shortcut-item fade-in">
-          <span class="shortcut-action">Create new note</span>
+          <span class="shortcut-action" data-i18n="shortcuts.new">新規付箋を作成</span>
           <div class="shortcut-keys">
             <span class="key">&#x2318; Cmd</span>
             <span class="key-plus">+</span>
@@ -813,7 +555,7 @@
           </div>
         </div>
         <div class="shortcut-item fade-in">
-          <span class="shortcut-action">Quick note from clipboard</span>
+          <span class="shortcut-action" data-i18n="shortcuts.clipboard">クリップボードから作成</span>
           <div class="shortcut-keys">
             <span class="key">&#x2318; Cmd</span>
             <span class="key-plus">+</span>
@@ -823,7 +565,7 @@
           </div>
         </div>
         <div class="shortcut-item fade-in">
-          <span class="shortcut-action">Toggle all notes</span>
+          <span class="shortcut-action" data-i18n="shortcuts.toggle">全付箋の表示切替</span>
           <div class="shortcut-keys">
             <span class="key">&#x2318; Cmd</span>
             <span class="key-plus">+</span>
@@ -833,13 +575,13 @@
           </div>
         </div>
         <div class="shortcut-item fade-in">
-          <span class="shortcut-action">Hide current note</span>
+          <span class="shortcut-action" data-i18n="shortcuts.hide">現在の付箋を隠す</span>
           <div class="shortcut-keys">
             <span class="key">Esc</span>
           </div>
         </div>
         <div class="shortcut-item fade-in">
-          <span class="shortcut-action">Save note</span>
+          <span class="shortcut-action" data-i18n="shortcuts.save">付箋を保存</span>
           <div class="shortcut-keys">
             <span class="key">&#x2318; Cmd</span>
             <span class="key-plus">+</span>
@@ -853,38 +595,38 @@
   <section class="colors" id="colors">
     <div class="section-header fade-in">
       <span class="section-tag">// colors</span>
-      <h2 class="section-title">Six Themes</h2>
+      <h2 class="section-title" data-i18n="colors.title">6つのテーマ</h2>
     </div>
     <div class="colors-grid">
       <div class="color-card fade-in">
         <div class="color-preview yellow"></div>
-        <div class="color-name">Yellow</div>
-        <div class="color-use">General notes</div>
+        <div class="color-name" data-i18n="colors.yellow">イエロー</div>
+        <div class="color-use" data-i18n="colors.yellow_use">一般的なメモ</div>
       </div>
       <div class="color-card fade-in">
         <div class="color-preview green"></div>
-        <div class="color-name">Green</div>
-        <div class="color-use">Done / Success</div>
+        <div class="color-name" data-i18n="colors.green">グリーン</div>
+        <div class="color-use" data-i18n="colors.green_use">完了 / 成功</div>
       </div>
       <div class="color-card fade-in">
         <div class="color-preview blue"></div>
-        <div class="color-name">Blue</div>
-        <div class="color-use">Info / Reference</div>
+        <div class="color-name" data-i18n="colors.blue">ブルー</div>
+        <div class="color-use" data-i18n="colors.blue_use">情報 / 参照</div>
       </div>
       <div class="color-card fade-in">
         <div class="color-preview pink"></div>
-        <div class="color-name">Pink</div>
-        <div class="color-use">Important</div>
+        <div class="color-name" data-i18n="colors.pink">ピンク</div>
+        <div class="color-use" data-i18n="colors.pink_use">重要</div>
       </div>
       <div class="color-card fade-in">
         <div class="color-preview purple"></div>
-        <div class="color-name">Purple</div>
-        <div class="color-use">Ideas</div>
+        <div class="color-name" data-i18n="colors.purple">パープル</div>
+        <div class="color-use" data-i18n="colors.purple_use">アイデア</div>
       </div>
       <div class="color-card fade-in">
         <div class="color-preview orange"></div>
-        <div class="color-name">Orange</div>
-        <div class="color-use">Warning</div>
+        <div class="color-name" data-i18n="colors.orange">オレンジ</div>
+        <div class="color-use" data-i18n="colors.orange_use">警告</div>
       </div>
     </div>
   </section>
@@ -893,23 +635,23 @@
     <div class="tech-content">
       <div class="section-header fade-in">
         <span class="section-tag">// tech_stack</span>
-        <h2 class="section-title">Under the Hood</h2>
+        <h2 class="section-title" data-i18n="tech.title">技術スタック</h2>
       </div>
       <div class="tech-grid">
         <div class="tech-item fade-in">
           <div class="tech-icon">&#x26A1;</div>
           <div class="tech-name">Electron</div>
-          <div class="tech-desc">Cross-platform desktop framework</div>
+          <div class="tech-desc" data-i18n="tech.electron">クロスプラットフォーム対応</div>
         </div>
         <div class="tech-item fade-in">
           <div class="tech-icon">&#x1F4BE;</div>
           <div class="tech-name">electron-store</div>
-          <div class="tech-desc">Persistent local storage</div>
+          <div class="tech-desc" data-i18n="tech.store">永続的なローカル保存</div>
         </div>
         <div class="tech-item fade-in">
           <div class="tech-icon">&#x1F512;</div>
-          <div class="tech-name">Offline First</div>
-          <div class="tech-desc">No external APIs required</div>
+          <div class="tech-name" data-i18n="tech.offline">オフライン対応</div>
+          <div class="tech-desc" data-i18n="tech.offline_desc">外部API不要</div>
         </div>
       </div>
     </div>
@@ -918,38 +660,170 @@
   <footer>
     <div class="footer-logo">cli_sticky_notes</div>
     <p class="footer-text">
-      Made with Electron and love for terminal productivity.<br>
-      <a href="https://github.com">View on GitHub</a>
+      <span data-i18n="footer.made">Electronとターミナル愛好家のために作られました。</span><br>
+      <a href="https://github.com/sohei-t/ai-agent-portfolio/tree/main/cli-sticky-notes">View on GitHub</a>
     </p>
   </footer>
 
   <script>
-    // Scroll animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
+    // Translations
+    const translations = {
+      ja: {
+        'nav.features': '機能',
+        'nav.shortcuts': 'ショートカット',
+        'nav.colors': 'カラー',
+        'nav.tech': '技術',
+        'hero.title': '<span class="highlight">ターミナル</span>ユーザーの<br>ための付箋',
+        'hero.description': '複数のターミナルセッションをフローティング付箋で管理。グローバルホットキーで作業を中断せずにメモを残せます。',
+        'hero.learn_more': '詳しく見る',
+        'note.1': 'サーバーログ<br>port 3000確認',
+        'note.3': '至急！<br>認証バグ修正',
+        'note.4': 'npm test<br>全て合格',
+        'note.5': 'アイデア：<br>APIキャッシュ',
+        'note.6': '14時 MTG<br>スタンドアップ',
+        'features.title': '生産性を高める機能',
+        'features.hotkeys.title': 'グローバルホットキー',
+        'features.hotkeys.desc': 'どのアプリを使っていてもフォーカスを切り替えずに付箋を作成。ターミナルはアクティブなまま。',
+        'features.clipboard.title': 'クイックペースト',
+        'features.clipboard.desc': 'クリップボードの内容を1つのショートカットで新しい付箋に貼り付け。',
+        'features.colors.title': 'カラーコーディング',
+        'features.colors.desc': '6色のテーマで視覚的に分類・整理。一目で内容を把握できます。',
+        'features.pin.title': '常に最前面',
+        'features.pin.desc': '重要な付箋をピン留めして、他のウィンドウより常に上に表示。',
+        'features.save.title': '自動保存',
+        'features.save.desc': '付箋は自動的に保存。位置、サイズ、内容はセッション間で保持されます。',
+        'features.tray.title': 'システムトレイ',
+        'features.tray.desc': 'メニューバーからクイックアクセス。付箋の作成・表示・非表示を瞬時に。',
+        'shortcuts.title': 'キーボードファースト',
+        'shortcuts.new': '新規付箋を作成',
+        'shortcuts.clipboard': 'クリップボードから作成',
+        'shortcuts.toggle': '全付箋の表示切替',
+        'shortcuts.hide': '現在の付箋を隠す',
+        'shortcuts.save': '付箋を保存',
+        'colors.title': '6つのテーマ',
+        'colors.yellow': 'イエロー',
+        'colors.yellow_use': '一般的なメモ',
+        'colors.green': 'グリーン',
+        'colors.green_use': '完了 / 成功',
+        'colors.blue': 'ブルー',
+        'colors.blue_use': '情報 / 参照',
+        'colors.pink': 'ピンク',
+        'colors.pink_use': '重要',
+        'colors.purple': 'パープル',
+        'colors.purple_use': 'アイデア',
+        'colors.orange': 'オレンジ',
+        'colors.orange_use': '警告',
+        'tech.title': '技術スタック',
+        'tech.electron': 'クロスプラットフォーム対応',
+        'tech.store': '永続的なローカル保存',
+        'tech.offline': 'オフライン対応',
+        'tech.offline_desc': '外部API不要',
+        'footer.made': 'Electronとターミナル愛好家のために作られました。'
+      },
+      en: {
+        'nav.features': 'Features',
+        'nav.shortcuts': 'Shortcuts',
+        'nav.colors': 'Colors',
+        'nav.tech': 'Tech',
+        'hero.title': 'Notes for<br><span class="highlight">Terminal</span> People',
+        'hero.description': 'Manage multiple terminal sessions with floating sticky notes. Global hotkeys let you capture thoughts without leaving your workflow.',
+        'hero.learn_more': 'Learn More',
+        'note.1': 'Server logs<br>check port 3000',
+        'note.3': 'URGENT!<br>Fix auth bug',
+        'note.4': 'npm test<br>all passing',
+        'note.5': 'Idea: cache<br>API responses',
+        'note.6': 'Meeting @2pm<br>standup call',
+        'features.title': 'Built for Productivity',
+        'features.hotkeys.title': 'Global Hotkeys',
+        'features.hotkeys.desc': 'Create notes instantly from anywhere without switching focus. Your terminal stays active.',
+        'features.clipboard.title': 'Quick Clipboard',
+        'features.clipboard.desc': 'Paste clipboard content directly into a new note with a single shortcut.',
+        'features.colors.title': 'Color Coding',
+        'features.colors.desc': 'Six vibrant colors to categorize and visually organize your notes at a glance.',
+        'features.pin.title': 'Always on Top',
+        'features.pin.desc': 'Pin important notes to stay visible above all windows while you work.',
+        'features.save.title': 'Auto Save',
+        'features.save.desc': 'Notes are saved automatically. Position, size, and content persist between sessions.',
+        'features.tray.title': 'System Tray',
+        'features.tray.desc': 'Quick access from the menu bar. Create, show, or hide all notes instantly.',
+        'shortcuts.title': 'Keyboard First',
+        'shortcuts.new': 'Create new note',
+        'shortcuts.clipboard': 'Quick note from clipboard',
+        'shortcuts.toggle': 'Toggle all notes',
+        'shortcuts.hide': 'Hide current note',
+        'shortcuts.save': 'Save note',
+        'colors.title': 'Six Themes',
+        'colors.yellow': 'Yellow',
+        'colors.yellow_use': 'General notes',
+        'colors.green': 'Green',
+        'colors.green_use': 'Done / Success',
+        'colors.blue': 'Blue',
+        'colors.blue_use': 'Info / Reference',
+        'colors.pink': 'Pink',
+        'colors.pink_use': 'Important',
+        'colors.purple': 'Purple',
+        'colors.purple_use': 'Ideas',
+        'colors.orange': 'Orange',
+        'colors.orange_use': 'Warning',
+        'tech.title': 'Under the Hood',
+        'tech.electron': 'Cross-platform desktop framework',
+        'tech.store': 'Persistent local storage',
+        'tech.offline': 'Offline First',
+        'tech.offline_desc': 'No external APIs required',
+        'footer.made': 'Made with Electron and love for terminal productivity.'
+      }
     };
 
+    // Language switcher
+    function setLanguage(lang) {
+      document.body.setAttribute('data-lang', lang);
+      document.documentElement.lang = lang;
+
+      // Update all translatable elements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang][key]) {
+          el.innerHTML = translations[lang][key];
+        }
+      });
+
+      // Update button states
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+      });
+
+      // Save preference
+      localStorage.setItem('preferred-lang', lang);
+    }
+
+    // Initialize language from localStorage or default to 'ja'
+    const savedLang = localStorage.getItem('preferred-lang') || 'ja';
+    setLanguage(savedLang);
+
+    // Language button click handlers
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setLanguage(btn.getAttribute('data-lang'));
+      });
+    });
+
+    // Scroll animations
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry, index) => {
         if (entry.isIntersecting) {
-          setTimeout(() => {
-            entry.target.classList.add('visible');
-          }, index * 100);
+          setTimeout(() => entry.target.classList.add('visible'), index * 100);
         }
       });
-    }, observerOptions);
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-    // Smooth scroll for nav links
+    // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function(e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
   </script>
