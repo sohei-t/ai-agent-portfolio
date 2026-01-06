@@ -1,104 +1,136 @@
-# ROBO BATTLE V3 - Online Multiplayer
+# ROBO BATTLE V3 - Online Multiplayer Edition
 
-2D Robot Fighting Game with Real-Time Online Battles
+オンライン対戦機能を搭載した、次世代ロボット対戦アクションゲーム。
 
-## Live Demo
+## 🎮 Play Now
 
-[Play Now](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v3/)
+**[🕹️ ライブデモ](https://robo-battle-v3-game.web.app)** | **[📖 About](https://robo-battle-v3-game.web.app/about.html)** | **[🔊 音声解説](https://robo-battle-v3-game.web.app/explanation.mp3)**
 
-[About Page](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v3/about.html)
+## ✨ V3の新機能
 
-## New in V3
+- **オンライン対戦**: WebRTC P2Pによるリアルタイム対戦
+- **ルーム作成/参加**: 6桁のルームコードで友達と対戦
+- **設定同期**: ホストの設定（ステージ・難易度・アイテム）がクライアントに反映
+- **アイテムモード**: ワープゾーン、デスゾーン、パワーアップアイテム
+- **フォトリアル背景**: 6種類のAI生成シネマティック背景
+- **スムーズなアニメーション**: 全16種類のロボットスプライト
 
-- **Online 2-Player Battles** - Fight real opponents over the internet
-- **WebRTC P2P Connection** - Low-latency direct peer-to-peer communication
-- **Room System** - Create or join rooms with 6-digit codes
-- **Real-time State Sync** - Smooth, responsive gameplay
+## 🤖 ゲーム概要
 
-## How to Play
+赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。
+ビームライフル、ジャンプ、キックを駆使して敵を倒せ！
 
-### Online Mode
-1. Select **ONLINE MODE** from the title screen
-2. **CREATE ROOM** to host a match, or **JOIN ROOM** to enter an existing one
-3. Share your room code with a friend
-4. Both players press **READY** to start the battle!
+### ゲームモード
 
-### Controls
+- **VS CPU**: コンピューターとの対戦（難易度選択可能）
+- **ONLINE BATTLE**: インターネット経由でリアルタイム対戦
 
-| Action | Keyboard | Alt Key |
-|--------|----------|---------|
-| Move Left/Right | Arrow Keys | A / D |
-| Jump | Up Arrow | W |
-| Attack | Z | Space |
-| Dash | X | Shift |
+### 操作方法
 
-Mobile devices automatically display touch controls.
+**PC（キーボード）**
+- 矢印キー左右: 移動
+- 上矢印 / スペース: ジャンプ
+- Z: ビーム発射（長押しでチャージ）
+- X: キック
 
-## Technical Stack
+**モバイル**
+- 画面左: ビーム発射
+- 画面中央上: ジャンプ
+- 画面右: キック
+- バーチャルジョイスティック / 傾きセンサー: 移動
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | Vanilla JavaScript, Canvas API |
-| Networking | WebRTC DataChannel |
-| Signaling | Firebase Realtime Database |
-| Hosting | Firebase Hosting / GitHub Pages |
-| Frame Rate | 60 FPS |
-| Resolution | 800x600 (responsive scaling) |
+## 🌐 オンライン対戦
 
-## Architecture
+### ホスト（部屋を作る）
+1. ONLINE BATTLE を選択
+2. CREATE ROOM をクリック
+3. 表示される6桁のルームコードを相手に伝える
+4. 相手が参加したら START BATTLE
 
-```
-Player 1  <--WebRTC DataChannel-->  Player 2
-    |                                    |
-    +-----> Firebase Signaling <---------+
-            (connection setup only)
-```
+### クライアント（部屋に参加）
+1. ONLINE BATTLE を選択
+2. JOIN ROOM をクリック
+3. ホストから教えてもらったルームコードを入力
+4. ホストがバトルを開始するのを待つ
 
-- **P2P Direct Connection**: Game data travels directly between players
-- **Firebase Signaling**: Only used for initial connection handshake
-- **UDP-like Protocol**: WebRTC DataChannel provides fast, unreliable delivery
-- **Input Synchronization**: Both players see consistent game state
+### オンライン設定同期
+ホスト側で設定した以下の項目がクライアントに反映されます：
+- ステージ（背景）
+- 難易度
+- アイテムモード ON/OFF
 
-## Cost
+## 🎯 カスタマイズシステム
 
-**$0/month** - Fully free-tier operation
+JUMP, WALK, BEAM, KICKに合計20ポイントを振り分け：
+- **JUMP**: ジャンプ力（高いほど高くジャンプ）
+- **WALK**: 移動速度（高いほど速く移動）
+- **BEAM**: ビーム攻撃力（高いほど高ダメージ）
+- **KICK**: キック攻撃力（高いほど高ダメージ）
 
-- Firebase Spark Plan (free tier)
-- GitHub Pages (free)
-- No server-side compute costs
+## 🗺️ ステージ
 
-## Privacy
+| ステージ | 背景テーマ |
+|---------|-----------|
+| NEO CITY | サイバーパンク都市 |
+| PYRAMID | 古代エジプト遺跡 |
+| PARTHENON | ギリシャ神殿 |
+| FACTORY | 巨大ロボット工場 |
+| CAVE | クリスタル洞窟 |
+| FINAL ARENA | 宇宙チャンピオンシップアリーナ |
 
-- Room codes are random 6-character alphanumeric strings
-- Game data is transmitted P2P (does not pass through servers)
-- Rooms are automatically deleted after disconnection
+## 🛠 技術スタック
 
-## Files
+- **Frontend**: Vanilla JavaScript (ES6+)
+- **Graphics**: HTML5 Canvas (60FPS)
+- **Online**: WebRTC (P2P), Firebase Realtime Database (Signaling)
+- **Hosting**: Firebase Hosting
+- **AI Image Generation**: Vertex AI Imagen 3.0
+- **Sprites**: Photorealistic 3D-style PNG (512x512)
+- **Backgrounds**: Cinematic 16:9 JPG (1024x576)
+
+## 📁 ファイル構成
 
 ```
 robo-battle-v3/
-  index.html        - Game entry point
-  game.js           - Core game engine
-  game-online-patch.js - Online multiplayer module
-  about.html        - About page
-  README.md         - This file
+├── index.html           # ゲームエントリーポイント
+├── game.js              # ゲームロジック（5500+ lines）
+├── online-mode.js       # オンライン対戦モジュール
+├── firebase-config.js   # Firebase設定
+├── assets/
+│   ├── sprites/         # 16種類のAI生成3Dスプライト
+│   │   ├── player_*.png # プレイヤーロボット（8ポーズ）
+│   │   └── enemy_*.png  # 敵ロボット（8ポーズ）
+│   └── backgrounds/     # 6種類のAI生成背景
+│       └── bg_*.jpg     # フォトリアル背景画像
+├── about.html           # 技術解説ページ
+└── README.md            # このファイル
 ```
 
-## Browser Support
+## 🔧 ローカル実行
 
-- Chrome 80+
-- Firefox 75+
-- Safari 14+
-- Edge 80+
+```bash
+# 簡易サーバーで起動
+python3 -m http.server 8080
 
-Mobile browsers supported with touch controls.
+# ブラウザで開く
+open http://localhost:8080
+```
 
-## Development
+## 📊 開発情報
 
-This game was developed using:
-- [Claude Code](https://claude.com/claude-code) - AI-assisted development
-- [AI Agent Workflow](https://github.com/sohei-t/ai-agent-portfolio) - Automated development pipeline
+- **開発期間**: 2026年1月
+- **AI画像生成**: Vertex AI Imagen 3.0
+- **画像生成コスト**: $0.44（22画像 × $0.02）
+- **AI支援**: Claude Code + AI Agent Workflow
+
+## 🔄 バージョン履歴
+
+| バージョン | 主な機能 |
+|-----------|---------|
+| V1 | 基本対戦システム、SVGスプライト |
+| V2 | AI生成フォトリアルスプライト＆背景 |
+| V3 | オンライン対戦、アイテムモード、設定同期 |
 
 ---
 
-Generated with [Claude Code](https://claude.com/claude-code)
+Generated with [Claude Code](https://claude.com/claude-code) and [Firebase](https://firebase.google.com/)

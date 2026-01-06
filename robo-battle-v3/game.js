@@ -1,9 +1,20 @@
 /**
- * ROBO BATTLE V3 - Online Multiplayer Edition
- * Lobby UI System for Room Creation and Joining
+ * ROBO BATTLE V2.0 - Photorealistic 3D Graphics Edition
+ * Single-file game implementation with AI-generated robot sprites
  *
- * This file contains the lobby screens for online multiplayer functionality.
- * Inherits V2's visual style and adds new game states for matchmaking.
+ * Features:
+ * - 1P vs CPU robot battle
+ * - 6 stages (Urban, Pyramid, Parthenon, Factory, Cave, Neo City)
+ * - 4 parameter customization (JUMP, WALK, BEAM, KICK)
+ * - Mobile support (Gyro + Zone Touch) with beam-kick (shoot at close range = kick)
+ * - AI-generated 3D robot sprites (Vertex AI Imagen)
+ * - Procedural chiptune BGM (Title & Battle)
+ * - Sound effects (Beam, Hit, Kick, Jump, KO, Victory/Defeat)
+ * - Particle system (Dust, Sparks, Explosions)
+ * - Screen effects (Shake, Flash)
+ * - Enhanced robot animation with joint-based limb movement
+ * - Mobile control hints (JUMP/BEAM - outside canvas via HTML)
+ * - 60FPS Canvas rendering
  */
 
 // ============================================================================
@@ -15,7 +26,7 @@ const GAME_HEIGHT = 600;
 const TARGET_FPS = 60;
 const FRAME_DURATION = 1000 / TARGET_FPS;
 
-// Physics constants (inherited from V2)
+// Physics constants
 const PHYSICS = {
     gravity: 0.5,
     maxFallSpeed: 15,
@@ -23,49 +34,112 @@ const PHYSICS = {
     airResistance: 0.95
 };
 
-// Robot constants (inherited from V2)
+// Robot constants (restored to original size: 72x96)
 const ROBOT = {
-    width: 48,
-    height: 64,
+    width: 72,
+    height: 96,
     maxHp: 200,
     invincibleTime: 500,
-    beamCooldown: 500,
+    beamCooldown: 500,    // 300 → 500ms に増加（ビームを遅くする）
     kickCooldown: 1000,
-    kickRange: 30,
-    kickHeight: 48,
-    knockback: 8
+    kickRange: 30,        // Original size
+    kickHeight: 48,       // Original size
+    knockback: 8          // Original knockback
 };
 
-// V3 Game States (extended from V2)
+// KO演出の設定
+const KO_SETTINGS = {
+    freezeTime: 1500,       // 1.5秒フリーズ
+    slowMotionFactor: 0.2,  // スローモーション係数
+    koTextScale: 3.0,       // KO!テキストの最大スケール
+    explosionDuration: 800  // 爆発エフェクト時間
+};
+
+// Charge beam constants
+const CHARGE_BEAM = {
+    maxChargeTime: 3000,      // 3 seconds for max charge
+    maxDamageMultiplier: 3,   // 3x damage at max charge
+    minChargeTime: 100,       // Minimum time to register as charged
+    sizeMultiplierMax: 2.0,   // Beam size at max charge
+    chargeThresholds: {
+        low: 0.33,            // 1 second - yellow glow
+        mid: 0.66,            // 2 seconds - orange glow
+        max: 1.0              // 3 seconds - red glow + MAX indicator
+    }
+};
+
+// Beam constants
+const BEAM = {
+    width: 20,
+    height: 8,
+    speed: 12
+};
+
+// Item Mode constants
+const ITEMS = {
+    enabled: false,  // Default: off (set by setup screen)
+    spawnInterval: 8000,  // Spawn new item every 8 seconds
+    itemLifetime: 12000,  // Items disappear after 12 seconds
+    types: {
+        HP: {
+            healAmount: 40,
+            color: '#00ff00',
+            glowColor: 'rgba(0, 255, 0, 0.5)'
+        },
+        RAPID: {
+            duration: 8000,  // 8 seconds of rapid fire
+            cooldownMultiplier: 0.3,  // 70% faster beam
+            color: '#ffff00',
+            glowColor: 'rgba(255, 255, 0, 0.5)'
+        },
+        MEGA: {
+            duration: 5000,  // 5 seconds of mega beam
+            damageMultiplier: 2.5,
+            sizeMultiplier: 2.0,
+            color: '#ff00ff',
+            glowColor: 'rgba(255, 0, 255, 0.5)'
+        },
+        SHIELD: {
+            duration: 6000,  // 6 seconds of invincibility
+            color: '#00ffff',
+            glowColor: 'rgba(0, 255, 255, 0.5)'
+        }
+    },
+    warpZone: {
+        width: 60,
+        height: 80,
+        color: '#9900ff',
+        glowColor: 'rgba(153, 0, 255, 0.6)',
+        // Dynamic warp zone settings (UX optimized)
+        spawnIntervalMin: 10000,  // Minimum 10 seconds between spawns
+        spawnIntervalMax: 15000,  // Maximum 15 seconds between spawns
+        lifetime: 8000,           // Warp zone lasts 8 seconds (more time to use)
+        warningTime: 1500,        // 1.5 second warning before activation
+        maxActive: 1              // Only 1 warp zone at a time (less chaotic)
+    },
+    deathZone: {
+        color: '#ff0000',
+        glowColor: 'rgba(255, 0, 0, 0.4)'
+    }
+};
+
+// Game states
 const GameState = {
     LOADING: 'loading',
     TITLE: 'title',
-    LOBBY: 'lobby',           // NEW: Online/Offline mode selection
-    CREATE_ROOM: 'create_room', // NEW: Room creation screen
-    JOIN_ROOM: 'join_room',     // NEW: Room code input screen
-    WAITING: 'waiting',         // NEW: Waiting for opponent
-    CONNECTING: 'connecting',   // NEW: P2P connection in progress
-    READY_CHECK: 'ready_check', // NEW: Ready confirmation
-    SETUP: 'setup',             // Inherited: Robot customization
-    STAGE_SELECT: 'stage_select', // NEW: Stage selection (host only)
-    BATTLE: 'battle',           // Inherited: Main game
-    KO: 'ko',                   // Inherited: KO animation
-    RESULT: 'result',           // Inherited: Win/Lose screen
-    PAUSED: 'paused'            // Inherited: Pause menu
+    SETUP: 'setup',
+    BATTLE: 'battle',
+    KO: 'ko',           // NEW: KO演出状態
+    RESULT: 'result',
+    PAUSED: 'paused',
+    // Online mode states
+    ONLINE_LOBBY: 'online_lobby',
+    ONLINE_WAITING: 'online_waiting',
+    ONLINE_CONNECTING: 'online_connecting'
 };
 
-// Online Mode Constants
-const ONLINE = {
-    ROOM_CODE_LENGTH: 6,
-    ROOM_CODE_CHARS: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-    CONNECTION_TIMEOUT: 30000,
-    HEARTBEAT_INTERVAL: 1000,
-    DISCONNECT_THRESHOLD: 10000
-};
-
-// Colors (extended from V2 with online mode colors)
+// Colors
 const COLORS = {
-    // V2 colors
     playerPrimary: '#FF0000',
     playerSecondary: '#CC0000',
     playerDark: '#990000',
@@ -75,660 +149,4171 @@ const COLORS = {
     beamRed: '#FF6600',
     beamBlue: '#0088FF',
     platform: '#4d4d6a',
-    ui: '#ffffff',
-    // V3 online colors
-    online: '#00FF88',
-    offline: '#FF8800',
-    waiting: '#FFFF00',
-    connected: '#00FF00',
-    error: '#FF3333',
-    buttonPrimary: '#0088FF',
-    buttonHover: '#00AAFF',
-    buttonDisabled: '#666666',
-    inputBg: '#1a1a2e',
-    inputBorder: '#3a1a50',
-    inputFocus: '#00FFFF'
-};
-
-// UI Fonts
-const FONTS = {
-    title: 'bold 48px "Courier New", monospace',
-    heading: 'bold 28px "Courier New", monospace',
-    subheading: 'bold 20px "Courier New", monospace',
-    body: '18px "Courier New", monospace',
-    small: '14px "Courier New", monospace',
-    code: 'bold 32px "Courier New", monospace'
+    ui: '#ffffff'
 };
 
 // ============================================================================
-// ROOM CODE GENERATOR
+// STAGE DATA
 // ============================================================================
 
-function generateRoomCode() {
-    let code = '';
-    for (let i = 0; i < ONLINE.ROOM_CODE_LENGTH; i++) {
-        code += ONLINE.ROOM_CODE_CHARS[Math.floor(Math.random() * ONLINE.ROOM_CODE_CHARS.length)];
+// Ground Y adjusted to match background road position (Y≈510)
+// Robot height = 96, so spawn Y = 510 - 96 = 414
+const STAGES = [
+    {
+        name: 'Urban City',
+        displayName: '市街地',
+        bgColor: '#1a1a2e',
+        platforms: [
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },  // Ground matches road
+            { x: 50, y: 390, width: 120, height: 20, type: 'passthrough' },
+            { x: 50, y: 270, width: 100, height: 20, type: 'passthrough' },
+            { x: 630, y: 390, width: 120, height: 20, type: 'passthrough' },
+            { x: 650, y: 270, width: 100, height: 20, type: 'passthrough' },
+            { x: 320, y: 340, width: 160, height: 20, type: 'passthrough' }
+        ],
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        // Items Mode features (warp zones are now dynamic only)
+        warpZones: [],
+        deathZones: [],  // No death zones in this stage
+        itemSpawns: [
+            { x: 400, y: 300, types: ['HP', 'RAPID'] },
+            { x: 100, y: 220, types: ['MEGA', 'SHIELD'] },
+            { x: 700, y: 340, types: ['HP', 'RAPID'] }
+        ]
+    },
+    {
+        name: 'Pyramid',
+        displayName: 'ピラミッド',
+        bgColor: '#ff9966',
+        platforms: [
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 150, y: 430, width: 500, height: 20, type: 'passthrough' },
+            { x: 200, y: 350, width: 400, height: 20, type: 'passthrough' },
+            { x: 250, y: 270, width: 300, height: 20, type: 'passthrough' },
+            { x: 300, y: 190, width: 200, height: 20, type: 'passthrough' },
+            { x: 350, y: 110, width: 100, height: 20, type: 'passthrough' }
+        ],
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        warpZones: [],
+        deathZones: [],  // Pyramid is safe
+        itemSpawns: [
+            { x: 400, y: 60, types: ['MEGA', 'SHIELD'] },  // Top of pyramid - rare items
+            { x: 300, y: 140, types: ['HP'] },
+            { x: 500, y: 140, types: ['RAPID'] },
+            { x: 250, y: 220, types: ['HP', 'RAPID'] }
+        ]
+    },
+    {
+        name: 'Parthenon',
+        displayName: 'パルテノン神殿',
+        bgColor: '#87ceeb',
+        platforms: [
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 100, y: 340, width: 80, height: 170, type: 'solid' },  // Pillars
+            { x: 250, y: 340, width: 80, height: 170, type: 'solid' },
+            { x: 470, y: 340, width: 80, height: 170, type: 'solid' },
+            { x: 620, y: 340, width: 80, height: 170, type: 'solid' },
+            { x: 80, y: 320, width: 640, height: 20, type: 'passthrough' },  // Top platform
+            { x: 200, y: 190, width: 400, height: 20, type: 'passthrough' }
+        ],
+        spawnPoints: { player: { x: 150, y: 192 }, enemy: { x: 550, y: 192 } },
+        // Warp zones are now dynamic only
+        warpZones: [],
+        deathZones: [],  // Warp zones make it safe now
+        itemSpawns: [
+            { x: 400, y: 140, types: ['HP', 'SHIELD'] },
+            { x: 200, y: 270, types: ['RAPID'] },
+            { x: 600, y: 270, types: ['MEGA'] }
+        ]
+    },
+    {
+        name: 'Factory',
+        displayName: '工場地帯',
+        bgColor: '#2c3e50',
+        platforms: [
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 0, y: 370, width: 200, height: 20, type: 'passthrough' },
+            { x: 300, y: 410, width: 200, height: 20, type: 'passthrough' },
+            { x: 600, y: 370, width: 200, height: 20, type: 'passthrough' },
+            { x: 100, y: 250, width: 150, height: 20, type: 'passthrough' },
+            { x: 550, y: 250, width: 150, height: 20, type: 'passthrough' },
+            { x: 320, y: 170, width: 160, height: 20, type: 'passthrough' }
+        ],
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        warpZones: [],  // Dynamic only
+        deathZones: [
+            { x: 210, y: 460, w: 80, h: 50 },  // Dangerous machinery pit
+            { x: 510, y: 460, w: 80, h: 50 }
+        ],
+        itemSpawns: [
+            { x: 400, y: 360, types: ['HP', 'RAPID'] },
+            { x: 400, y: 120, types: ['MEGA', 'SHIELD'] },
+            { x: 175, y: 200, types: ['HP'] },
+            { x: 625, y: 200, types: ['RAPID'] }
+        ]
+    },
+    {
+        name: 'Cave',
+        displayName: '洞窟',
+        bgColor: '#1a1a1a',
+        platforms: [
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 0, y: 390, width: 250, height: 20, type: 'passthrough' },
+            { x: 550, y: 390, width: 250, height: 20, type: 'passthrough' },
+            { x: 200, y: 310, width: 400, height: 20, type: 'passthrough' },
+            { x: 0, y: 210, width: 200, height: 20, type: 'passthrough' },
+            { x: 600, y: 210, width: 200, height: 20, type: 'passthrough' },
+            { x: 300, y: 130, width: 200, height: 20, type: 'passthrough' }
+        ],
+        spawnPoints: { player: { x: 80, y: 414 }, enemy: { x: 620, y: 414 } },
+        warpZones: [],
+        deathZones: [
+            { x: 260, y: 430, w: 280, h: 80 }  // Underground pit in center
+        ],
+        itemSpawns: [
+            { x: 400, y: 260, types: ['HP', 'SHIELD'] },
+            { x: 400, y: 80, types: ['MEGA'] },
+            { x: 100, y: 340, types: ['RAPID'] },
+            { x: 700, y: 340, types: ['HP'] }
+        ]
+    },
+    {
+        name: 'Neo City',
+        displayName: '未来都市',
+        bgColor: '#0d0221',
+        platforms: [
+            { x: 0, y: 510, width: 800, height: 90, type: 'solid' },
+            { x: 0, y: 410, width: 150, height: 20, type: 'passthrough' },
+            { x: 650, y: 410, width: 150, height: 20, type: 'passthrough' },
+            { x: 100, y: 310, width: 200, height: 20, type: 'passthrough' },
+            { x: 500, y: 310, width: 200, height: 20, type: 'passthrough' },
+            { x: 300, y: 240, width: 200, height: 20, type: 'passthrough' },
+            { x: 150, y: 140, width: 100, height: 20, type: 'passthrough' },
+            { x: 550, y: 140, width: 100, height: 20, type: 'passthrough' },
+            { x: 350, y: 70, width: 100, height: 20, type: 'passthrough' }
+        ],
+        spawnPoints: { player: { x: 30, y: 282 }, enemy: { x: 650, y: 282 } },
+        // Warp zones are now dynamic only
+        warpZones: [],
+        deathZones: [
+            { x: 160, y: 460, w: 140, h: 50 },  // Laser pits
+            { x: 500, y: 460, w: 140, h: 50 }
+        ],
+        itemSpawns: [
+            { x: 400, y: 20, types: ['MEGA', 'SHIELD'] },  // Top - rare
+            { x: 400, y: 190, types: ['HP', 'RAPID'] },
+            { x: 200, y: 260, types: ['HP'] },
+            { x: 600, y: 260, types: ['RAPID'] }
+        ]
     }
-    return code;
-}
+];
 
 // ============================================================================
-// UI BUTTON CLASS
+// SVG SPRITES (Fallback graphics)
 // ============================================================================
 
-class UIButton {
-    constructor(x, y, width, height, text, options = {}) {
+const SPRITES = {
+    robotRed: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="20" y="8" width="24" height="20" fill="#FF0000" rx="4"/><rect x="24" y="28" width="16" height="24" fill="#CC0000"/><rect x="12" y="16" width="8" height="16" fill="#FF0000"/><rect x="44" y="16" width="8" height="16" fill="#FF0000"/><rect x="24" y="52" width="6" height="12" fill="#990000"/><rect x="34" y="52" width="6" height="12" fill="#990000"/><circle cx="28" cy="16" r="3" fill="#FFFF00"/><circle cx="36" cy="16" r="3" fill="#FFFF00"/></svg>`,
+    robotBlue: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="20" y="8" width="24" height="20" fill="#0066FF" rx="4"/><rect x="24" y="28" width="16" height="24" fill="#0044CC"/><rect x="12" y="16" width="8" height="16" fill="#0066FF"/><rect x="44" y="16" width="8" height="16" fill="#0066FF"/><rect x="24" y="52" width="6" height="12" fill="#003399"/><rect x="34" y="52" width="6" height="12" fill="#003399"/><circle cx="28" cy="16" r="3" fill="#00FFFF"/><circle cx="36" cy="16" r="3" fill="#00FFFF"/></svg>`,
+    beamRed: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 8"><ellipse cx="16" cy="4" rx="14" ry="3" fill="#FF6600" opacity="0.5"/><ellipse cx="16" cy="4" rx="10" ry="2" fill="#FF0000"/><ellipse cx="16" cy="4" rx="6" ry="1" fill="#FFFF00"/></svg>`,
+    beamBlue: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 8"><ellipse cx="16" cy="4" rx="14" ry="3" fill="#0066FF" opacity="0.5"/><ellipse cx="16" cy="4" rx="10" ry="2" fill="#0088FF"/><ellipse cx="16" cy="4" rx="6" ry="1" fill="#00FFFF"/></svg>`,
+    effectHit: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#FFFF00" opacity="0.3"/><circle cx="16" cy="16" r="8" fill="#FF6600" opacity="0.5"/><circle cx="16" cy="16" r="4" fill="#FFFFFF"/><line x1="16" y1="4" x2="16" y2="12" stroke="#FFFF00" stroke-width="2"/><line x1="16" y1="20" x2="16" y2="28" stroke="#FFFF00" stroke-width="2"/><line x1="4" y1="16" x2="12" y2="16" stroke="#FFFF00" stroke-width="2"/><line x1="20" y1="16" x2="28" y2="16" stroke="#FFFF00" stroke-width="2"/></svg>`
+};
+
+// ============================================================================
+// HIGH-QUALITY SPRITE SYSTEM (PNG + Enhanced Canvas Fallback)
+// ============================================================================
+
+const SpriteLoader = {
+    sprites: {},
+    backgrounds: {},
+    loaded: false,
+    useHighQuality: true, // Enable high-quality rendering
+
+    // Sprite file paths - All photorealistic 3D sprites
+    spriteFiles: {
+        // Player sprites
+        player_idle: 'assets/sprites/player_idle.png',
+        player_walk1: 'assets/sprites/player_walk1.png',
+        player_walk2: 'assets/sprites/player_walk2.png',
+        player_jump: 'assets/sprites/player_jump.png',
+        player_beam: 'assets/sprites/player_beam.png',
+        player_kick: 'assets/sprites/player_kick.png',
+        player_hit: 'assets/sprites/player_hit.png',
+        player_ko: 'assets/sprites/player_ko.png',
+        // Enemy sprites
+        enemy_idle: 'assets/sprites/enemy_idle.png',
+        enemy_walk1: 'assets/sprites/enemy_walk1.png',
+        enemy_walk2: 'assets/sprites/enemy_walk2.png',
+        enemy_jump: 'assets/sprites/enemy_jump.png',
+        enemy_beam: 'assets/sprites/enemy_beam.png',
+        enemy_kick: 'assets/sprites/enemy_kick.png',
+        enemy_hit: 'assets/sprites/enemy_hit.png',
+        enemy_ko: 'assets/sprites/enemy_ko.png'
+    },
+
+    // Background file paths - Photorealistic AI-generated backgrounds
+    backgroundFiles: {
+        'Urban City': 'assets/backgrounds/bg_neo_city.jpg',
+        'Pyramid': 'assets/backgrounds/bg_pyramid.jpg',
+        'Parthenon': 'assets/backgrounds/bg_parthenon.jpg',
+        'Factory': 'assets/backgrounds/bg_factory.jpg',
+        'Cave': 'assets/backgrounds/bg_cave.jpg',
+        'Neo City': 'assets/backgrounds/bg_final_arena.jpg'
+    },
+
+    // Load all PNG sprites and JPG backgrounds
+    async loadAll() {
+        const promises = [];
+
+        // Load sprites
+        for (const [key, path] of Object.entries(this.spriteFiles)) {
+            const img = new Image();
+            promises.push(new Promise((resolve) => {
+                img.onload = () => {
+                    this.sprites[key] = img;
+                    console.log(`✅ Sprite loaded: ${key}`);
+                    resolve(true);
+                };
+                img.onerror = () => {
+                    console.log(`⚠️ Sprite not found: ${key}, using fallback`);
+                    this.sprites[key] = null;
+                    resolve(false);
+                };
+                img.src = path;
+            }));
+        }
+
+        // Load backgrounds
+        for (const [key, path] of Object.entries(this.backgroundFiles)) {
+            const img = new Image();
+            promises.push(new Promise((resolve) => {
+                img.onload = () => {
+                    this.backgrounds[key] = img;
+                    console.log(`✅ Background loaded: ${key}`);
+                    resolve(true);
+                };
+                img.onerror = () => {
+                    console.log(`⚠️ Background not found: ${key}, using fallback`);
+                    this.backgrounds[key] = null;
+                    resolve(false);
+                };
+                img.src = path;
+            }));
+        }
+
+        await Promise.all(promises);
+        this.loaded = true;
+        console.log('🎨 V2 Sprite & Background system initialized');
+    },
+
+    // Get sprite for a robot state with animation frame support
+    getSprite(isPlayer, state, animFrame = 0) {
+        const prefix = isPlayer ? 'player' : 'enemy';
+        let key;
+
+        // Map states to sprite files
+        switch (state) {
+            case 'walk':
+                // Alternate between walk1 and walk2
+                key = `${prefix}_walk${(Math.floor(animFrame / 8) % 2) + 1}`;
+                break;
+            case 'attack':
+                // Use beam sprite for attack state
+                key = `${prefix}_beam`;
+                break;
+            case 'hurt':
+                key = `${prefix}_hit`;
+                break;
+            case 'ko':
+            case 'defeated':
+                key = `${prefix}_ko`;
+                break;
+            default:
+                key = `${prefix}_${state}`;
+        }
+
+        return this.sprites[key] || this.sprites[`${prefix}_idle`] || null;
+    },
+
+    // Get background image for a stage
+    getBackground(stageName) {
+        return this.backgrounds[stageName] || null;
+    },
+
+    // Check if high-quality sprite is available
+    hasSprite(isPlayer, state) {
+        return this.getSprite(isPlayer, state) !== null;
+    },
+
+    // Check if background is available
+    hasBackground(stageName) {
+        return this.backgrounds[stageName] !== null;
+    }
+};
+
+// Enhanced Canvas Robot Renderer (for poses without PNG sprites)
+// With dynamic arm/leg animations for more movement
+const EnhancedRobotRenderer = {
+    // Draw a high-quality robot with gradients, glow, and detailed limb animation
+    draw(ctx, x, y, width, height, isPlayer, state, facingRight, animFrame) {
+        ctx.save();
+
+        const time = Date.now();
+
+        // Colors based on player/enemy
+        const colors = isPlayer ? {
+            primary: '#FF2222',
+            secondary: '#CC0000',
+            dark: '#990000',
+            glow: '#FF6600',
+            visor: '#00FFFF',
+            joint: '#666666'
+        } : {
+            primary: '#2266FF',
+            secondary: '#0044CC',
+            dark: '#003399',
+            glow: '#0088FF',
+            visor: '#FF3333',
+            joint: '#555555'
+        };
+
+        // Scale factor (64x64 base to actual size)
+        const scale = width / 64;
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        // Calculate animation values based on state
+        let headBob = 0, bodyTilt = 0;
+        let leftArmAngle = 0, rightArmAngle = 0;
+        let leftLegAngle = 0, rightLegAngle = 0;
+        let leftArmExtend = 0, rightArmExtend = 0;
+
+        switch (state) {
+            case 'idle':
+                // Subtle breathing
+                headBob = Math.sin(time * 0.003) * 1;
+                leftArmAngle = Math.sin(time * 0.002) * 0.05;
+                rightArmAngle = Math.sin(time * 0.002 + Math.PI) * 0.05;
+                break;
+
+            case 'walk':
+                // Walking cycle with arm/leg swing
+                const walkCycle = animFrame * 0.8;
+                headBob = Math.abs(Math.sin(walkCycle)) * -2;
+                bodyTilt = Math.sin(walkCycle * 0.5) * 0.03;
+                leftArmAngle = Math.sin(walkCycle) * 0.4;
+                rightArmAngle = Math.sin(walkCycle + Math.PI) * 0.4;
+                leftLegAngle = Math.sin(walkCycle + Math.PI) * 0.35;
+                rightLegAngle = Math.sin(walkCycle) * 0.35;
+                break;
+
+            case 'jump':
+                // Arms up, legs tucked
+                leftArmAngle = -0.6;
+                rightArmAngle = -0.6;
+                leftLegAngle = 0.4;
+                rightLegAngle = 0.4;
+                break;
+
+            case 'attack':
+                // Punch/shoot pose - front arm extended
+                const attackPhase = (time % 250) / 250;
+                if (attackPhase < 0.4) {
+                    // Wind up
+                    rightArmAngle = -0.3;
+                    rightArmExtend = -3;
+                } else {
+                    // Strike!
+                    rightArmAngle = 0.1;
+                    rightArmExtend = 8;
+                }
+                leftArmAngle = 0.2; // Back arm bracing
+                bodyTilt = facingRight ? -0.05 : 0.05;
+                break;
+
+            case 'hurt':
+                // Recoil pose
+                const hurtShake = Math.sin(time * 0.05) * 0.1;
+                headBob = -3;
+                bodyTilt = 0.1 + hurtShake;
+                leftArmAngle = 0.3;
+                rightArmAngle = 0.3;
+                break;
+        }
+
+        // Body glow effect
+        ctx.shadowColor = colors.glow;
+        ctx.shadowBlur = 8;
+
+        // === LEGS (draw first, behind body) ===
+        ctx.save();
+
+        // Left leg
+        ctx.save();
+        ctx.translate(27, 52);
+        ctx.rotate(leftLegAngle);
+        // Upper leg
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 8 : 10);
+        // Lower leg
+        ctx.translate(0, state === 'jump' ? 6 : 8);
+        ctx.rotate(state === 'jump' ? 0.3 : leftLegAngle * 0.3);
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 6 : 8);
+        // Foot
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(-5, state === 'jump' ? 4 : 6, 10, 4);
+        ctx.restore();
+
+        // Right leg
+        ctx.save();
+        ctx.translate(37, 52);
+        ctx.rotate(rightLegAngle);
+        // Upper leg
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 8 : 10);
+        // Lower leg
+        ctx.translate(0, state === 'jump' ? 6 : 8);
+        ctx.rotate(state === 'jump' ? 0.3 : rightLegAngle * 0.3);
+        ctx.fillRect(-3, 0, 6, state === 'jump' ? 6 : 8);
+        // Foot
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(-5, state === 'jump' ? 4 : 6, 10, 4);
+        ctx.restore();
+
+        ctx.restore();
+
+        // === TORSO ===
+        ctx.save();
+        ctx.translate(32, 40);
+        ctx.rotate(bodyTilt);
+        ctx.translate(-32, -40);
+
+        // Torso with gradient
+        const torsoGrad = ctx.createLinearGradient(24, 28, 40, 52);
+        torsoGrad.addColorStop(0, colors.secondary);
+        torsoGrad.addColorStop(1, colors.dark);
+        ctx.fillStyle = torsoGrad;
+        ctx.fillRect(24, 28, 16, 24);
+
+        // Chest detail
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(28, 32, 8, 4);
+        ctx.fillStyle = colors.primary;
+        ctx.fillRect(30, 34, 4, 2);
+        // Energy core glow
+        ctx.shadowColor = colors.visor;
+        ctx.shadowBlur = 5;
+        ctx.fillStyle = colors.visor;
+        ctx.fillRect(31, 35, 2, 1);
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = colors.glow;
+
+        ctx.restore();
+
+        // === HEAD ===
+        ctx.save();
+        ctx.translate(32, 18 + headBob);
+        ctx.rotate(bodyTilt * 0.5);
+        ctx.translate(-32, -18);
+
+        // Head with gradient
+        const headGrad = ctx.createLinearGradient(20, 8, 44, 28);
+        headGrad.addColorStop(0, colors.primary);
+        headGrad.addColorStop(0.5, colors.secondary);
+        headGrad.addColorStop(1, colors.dark);
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.roundRect(20, 8, 24, 20, 4);
+        ctx.fill();
+
+        // Antenna
+        ctx.fillStyle = colors.joint;
+        ctx.fillRect(30, 2, 4, 8);
+        ctx.fillStyle = colors.visor;
+        ctx.beginPath();
+        ctx.arc(32, 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Visor (eyes) with glow
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = colors.visor;
+        ctx.fillStyle = colors.visor;
+        const eyeFlicker = state === 'hurt' ? (Math.random() > 0.5 ? 0.3 : 1) : 1;
+        ctx.globalAlpha = eyeFlicker;
+        ctx.beginPath();
+        ctx.ellipse(28, 16, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(36, 16, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = colors.glow;
+
+        ctx.restore();
+
+        // === ARMS ===
+        // Left arm (back arm when facing right)
+        ctx.save();
+        ctx.translate(20, 32);
+        ctx.rotate(leftArmAngle);
+        // Shoulder joint
+        ctx.fillStyle = colors.joint;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Upper arm
+        ctx.fillStyle = colors.primary;
+        ctx.fillRect(-4, 0, 8, 12);
+        // Elbow joint
+        ctx.translate(0, 12);
+        ctx.fillStyle = colors.joint;
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+        // Lower arm
+        ctx.rotate(leftArmAngle * 0.5);
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(-3, 0, 6, 10);
+        // Hand
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-4, 8, 8, 5);
+        ctx.restore();
+
+        // Right arm (front arm when facing right)
+        ctx.save();
+        ctx.translate(44 + rightArmExtend, 32);
+        ctx.rotate(rightArmAngle);
+        // Shoulder joint
+        ctx.fillStyle = colors.joint;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Upper arm
+        ctx.fillStyle = colors.primary;
+        ctx.fillRect(-4, 0, 8, 12);
+        // Elbow joint
+        ctx.translate(0, 12);
+        ctx.fillStyle = colors.joint;
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+        // Lower arm
+        ctx.rotate(rightArmAngle * 0.5);
+        ctx.fillStyle = colors.secondary;
+        ctx.fillRect(-3, 0, 6, 10);
+        // Hand/Beam emitter
+        ctx.fillStyle = colors.dark;
+        ctx.fillRect(-4, 8, 8, 5);
+
+        // Beam charging effect for attack state
+        if (state === 'attack' && rightArmExtend > 0) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = colors.visor;
+            ctx.fillStyle = colors.visor;
+            ctx.beginPath();
+            ctx.arc(0, 15, 5 + Math.sin(time * 0.02) * 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Damage effect overlay
+        if (state === 'hurt') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(0, 0, 64, 64);
+        }
+
+        ctx.restore();
+    }
+};
+
+// ============================================================================
+// SOUND SYSTEM (Web Audio API - Procedural Chiptune)
+// ============================================================================
+
+const SoundManager = {
+    ctx: null,
+    initialized: false,
+    musicEnabled: true,
+    sfxEnabled: true,
+    masterVolume: 0.5,
+    musicVolume: 0.3,
+    sfxVolume: 0.6,
+
+    // BGM state
+    currentBGM: null,
+    bgmInterval: null,
+    bgmNotes: [],
+    bgmIndex: 0,
+
+    init() {
+        if (this.initialized) return;
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.initialized = true;
+            console.log('🔊 Sound system initialized');
+        } catch (e) {
+            console.log('⚠️ Web Audio not supported');
+        }
+    },
+
+    resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+
+    // Create oscillator with envelope
+    createTone(freq, duration, type = 'square', volume = 0.3) {
+        if (!this.ctx || !this.sfxEnabled) return;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.value = freq;
+
+        const now = this.ctx.currentTime;
+        const vol = volume * this.sfxVolume * this.masterVolume;
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration);
+    },
+
+    // Sound effects
+    playBeamShoot(chargeLevel = 0) {
+        if (!this.ctx) return;
+        // Laser "pew" - frequency sweep down
+        // Charged shots are louder and longer
+        const duration = 0.15 + (chargeLevel * 0.2);  // Up to 0.35s for max charge
+        const volume = 0.3 + (chargeLevel * 0.3);     // Up to 0.6 for max charge
+        const startFreq = 880 + (chargeLevel * 440);  // Higher pitch for charged
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + duration);
+        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * volume, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+
+        // Add bass rumble for charged shots
+        if (chargeLevel > 0.5) {
+            this.createTone(60 + (chargeLevel * 40), duration, 'sine', chargeLevel * 0.3);
+        }
+    },
+
+    playChargeMax() {
+        if (!this.ctx) return;
+        // "Ding" sound when charge is full
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+        osc1.frequency.value = 880;
+        osc2.frequency.value = 1320;  // Perfect fifth
+
+        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.4, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc1.stop(this.ctx.currentTime + 0.3);
+        osc2.stop(this.ctx.currentTime + 0.3);
+    },
+
+    playBeamHit() {
+        if (!this.ctx) return;
+        // Impact - noise burst + low thump
+        const noise = this.ctx.createBufferSource();
+        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        noise.buffer = noiseBuffer;
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.4, this.ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+        noise.start();
+
+        // Low thump
+        this.createTone(80, 0.1, 'sine', 0.5);
+    },
+
+    playKick() {
+        if (!this.ctx) return;
+        // Punch sound
+        this.createTone(150, 0.08, 'sine', 0.4);
+        this.createTone(100, 0.1, 'triangle', 0.3);
+    },
+
+    playJump() {
+        if (!this.ctx) return;
+        // Boing - frequency sweep up
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.15);
+    },
+
+    playKO() {
+        if (!this.ctx) return;
+        // Explosion - noise + descending tones
+        const noise = this.ctx.createBufferSource();
+        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.5, this.ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        noise.buffer = noiseBuffer;
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.5, this.ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, this.ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+        noise.start();
+
+        // Descending tone
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.4);
+        oscGain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, this.ctx.currentTime);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.5);
+    },
+
+    playMenuSelect() {
+        if (!this.ctx) return;
+        this.createTone(660, 0.08, 'square', 0.2);
+        setTimeout(() => this.createTone(880, 0.08, 'square', 0.2), 50);
+    },
+
+    playVictory() {
+        if (!this.ctx) return;
+        const notes = [523, 659, 784, 1047];
+        notes.forEach((freq, i) => {
+            setTimeout(() => this.createTone(freq, 0.2, 'square', 0.3), i * 150);
+        });
+    },
+
+    playDefeat() {
+        if (!this.ctx) return;
+        const notes = [392, 349, 330, 262];
+        notes.forEach((freq, i) => {
+            setTimeout(() => this.createTone(freq, 0.3, 'sawtooth', 0.2), i * 200);
+        });
+    },
+
+    // Item pickup sound (pleasant chime)
+    playItemPickup() {
+        if (!this.ctx) return;
+        // Ascending arpeggio - sounds like collecting coins/power-ups
+        const notes = [523, 659, 784, 1047];  // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+            setTimeout(() => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+
+                const vol = this.sfxVolume * this.masterVolume * 0.25;
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }, i * 40);
+        });
+    },
+
+    // BGM System - Procedural Chiptune
+    titleBGMPattern: [
+        // [note, duration, octave]
+        ['C', 0.2, 4], ['E', 0.2, 4], ['G', 0.2, 4], ['C', 0.2, 5],
+        ['G', 0.2, 4], ['E', 0.2, 4], ['C', 0.2, 4], ['G', 0.2, 3],
+        ['A', 0.2, 3], ['C', 0.2, 4], ['E', 0.2, 4], ['A', 0.2, 4],
+        ['E', 0.2, 4], ['C', 0.2, 4], ['A', 0.2, 3], ['E', 0.2, 3],
+    ],
+
+    battleBGMPattern: [
+        // More intense pattern
+        ['E', 0.15, 4], ['E', 0.15, 4], ['E', 0.15, 5], ['E', 0.15, 4],
+        ['G', 0.15, 4], ['G', 0.15, 4], ['E', 0.15, 4], ['D', 0.15, 4],
+        ['C', 0.15, 4], ['C', 0.15, 4], ['D', 0.15, 4], ['E', 0.15, 4],
+        ['D', 0.15, 4], ['C', 0.15, 4], ['B', 0.15, 3], ['G', 0.15, 3],
+        ['A', 0.15, 3], ['A', 0.15, 3], ['B', 0.15, 3], ['C', 0.15, 4],
+        ['D', 0.15, 4], ['E', 0.15, 4], ['D', 0.15, 4], ['C', 0.15, 4],
+    ],
+
+    noteToFreq(note, octave) {
+        const notes = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
+        const semitone = notes[note];
+        return 440 * Math.pow(2, (semitone - 9) / 12 + (octave - 4));
+    },
+
+    playBGM(type = 'title') {
+        if (!this.ctx || !this.musicEnabled) return;
+
+        this.stopBGM();
+        this.bgmNotes = type === 'title' ? this.titleBGMPattern : this.battleBGMPattern;
+        this.bgmIndex = 0;
+
+        const playNext = () => {
+            if (!this.musicEnabled || !this.ctx) {
+                this.stopBGM();
+                return;
+            }
+
+            const note = this.bgmNotes[this.bgmIndex];
+            const freq = this.noteToFreq(note[0], note[2]);
+            const duration = note[1];
+
+            // Main melody
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type === 'title' ? 'triangle' : 'square';
+            osc.frequency.value = freq;
+
+            const vol = this.musicVolume * this.masterVolume * 0.3;
+            gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration * 0.9);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+
+            // Bass (one octave lower)
+            if (this.bgmIndex % 4 === 0) {
+                const bass = this.ctx.createOscillator();
+                const bassGain = this.ctx.createGain();
+                bass.type = 'triangle';
+                bass.frequency.value = freq / 2;
+                bassGain.gain.setValueAtTime(vol * 0.5, this.ctx.currentTime);
+                bassGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration * 2);
+                bass.connect(bassGain);
+                bassGain.connect(this.ctx.destination);
+                bass.start();
+                bass.stop(this.ctx.currentTime + duration * 2);
+            }
+
+            this.bgmIndex = (this.bgmIndex + 1) % this.bgmNotes.length;
+        };
+
+        playNext();
+        this.bgmInterval = setInterval(playNext, type === 'title' ? 200 : 150);
+    },
+
+    stopBGM() {
+        if (this.bgmInterval) {
+            clearInterval(this.bgmInterval);
+            this.bgmInterval = null;
+        }
+    },
+
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        if (!this.musicEnabled) {
+            this.stopBGM();
+        }
+        return this.musicEnabled;
+    }
+};
+
+// ============================================================================
+// ENHANCED PARTICLE SYSTEM
+// ============================================================================
+
+class Particle {
+    constructor(x, y, options = {}) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
-        this.text = text;
-        this.color = options.color || COLORS.buttonPrimary;
-        this.hoverColor = options.hoverColor || COLORS.buttonHover;
-        this.textColor = options.textColor || '#FFFFFF';
-        this.disabled = options.disabled || false;
-        this.icon = options.icon || null;
-        this.isHovered = false;
-        this.isPressed = false;
+        this.vx = options.vx || (Math.random() - 0.5) * 4;
+        this.vy = options.vy || (Math.random() - 0.5) * 4;
+        this.life = options.life || 30;
+        this.maxLife = this.life;
+        this.size = options.size || 4;
+        this.color = options.color || '#ffff00';
+        this.gravity = options.gravity || 0;
+        this.friction = options.friction || 0.98;
+        this.type = options.type || 'circle'; // circle, spark, smoke
     }
 
-    contains(px, py) {
-        return px >= this.x && px <= this.x + this.width &&
-               py >= this.y && py <= this.y + this.height;
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.life--;
     }
 
     render(ctx) {
-        const baseColor = this.disabled ? COLORS.buttonDisabled :
-                         (this.isHovered ? this.hoverColor : this.color);
+        const alpha = this.life / this.maxLife;
+        ctx.save();
+        ctx.globalAlpha = alpha;
 
-        // Button shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(this.x + 4, this.y + 4, this.width, this.height);
-
-        // Button background
-        const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
-        gradient.addColorStop(0, baseColor);
-        gradient.addColorStop(1, this.adjustColor(baseColor, -30));
-        ctx.fillStyle = gradient;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-
-        // Button border
-        ctx.strokeStyle = this.isHovered ? '#00FFFF' : 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
-
-        // Button highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.fillRect(this.x, this.y, this.width, this.height / 3);
-
-        // Text
-        ctx.font = FONTS.subheading;
-        ctx.fillStyle = this.disabled ? '#888888' : this.textColor;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const textX = this.x + this.width / 2;
-        const textY = this.y + this.height / 2;
-
-        if (this.icon) {
-            ctx.fillText(this.icon + ' ' + this.text, textX, textY);
+        if (this.type === 'spark') {
+            // Spark with trail
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x - this.vx * 3, this.y - this.vy * 3);
+            ctx.stroke();
+        } else if (this.type === 'smoke') {
+            // Smoke puff
+            const size = this.size * (1 + (1 - alpha) * 2);
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fill();
         } else {
-            ctx.fillText(this.text, textX, textY);
+            // Circle particle
+            ctx.fillStyle = this.color;
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 5;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);
+            ctx.fill();
         }
+
+        ctx.restore();
     }
 
-    adjustColor(hex, amount) {
-        const num = parseInt(hex.replace('#', ''), 16);
-        const r = Math.min(255, Math.max(0, (num >> 16) + amount));
-        const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
-        const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
-        return '#' + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+    get isAlive() {
+        return this.life > 0;
     }
 }
 
-// ============================================================================
-// ROOM CODE INPUT CLASS
-// ============================================================================
+const ParticleSystem = {
+    particles: [],
 
-class RoomCodeInput {
-    constructor(x, y, maxLength = 6) {
-        this.x = x;
-        this.y = y;
-        this.maxLength = maxLength;
-        this.value = '';
-        this.isFocused = true;
-        this.cursorVisible = true;
-        this.cursorTimer = 0;
-        this.charWidth = 40;
-        this.charHeight = 50;
-        this.charSpacing = 10;
-    }
-
-    get totalWidth() {
-        return this.maxLength * (this.charWidth + this.charSpacing) - this.charSpacing;
-    }
-
-    addChar(char) {
-        if (this.value.length < this.maxLength) {
-            const upperChar = char.toUpperCase();
-            if (ONLINE.ROOM_CODE_CHARS.includes(upperChar)) {
-                this.value += upperChar;
-            }
+    emit(x, y, count, options = {}) {
+        for (let i = 0; i < count; i++) {
+            this.particles.push(new Particle(x, y, {
+                ...options,
+                vx: options.vx !== undefined ? options.vx + (Math.random() - 0.5) * 2 : (Math.random() - 0.5) * 6,
+                vy: options.vy !== undefined ? options.vy + (Math.random() - 0.5) * 2 : (Math.random() - 0.5) * 6,
+            }));
         }
-    }
+    },
 
-    removeChar() {
-        if (this.value.length > 0) {
-            this.value = this.value.slice(0, -1);
+    // Preset effects
+    beamTrail(x, y, isPlayer, chargeLevel = 0) {
+        // More particles for charged beams
+        const count = 2 + Math.floor(chargeLevel * 4);  // 2-6 particles
+        const size = 3 + (chargeLevel * 3);  // Bigger particles
+
+        this.emit(x, y, count, {
+            color: isPlayer ? '#ff6600' : '#0088ff',
+            size: size,
+            life: 15 + (chargeLevel * 10),
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            type: 'spark'
+        });
+    },
+
+    hit(x, y) {
+        // Sparks
+        this.emit(x, y, 12, {
+            color: '#ffff00',
+            size: 3,
+            life: 20,
+            type: 'spark'
+        });
+        // Core flash
+        this.emit(x, y, 5, {
+            color: '#ffffff',
+            size: 8,
+            life: 10
+        });
+    },
+
+    explosion(x, y) {
+        // Fire
+        this.emit(x, y, 30, {
+            color: '#ff4400',
+            size: 8,
+            life: 40,
+            gravity: 0.1
+        });
+        // Smoke
+        this.emit(x, y, 15, {
+            color: '#666666',
+            size: 10,
+            life: 50,
+            gravity: -0.05,
+            type: 'smoke'
+        });
+        // Sparks
+        this.emit(x, y, 20, {
+            color: '#ffff00',
+            size: 4,
+            life: 30,
+            type: 'spark'
+        });
+    },
+
+    dust(x, y) {
+        this.emit(x, y, 5, {
+            color: '#aa9977',
+            size: 4,
+            life: 20,
+            vy: -1,
+            gravity: 0.1,
+            type: 'smoke'
+        });
+    },
+
+    charge(x, y, isPlayer) {
+        this.emit(x, y, 3, {
+            color: isPlayer ? '#00ffff' : '#ff3333',
+            size: 5,
+            life: 15,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+        });
+    },
+
+    // Explosion when charged beam is released
+    chargeRelease(x, y, isPlayer, chargeLevel) {
+        const count = Math.floor(10 + chargeLevel * 20);  // 10-30 particles
+        const colors = isPlayer ?
+            ['#ff0000', '#ff6600', '#ffff00', '#ffffff'] :
+            ['#0000ff', '#0088ff', '#00ffff', '#ffffff'];
+
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count;
+            const speed = 3 + chargeLevel * 5;
+            this.emit(x, y, 1, {
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: 4 + chargeLevel * 4,
+                life: 20 + chargeLevel * 15,
+                vx: Math.cos(angle) * speed + (Math.random() - 0.5) * 2,
+                vy: Math.sin(angle) * speed + (Math.random() - 0.5) * 2,
+                type: 'spark'
+            });
         }
-    }
+
+        // Core flash
+        if (chargeLevel > 0.5) {
+            this.emit(x, y, 5, {
+                color: '#ffffff',
+                size: 15 + chargeLevel * 10,
+                life: 10
+            });
+        }
+    },
+
+    // Warp zone teleportation effect
+    warpEffect(x, y, direction) {
+        const colors = ['#9900ff', '#cc00ff', '#ff00ff', '#ffffff'];
+        const count = 20;
+
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count;
+            const speed = direction === 'out' ? 4 : -3;  // Expand out or contract in
+            this.emit(x, y, 1, {
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: 5,
+                life: 25,
+                vx: Math.cos(angle) * speed * (0.5 + Math.random()),
+                vy: Math.sin(angle) * speed * (0.5 + Math.random()),
+                type: 'spark'
+            });
+        }
+
+        // Central flash
+        this.emit(x, y, 5, {
+            color: '#ffffff',
+            size: 20,
+            life: 15
+        });
+    },
+
+    // Item pickup effect
+    itemPickup(x, y, itemType) {
+        const config = ITEMS.types[itemType];
+        const color = config ? config.color : '#ffffff';
+
+        // Ring of particles expanding outward
+        for (let i = 0; i < 16; i++) {
+            const angle = (Math.PI * 2 * i) / 16;
+            this.emit(x, y, 1, {
+                color: color,
+                size: 4,
+                life: 20,
+                vx: Math.cos(angle) * 3,
+                vy: Math.sin(angle) * 3,
+                type: 'spark'
+            });
+        }
+
+        // Rising sparkles
+        this.emit(x, y, 8, {
+            color: '#ffffff',
+            size: 3,
+            life: 30,
+            vy: -3,
+            gravity: -0.05,
+            type: 'spark'
+        });
+
+        // Central flash
+        this.emit(x, y, 3, {
+            color: color,
+            size: 15,
+            life: 10
+        });
+    },
+
+    update() {
+        this.particles = this.particles.filter(p => {
+            p.update();
+            return p.isAlive;
+        });
+    },
+
+    render(ctx) {
+        this.particles.forEach(p => p.render(ctx));
+    },
 
     clear() {
-        this.value = '';
+        this.particles = [];
     }
+};
 
-    isComplete() {
-        return this.value.length === this.maxLength;
-    }
+// ============================================================================
+// SCREEN EFFECTS
+// ============================================================================
+
+const ScreenEffects = {
+    shakeAmount: 0,
+    shakeDuration: 0,
+    flashAlpha: 0,
+    flashColor: '#ffffff',
+
+    shake(amount = 5, duration = 10) {
+        this.shakeAmount = amount;
+        this.shakeDuration = duration;
+    },
+
+    flash(color = '#ffffff', alpha = 0.5) {
+        this.flashColor = color;
+        this.flashAlpha = alpha;
+    },
 
     update() {
-        this.cursorTimer++;
-        if (this.cursorTimer >= 30) {
-            this.cursorTimer = 0;
-            this.cursorVisible = !this.cursorVisible;
+        if (this.shakeDuration > 0) {
+            this.shakeDuration--;
+            if (this.shakeDuration === 0) {
+                this.shakeAmount = 0;
+            }
+        }
+        if (this.flashAlpha > 0) {
+            this.flashAlpha -= 0.05;
+        }
+    },
+
+    getShakeOffset() {
+        if (this.shakeAmount === 0) return { x: 0, y: 0 };
+        return {
+            x: (Math.random() - 0.5) * this.shakeAmount * 2,
+            y: (Math.random() - 0.5) * this.shakeAmount * 2
+        };
+    },
+
+    renderFlash(ctx) {
+        if (this.flashAlpha > 0) {
+            ctx.save();
+            ctx.fillStyle = this.flashColor;
+            ctx.globalAlpha = this.flashAlpha;
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.restore();
+        }
+    }
+};
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function checkCollision(a, b) {
+    return (
+        a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y
+    );
+}
+
+function distance(a, b) {
+    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+function svgToImage(svgString) {
+    const img = new Image();
+    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+    img.src = URL.createObjectURL(blob);
+    return img;
+}
+
+function isMobile() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+// ============================================================================
+// ROBOT CLASS
+// ============================================================================
+
+class Robot {
+    constructor(x, y, isPlayer, color) {
+        this.x = x;
+        this.y = y;
+        this.width = ROBOT.width;
+        this.height = ROBOT.height;
+        this.velocityX = 0;
+        this.velocityY = 0;
+        this.onGround = false;
+        this.facingRight = isPlayer ? true : false;
+        this.isPlayer = isPlayer;
+
+        // Status
+        this.hp = ROBOT.maxHp;
+        this.maxHp = ROBOT.maxHp;
+        this.isInvincible = false;
+        this.invincibleTimer = 0;
+
+        // Parameters (default: 5 each, total 20)
+        this.jumpPower = 5;
+        this.walkSpeed = 5;
+        this.beamPower = 5;
+        this.kickPower = 5;
+
+        // Cooldowns
+        this.beamCooldown = 0;
+        this.kickCooldown = 0;
+
+        // Charge beam state
+        this.isCharging = false;
+        this.chargeStartTime = 0;
+        this.chargeLevel = 0;  // 0-1, where 1 = max charge
+
+        // Animation
+        this.animFrame = 0;
+        this.animTimer = 0;
+        this.state = 'idle'; // idle, walk, jump, attack, hurt
+
+        // Color
+        this.color = color || (isPlayer ? 'red' : 'blue');
+
+        // Sprite
+        this.sprite = svgToImage(isPlayer ? SPRITES.robotRed : SPRITES.robotBlue);
+
+        // Powerup state (for Items Mode)
+        this.powerups = {
+            rapid: { active: false, endTime: 0 },
+            mega: { active: false, endTime: 0 },
+            shield: { active: false, endTime: 0 }
+        };
+
+        // Warp cooldown (prevents infinite warp loop)
+        this.warpCooldown = 0;
+    }
+
+    // Apply a powerup effect
+    applyPowerup(type) {
+        const now = Date.now();
+        switch(type) {
+            case 'HP':
+                this.hp = Math.min(this.hp + ITEMS.types.HP.healAmount, this.maxHp);
+                break;
+            case 'RAPID':
+                this.powerups.rapid.active = true;
+                this.powerups.rapid.endTime = now + ITEMS.types.RAPID.duration;
+                break;
+            case 'MEGA':
+                this.powerups.mega.active = true;
+                this.powerups.mega.endTime = now + ITEMS.types.MEGA.duration;
+                break;
+            case 'SHIELD':
+                this.powerups.shield.active = true;
+                this.powerups.shield.endTime = now + ITEMS.types.SHIELD.duration;
+                this.isInvincible = true;  // Shield grants invincibility
+                break;
+        }
+    }
+
+    // Update powerup timers
+    updatePowerups() {
+        const now = Date.now();
+
+        if (this.powerups.rapid.active && now >= this.powerups.rapid.endTime) {
+            this.powerups.rapid.active = false;
+        }
+        if (this.powerups.mega.active && now >= this.powerups.mega.endTime) {
+            this.powerups.mega.active = false;
+        }
+        if (this.powerups.shield.active && now >= this.powerups.shield.endTime) {
+            this.powerups.shield.active = false;
+            // Only remove invincibility if not from damage
+            if (this.invincibleTimer <= 0) {
+                this.isInvincible = false;
+            }
+        }
+    }
+
+    // Get effective beam cooldown (modified by RAPID powerup)
+    get effectiveBeamCooldown() {
+        if (this.powerups.rapid.active) {
+            return ROBOT.beamCooldown * ITEMS.types.RAPID.cooldownMultiplier;
+        }
+        return ROBOT.beamCooldown;
+    }
+
+    get moveSpeed() {
+        return 3 + (this.walkSpeed * 0.5);
+    }
+
+    get jumpVelocity() {
+        return -(8 + (this.jumpPower * 0.8));
+    }
+
+    get beamDamage() {
+        let damage = 8 + (this.beamPower * 1.2);
+        if (this.powerups.mega.active) {
+            damage *= ITEMS.types.MEGA.damageMultiplier;
+        }
+        return damage;
+    }
+
+    get kickDamage() {
+        return 15 + (this.kickPower * 2.5);
+    }
+
+    setParameters(jump, walk, beam, kick) {
+        this.jumpPower = jump;
+        this.walkSpeed = walk;
+        this.beamPower = beam;
+        this.kickPower = kick;
+    }
+
+    move(direction) {
+        this.velocityX = direction * this.moveSpeed;
+        if (direction !== 0) {
+            this.state = 'walk';
+        }
+    }
+
+    jump() {
+        if (this.onGround) {
+            this.velocityY = this.jumpVelocity;
+            this.onGround = false;
+            this.state = 'jump';
+
+            // Play jump sound
+            SoundManager.playJump();
+
+            // Dust particles at feet
+            ParticleSystem.dust(this.x + this.width / 2, this.y + this.height);
+
+            return true;
+        }
+        return false;
+    }
+
+    // Start charging beam (called when shoot button pressed)
+    startCharging() {
+        if (this.beamCooldown > 0 || this.isCharging) return false;
+
+        // Check if already have a beam on screen
+        this.isCharging = true;
+        this.chargeStartTime = Date.now();
+        this.chargeLevel = 0;
+        this.state = 'attack';  // Show charging pose
+
+        return true;
+    }
+
+    // Update charge level (called every frame while charging)
+    updateCharge() {
+        if (!this.isCharging) return;
+
+        const chargeTime = Date.now() - this.chargeStartTime;
+        this.chargeLevel = Math.min(chargeTime / CHARGE_BEAM.maxChargeTime, 1.0);
+
+        // Play charge sound at MAX
+        if (this.chargeLevel >= 1.0 && !this._maxChargeSoundPlayed) {
+            SoundManager.playChargeMax();
+            this._maxChargeSoundPlayed = true;
+        }
+    }
+
+    // Cancel charging (e.g., if hit while charging)
+    cancelCharge() {
+        this.isCharging = false;
+        this.chargeLevel = 0;
+        this._maxChargeSoundPlayed = false;
+    }
+
+    // Release charged beam (called when shoot button released)
+    releaseChargedBeam(beams) {
+        if (!this.isCharging) return null;
+
+        // 1発ずつルール: 自分のビームが画面上にあれば撃てない
+        const owner = this.isPlayer ? 'player' : 'enemy';
+        const existingBeam = beams.find(b => b.owner === owner && b.active);
+        if (existingBeam) {
+            this.cancelCharge();
+            return null;
+        }
+
+        // Calculate charge multiplier (1x to 3x)
+        const chargeMultiplier = 1 + (this.chargeLevel * (CHARGE_BEAM.maxDamageMultiplier - 1));
+        const chargedDamage = Math.round(this.beamDamage * chargeMultiplier);
+
+        // Calculate beam size multiplier
+        const sizeMultiplier = 1 + (this.chargeLevel * (CHARGE_BEAM.sizeMultiplierMax - 1));
+
+        this.beamCooldown = ROBOT.beamCooldown;
+        this.state = 'attack';
+
+        // Create charged beam
+        const beamWidth = BEAM.width * sizeMultiplier;
+        const beamHeight = BEAM.height * sizeMultiplier;
+
+        const beam = new Beam(
+            this.facingRight ? this.x + this.width : this.x - beamWidth,
+            this.y + this.height / 2 - beamHeight / 2,
+            this.facingRight ? 1 : -1,
+            chargedDamage,
+            owner,
+            this.chargeLevel  // Pass charge level for visual effects
+        );
+
+        beams.push(beam);
+
+        // Play beam shoot sound (louder for charged shots)
+        SoundManager.playBeamShoot(this.chargeLevel);
+
+        // Enhanced particle effect for charged shot
+        const handX = this.facingRight ? this.x + this.width : this.x;
+        const handY = this.y + this.height / 2;
+        ParticleSystem.chargeRelease(handX, handY, this.isPlayer, this.chargeLevel);
+
+        // Reset charge state
+        this.isCharging = false;
+        this.chargeLevel = 0;
+        this._maxChargeSoundPlayed = false;
+
+        return beam;
+    }
+
+    // Quick shot (no charge) - for AI and quick taps
+    shoot(beams) {
+        if (this.beamCooldown > 0) return null;
+
+        // 1発ずつルール: 自分のビームが画面上にあれば撃てない
+        const owner = this.isPlayer ? 'player' : 'enemy';
+        const existingBeam = beams.find(b => b.owner === owner && b.active);
+        if (existingBeam) return null;
+
+        this.beamCooldown = ROBOT.beamCooldown;
+        this.state = 'attack';
+
+        const beam = new Beam(
+            this.facingRight ? this.x + this.width : this.x - BEAM.width,
+            this.y + this.height / 2 - BEAM.height / 2,
+            this.facingRight ? 1 : -1,
+            this.beamDamage,
+            owner,
+            0  // No charge
+        );
+
+        beams.push(beam);
+
+        // Play beam shoot sound
+        SoundManager.playBeamShoot();
+
+        // Charge particle effect at hand
+        const handX = this.facingRight ? this.x + this.width : this.x;
+        const handY = this.y + this.height / 2;
+        ParticleSystem.charge(handX, handY, this.isPlayer);
+
+        return beam;
+    }
+
+    kick(target) {
+        if (this.kickCooldown > 0) return false;
+
+        this.kickCooldown = ROBOT.kickCooldown;
+        this.state = 'attack';
+
+        // Check if target is in kick range
+        const kickX = this.facingRight ? this.x + this.width : this.x - ROBOT.kickRange;
+        const kickBox = {
+            x: kickX,
+            y: this.y + (this.height - ROBOT.kickHeight) / 2,
+            width: ROBOT.kickRange,
+            height: ROBOT.kickHeight
+        };
+
+        if (checkCollision(kickBox, target)) {
+            return true;
+        }
+        return false;
+    }
+
+    takeDamage(damage, knockbackDir) {
+        if (this.isInvincible) return false;
+
+        this.hp = Math.max(0, this.hp - damage);
+        this.state = 'hurt';
+
+        // Knockback
+        this.velocityX = knockbackDir * ROBOT.knockback;
+        this.velocityY = -4;
+
+        // Invincibility
+        this.isInvincible = true;
+        this.invincibleTimer = ROBOT.invincibleTime;
+
+        // Screen shake on damage
+        ScreenEffects.shake(damage > 20 ? 8 : 5, 12);
+
+        // Hit particles at robot center
+        ParticleSystem.hit(this.x + this.width / 2, this.y + this.height / 2);
+
+        return this.hp <= 0;
+    }
+
+    update(deltaTime, platforms) {
+        // Update cooldowns
+        if (this.beamCooldown > 0) this.beamCooldown -= deltaTime;
+        if (this.kickCooldown > 0) this.kickCooldown -= deltaTime;
+
+        // Update invincibility
+        if (this.isInvincible) {
+            this.invincibleTimer -= deltaTime;
+            if (this.invincibleTimer <= 0) {
+                this.isInvincible = false;
+            }
+        }
+
+        // Apply gravity
+        this.velocityY += PHYSICS.gravity;
+        this.velocityY = Math.min(this.velocityY, PHYSICS.maxFallSpeed);
+
+        // Apply friction
+        if (this.onGround) {
+            this.velocityX *= PHYSICS.friction;
+        } else {
+            this.velocityX *= PHYSICS.airResistance;
+        }
+
+        // Update position
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+
+        // Platform collision
+        this.onGround = false;
+        for (const platform of platforms) {
+            if (this.velocityY > 0) {
+                // Landing on platform
+                if (this.y + this.height >= platform.y &&
+                    this.y + this.height <= platform.y + 20 &&
+                    this.x + this.width > platform.x &&
+                    this.x < platform.x + platform.width) {
+
+                    if (platform.type === 'solid' ||
+                        (platform.type === 'passthrough' && this.y + this.height - this.velocityY <= platform.y)) {
+                        this.y = platform.y - this.height;
+                        this.velocityY = 0;
+                        this.onGround = true;
+                    }
+                }
+            }
+
+            // Side collision (solid only)
+            if (platform.type === 'solid') {
+                if (checkCollision(this, platform)) {
+                    // Push out horizontally
+                    if (this.velocityX > 0) {
+                        this.x = platform.x - this.width;
+                    } else if (this.velocityX < 0) {
+                        this.x = platform.x + platform.width;
+                    }
+                    this.velocityX = 0;
+                }
+            }
+        }
+
+        // Screen bounds
+        this.x = clamp(this.x, 0, GAME_WIDTH - this.width);
+        this.y = clamp(this.y, 0, GAME_HEIGHT - this.height);
+
+        // Update state
+        // Reset attack state when cooldown is done and not charging
+        if (this.state === 'attack' && !this.isCharging && this.beamCooldown <= 0) {
+            this.state = 'idle';
+        }
+
+        if (this.onGround && Math.abs(this.velocityX) < 0.5) {
+            if (this.state !== 'attack' && this.state !== 'hurt') {
+                this.state = 'idle';
+            }
+        } else if (!this.onGround) {
+            this.state = 'jump';
+        }
+
+        // Animation
+        this.animTimer += deltaTime;
+        if (this.animTimer >= 100) {
+            this.animTimer = 0;
+            this.animFrame = (this.animFrame + 1) % 4;
         }
     }
 
     render(ctx) {
-        const startX = this.x - this.totalWidth / 2;
+        ctx.save();
 
-        for (let i = 0; i < this.maxLength; i++) {
-            const charX = startX + i * (this.charWidth + this.charSpacing);
-            const charY = this.y;
-
-            // Character box
-            ctx.fillStyle = COLORS.inputBg;
-            ctx.fillRect(charX, charY, this.charWidth, this.charHeight);
-
-            // Border
-            const isCurrent = i === this.value.length && this.isFocused;
-            ctx.strokeStyle = isCurrent ? COLORS.inputFocus : COLORS.inputBorder;
-            ctx.lineWidth = isCurrent ? 3 : 2;
-            ctx.strokeRect(charX, charY, this.charWidth, this.charHeight);
-
-            // Character
-            if (i < this.value.length) {
-                ctx.font = FONTS.code;
-                ctx.fillStyle = '#FFFFFF';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(this.value[i], charX + this.charWidth / 2, charY + this.charHeight / 2);
-            }
-
-            // Cursor
-            if (isCurrent && this.cursorVisible) {
-                ctx.fillStyle = COLORS.inputFocus;
-                ctx.fillRect(charX + this.charWidth / 2 - 2, charY + 10, 4, this.charHeight - 20);
-            }
+        // Flicker when invincible
+        if (this.isInvincible && Math.floor(Date.now() / 50) % 2 === 0) {
+            ctx.globalAlpha = 0.5;
         }
+
+        // Calculate animation transforms based on state
+        const time = Date.now();
+        let offsetX = 0, offsetY = 0;
+        let scaleX = 1, scaleY = 1;
+        let rotation = 0;
+
+        // State-based animations
+        switch (this.state) {
+            case 'idle':
+                // Subtle breathing animation
+                scaleX = 1 + Math.sin(time * 0.003) * 0.02;
+                scaleY = 1 + Math.sin(time * 0.003 + Math.PI) * 0.02;
+                offsetY = Math.sin(time * 0.002) * 1;
+                break;
+
+            case 'walk':
+                // Bob up/down + lean in movement direction
+                offsetY = Math.abs(Math.sin(this.animFrame * 0.8)) * -4;
+                rotation = Math.sin(this.animFrame * 0.4) * 0.05;
+                // Leg swing simulation via slight scale
+                scaleX = 1 + Math.sin(this.animFrame * 0.8) * 0.03;
+                break;
+
+            case 'jump':
+                if (this.velocityY < 0) {
+                    // Rising - stretch vertically
+                    scaleY = 1.15;
+                    scaleX = 0.9;
+                } else {
+                    // Falling - slight squash
+                    scaleY = 0.95;
+                    scaleX = 1.05;
+                }
+                // Slight rotation based on horizontal movement
+                rotation = this.velocityX * 0.01;
+                break;
+
+            case 'attack':
+                // Recoil effect + arm extension simulation
+                const attackPhase = (time % 300) / 300;
+                if (attackPhase < 0.3) {
+                    // Wind up
+                    scaleX = 0.9;
+                    offsetX = this.facingRight ? -3 : 3;
+                } else if (attackPhase < 0.5) {
+                    // Fire!
+                    scaleX = 1.1;
+                    offsetX = this.facingRight ? 5 : -5;
+                } else {
+                    // Recover
+                    scaleX = 1 + (1 - attackPhase) * 0.1;
+                }
+                rotation = this.facingRight ? -0.05 : 0.05;
+                break;
+
+            case 'hurt':
+                // Shake effect
+                offsetX = Math.sin(time * 0.05) * 4;
+                offsetY = Math.cos(time * 0.07) * 2;
+                scaleX = 0.95;
+                scaleY = 1.05;
+                break;
+        }
+
+        // Apply transforms
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
+
+        ctx.translate(centerX + offsetX, centerY + offsetY);
+        ctx.rotate(rotation);
+
+        // Try to use high-quality PNG sprite first (with state-specific sprites)
+        const hqSprite = SpriteLoader.getSprite(this.isPlayer, this.state, this.animFrame);
+
+        // Flip logic - simplified after fixing sprite directions:
+        // - Player (red) sprites: ALL face RIGHT natively
+        // - Enemy (blue) sprites: ALL face LEFT natively
+        //
+        // facingRight=true means character should face RIGHT
+        // facingRight=false means character should face LEFT
+        let flipScale;
+        if (this.isPlayer) {
+            // Player sprites face RIGHT natively
+            // facingRight=true (want RIGHT) → no flip (scaleX)
+            // facingRight=false (want LEFT) → flip needed (-scaleX)
+            flipScale = this.facingRight ? scaleX : -scaleX;
+        } else {
+            // Enemy sprites face LEFT natively
+            // facingRight=true (want RIGHT) → flip needed (-scaleX)
+            // facingRight=false (want LEFT) → no flip (scaleX)
+            flipScale = this.facingRight ? -scaleX : scaleX;
+        }
+
+        ctx.scale(flipScale, scaleY);
+        ctx.translate(-this.width / 2, -this.height / 2);
+
+        if (SpriteLoader.useHighQuality && hqSprite) {
+            // Use PNG sprite with proper sizing
+            const spriteSize = Math.min(hqSprite.width, hqSprite.height);
+            const sx = (hqSprite.width - spriteSize) / 2;
+            const sy = (hqSprite.height - spriteSize) / 2;
+
+            // Add glow effect for high-quality sprites
+            ctx.shadowColor = this.isPlayer ? '#FF4400' : '#0066FF';
+            ctx.shadowBlur = this.state === 'attack' ? 25 : (this.state === 'hurt' ? 15 : 10);
+
+            // Draw with slight padding for glow - larger for photorealistic sprites
+            ctx.drawImage(
+                hqSprite,
+                sx, sy, spriteSize, spriteSize,
+                -12, -12, this.width + 24, this.height + 24
+            );
+
+            // Attack glow overlay
+            if (this.state === 'attack') {
+                ctx.shadowColor = this.isPlayer ? '#00FFFF' : '#FF3333';
+                ctx.shadowBlur = 30;
+                ctx.globalAlpha = 0.4;
+                ctx.drawImage(
+                    hqSprite,
+                    sx, sy, spriteSize, spriteSize,
+                    -12, -12, this.width + 24, this.height + 24
+                );
+            }
+
+            // Hurt flash effect
+            if (this.state === 'hurt') {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(-12, -12, this.width + 24, this.height + 24);
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        } else if (SpriteLoader.useHighQuality) {
+            // Use enhanced canvas rendering as fallback
+            EnhancedRobotRenderer.draw(
+                ctx,
+                0, 0,
+                this.width, this.height,
+                this.isPlayer,
+                this.state,
+                true, // Always facing right (flip handled above)
+                this.animFrame
+            );
+        } else {
+            // Fall back to SVG sprite
+            ctx.drawImage(this.sprite, 0, 0, this.width, this.height);
+        }
+
+        ctx.restore();
     }
 }
 
 // ============================================================================
-// LOBBY UI MANAGER
+// BEAM CLASS
 // ============================================================================
 
-class LobbyUIManager {
-    constructor() {
-        this.animationFrame = 0;
-        this.roomCode = '';
-        this.roomCodeInput = new RoomCodeInput(GAME_WIDTH / 2, 250);
-        this.connectionStatus = 'idle';
-        this.errorMessage = '';
-        this.playerReady = false;
-        this.opponentReady = false;
-        this.opponentConnected = false;
-        this.loadingDots = 0;
+class Beam {
+    constructor(x, y, direction, damage, owner, chargeLevel = 0) {
+        this.x = x;
+        this.y = y;
+        this.direction = direction;
+        this.damage = damage;
+        this.owner = owner;
+        this.active = true;
+        this.chargeLevel = chargeLevel;
 
-        // Buttons
-        this.buttons = {
-            lobby: {
-                online: new UIButton(GAME_WIDTH / 2 - 150, 250, 300, 60, 'ONLINE MODE', { color: COLORS.online, icon: '' }),
-                vsCpu: new UIButton(GAME_WIDTH / 2 - 150, 340, 300, 60, 'VS CPU MODE', { color: COLORS.offline, icon: '' }),
-                back: new UIButton(GAME_WIDTH / 2 - 100, 500, 200, 50, 'BACK', { color: '#666666' })
-            },
-            createRoom: {
-                create: new UIButton(GAME_WIDTH / 2 - 150, 250, 300, 60, 'CREATE ROOM', { color: COLORS.online }),
-                join: new UIButton(GAME_WIDTH / 2 - 150, 340, 300, 60, 'JOIN ROOM', { color: COLORS.buttonPrimary }),
-                back: new UIButton(GAME_WIDTH / 2 - 100, 500, 200, 50, 'BACK', { color: '#666666' })
-            },
-            waiting: {
-                cancel: new UIButton(GAME_WIDTH / 2 - 100, 480, 200, 50, 'CANCEL', { color: '#FF3333' })
-            },
-            joinRoom: {
-                join: new UIButton(GAME_WIDTH / 2 - 100, 380, 200, 50, 'JOIN', { color: COLORS.online }),
-                back: new UIButton(GAME_WIDTH / 2 - 100, 450, 200, 50, 'BACK', { color: '#666666' })
-            },
-            readyCheck: {
-                ready: new UIButton(GAME_WIDTH / 2 - 100, 400, 200, 60, 'READY!', { color: COLORS.online })
-            }
-        };
+        // Scale size based on charge level
+        const sizeMultiplier = 1 + (chargeLevel * (CHARGE_BEAM.sizeMultiplierMax - 1));
+        this.width = BEAM.width * sizeMultiplier;
+        this.height = BEAM.height * sizeMultiplier;
+
+        this.sprite = svgToImage(owner === 'player' ? SPRITES.beamRed : SPRITES.beamBlue);
     }
 
     update() {
-        this.animationFrame++;
-        this.roomCodeInput.update();
+        this.x += this.direction * BEAM.speed;
 
-        // Loading dots animation
-        if (this.animationFrame % 20 === 0) {
-            this.loadingDots = (this.loadingDots + 1) % 4;
+        // Out of bounds
+        if (this.x < -this.width || this.x > GAME_WIDTH) {
+            this.active = false;
+        }
+
+        // Beam trail particles (more for charged beams)
+        const trailChance = 0.5 + (this.chargeLevel * 0.4);  // Up to 90% for max charge
+        if (this.active && Math.random() < trailChance) {
+            ParticleSystem.beamTrail(
+                this.x + this.width / 2,
+                this.y + this.height / 2,
+                this.owner === 'player',
+                this.chargeLevel
+            );
         }
     }
 
-    getLoadingDots() {
-        return '.'.repeat(this.loadingDots);
-    }
+    render(ctx) {
+        ctx.save();
 
-    setRoomCode(code) {
-        this.roomCode = code;
-    }
+        if (this.direction < 0) {
+            ctx.translate(this.x + this.width / 2, 0);
+            ctx.scale(-1, 1);
+            ctx.translate(-this.x - this.width / 2, 0);
+        }
 
-    setError(message) {
-        this.errorMessage = message;
-    }
+        // Glow effect for charged beams
+        if (this.chargeLevel > 0.1) {
+            const glowSize = 10 + (this.chargeLevel * 20);
+            const glowAlpha = 0.3 + (this.chargeLevel * 0.4);
+            const glowColor = this.owner === 'player' ?
+                `rgba(255, ${Math.floor(100 - this.chargeLevel * 100)}, 0, ${glowAlpha})` :
+                `rgba(0, ${Math.floor(100 + this.chargeLevel * 100)}, 255, ${glowAlpha})`;
 
-    clearError() {
-        this.errorMessage = '';
-    }
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = glowSize;
+        }
 
-    setOpponentConnected(connected) {
-        this.opponentConnected = connected;
-    }
+        ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
 
-    setPlayerReady(ready) {
-        this.playerReady = ready;
-    }
-
-    setOpponentReady(ready) {
-        this.opponentReady = ready;
+        ctx.restore();
     }
 }
 
 // ============================================================================
-// GAME CLASS (LOBBY SCREENS)
+// ITEM CLASS (for Items Mode)
 // ============================================================================
 
-class RoboBattleGame {
+class Item {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type;  // 'HP', 'RAPID', 'MEGA', 'SHIELD'
+        this.width = 32;
+        this.height = 32;
+        this.active = true;
+        this.spawnTime = Date.now();
+        this.bobOffset = 0;
+        this.bobSpeed = 0.003;
+        this.glowPhase = 0;
+    }
+
+    update() {
+        // Lifetime check
+        if (Date.now() - this.spawnTime > ITEMS.itemLifetime) {
+            this.active = false;
+            return;
+        }
+
+        // Bobbing animation
+        this.bobOffset = Math.sin(Date.now() * this.bobSpeed) * 4;
+        this.glowPhase = (Date.now() * 0.005) % (Math.PI * 2);
+    }
+
+    render(ctx) {
+        const itemConfig = ITEMS.types[this.type];
+        const drawY = this.y + this.bobOffset;
+        const glowIntensity = 0.5 + Math.sin(this.glowPhase) * 0.3;
+
+        ctx.save();
+
+        // Outer glow
+        ctx.shadowColor = itemConfig.glowColor;
+        ctx.shadowBlur = 15 + glowIntensity * 10;
+
+        // Item shape based on type
+        ctx.fillStyle = itemConfig.color;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+
+        switch(this.type) {
+            case 'HP':
+                // Heart shape for HP
+                this.drawHeart(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4);
+                break;
+            case 'RAPID':
+                // Lightning bolt for Rapid
+                this.drawLightning(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4);
+                break;
+            case 'MEGA':
+                // Star for Mega
+                this.drawStar(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4, 5);
+                break;
+            case 'SHIELD':
+                // Shield shape
+                this.drawShield(ctx, this.x + this.width/2, drawY + this.height/2, this.width * 0.4);
+                break;
+        }
+
+        // Label below item
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 10px Courier New';
+        ctx.fillStyle = itemConfig.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(this.type, this.x + this.width/2, drawY + this.height + 12);
+
+        ctx.restore();
+    }
+
+    drawHeart(ctx, x, y, size) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + size * 0.3);
+        ctx.bezierCurveTo(x, y - size * 0.3, x - size, y - size * 0.3, x - size, y + size * 0.1);
+        ctx.bezierCurveTo(x - size, y + size * 0.6, x, y + size, x, y + size);
+        ctx.bezierCurveTo(x, y + size, x + size, y + size * 0.6, x + size, y + size * 0.1);
+        ctx.bezierCurveTo(x + size, y - size * 0.3, x, y - size * 0.3, x, y + size * 0.3);
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    drawLightning(ctx, x, y, size) {
+        ctx.beginPath();
+        ctx.moveTo(x - size * 0.1, y - size);
+        ctx.lineTo(x + size * 0.5, y - size);
+        ctx.lineTo(x + size * 0.1, y - size * 0.1);
+        ctx.lineTo(x + size * 0.6, y - size * 0.1);
+        ctx.lineTo(x - size * 0.3, y + size);
+        ctx.lineTo(x, y + size * 0.1);
+        ctx.lineTo(x - size * 0.5, y + size * 0.1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    drawStar(ctx, x, y, size, points) {
+        ctx.beginPath();
+        for (let i = 0; i < points * 2; i++) {
+            const radius = i % 2 === 0 ? size : size * 0.4;
+            const angle = (i * Math.PI) / points - Math.PI / 2;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    drawShield(ctx, x, y, size) {
+        ctx.beginPath();
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x + size, y - size * 0.5);
+        ctx.lineTo(x + size, y + size * 0.3);
+        ctx.quadraticCurveTo(x, y + size * 1.2, x, y + size * 1.2);
+        ctx.quadraticCurveTo(x, y + size * 1.2, x - size, y + size * 0.3);
+        ctx.lineTo(x - size, y - size * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+}
+
+// ============================================================================
+// EFFECT CLASS
+// ============================================================================
+
+class Effect {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.frame = 0;
+        this.maxFrames = 10;
+        this.size = 32;
+        this.active = true;
+
+        this.sprite = svgToImage(SPRITES.effectHit);
+    }
+
+    update() {
+        this.frame++;
+        if (this.frame >= this.maxFrames) {
+            this.active = false;
+        }
+    }
+
+    render(ctx) {
+        const alpha = 1 - (this.frame / this.maxFrames);
+        const scale = 1 + (this.frame / this.maxFrames) * 0.5;
+        const size = this.size * scale;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(this.sprite, this.x - size/2, this.y - size/2, size, size);
+        ctx.restore();
+    }
+}
+
+// ============================================================================
+// AI CLASS
+// ============================================================================
+
+class EnemyAI {
+    constructor(robot) {
+        this.robot = robot;
+        this.difficulty = 'normal';
+        this.thinkTimer = 0;
+        this.thinkInterval = 250; // ms
+        this.currentAction = 'idle';
+    }
+
+    setDifficulty(difficulty) {
+        this.difficulty = difficulty;
+        switch (difficulty) {
+            case 'easy':
+                this.thinkInterval = 500;
+                break;
+            case 'normal':
+                this.thinkInterval = 250;
+                break;
+            case 'hard':
+                this.thinkInterval = 100;
+                break;
+        }
+    }
+
+    update(deltaTime, player, beams) {
+        // ALWAYS face the player (every frame, not just during decisions)
+        // This gives consistent fighting game behavior
+        this.robot.facingRight = player.x > this.robot.x;
+
+        this.thinkTimer += deltaTime;
+
+        if (this.thinkTimer >= this.thinkInterval) {
+            this.thinkTimer = 0;
+            this.decide(player, beams);
+        }
+
+        this.executeAction(player, beams);
+    }
+
+    decide(player, beams) {
+        const dist = Math.abs(player.x - this.robot.x);
+        const heightDiff = player.y - this.robot.y;
+
+        // Check for incoming beams
+        const incomingBeam = beams.find(b =>
+            b.owner === 'player' &&
+            Math.abs(b.y - this.robot.y) < 50 &&
+            ((b.direction > 0 && b.x < this.robot.x) || (b.direction < 0 && b.x > this.robot.x))
+        );
+
+        if (incomingBeam && Math.abs(incomingBeam.x - this.robot.x) < 200) {
+            // Evade
+            this.currentAction = Math.random() < 0.7 ? 'jump' : 'evade';
+            return;
+        }
+
+        // Close range
+        if (dist < 60) {
+            const actions = ['kick', 'jump_away', 'shoot'];
+            const weights = this.difficulty === 'hard' ? [0.5, 0.3, 0.2] : [0.3, 0.4, 0.3];
+            this.currentAction = this.weightedRandom(actions, weights);
+            return;
+        }
+
+        // Medium range
+        if (dist < 300) {
+            if (heightDiff < -50) {
+                this.currentAction = 'jump';
+            } else {
+                const actions = ['shoot', 'approach', 'idle'];
+                const weights = this.difficulty === 'hard' ? [0.6, 0.3, 0.1] : [0.4, 0.4, 0.2];
+                this.currentAction = this.weightedRandom(actions, weights);
+            }
+            return;
+        }
+
+        // Long range
+        this.currentAction = 'approach';
+    }
+
+    weightedRandom(items, weights) {
+        const total = weights.reduce((a, b) => a + b, 0);
+        let random = Math.random() * total;
+        for (let i = 0; i < items.length; i++) {
+            random -= weights[i];
+            if (random <= 0) return items[i];
+        }
+        return items[items.length - 1];
+    }
+
+    executeAction(player, beams) {
+        switch (this.currentAction) {
+            case 'approach':
+                const dir = player.x > this.robot.x ? 1 : -1;
+                this.robot.move(dir);
+                break;
+
+            case 'shoot':
+                this.robot.shoot(beams);
+                break;
+
+            case 'kick':
+                // Will be handled by game logic
+                break;
+
+            case 'jump':
+                this.robot.jump();
+                break;
+
+            case 'jump_away':
+                this.robot.jump();
+                const awayDir = player.x > this.robot.x ? -1 : 1;
+                this.robot.move(awayDir);
+                break;
+
+            case 'evade':
+                const evadeDir = player.x > this.robot.x ? -1 : 1;
+                this.robot.move(evadeDir);
+                break;
+
+            case 'idle':
+            default:
+                this.robot.move(0);
+                break;
+        }
+    }
+}
+
+// ============================================================================
+// INPUT SYSTEM (Simplified for Mobile)
+// ============================================================================
+
+class InputSystem {
     constructor(canvas) {
         this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.state = GameState.TITLE;
-        this.menuSelection = 0;
-        this.lobbyUI = new LobbyUIManager();
-        this.isOnlineMode = false;
-        this.isHost = false;
+        this.isMobileDevice = isMobile();
 
-        // Input handling
-        this.setupInput();
+        // Keyboard state
+        this.keys = {};
+        this.prevKeys = {};  // Previous frame's key state
 
-        // Animation frame tracking
-        this.lastTime = 0;
-        this.animationFrame = 0;
-
-        // Start game loop
-        this.gameLoop();
-    }
-
-    setupInput() {
-        // Keyboard input
-        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
-        document.addEventListener('keyup', (e) => this.handleKeyUp(e));
-
-        // Mouse/Touch input
-        this.canvas.addEventListener('click', (e) => this.handleClick(e));
-        this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        this.canvas.addEventListener('touchstart', (e) => this.handleTouch(e));
-    }
-
-    getCanvasPosition(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-
-        if (e.touches) {
-            return {
-                x: (e.touches[0].clientX - rect.left) * scaleX,
-                y: (e.touches[0].clientY - rect.top) * scaleY
-            };
-        }
-        return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY
+        // Shoot button state tracking (for charge beam)
+        this.shootState = {
+            held: false,
+            justPressed: false,
+            justReleased: false
         };
+
+        // Jump button state tracking (for edge detection)
+        this.jumpState = {
+            held: false,
+            justPressed: false,
+            justReleased: false
+        };
+
+        // Mobile touch state (zone-based with multi-touch tracking)
+        this.touchActions = {
+            shoot: false,
+            jump: false
+        };
+        this.prevTouchShoot = false;  // Previous frame's touch state
+
+        // Multi-touch tracking: Map of touchId → 'beam' or 'jump'
+        // This allows tracking which finger is doing which action
+        this.activeTouches = new Map();
+
+        // Gyro state
+        this.gyro = {
+            enabled: false,
+            permissionGranted: false,
+            gamma: 0,
+            beta: 0,
+            sensitivity: 3.5,
+            deadZone: 3,
+            maxTilt: 25,
+            isLandscape: false
+        };
+
+        // Zone guide visibility timer
+        this.zoneGuideTimer = 0;
+        this.showZoneGuide = false;
+
+        // Reference to game state (will be set by Game class)
+        this.gameStateGetter = null;
+
+        this.setupListeners();
     }
 
-    handleKeyDown(e) {
-        switch (this.state) {
-            case GameState.TITLE:
-                this.handleTitleInput(e.key);
-                break;
-            case GameState.LOBBY:
-                this.handleLobbyInput(e.key);
-                break;
-            case GameState.CREATE_ROOM:
-                this.handleCreateRoomInput(e.key);
-                break;
-            case GameState.JOIN_ROOM:
-                this.handleJoinRoomInput(e.key);
-                break;
-            case GameState.WAITING:
-                this.handleWaitingInput(e.key);
-                break;
-            case GameState.READY_CHECK:
-                this.handleReadyCheckInput(e.key);
-                break;
+    // Allow Game class to provide state getter
+    setGameStateGetter(getter) {
+        this.gameStateGetter = getter;
+    }
+
+    setupListeners() {
+        // Keyboard
+        window.addEventListener('keydown', (e) => {
+            this.keys[e.code] = true;
+            if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            this.keys[e.code] = false;
+        });
+
+        if (this.isMobileDevice) {
+            this.setupSimplifiedMobileControls();
         }
     }
 
-    handleKeyUp(e) {
-        // Handle key release events if needed
+    setupSimplifiedMobileControls() {
+        console.log('[Mobile] Setting up simplified tilt + zone tap controls');
+
+        // Show gyro permission dialog on first touch
+        this.setupGyroPermission();
+
+        // Setup zone-based touch controls (left = jump, right = beam)
+        this.setupZoneTouchControls();
+
+        // Orientation change detection
+        window.addEventListener('orientationchange', () => {
+            this.gyro.isLandscape = Math.abs(window.orientation) === 90;
+        });
+        this.gyro.isLandscape = Math.abs(window.orientation || 0) === 90;
     }
 
-    handleClick(e) {
-        const pos = this.getCanvasPosition(e);
-        this.processClick(pos);
+    setupGyroPermission() {
+        const permissionDialog = document.getElementById('gyro-permission');
+        const enableButton = document.getElementById('btn-enable-gyro');
+
+        if (!permissionDialog || !enableButton) return;
+
+        // Show permission dialog on mobile
+        const showPermissionDialog = () => {
+            permissionDialog.style.display = 'block';
+        };
+
+        enableButton.addEventListener('click', async () => {
+            const success = await this.enableGyro();
+            permissionDialog.style.display = 'none';
+
+            if (success) {
+                console.log('[Gyro] Permission granted, tilt control enabled');
+                // Show zone guide briefly
+                this.showZoneGuideBriefly();
+            } else {
+                console.log('[Gyro] Permission denied, game may be difficult to play');
+                alert('傾きセンサーが使用できません。ゲームの操作が制限されます。');
+            }
+        });
+
+        // Show dialog after a short delay
+        setTimeout(showPermissionDialog, 500);
     }
 
-    handleTouch(e) {
+    async enableGyro() {
+        // iOS 13+ requires permission request via user gesture
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                this.gyro.permissionGranted = (permission === 'granted');
+            } catch (e) {
+                console.error('[Gyro] Permission request failed:', e);
+                return false;
+            }
+        } else {
+            // Android or older iOS - no permission needed
+            this.gyro.permissionGranted = true;
+        }
+
+        if (this.gyro.permissionGranted) {
+            this.gyro.enabled = true;
+            window.addEventListener('deviceorientation', (e) => {
+                this.gyro.gamma = e.gamma || 0;
+                this.gyro.beta = e.beta || 0;
+            });
+            return true;
+        }
+
+        return false;
+    }
+
+    setupZoneTouchControls() {
+        // Listen for touches on the entire document
+        document.addEventListener('touchstart', (e) => {
+            this.handleZoneTouch(e, 'start');
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            this.handleZoneTouch(e, 'end');
+        }, { passive: false });
+
+        document.addEventListener('touchcancel', (e) => {
+            this.handleZoneTouch(e, 'end');
+        }, { passive: false });
+    }
+
+    handleZoneTouch(e, eventType) {
+        // Ignore if touching UI elements
+        const target = e.target;
+        if (target.tagName === 'BUTTON' || target.closest('#gyro-permission') || target.closest('#loading')) {
+            return;
+        }
+
+        // Only intercept zone touches during BATTLE or KO states
+        // Let other states (TITLE, SETUP, RESULT) handle touches normally via canvas click
+        const currentState = this.gameStateGetter ? this.gameStateGetter() : null;
+        if (currentState !== GameState.BATTLE && currentState !== GameState.KO) {
+            // Don't prevent default - allow canvas click handler to work
+            return;
+        }
+
         e.preventDefault();
-        const pos = this.getCanvasPosition(e);
-        this.processClick(pos);
-    }
 
-    handleMouseMove(e) {
-        const pos = this.getCanvasPosition(e);
-        this.updateButtonHovers(pos);
-    }
+        const screenWidth = window.innerWidth;
+        const midPointX = screenWidth / 2;
 
-    processClick(pos) {
-        switch (this.state) {
-            case GameState.TITLE:
-                this.processTitleClick(pos);
-                break;
-            case GameState.LOBBY:
-                this.processLobbyClick(pos);
-                break;
-            case GameState.CREATE_ROOM:
-                this.processCreateRoomClick(pos);
-                break;
-            case GameState.JOIN_ROOM:
-                this.processJoinRoomClick(pos);
-                break;
-            case GameState.WAITING:
-                this.processWaitingClick(pos);
-                break;
-            case GameState.READY_CHECK:
-                this.processReadyCheckClick(pos);
-                break;
-        }
-    }
+        if (eventType === 'start') {
+            for (const touch of e.changedTouches) {
+                const x = touch.clientX;
+                const touchId = touch.identifier;
 
-    updateButtonHovers(pos) {
-        const buttons = this.getCurrentButtons();
-        if (buttons) {
-            for (const key in buttons) {
-                buttons[key].isHovered = buttons[key].contains(pos.x, pos.y);
+                // Create touch feedback effect
+                this.createTouchFeedback(touch.clientX, touch.clientY);
+
+                if (x < midPointX) {
+                    // Left half = Jump
+                    this.activeTouches.set(touchId, 'jump');
+                    this.touchActions.jump = true;
+                    console.log('[Touch] Left zone - JUMP (id:', touchId, ')');
+                } else {
+                    // Right half = Beam
+                    this.activeTouches.set(touchId, 'beam');
+                    this.touchActions.shoot = true;
+                    console.log('[Touch] Right zone - BEAM (id:', touchId, ')');
+                }
+            }
+        } else if (eventType === 'end') {
+            for (const touch of e.changedTouches) {
+                const touchId = touch.identifier;
+                const action = this.activeTouches.get(touchId);
+
+                if (action) {
+                    console.log('[Touch] Released:', action, '(id:', touchId, ')');
+                    this.activeTouches.delete(touchId);
+
+                    // Check if any other touches are still active for this action
+                    let hasOtherBeamTouch = false;
+                    let hasOtherJumpTouch = false;
+                    for (const [id, a] of this.activeTouches) {
+                        if (a === 'beam') hasOtherBeamTouch = true;
+                        if (a === 'jump') hasOtherJumpTouch = true;
+                    }
+
+                    // Only reset the action if no other touches are active for it
+                    if (action === 'beam' && !hasOtherBeamTouch) {
+                        // Beam released - this triggers charge beam fire
+                        // Set shoot to false after a brief delay to allow detection
+                        setTimeout(() => {
+                            // Double-check no new beam touches were added
+                            let stillHasBeamTouch = false;
+                            for (const [id, a] of this.activeTouches) {
+                                if (a === 'beam') stillHasBeamTouch = true;
+                            }
+                            if (!stillHasBeamTouch) {
+                                this.touchActions.shoot = false;
+                            }
+                        }, 50);
+                    }
+
+                    if (action === 'jump' && !hasOtherJumpTouch) {
+                        setTimeout(() => {
+                            let stillHasJumpTouch = false;
+                            for (const [id, a] of this.activeTouches) {
+                                if (a === 'jump') stillHasJumpTouch = true;
+                            }
+                            if (!stillHasJumpTouch) {
+                                this.touchActions.jump = false;
+                            }
+                        }, 50);
+                    }
+                }
             }
         }
     }
 
-    getCurrentButtons() {
+    createTouchFeedback(x, y) {
+        const feedback = document.createElement('div');
+        feedback.className = 'touch-feedback';
+        feedback.style.left = x + 'px';
+        feedback.style.top = y + 'px';
+        document.body.appendChild(feedback);
+
+        // Remove after animation completes
+        setTimeout(() => {
+            feedback.remove();
+        }, 300);
+    }
+
+    showZoneGuideBriefly() {
+        const guide = document.getElementById('mobile-zone-guide');
+        if (guide) {
+            guide.classList.add('visible');
+            setTimeout(() => {
+                guide.classList.remove('visible');
+            }, 3000);
+        }
+    }
+
+    getGyroInput() {
+        if (!this.gyro.enabled || !this.gyro.permissionGranted) {
+            return { x: 0, y: 0 };
+        }
+
+        // Determine tilt based on orientation
+        let tiltX;
+        if (this.gyro.isLandscape) {
+            // Landscape: use beta for left/right
+            tiltX = this.gyro.beta;
+        } else {
+            // Portrait: use gamma for left/right
+            tiltX = this.gyro.gamma;
+        }
+
+        // Apply dead zone
+        if (Math.abs(tiltX) < this.gyro.deadZone) {
+            tiltX = 0;
+        }
+
+        // Normalize and apply sensitivity
+        const x = clamp(tiltX / this.gyro.maxTilt, -1, 1) * this.gyro.sensitivity;
+
+        return { x, y: 0 };
+    }
+
+    // Call this once per frame to update input states
+    updateInputStates() {
+        let currentShoot = false;
+        let currentJump = false;
+
+        if (this.isMobileDevice) {
+            currentShoot = this.touchActions.shoot;
+            currentJump = this.touchActions.jump;
+        } else {
+            currentShoot = this.keys['KeyJ'] || this.keys['KeyZ'];
+            currentJump = this.keys['KeyW'] || this.keys['ArrowUp'] || this.keys['Space'];
+        }
+
+        // Detect state transitions for shoot
+        this.shootState.justPressed = currentShoot && !this.shootState.held;
+        this.shootState.justReleased = !currentShoot && this.shootState.held;
+        this.shootState.held = currentShoot;
+
+        // Detect state transitions for jump
+        this.jumpState.justPressed = currentJump && !this.jumpState.held;
+        this.jumpState.justReleased = !currentJump && this.jumpState.held;
+        this.jumpState.held = currentJump;
+    }
+
+    getInput() {
+        if (this.isMobileDevice) {
+            const movement = this.getGyroInput();
+
+            return {
+                moveX: movement.x,
+                moveY: 0,
+                jump: this.touchActions.jump,
+                jumpDown: this.jumpState.justPressed,  // Edge-triggered jump for network
+                shoot: this.touchActions.shoot,
+                shootDown: this.shootState.justPressed,
+                shootUp: this.shootState.justReleased,
+                shootHeld: this.shootState.held,
+                kick: false  // Kick disabled on mobile for simplicity
+            };
+        }
+
+        // Keyboard input
+        return {
+            moveX: (this.keys['KeyD'] || this.keys['ArrowRight'] ? 1 : 0) -
+                   (this.keys['KeyA'] || this.keys['ArrowLeft'] ? 1 : 0),
+            moveY: 0,
+            jump: this.keys['KeyW'] || this.keys['ArrowUp'] || this.keys['Space'],
+            jumpDown: this.jumpState.justPressed,  // Edge-triggered jump for network
+            shoot: this.keys['KeyJ'] || this.keys['KeyZ'],
+            shootDown: this.shootState.justPressed,
+            shootUp: this.shootState.justReleased,
+            shootHeld: this.shootState.held,
+            kick: this.keys['KeyK'] || this.keys['KeyX']
+        };
+    }
+}
+
+// ============================================================================
+// UI RENDERER
+// ============================================================================
+
+class UIRenderer {
+    constructor(ctx) {
+        this.ctx = ctx;
+    }
+
+    drawHPBar(x, y, width, height, hp, maxHp, color) {
+        const ctx = this.ctx;
+        const ratio = hp / maxHp;
+
+        // Background
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x, y, width, height);
+
+        // HP bar
+        const gradient = ctx.createLinearGradient(x, y, x + width * ratio, y);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, ratio < 0.3 ? '#ff0000' : color);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x + 2, y + 2, (width - 4) * ratio, height - 4);
+
+        // Border
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, width, height);
+
+        // HP text
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${Math.ceil(hp)}/${maxHp}`, x + width / 2, y + height - 5);
+    }
+
+    drawButton(x, y, width, height, text, isHovered) {
+        const ctx = this.ctx;
+
+        // Button background
+        ctx.fillStyle = isHovered ? '#0088ff' : '#0066cc';
+        ctx.fillRect(x, y, width, height);
+
+        // Highlight
+        ctx.fillStyle = isHovered ? '#00aaff' : '#0088ff';
+        ctx.fillRect(x + 2, y + 2, width - 4, height / 2 - 2);
+
+        // Border
+        ctx.strokeStyle = isHovered ? '#00ffff' : '#00aaff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, width, height);
+
+        // Text
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Courier New';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + width / 2, y + height / 2);
+    }
+
+    drawSlider(x, y, width, height, value, maxValue, label) {
+        const ctx = this.ctx;
+        const ratio = value / maxValue;
+
+        // Label
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Courier New';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x, y - 5);
+
+        // Value
+        ctx.textAlign = 'right';
+        ctx.fillText(value.toString(), x + width, y - 5);
+
+        // Background
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x, y, width, height);
+
+        // Fill
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(x + 2, y + 2, (width - 4) * ratio, height - 4);
+
+        // Border
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, width, height);
+    }
+
+    drawText(x, y, text, size, color, align = 'center') {
+        const ctx = this.ctx;
+        ctx.fillStyle = color || '#fff';
+        ctx.font = `${size}px Courier New`;
+        ctx.textAlign = align;
+        ctx.fillText(text, x, y);
+    }
+
+    drawLogo(x, y) {
+        const ctx = this.ctx;
+
+        // ROBO
+        ctx.font = 'bold 48px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ff3333';
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 2;
+        ctx.fillText('ROBO', x, y);
+        ctx.strokeText('ROBO', x, y);
+
+        // BATTLE
+        ctx.font = 'bold 36px Courier New';
+        ctx.fillStyle = '#3333ff';
+        ctx.strokeStyle = '#00ffff';
+        ctx.fillText('BATTLE', x, y + 40);
+        ctx.strokeText('BATTLE', x, y + 40);
+    }
+}
+
+// ============================================================================
+// GAME CLASS
+// ============================================================================
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        this.state = GameState.LOADING;
+        this.lastTime = 0;
+        this.accumulator = 0;
+
+        // Game objects
+        this.player = null;
+        this.enemy = null;
+        this.beams = [];
+        this.effects = [];
+        this.currentStage = 0;
+
+        // Systems
+        this.input = new InputSystem(this.canvas);
+        this.input.setGameStateGetter(() => this.state);  // Pass state getter
+        this.ui = new UIRenderer(this.ctx);
+        this.ai = null;
+
+        // Settings
+        this.settings = {
+            playerParams: { jump: 5, walk: 5, beam: 5, kick: 5 },
+            difficulty: 'normal',
+            stage: 0,
+            itemsMode: false  // Items Mode toggle (warp zones, death zones, items)
+        };
+
+        // Items Mode state
+        this.activeItems = [];      // Collectible items on stage
+        this.itemSpawnTimer = 0;    // Timer for spawning new items
+
+        // UI state
+        this.menuSelection = 0;
+        this.setupSelection = 0;
+        this.winner = null;
+        this.hoveredButton = -1;
+
+        // Input state for menus
+        this.inputCooldown = 0;
+
+        // KO演出用
+        this.koTimer = 0;
+        this.koTarget = null;      // 倒されたロボット
+        this.koEffects = [];       // KO演出用エフェクト
+        this.koTextScale = 0;      // KO!テキストのスケール
+
+        // Online mode
+        this.isOnlineMode = false;
+        this.onlineController = null;
+        this.roomCode = '';
+        this.roomCodeInput = '';
+        this.onlineLobbySelection = 0;  // 0=Create, 1=Join, 2=Back
+        this.onlineStatus = '';
+        this.isHost = false;
+
+        // Setup mouse click handler
+        this.setupMouseHandler();
+
+        // Load resources
+        this.loadResources();
+    }
+
+    setupMouseHandler() {
+        // Click handler (desktop)
+        this.canvas.addEventListener('click', (e) => {
+            this.processCanvasInput(e.clientX, e.clientY, 'click');
+        });
+
+        // Touch handler (mobile) - critical for menu interactions
+        this.canvas.addEventListener('touchend', (e) => {
+            // Only handle touch for menu states (TITLE, SETUP, RESULT)
+            // During BATTLE/KO, the zone touch handler in InputSystem handles touches
+            if (this.state === GameState.BATTLE || this.state === GameState.KO) {
+                return;
+            }
+
+            if (e.changedTouches.length > 0) {
+                const touch = e.changedTouches[0];
+                this.processCanvasInput(touch.clientX, touch.clientY, 'touch');
+                // Prevent click event from also firing (avoid double handling)
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Also handle touchstart to provide immediate feedback
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (this.state === GameState.BATTLE || this.state === GameState.KO) {
+                return;
+            }
+            // Visual feedback could be added here
+            console.log('[Touch] Canvas touchstart in menu state');
+        }, { passive: true });
+    }
+
+    processCanvasInput(clientX, clientY, inputType) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = GAME_WIDTH / rect.width;
+        const scaleY = GAME_HEIGHT / rect.height;
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        console.log(`[DEBUG] ${inputType} at game coords: (${x.toFixed(0)}, ${y.toFixed(0)}), state: ${this.state}`);
+        this.handleClick(x, y);
+    }
+
+    handleClick(x, y) {
+        console.log(`[DEBUG] handleClick called. State: "${this.state}", GameState.SETUP: "${GameState.SETUP}"`);
+        console.log(`[DEBUG] State comparison: this.state === GameState.SETUP is ${this.state === GameState.SETUP}`);
         switch (this.state) {
-            case GameState.LOBBY:
-                return this.lobbyUI.buttons.lobby;
-            case GameState.CREATE_ROOM:
-                return this.lobbyUI.buttons.createRoom;
-            case GameState.JOIN_ROOM:
-                return this.lobbyUI.buttons.joinRoom;
-            case GameState.WAITING:
-                return this.lobbyUI.buttons.waiting;
-            case GameState.READY_CHECK:
-                return this.lobbyUI.buttons.readyCheck;
+            case GameState.TITLE:
+                console.log('[DEBUG] Routing to handleTitleClick');
+                this.handleTitleClick(x, y);
+                break;
+            case GameState.SETUP:
+                console.log('[DEBUG] Routing to handleSetupClick');
+                this.handleSetupClick(x, y);
+                break;
+            case GameState.RESULT:
+                console.log('[DEBUG] Routing to handleResultClick');
+                this.handleResultClick(x, y);
+                break;
+            case GameState.ONLINE_LOBBY:
+                this.handleOnlineLobbyClick(x, y);
+                break;
             default:
-                return null;
+                console.log(`[DEBUG] Unknown state: ${this.state}`);
         }
     }
 
-    // ========== TITLE SCREEN ==========
-    handleTitleInput(key) {
-        const menuItems = ['START GAME', 'ONLINE', 'HOW TO PLAY'];
+    handleTitleClick(x, y) {
+        // Menu items: VS CPU, ONLINE BATTLE, HOW TO PLAY, CREDITS
+        const menuItems = 4;
+        const startY = 400;
+        const itemHeight = 40;
 
-        switch (key) {
-            case 'ArrowUp':
-            case 'w':
-            case 'W':
-                this.menuSelection = (this.menuSelection - 1 + menuItems.length) % menuItems.length;
-                break;
-            case 'ArrowDown':
-            case 's':
-            case 'S':
-                this.menuSelection = (this.menuSelection + 1) % menuItems.length;
-                break;
-            case 'Enter':
-            case ' ':
-                this.selectTitleMenuItem();
-                break;
-        }
-    }
-
-    selectTitleMenuItem() {
-        switch (this.menuSelection) {
-            case 0: // START GAME (VS CPU)
-                this.isOnlineMode = false;
-                this.state = GameState.SETUP;
-                break;
-            case 1: // ONLINE
-                this.state = GameState.LOBBY;
-                this.menuSelection = 0;
-                break;
-            case 2: // HOW TO PLAY
-                // Show instructions
-                break;
-        }
-    }
-
-    processTitleClick(pos) {
-        const menuItems = ['START GAME', 'ONLINE', 'HOW TO PLAY'];
-        const startY = 380;
-        const itemHeight = 45;
-
-        for (let i = 0; i < menuItems.length; i++) {
-            const itemY = startY + i * itemHeight;
-            if (pos.y >= itemY - 20 && pos.y <= itemY + 20 &&
-                pos.x >= GAME_WIDTH / 2 - 100 && pos.x <= GAME_WIDTH / 2 + 100) {
+        for (let i = 0; i < menuItems; i++) {
+            const itemY = startY + i * itemHeight - 20;
+            if (x >= 250 && x <= 550 && y >= itemY && y <= itemY + itemHeight) {
                 this.menuSelection = i;
-                this.selectTitleMenuItem();
+                SoundManager.playMenuSelect();
+                // Execute selection
+                switch (i) {
+                    case 0: // VS CPU
+                        this.isOnlineMode = false;
+                        this.state = GameState.SETUP;
+                        break;
+                    case 1: // Online Battle
+                        this.isOnlineMode = true;
+                        this.state = GameState.ONLINE_LOBBY;
+                        this.onlineLobbySelection = 0;
+                        break;
+                    case 2: // How to Play
+                    case 3: // Credits
+                        this.isOnlineMode = false;
+                        this.state = GameState.SETUP;
+                        break;
+                }
                 return;
             }
         }
     }
 
-    // ========== LOBBY SCREEN ==========
-    handleLobbyInput(key) {
-        switch (key) {
-            case 'Escape':
-                this.state = GameState.TITLE;
-                this.menuSelection = 0;
-                break;
+    handleSetupClick(x, y) {
+        // Parameter sliders (JUMP, WALK, BEAM, KICK)
+        const startY = 130;
+        for (let i = 0; i < 4; i++) {
+            const sliderY = startY + i * 60 - 15;
+            // Left arrow area (decrease)
+            if (x >= 200 && x <= 280 && y >= sliderY && y <= sliderY + 30) {
+                this.setupSelection = i;
+                this.adjustSetup(-1);
+                return;
+            }
+            // Slider bar area (click to set value)
+            if (x >= 300 && x <= 500 && y >= sliderY && y <= sliderY + 30) {
+                this.setupSelection = i;
+                return;
+            }
+            // Right arrow area (increase)
+            if (x >= 520 && x <= 600 && y >= sliderY && y <= sliderY + 30) {
+                this.setupSelection = i;
+                this.adjustSetup(1);
+                return;
+            }
         }
-    }
 
-    processLobbyClick(pos) {
-        const buttons = this.lobbyUI.buttons.lobby;
+        // Stage selection
+        const stageY = startY + 4 * 60 + 20 - 15;
+        if (y >= stageY && y <= stageY + 30) {
+            this.setupSelection = 4;
+            if (x >= 200 && x <= 350) this.adjustSetup(-1);
+            if (x >= 400 && x <= 600) this.adjustSetup(1);
+            return;
+        }
 
-        if (buttons.online.contains(pos.x, pos.y)) {
-            this.isOnlineMode = true;
-            this.state = GameState.CREATE_ROOM;
-        } else if (buttons.vsCpu.contains(pos.x, pos.y)) {
-            this.isOnlineMode = false;
-            this.state = GameState.SETUP;
-        } else if (buttons.back.contains(pos.x, pos.y)) {
+        // Difficulty selection
+        const diffY = stageY + 50;
+        if (y >= diffY && y <= diffY + 30) {
+            this.setupSelection = 5;
+            if (x >= 200 && x <= 350) this.adjustSetup(-1);
+            if (x >= 400 && x <= 600) this.adjustSetup(1);
+            return;
+        }
+
+        // Items Mode toggle (wider hitbox to fill gap before button)
+        const itemsY = diffY + 50;
+        if (y >= itemsY && y <= itemsY + 45) {  // Extended hitbox (475-520)
+            this.setupSelection = 6;
+            // Any click on the row toggles Items Mode
+            this.adjustSetup(1);
+            return;
+        }
+
+        // Button positions (must match renderSetup)
+        const btnY = GAME_HEIGHT - 80;       // 520
+        const btnHeight = 50;
+
+        // BACK button
+        const backBtnX = GAME_WIDTH / 2 - 220;  // 180
+        const backBtnWidth = 100;
+
+        if (x >= backBtnX && x <= backBtnX + backBtnWidth && y >= btnY && y <= btnY + btnHeight) {
+            console.log('[DEBUG] BACK clicked! Returning to title');
+            SoundManager.playMenuSelect();
+            this.setupSelection = 8;
             this.state = GameState.TITLE;
             this.menuSelection = 0;
+            SoundManager.playBGM('title');
+            return;
         }
-    }
 
-    // ========== CREATE ROOM SCREEN ==========
-    handleCreateRoomInput(key) {
-        switch (key) {
-            case 'Escape':
-                this.state = GameState.LOBBY;
-                break;
+        // START BATTLE button
+        const startBtnX = GAME_WIDTH / 2 - 100;  // 300
+        const startBtnWidth = 200;
+
+        console.log(`[DEBUG] START BATTLE button area: x=${startBtnX}-${startBtnX+startBtnWidth}, y=${btnY}-${btnY+btnHeight}`);
+        console.log(`[DEBUG] Click position: x=${x.toFixed(0)}, y=${y.toFixed(0)}`);
+        console.log(`[DEBUG] In button? x: ${x >= startBtnX && x <= startBtnX + startBtnWidth}, y: ${y >= btnY && y <= btnY + btnHeight}`);
+
+        if (x >= startBtnX && x <= startBtnX + startBtnWidth && y >= btnY && y <= btnY + btnHeight) {
+            console.log('[DEBUG] START BATTLE clicked! Calling startBattle()');
+            SoundManager.playMenuSelect();
+            this.setupSelection = 7;
+            this.startBattle();
+            return;
         }
+        console.log('[DEBUG] Click not on any interactive element');
     }
 
-    processCreateRoomClick(pos) {
-        const buttons = this.lobbyUI.buttons.createRoom;
+    handleResultClick(x, y) {
+        // Menu items: REMATCH, CHANGE SETTINGS, TITLE
+        const menuItems = 3;
+        const startY = 430;
+        const itemHeight = 40;
 
-        if (buttons.create.contains(pos.x, pos.y)) {
-            this.createRoom();
-        } else if (buttons.join.contains(pos.x, pos.y)) {
-            this.state = GameState.JOIN_ROOM;
-            this.lobbyUI.roomCodeInput.clear();
-        } else if (buttons.back.contains(pos.x, pos.y)) {
-            this.state = GameState.LOBBY;
-        }
-    }
-
-    createRoom() {
-        this.isHost = true;
-        this.lobbyUI.roomCode = generateRoomCode();
-        this.state = GameState.WAITING;
-        this.lobbyUI.connectionStatus = 'waiting';
-
-        // In real implementation, this would create a Firebase room
-        console.log('Room created:', this.lobbyUI.roomCode);
-    }
-
-    // ========== JOIN ROOM SCREEN ==========
-    handleJoinRoomInput(key) {
-        const input = this.lobbyUI.roomCodeInput;
-
-        if (key === 'Escape') {
-            this.state = GameState.CREATE_ROOM;
-            input.clear();
-        } else if (key === 'Backspace') {
-            input.removeChar();
-        } else if (key === 'Enter' && input.isComplete()) {
-            this.joinRoom();
-        } else if (key.length === 1) {
-            input.addChar(key);
-        }
-    }
-
-    processJoinRoomClick(pos) {
-        const buttons = this.lobbyUI.buttons.joinRoom;
-
-        if (buttons.join.contains(pos.x, pos.y) && this.lobbyUI.roomCodeInput.isComplete()) {
-            this.joinRoom();
-        } else if (buttons.back.contains(pos.x, pos.y)) {
-            this.state = GameState.CREATE_ROOM;
-            this.lobbyUI.roomCodeInput.clear();
-        }
-    }
-
-    joinRoom() {
-        this.isHost = false;
-        this.lobbyUI.roomCode = this.lobbyUI.roomCodeInput.value;
-        this.state = GameState.CONNECTING;
-        this.lobbyUI.connectionStatus = 'connecting';
-
-        // In real implementation, this would join a Firebase room
-        console.log('Joining room:', this.lobbyUI.roomCode);
-
-        // Simulate connection (for demo)
-        setTimeout(() => {
-            this.state = GameState.READY_CHECK;
-            this.lobbyUI.setOpponentConnected(true);
-        }, 2000);
-    }
-
-    // ========== WAITING SCREEN ==========
-    handleWaitingInput(key) {
-        if (key === 'Escape') {
-            this.cancelRoom();
-        }
-    }
-
-    processWaitingClick(pos) {
-        const buttons = this.lobbyUI.buttons.waiting;
-
-        if (buttons.cancel.contains(pos.x, pos.y)) {
-            this.cancelRoom();
-        }
-    }
-
-    cancelRoom() {
-        this.state = GameState.CREATE_ROOM;
-        this.lobbyUI.roomCode = '';
-        this.lobbyUI.connectionStatus = 'idle';
-    }
-
-    // ========== READY CHECK SCREEN ==========
-    handleReadyCheckInput(key) {
-        if (key === 'Enter' || key === ' ') {
-            this.toggleReady();
-        } else if (key === 'Escape') {
-            this.state = GameState.LOBBY;
-        }
-    }
-
-    processReadyCheckClick(pos) {
-        const buttons = this.lobbyUI.buttons.readyCheck;
-
-        if (buttons.ready.contains(pos.x, pos.y)) {
-            this.toggleReady();
-        }
-    }
-
-    toggleReady() {
-        this.lobbyUI.playerReady = !this.lobbyUI.playerReady;
-
-        // Check if both players are ready
-        if (this.lobbyUI.playerReady && this.lobbyUI.opponentReady) {
-            if (this.isHost) {
-                this.state = GameState.STAGE_SELECT;
-            } else {
-                // Wait for host to select stage
-                this.state = GameState.WAITING;
-                this.lobbyUI.connectionStatus = 'stage_select';
+        for (let i = 0; i < menuItems; i++) {
+            const itemY = startY + i * itemHeight - 20;
+            if (x >= 250 && x <= 550 && y >= itemY && y <= itemY + itemHeight) {
+                this.menuSelection = i;
+                SoundManager.playMenuSelect();
+                switch (i) {
+                    case 0: // Rematch
+                        this.startBattle();
+                        break;
+                    case 1: // Change Settings
+                        this.state = GameState.SETUP;
+                        SoundManager.playBGM('title');
+                        break;
+                    case 2: // Title
+                        this.state = GameState.TITLE;
+                        this.menuSelection = 0;
+                        SoundManager.playBGM('title');
+                        break;
+                }
+                return;
             }
         }
     }
 
-    // ========== GAME LOOP ==========
-    gameLoop(timestamp = 0) {
-        const deltaTime = timestamp - this.lastTime;
+    async loadResources() {
+        // Simulate loading
+        const loadingProgress = document.getElementById('loading-progress');
 
-        if (deltaTime >= FRAME_DURATION) {
-            this.lastTime = timestamp;
-            this.animationFrame++;
+        // Load high-quality sprites (parallel with progress bar)
+        console.log('🎨 Loading high-quality sprites...');
+        const spriteLoadPromise = SpriteLoader.loadAll();
 
-            this.update();
-            this.render();
+        for (let i = 0; i <= 80; i += 10) {
+            loadingProgress.style.width = i + '%';
+            await new Promise(r => setTimeout(r, 50));
         }
 
-        requestAnimationFrame((t) => this.gameLoop(t));
+        // Wait for sprites to finish loading
+        await spriteLoadPromise;
+        loadingProgress.style.width = '100%';
+        await new Promise(r => setTimeout(r, 100));
+
+        // Hide loading screen
+        document.getElementById('loading').style.display = 'none';
+
+        // Resize canvas for mobile (including orientation changes)
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+        window.addEventListener('orientationchange', () => {
+            // Delay to allow browser to complete rotation
+            setTimeout(() => this.resizeCanvas(), 100);
+        });
+
+        // Start game
+        this.state = GameState.TITLE;
+        // Start title BGM (will only play after user interaction)
+        SoundManager.playBGM('title');
+        this.start();
     }
 
-    update() {
-        this.lobbyUI.update();
+    resizeCanvas() {
+        const isMobileDevice = isMobile();
+
+        // Get available space (full screen on mobile, with minimal padding)
+        const padding = isMobileDevice ? 0 : 10;
+        const availWidth = window.innerWidth - padding * 2;
+        const availHeight = window.innerHeight - padding * 2;
+
+        // Calculate optimal scale while maintaining aspect ratio
+        const scaleX = availWidth / GAME_WIDTH;
+        const scaleY = availHeight / GAME_HEIGHT;
+        const scale = Math.min(scaleX, scaleY);
+
+        // On mobile, allow larger scale to fill screen better
+        // On desktop, cap at 1.2x to avoid pixelation
+        const maxScale = isMobileDevice ? scale : Math.min(scale, 1.2);
+
+        const canvasWidth = GAME_WIDTH * maxScale;
+        const canvasHeight = GAME_HEIGHT * maxScale;
+
+        this.canvas.style.width = canvasWidth + 'px';
+        this.canvas.style.height = canvasHeight + 'px';
+
+        // Center the canvas
+        this.canvas.style.position = 'absolute';
+        this.canvas.style.left = ((window.innerWidth - canvasWidth) / 2) + 'px';
+        this.canvas.style.top = ((window.innerHeight - canvasHeight) / 2) + 'px';
+
+        console.log(`[Resize] Screen ${window.innerWidth}x${window.innerHeight} -> canvas ${canvasWidth.toFixed(0)}x${canvasHeight.toFixed(0)} (scale: ${maxScale.toFixed(2)})`);
+    }
+
+    start() {
+        requestAnimationFrame((time) => this.loop(time));
+    }
+
+    loop(currentTime) {
+        const deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+
+        this.accumulator += deltaTime;
+
+        // Fixed timestep for physics
+        while (this.accumulator >= FRAME_DURATION) {
+            this.update(FRAME_DURATION);
+            this.accumulator -= FRAME_DURATION;
+        }
+
+        this.render();
+
+        requestAnimationFrame((time) => this.loop(time));
+    }
+
+    update(deltaTime) {
+        this.inputCooldown = Math.max(0, this.inputCooldown - deltaTime);
+
+        switch (this.state) {
+            case GameState.TITLE:
+                this.updateTitle(deltaTime);
+                break;
+            case GameState.SETUP:
+                this.updateSetup(deltaTime);
+                break;
+            case GameState.BATTLE:
+                this.updateBattle(deltaTime);
+                break;
+            case GameState.KO:
+                this.updateKO(deltaTime);
+                break;
+            case GameState.RESULT:
+                this.updateResult(deltaTime);
+                break;
+            case GameState.ONLINE_LOBBY:
+                this.updateOnlineLobby(deltaTime);
+                break;
+            case GameState.ONLINE_WAITING:
+            case GameState.ONLINE_CONNECTING:
+                // Waiting for connection, handled by callbacks
+                break;
+        }
+    }
+
+    updateTitle(deltaTime) {
+        const input = this.input.getInput();
+
+        if (this.inputCooldown > 0) return;
+
+        if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
+            this.menuSelection = Math.max(0, this.menuSelection - 1);
+            this.inputCooldown = 200;
+        }
+        if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
+            this.menuSelection = Math.min(3, this.menuSelection + 1);
+            this.inputCooldown = 200;
+        }
+
+        if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys['Space']) {
+            SoundManager.playMenuSelect();
+            switch (this.menuSelection) {
+                case 0: // VS CPU
+                    this.isOnlineMode = false;
+                    this.state = GameState.SETUP;
+                    break;
+                case 1: // Online Battle
+                    this.isOnlineMode = true;
+                    this.state = GameState.ONLINE_LOBBY;
+                    this.onlineLobbySelection = 0;
+                    break;
+                case 2: // How to Play - just start for now
+                    this.isOnlineMode = false;
+                    this.state = GameState.SETUP;
+                    break;
+                case 3: // Credits - just start
+                    this.isOnlineMode = false;
+                    this.state = GameState.SETUP;
+                    break;
+            }
+            this.inputCooldown = 200;
+        }
+    }
+
+    updateSetup(deltaTime) {
+        const input = this.input.getInput();
+
+        if (this.inputCooldown > 0) return;
+
+        // Navigate parameters
+        if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
+            this.setupSelection = Math.max(0, this.setupSelection - 1);
+            this.inputCooldown = 150;
+        }
+        if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
+            this.setupSelection = Math.min(7, this.setupSelection + 1);
+            this.inputCooldown = 150;
+        }
+
+        // Adjust values
+        if (input.moveX < -0.5 || this.input.keys['ArrowLeft']) {
+            this.adjustSetup(-1);
+            this.inputCooldown = 150;
+        }
+        if (input.moveX > 0.5 || this.input.keys['ArrowRight']) {
+            this.adjustSetup(1);
+            this.inputCooldown = 150;
+        }
+
+        // Start battle
+        if (this.setupSelection === 7 && (input.shoot || input.jump || this.input.keys['Enter'])) {
+            this.startBattle();
+            this.inputCooldown = 200;
+        }
+
+        // Back to title
+        if (this.input.keys['Escape']) {
+            console.log('[DEBUG] ESC pressed! Returning to title');
+            SoundManager.playMenuSelect();
+            this.state = GameState.TITLE;
+            this.menuSelection = 0;
+            SoundManager.playBGM('title');
+            this.inputCooldown = 200;
+        }
+    }
+
+    adjustSetup(direction) {
+        const params = this.settings.playerParams;
+        const total = params.jump + params.walk + params.beam + params.kick;
+
+        switch (this.setupSelection) {
+            case 0: // JUMP
+                if (direction > 0 && total < 20 && params.jump < 10) params.jump++;
+                if (direction < 0 && params.jump > 1) params.jump--;
+                break;
+            case 1: // WALK
+                if (direction > 0 && total < 20 && params.walk < 10) params.walk++;
+                if (direction < 0 && params.walk > 1) params.walk--;
+                break;
+            case 2: // BEAM
+                if (direction > 0 && total < 20 && params.beam < 10) params.beam++;
+                if (direction < 0 && params.beam > 1) params.beam--;
+                break;
+            case 3: // KICK
+                if (direction > 0 && total < 20 && params.kick < 10) params.kick++;
+                if (direction < 0 && params.kick > 1) params.kick--;
+                break;
+            case 4: // Stage
+                this.settings.stage = (this.settings.stage + direction + STAGES.length) % STAGES.length;
+                break;
+            case 5: // Difficulty
+                const difficulties = ['easy', 'normal', 'hard'];
+                const currentIdx = difficulties.indexOf(this.settings.difficulty);
+                const newIdx = (currentIdx + direction + 3) % 3;
+                this.settings.difficulty = difficulties[newIdx];
+                break;
+            case 6: // Items Mode
+                this.settings.itemsMode = !this.settings.itemsMode;
+                break;
+        }
+    }
+
+    startBattle() {
+        console.log('[DEBUG] startBattle() called!');
+        console.log('[DEBUG] Current state before:', this.state);
+        console.log('[DEBUG] isHost:', this.isHost, 'isOnlineMode:', this.isOnlineMode);
+        this.currentStage = this.settings.stage;
+        const stage = STAGES[this.currentStage];
+
+        // Create player
+        console.log(`[DEBUG] Creating PLAYER robot at x=${stage.spawnPoints.player.x}, isPlayer=true, color=red`);
+        this.player = new Robot(
+            stage.spawnPoints.player.x,
+            stage.spawnPoints.player.y,
+            true,
+            'red'
+        );
+        console.log(`[DEBUG] PLAYER created: isPlayer=${this.player.isPlayer}, color=${this.player.color}, x=${this.player.x}`);
+        this.player.setParameters(
+            this.settings.playerParams.jump,
+            this.settings.playerParams.walk,
+            this.settings.playerParams.beam,
+            this.settings.playerParams.kick
+        );
+
+        // Create enemy
+        console.log(`[DEBUG] Creating ENEMY robot at x=${stage.spawnPoints.enemy.x}, isPlayer=false, color=blue`);
+        this.enemy = new Robot(
+            stage.spawnPoints.enemy.x,
+            stage.spawnPoints.enemy.y,
+            false,
+            'blue'
+        );
+        console.log(`[DEBUG] ENEMY created: isPlayer=${this.enemy.isPlayer}, color=${this.enemy.color}, x=${this.enemy.x}`);
+
+        // Random enemy parameters
+        const enemyTotal = 20;
+        const dist = [5, 5, 5, 5];
+        for (let i = 0; i < enemyTotal - 20; i++) {
+            dist[Math.floor(Math.random() * 4)]++;
+        }
+        this.enemy.setParameters(dist[0], dist[1], dist[2], dist[3]);
+
+        // Create AI or NetworkPlayer
+        if (this.isOnlineMode && this.onlineController) {
+            // Online mode: use NetworkPlayer for opponent
+            this.ai = this.onlineController.createNetworkPlayer(this.enemy);
+            console.log('[Online] Using NetworkPlayer for opponent');
+
+            // If host, signal battle start to client
+            if (this.isHost) {
+                this.onlineController.sendBattleStart({
+                    stage: this.currentStage,
+                    difficulty: this.settings.difficulty,
+                    playerParams: this.settings.playerParams,
+                    itemsMode: this.settings.itemsMode  // Sync Items Mode setting
+                });
+                console.log('[HOST] Sent battle settings to client:', {
+                    stage: this.currentStage,
+                    difficulty: this.settings.difficulty,
+                    itemsMode: this.settings.itemsMode
+                });
+            }
+        } else {
+            // CPU mode: use EnemyAI
+            this.ai = new EnemyAI(this.enemy);
+            this.ai.setDifficulty(this.settings.difficulty);
+        }
+
+        // Clear projectiles and effects
+        this.beams = [];
+        this.effects = [];
+        ParticleSystem.clear();
+
+        // Reset Items Mode state
+        this.activeItems = [];
+        this.itemSpawnTimer = 0;
+        this.activeWarpZones = [];
+        this.warpSpawnTimer = 0;
+
+        this.winner = null;
+        this.state = GameState.BATTLE;
+
+        // Start battle BGM
+        SoundManager.playBGM('battle');
+
+        console.log('[DEBUG] State changed to:', this.state);
+        console.log('[DEBUG] Player created at:', this.player.x, this.player.y);
+        console.log('[DEBUG] Enemy created at:', this.enemy.x, this.enemy.y);
+    }
+
+    updateBattle(deltaTime) {
+        // Update input states for charge detection
+        this.input.updateInputStates();
+
+        const input = this.input.getInput();
+        const stage = STAGES[this.currentStage];
+
+        // Pause
+        if (this.input.keys['Escape'] || this.input.keys['KeyP']) {
+            this.state = GameState.PAUSED;
+            this.inputCooldown = 200;
+            return;
+        }
+
+        // =====================================================
+        // ONLINE MODE: Client only sends input, doesn't process locally
+        // =====================================================
+        if (this.isOnlineMode && this.onlineController && !this.isHost) {
+            // Client: Send input to host, skip local processing
+            if (this.onlineController.isConnected) {
+                const networkInput = {
+                    left: input.moveX < -0.5,
+                    right: input.moveX > 0.5,
+                    // Use edge-triggered jumpDown for network (prevents continuous jumping)
+                    jump: input.jumpDown,  // Only true on press, not during hold
+                    // Charge beam support: send separate states
+                    shoot: input.shoot,
+                    shootDown: input.shootDown,  // Charge start
+                    shootUp: input.shootUp,      // Charge release
+                    kick: input.kick
+                };
+                // Debug: Log when one-frame events are sent
+                if (networkInput.jump || networkInput.shootDown || networkInput.shootUp) {
+                    console.log('[Client] Sending input:', networkInput);
+                }
+                this.onlineController.sendInput(networkInput);
+            }
+            // Client still needs to update physics for smooth display
+            // BUT preserve synced state values (don't let Robot.update reset them)
+            const playerState = {
+                state: this.player.state,
+                isCharging: this.player.isCharging,
+                chargeLevel: this.player.chargeLevel,
+                facingRight: this.player.facingRight
+            };
+            const enemyState = {
+                state: this.enemy.state,
+                isCharging: this.enemy.isCharging,
+                chargeLevel: this.enemy.chargeLevel,
+                facingRight: this.enemy.facingRight
+            };
+
+            this.player.update(deltaTime, stage.platforms);
+            this.enemy.update(deltaTime, stage.platforms);
+
+            // Restore synced state (HOST is authoritative)
+            this.player.state = playerState.state;
+            this.player.isCharging = playerState.isCharging;
+            this.player.chargeLevel = playerState.chargeLevel;
+            this.player.facingRight = playerState.facingRight;
+            this.enemy.state = enemyState.state;
+            this.enemy.isCharging = enemyState.isCharging;
+            this.enemy.chargeLevel = enemyState.chargeLevel;
+            this.enemy.facingRight = enemyState.facingRight;
+            // Update beams (for visual only)
+            for (const beam of this.beams) {
+                beam.update();
+            }
+            this.beams = this.beams.filter(b => b.active);
+            // Update effects
+            for (const effect of this.effects) {
+                effect.update();
+            }
+            this.effects = this.effects.filter(e => e.active);
+            ParticleSystem.update();
+            ScreenEffects.update();
+            return; // Skip all other processing for client
+        }
+
+        // =====================================================
+        // HOST or CPU mode: Normal processing below
+        // =====================================================
+
+        // Player input
+        this.player.move(input.moveX);
+
+        // Face direction logic: ALWAYS face opponent
+        // This gives a fighting game feel where you always watch your enemy
+        // When moving toward enemy = walk forward, when moving away = walk backward
+        if (this.enemy) {
+            this.player.facingRight = this.enemy.x > this.player.x;
+        }
+
+        if (input.jump) {
+            this.player.jump();
+        }
+
+        // Charge beam mechanics
+        if (input.shootDown) {
+            // Start charging when button pressed
+            this.player.startCharging();
+        }
+
+        if (this.player.isCharging) {
+            // Always face enemy while charging (critical for beam direction)
+            if (this.enemy) {
+                this.player.facingRight = this.enemy.x > this.player.x;
+            }
+
+            // Update charge level while holding
+            this.player.updateCharge();
+
+            // Release charged beam when button released
+            if (input.shootUp) {
+                // Face enemy before firing (ensure correct beam direction)
+                if (this.enemy) {
+                    this.player.facingRight = this.enemy.x > this.player.x;
+                }
+
+                // Check if enemy is close - if so, kick instead of beam
+                const distanceToEnemy = Math.abs(this.player.x - this.enemy.x);
+                const heightDiff = Math.abs(this.player.y - this.enemy.y);
+                const kickRange = 60; // Range for kick-on-beam
+                const heightThreshold = 50;
+
+                if (distanceToEnemy < kickRange && heightDiff < heightThreshold && this.player.kickCooldown <= 0) {
+                    // Close range: Kick instead of beam
+                    this.player.cancelCharge();
+
+                    if (this.player.kick(this.enemy)) {
+                        const knockbackDir = this.player.facingRight ? 1 : -1;
+                        const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
+                        this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
+                        SoundManager.playKick();
+
+                        if (died) {
+                            this.triggerKO('player', this.enemy);
+                            return;
+                        }
+                    }
+                } else {
+                    // Normal range: Fire charged beam
+                    this.player.releaseChargedBeam(this.beams);
+                }
+            }
+        }
+
+        if (input.kick) {
+            // Face enemy before kicking
+            if (this.enemy) {
+                this.player.facingRight = this.enemy.x > this.player.x;
+            }
+            if (this.player.kick(this.enemy)) {
+                const knockbackDir = this.player.facingRight ? 1 : -1;
+                const died = this.enemy.takeDamage(this.player.kickDamage, knockbackDir);
+                this.effects.push(new Effect(this.enemy.x + this.enemy.width/2, this.enemy.y + this.enemy.height/2, 'hit'));
+                SoundManager.playKick();
+
+                if (died) {
+                    this.triggerKO('player', this.enemy);
+                    return;
+                }
+            }
+        }
+
+        // AI update
+        this.ai.update(deltaTime, this.player, this.beams);
+
+        // AI kick check
+        if (this.ai.currentAction === 'kick') {
+            if (this.enemy.kick(this.player)) {
+                const knockbackDir = this.enemy.facingRight ? 1 : -1;
+                const died = this.player.takeDamage(this.enemy.kickDamage, knockbackDir);
+                this.effects.push(new Effect(this.player.x + this.player.width/2, this.player.y + this.player.height/2, 'hit'));
+
+                // AI kick sound
+                SoundManager.playKick();
+
+                if (died) {
+                    this.triggerKO('enemy', this.player);
+                    return;
+                }
+            }
+        }
+
+        // Update robots
+        this.player.update(deltaTime, stage.platforms);
+        this.enemy.update(deltaTime, stage.platforms);
+
+        // Post-update: Ensure correct facing direction during charge (HOST)
+        // This must be after Robot.update() to prevent any accidental resets
+        if (this.player.isCharging && this.enemy) {
+            this.player.facingRight = this.enemy.x > this.player.x;
+        }
+
+        // Update beams
+        for (const beam of this.beams) {
+            beam.update();
+
+            // Check collision with player
+            if (beam.owner === 'enemy' && checkCollision(beam, this.player)) {
+                beam.active = false;
+                const knockbackDir = beam.direction;
+                const died = this.player.takeDamage(beam.damage, knockbackDir);
+                this.effects.push(new Effect(beam.x, beam.y, 'hit'));
+
+                // Beam hit sound and effects
+                SoundManager.playBeamHit();
+                ScreenEffects.flash('#ff0000', 0.2);
+
+                if (died) {
+                    this.triggerKO('enemy', this.player);
+                    return;
+                }
+            }
+
+            // Check collision with enemy
+            if (beam.owner === 'player' && checkCollision(beam, this.enemy)) {
+                beam.active = false;
+                const knockbackDir = beam.direction;
+                const died = this.enemy.takeDamage(beam.damage, knockbackDir);
+                this.effects.push(new Effect(beam.x, beam.y, 'hit'));
+
+                // Beam hit sound and effects
+                SoundManager.playBeamHit();
+                ScreenEffects.flash('#0066ff', 0.2);
+
+                if (died) {
+                    this.triggerKO('player', this.enemy);
+                    return;
+                }
+            }
+        }
+
+        // Remove inactive beams
+        this.beams = this.beams.filter(b => b.active);
+
+        // ====================================================================
+        // ITEMS MODE: Zone and Item Processing
+        // ====================================================================
+        if (this.settings.itemsMode) {
+            // Update powerups for both robots
+            this.player.updatePowerups();
+            this.enemy.updatePowerups();
+
+            // Update warp cooldowns
+            if (this.player.warpCooldown > 0) {
+                this.player.warpCooldown -= deltaTime;
+            }
+            if (this.enemy.warpCooldown > 0) {
+                this.enemy.warpCooldown -= deltaTime;
+            }
+
+            // Check warp zones (dynamic only - static zones removed for better UX)
+            const activeWarps = (this.activeWarpZones || []).filter(w => w.isActive);
+            for (const warp of activeWarps) {
+                // Player warp check (only if cooldown is 0 and warp is active)
+                if (this.player.warpCooldown <= 0 && this.checkZoneCollision(this.player, warp.entry)) {
+                    this.teleportRobot(this.player, warp.exit);
+                }
+                // Enemy warp check (only if cooldown is 0 and warp is active)
+                if (this.enemy.warpCooldown <= 0 && this.checkZoneCollision(this.enemy, warp.entry)) {
+                    this.teleportRobot(this.enemy, warp.exit);
+                }
+            }
+
+            // Check death zones
+            for (const death of stage.deathZones) {
+                // Player death zone check
+                if (this.checkZoneCollision(this.player, death)) {
+                    // Instant KO from death zone (unless shield is active)
+                    if (!this.player.powerups.shield.active) {
+                        this.player.hp = 0;
+                        ScreenEffects.flash('#ff0000', 0.6);
+                        this.triggerKO('enemy', this.player);
+                        return;
+                    }
+                }
+                // Enemy death zone check
+                if (this.checkZoneCollision(this.enemy, death)) {
+                    if (!this.enemy.powerups.shield.active) {
+                        this.enemy.hp = 0;
+                        ScreenEffects.flash('#0066ff', 0.6);
+                        this.triggerKO('player', this.enemy);
+                        return;
+                    }
+                }
+            }
+
+            // Item spawning
+            this.itemSpawnTimer += deltaTime;
+            if (this.itemSpawnTimer >= ITEMS.spawnInterval && stage.itemSpawns.length > 0) {
+                this.itemSpawnTimer = 0;
+                // Pick random spawn point
+                const spawnPoint = stage.itemSpawns[Math.floor(Math.random() * stage.itemSpawns.length)];
+                // Pick random item type from that spawn point's available types
+                const itemType = spawnPoint.types[Math.floor(Math.random() * spawnPoint.types.length)];
+                this.activeItems.push(new Item(spawnPoint.x - 16, spawnPoint.y - 16, itemType));
+            }
+
+            // Dynamic warp zone spawning (UX optimized: less frequent, with warning)
+            this.warpSpawnTimer += deltaTime;
+            const warpInterval = ITEMS.warpZone.spawnIntervalMin +
+                Math.random() * (ITEMS.warpZone.spawnIntervalMax - ITEMS.warpZone.spawnIntervalMin);
+            const maxWarpZones = ITEMS.warpZone.maxActive || 1;
+            if (this.warpSpawnTimer >= warpInterval && this.activeWarpZones.length < maxWarpZones) {
+                this.warpSpawnTimer = 0;
+                // Generate random entry and exit positions on platforms
+                const platforms = stage.platforms.filter(p => p.width >= 80); // Need space for warp zone
+                if (platforms.length >= 2) {
+                    const shuffled = platforms.sort(() => Math.random() - 0.5);
+                    const entryPlatform = shuffled[0];
+                    const exitPlatform = shuffled[1];
+
+                    const warpWidth = ITEMS.warpZone.width;
+                    const warpHeight = ITEMS.warpZone.height;
+
+                    // Entry zone (random position on platform)
+                    const entryX = entryPlatform.x + Math.random() * (entryPlatform.width - warpWidth);
+                    const entryY = entryPlatform.y - warpHeight;
+
+                    // Exit zone (random position on different platform)
+                    const exitX = exitPlatform.x + Math.random() * (exitPlatform.width - warpWidth);
+                    const exitY = exitPlatform.y - warpHeight;
+
+                    this.activeWarpZones.push({
+                        entry: { x: entryX, y: entryY, w: warpWidth, h: warpHeight },
+                        exit: { x: exitX + warpWidth/2, y: exitY + warpHeight/2 },
+                        spawnTime: Date.now(),
+                        warningTime: ITEMS.warpZone.warningTime || 1500,
+                        lifetime: ITEMS.warpZone.lifetime,
+                        isActive: false  // Starts in warning state
+                    });
+
+                    // Visual effect for warning (spawn preview)
+                    ParticleSystem.warpEffect(entryX + warpWidth/2, entryY + warpHeight/2, 'in');
+                }
+            }
+
+            // Update warp zones: handle warning → active transition and expiration
+            const now = Date.now();
+            this.activeWarpZones = this.activeWarpZones.filter(warp => {
+                const age = now - warp.spawnTime;
+
+                // Transition from warning to active state
+                if (!warp.isActive && age >= warp.warningTime) {
+                    warp.isActive = true;
+                    // Visual effect when becoming active
+                    ParticleSystem.warpEffect(warp.entry.x + warp.entry.w/2, warp.entry.y + warp.entry.h/2, 'in');
+                }
+
+                // Remove expired warp zones
+                if (age >= warp.lifetime + warp.warningTime) {
+                    // Visual effect on despawn
+                    ParticleSystem.warpEffect(warp.entry.x + warp.entry.w/2, warp.entry.y + warp.entry.h/2, 'out');
+                    return false;
+                }
+                return true;
+            });
+
+            // Update and check item collisions
+            for (const item of this.activeItems) {
+                item.update();
+
+                // Player item pickup
+                if (item.active && checkCollision(item, this.player)) {
+                    item.active = false;
+                    this.player.applyPowerup(item.type);
+                    SoundManager.playItemPickup();
+                    // Visual feedback
+                    ParticleSystem.itemPickup(item.x + item.width/2, item.y + item.height/2, item.type);
+                }
+
+                // Enemy item pickup
+                if (item.active && checkCollision(item, this.enemy)) {
+                    item.active = false;
+                    this.enemy.applyPowerup(item.type);
+                    // Visual feedback
+                    ParticleSystem.itemPickup(item.x + item.width/2, item.y + item.height/2, item.type);
+                }
+            }
+
+            // Remove inactive items
+            this.activeItems = this.activeItems.filter(i => i.active);
+        }
+
+        // Update effects
+        for (const effect of this.effects) {
+            effect.update();
+        }
+        this.effects = this.effects.filter(e => e.active);
+
+        // Update particle system and screen effects
+        ParticleSystem.update();
+        ScreenEffects.update();
+
+        // Online mode sync (Host only - client returns early above)
+        if (this.isOnlineMode && this.onlineController && this.onlineController.isConnected && this.isHost) {
+            // Host sends full game state to client
+            this.onlineController.sendGameState({
+                player: {
+                    x: this.player.x,
+                    y: this.player.y,
+                    hp: this.player.hp,
+                    maxHp: this.player.maxHp,
+                    velocityX: this.player.velocityX,
+                    velocityY: this.player.velocityY,
+                    facingRight: this.player.facingRight,
+                    isOnGround: this.player.isOnGround,
+                    state: this.player.state,
+                    isCharging: this.player.isCharging,
+                    chargeLevel: this.player.chargeLevel,
+                    // Powerup states for visual indicators
+                    powerups: {
+                        rapid: { active: this.player.powerups.rapid.active, endTime: this.player.powerups.rapid.endTime },
+                        mega: { active: this.player.powerups.mega.active, endTime: this.player.powerups.mega.endTime },
+                        shield: { active: this.player.powerups.shield.active, endTime: this.player.powerups.shield.endTime }
+                    }
+                },
+                enemy: {
+                    x: this.enemy.x,
+                    y: this.enemy.y,
+                    hp: this.enemy.hp,
+                    maxHp: this.enemy.maxHp,
+                    velocityX: this.enemy.velocityX,
+                    velocityY: this.enemy.velocityY,
+                    facingRight: this.enemy.facingRight,
+                    isOnGround: this.enemy.isOnGround,
+                    state: this.enemy.state,
+                    isCharging: this.enemy.isCharging,
+                    chargeLevel: this.enemy.chargeLevel,
+                    // Powerup states for visual indicators
+                    powerups: {
+                        rapid: { active: this.enemy.powerups.rapid.active, endTime: this.enemy.powerups.rapid.endTime },
+                        mega: { active: this.enemy.powerups.mega.active, endTime: this.enemy.powerups.mega.endTime },
+                        shield: { active: this.enemy.powerups.shield.active, endTime: this.enemy.powerups.shield.endTime }
+                    }
+                },
+                beams: this.beams.map(b => ({
+                    x: b.x,
+                    y: b.y,
+                    direction: b.direction,
+                    owner: b.owner,  // 'player' or 'enemy' - determines beam color
+                    damage: b.damage,
+                    width: b.width,
+                    height: b.height,
+                    chargeLevel: b.chargeLevel || 0
+                })),
+                // Sync items for client display
+                items: (this.activeItems || []).map(item => ({
+                    x: item.x,
+                    y: item.y,
+                    type: item.type,
+                    active: item.active
+                })),
+                // Sync warp zones for client display (include all properties for rendering)
+                warpZones: (this.activeWarpZones || []).map(warp => ({
+                    entry: warp.entry,
+                    exit: warp.exit,
+                    isActive: warp.isActive,
+                    spawnTime: warp.spawnTime,
+                    lifetime: warp.lifetime,
+                    warningTime: warp.warningTime
+                })),
+                gameState: this.state,
+                winner: this.winner
+            });
+        }
+    }
+
+    // Check if a robot is in a zone (warp entry or death zone)
+    checkZoneCollision(robot, zone) {
+        const robotCenterX = robot.x + robot.width / 2;
+        const robotCenterY = robot.y + robot.height / 2;
+        return robotCenterX >= zone.x &&
+               robotCenterX <= zone.x + zone.w &&
+               robotCenterY >= zone.y &&
+               robotCenterY <= zone.y + zone.h;
+    }
+
+    // Teleport a robot to exit position with visual effect
+    teleportRobot(robot, exit) {
+        // Set warp cooldown to prevent immediate re-warp
+        robot.warpCooldown = 1500; // 1.5 seconds
+
+        // Visual effect at source
+        ParticleSystem.warpEffect(robot.x + robot.width/2, robot.y + robot.height/2, 'out');
+
+        // Move robot
+        robot.x = exit.x - robot.width / 2;
+        robot.y = exit.y - robot.height / 2;
+        robot.velocityY = 0; // Reset falling velocity
+
+        // Visual effect at destination
+        ParticleSystem.warpEffect(robot.x + robot.width/2, robot.y + robot.height/2, 'in');
+
+        // Screen flash
+        ScreenEffects.flash('#9900ff', 0.3);
+    }
+
+    // Render a warp zone (purple portal effect)
+    renderWarpZone(ctx, zone, alpha = 1.0, isWarning = false) {
+        const time = Date.now() * 0.003;
+        const pulseAlpha = (0.3 + Math.sin(time) * 0.15) * alpha;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Different visual style for warning vs active state
+        if (isWarning) {
+            // Warning state: yellow/orange outline, dashed border
+            ctx.shadowColor = 'rgba(255, 200, 0, 0.8)';
+            ctx.shadowBlur = 15 + Math.sin(time * 4) * 10;
+
+            // Dashed border
+            ctx.setLineDash([8, 4]);
+            ctx.strokeStyle = '#ffcc00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+            // Warning label
+            ctx.setLineDash([]);
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 10px Courier New';
+            ctx.fillStyle = '#ffcc00';
+            ctx.textAlign = 'center';
+            const centerX = zone.x + zone.w / 2;
+            ctx.fillText('WARP!', centerX, zone.y - 5);
+        } else {
+            // Active state: full purple portal
+            ctx.shadowColor = ITEMS.warpZone.glowColor;
+            ctx.shadowBlur = 20 + Math.sin(time * 2) * 10;
+
+            // Portal background
+            ctx.fillStyle = `rgba(153, 0, 255, ${pulseAlpha})`;
+            ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+
+            // Border
+            ctx.strokeStyle = ITEMS.warpZone.color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+            // Inner swirl effect (simplified)
+            const centerX = zone.x + zone.w / 2;
+            const centerY = zone.y + zone.h / 2;
+            for (let i = 0; i < 3; i++) {
+                const angle = time * 2 + (i * Math.PI * 2 / 3);
+                const radius = 15 + i * 5;
+                const px = centerX + Math.cos(angle) * radius;
+                const py = centerY + Math.sin(angle) * radius * 0.5;
+
+                ctx.beginPath();
+                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            }
+
+            // WARP label
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 10px Courier New';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText('WARP', centerX, zone.y - 5);
+        }
+
+        ctx.restore();
+    }
+
+    // Render a death zone (red danger area)
+    renderDeathZone(ctx, zone) {
+        const time = Date.now() * 0.004;
+        const flashAlpha = 0.2 + Math.sin(time) * 0.1;
+
+        ctx.save();
+
+        // Danger stripes pattern
+        ctx.fillStyle = `rgba(255, 0, 0, ${flashAlpha})`;
+        ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+
+        // Warning stripes
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
+        ctx.lineWidth = 2;
+        const stripeSpacing = 12;
+        for (let i = 0; i < zone.w + zone.h; i += stripeSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(zone.x + i, zone.y);
+            ctx.lineTo(zone.x + i - zone.h, zone.y + zone.h);
+            ctx.stroke();
+        }
+
+        // Border
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+        // DANGER label
+        ctx.font = 'bold 10px Courier New';
+        ctx.fillStyle = '#ff0000';
+        ctx.textAlign = 'center';
+        ctx.fillText('DANGER', zone.x + zone.w / 2, zone.y - 5);
+
+        ctx.restore();
+    }
+
+    // Render powerup indicators above robot
+    renderPowerupIndicators(ctx, robot) {
+        const now = Date.now();
+        let iconX = robot.x + robot.width / 2 - 30;
+        const iconY = robot.y - 25;
+        const iconSize = 16;
+        const iconSpacing = 20;
+
+        ctx.save();
+
+        // Draw active powerup icons
+        if (robot.powerups.rapid.active) {
+            const remaining = (robot.powerups.rapid.endTime - now) / ITEMS.types.RAPID.duration;
+            this.drawPowerupIcon(ctx, iconX, iconY, 'RAPID', remaining);
+            iconX += iconSpacing;
+        }
+        if (robot.powerups.mega.active) {
+            const remaining = (robot.powerups.mega.endTime - now) / ITEMS.types.MEGA.duration;
+            this.drawPowerupIcon(ctx, iconX, iconY, 'MEGA', remaining);
+            iconX += iconSpacing;
+        }
+        if (robot.powerups.shield.active) {
+            const remaining = (robot.powerups.shield.endTime - now) / ITEMS.types.SHIELD.duration;
+            this.drawPowerupIcon(ctx, iconX, iconY, 'SHIELD', remaining);
+
+            // Draw shield aura around robot
+            ctx.shadowColor = ITEMS.types.SHIELD.glowColor;
+            ctx.shadowBlur = 15;
+            ctx.strokeStyle = ITEMS.types.SHIELD.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(
+                robot.x + robot.width / 2,
+                robot.y + robot.height / 2,
+                robot.width * 0.7,
+                robot.height * 0.6,
+                0, 0, Math.PI * 2
+            );
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    // Draw a single powerup icon with timer bar
+    drawPowerupIcon(ctx, x, y, type, remaining) {
+        const config = ITEMS.types[type];
+        const size = 14;
+
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(x - 2, y - 2, size + 4, size + 6);
+
+        // Icon
+        ctx.fillStyle = config.color;
+        ctx.fillRect(x, y, size, size);
+
+        // Timer bar below
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x, y + size + 1, size, 3);
+        ctx.fillStyle = config.color;
+        ctx.fillRect(x, y + size + 1, size * remaining, 3);
+    }
+
+    updateResult(deltaTime) {
+        const input = this.input.getInput();
+
+        if (this.inputCooldown > 0) return;
+
+        if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
+            this.menuSelection = Math.max(0, this.menuSelection - 1);
+            this.inputCooldown = 200;
+        }
+        if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
+            this.menuSelection = Math.min(2, this.menuSelection + 1);
+            this.inputCooldown = 200;
+        }
+
+        if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys['Space']) {
+            SoundManager.playMenuSelect();
+            switch (this.menuSelection) {
+                case 0: // Rematch
+                    this.startBattle();
+                    break;
+                case 1: // Change Settings
+                    this.state = GameState.SETUP;
+                    SoundManager.playBGM('title');
+                    break;
+                case 2: // Title
+                    this.state = GameState.TITLE;
+                    this.menuSelection = 0;
+                    SoundManager.playBGM('title');
+                    break;
+            }
+            this.inputCooldown = 200;
+        }
+
+        // =====================================================
+        // ONLINE MODE: Sync RESULT state to client (Host only)
+        // =====================================================
+        if (this.isOnlineMode && this.onlineController && this.onlineController.isConnected && this.isHost) {
+            this.onlineController.sendGameState({
+                player: {
+                    x: this.player.x,
+                    y: this.player.y,
+                    hp: this.player.hp,
+                    maxHp: this.player.maxHp
+                },
+                enemy: {
+                    x: this.enemy.x,
+                    y: this.enemy.y,
+                    hp: this.enemy.hp,
+                    maxHp: this.enemy.maxHp
+                },
+                beams: [],
+                gameState: this.state,
+                winner: this.winner
+            });
+        }
+    }
+
+    // KO演出を開始
+    triggerKO(winner, defeatedRobot) {
+        this.winner = winner;
+        this.koTarget = defeatedRobot;
+        this.koTimer = 0;
+        this.koTextScale = 0;
+        this.koEffects = [];
+        this.state = GameState.KO;
+
+        // Stop battle BGM
+        SoundManager.stopBGM();
+
+        // KO sound effect
+        SoundManager.playKO();
+
+        // Screen shake and flash
+        ScreenEffects.shake(15, 30);
+        ScreenEffects.flash('#ffffff', 0.8);
+
+        // Particle explosion
+        ParticleSystem.explosion(
+            defeatedRobot.x + defeatedRobot.width / 2,
+            defeatedRobot.y + defeatedRobot.height / 2
+        );
+
+        // 敗者の位置に爆発エフェクトを大量生成
+        for (let i = 0; i < 8; i++) {
+            const offsetX = (Math.random() - 0.5) * defeatedRobot.width * 1.5;
+            const offsetY = (Math.random() - 0.5) * defeatedRobot.height * 1.5;
+            const effect = new Effect(
+                defeatedRobot.x + defeatedRobot.width / 2 + offsetX,
+                defeatedRobot.y + defeatedRobot.height / 2 + offsetY,
+                'explosion'
+            );
+            effect.maxFrames = 30;  // 長めに表示
+            this.koEffects.push(effect);
+        }
+
+        // Victory/Defeat sound (delayed)
+        setTimeout(() => {
+            if (winner === 'player') {
+                SoundManager.playVictory();
+            } else {
+                SoundManager.playDefeat();
+            }
+        }, 600);
+
+        console.log(`[KO] ${winner} wins! KO演出開始`);
+    }
+
+    // KO演出の更新
+    updateKO(deltaTime) {
+        // =====================================================
+        // ONLINE MODE: Client receives koTimer from host
+        // Only host increments koTimer and controls state transition
+        // =====================================================
+        const isOnlineClient = this.isOnlineMode && this.onlineController && !this.isHost;
+
+        if (!isOnlineClient) {
+            // Host or offline: increment timer normally
+            this.koTimer += deltaTime;
+        }
+        // Client: koTimer is synced from host via applyNetworkState
+
+        // KO!テキストのスケールアニメーション（ズームイン）
+        const scaleProgress = Math.min(this.koTimer / 300, 1);  // 300msでズームイン完了
+        this.koTextScale = scaleProgress * KO_SETTINGS.koTextScale;
+
+        // スローモーションでロボット更新
+        const slowDelta = deltaTime * KO_SETTINGS.slowMotionFactor;
+        const stage = STAGES[this.currentStage];
+        this.player.update(slowDelta, stage.platforms);
+        this.enemy.update(slowDelta, stage.platforms);
+
+        // エフェクト更新
+        for (const effect of this.koEffects) {
+            effect.update();
+        }
+        this.koEffects = this.koEffects.filter(e => e.active);
+
+        // 通常のエフェクトもスロー更新
+        for (const effect of this.effects) {
+            effect.update();
+        }
+        this.effects = this.effects.filter(e => e.active);
+
+        // Update particle system and screen effects
+        ParticleSystem.update();
+        ScreenEffects.update();
+
+        // フリーズ時間終了後、結果画面へ（Hostのみ遷移、Clientはホストから同期）
+        if (!isOnlineClient && this.koTimer >= KO_SETTINGS.freezeTime) {
+            this.state = GameState.RESULT;
+            this.menuSelection = 0;
+            console.log('[KO] 演出終了 → RESULT画面へ');
+        }
+
+        // =====================================================
+        // ONLINE MODE: Sync KO state to client (Host only)
+        // =====================================================
+        if (this.isOnlineMode && this.onlineController && this.onlineController.isConnected && this.isHost) {
+            this.onlineController.sendGameState({
+                player: {
+                    x: this.player.x,
+                    y: this.player.y,
+                    hp: this.player.hp,
+                    maxHp: this.player.maxHp,
+                    velocityX: this.player.velocityX,
+                    velocityY: this.player.velocityY,
+                    facingRight: this.player.facingRight,
+                    isOnGround: this.player.isOnGround,
+                    state: this.player.state,
+                    isCharging: this.player.isCharging,
+                    chargeLevel: this.player.chargeLevel
+                },
+                enemy: {
+                    x: this.enemy.x,
+                    y: this.enemy.y,
+                    hp: this.enemy.hp,
+                    maxHp: this.enemy.maxHp,
+                    velocityX: this.enemy.velocityX,
+                    velocityY: this.enemy.velocityY,
+                    facingRight: this.enemy.facingRight,
+                    isOnGround: this.enemy.isOnGround,
+                    state: this.enemy.state,
+                    isCharging: this.enemy.isCharging,
+                    chargeLevel: this.enemy.chargeLevel
+                },
+                beams: [],
+                gameState: this.state,
+                winner: this.winner,
+                koTimer: this.koTimer
+            });
+        }
     }
 
     render() {
         const ctx = this.ctx;
 
-        // Clear canvas
+        // Clear
         ctx.fillStyle = '#0d0221';
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
@@ -736,512 +4321,1270 @@ class RoboBattleGame {
             case GameState.TITLE:
                 this.renderTitle();
                 break;
-            case GameState.LOBBY:
-                this.renderLobby();
-                break;
-            case GameState.CREATE_ROOM:
-                this.renderCreateRoom();
-                break;
-            case GameState.JOIN_ROOM:
-                this.renderJoinRoom();
-                break;
-            case GameState.WAITING:
-                this.renderWaiting();
-                break;
-            case GameState.CONNECTING:
-                this.renderConnecting();
-                break;
-            case GameState.READY_CHECK:
-                this.renderReadyCheck();
-                break;
             case GameState.SETUP:
                 this.renderSetup();
                 break;
-        }
-    }
-
-    // ========== RENDER METHODS ==========
-
-    renderBackground() {
-        const ctx = this.ctx;
-        const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
-        gradient.addColorStop(0, '#0d0221');
-        gradient.addColorStop(0.5, '#1a0a30');
-        gradient.addColorStop(1, '#0d0221');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-        // Animated grid
-        ctx.strokeStyle = 'rgba(138, 43, 226, 0.1)';
-        ctx.lineWidth = 1;
-
-        const offset = (this.animationFrame * 0.5) % 40;
-
-        for (let x = -40 + offset; x < GAME_WIDTH + 40; x += 40) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, GAME_HEIGHT);
-            ctx.stroke();
-        }
-
-        for (let y = 0; y < GAME_HEIGHT; y += 40) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(GAME_WIDTH, y);
-            ctx.stroke();
+            case GameState.BATTLE:
+                this.renderBattle();
+                break;
+            case GameState.KO:
+                this.renderKO();
+                break;
+            case GameState.RESULT:
+                this.renderResult();
+                break;
+            case GameState.PAUSED:
+                this.renderBattle();
+                this.renderPauseOverlay();
+                break;
+            case GameState.ONLINE_LOBBY:
+                this.renderOnlineLobby();
+                break;
+            case GameState.ONLINE_WAITING:
+            case GameState.ONLINE_CONNECTING:
+                this.renderOnlineWaiting();
+                break;
         }
     }
 
     renderTitle() {
         const ctx = this.ctx;
-        this.renderBackground();
+
+        // Background gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+        gradient.addColorStop(0, '#0d0221');
+        gradient.addColorStop(1, '#1a0a30');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
         // Logo
-        ctx.font = FONTS.title;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        this.ui.drawLogo(GAME_WIDTH / 2, 150);
 
-        // Glow effect
-        ctx.shadowColor = '#FF3333';
+        // Robots (use high-quality sprites if available)
+        const playerSprite = SpriteLoader.getSprite(true, 'idle');
+        const enemySprite = SpriteLoader.getSprite(false, 'idle');
+
+        // Sprite native directions:
+        // - Player (red) sprites face RIGHT natively
+        // - Enemy (blue) sprites face LEFT natively
+        //
+        // Title screen layout:
+        // - Player on left side should face RIGHT (toward enemy) → no flip needed
+        // - Enemy on right side should face LEFT (toward player) → no flip needed (already faces left)
+
+        // Draw player robot (no flip - native right-facing is correct for left side)
+        ctx.save();
+        ctx.shadowColor = '#FF4400';
         ctx.shadowBlur = 20;
-        ctx.fillStyle = '#FF3333';
-        ctx.fillText('ROBO BATTLE', GAME_WIDTH / 2, 120);
+        if (playerSprite) {
+            ctx.drawImage(playerSprite, 100, 210, 180, 240);
+        } else {
+            ctx.drawImage(svgToImage(SPRITES.robotRed), 120, 230, 144, 192);
+        }
+        ctx.restore();
 
-        // V3 badge
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#00FFFF';
-        ctx.font = FONTS.heading;
-        ctx.fillStyle = '#00FFFF';
-        ctx.fillText('V3', GAME_WIDTH / 2 + 180, 100);
-
-        ctx.shadowBlur = 0;
-
-        // Robot silhouettes (placeholder)
-        this.renderRobotSilhouettes();
+        // Draw enemy robot (no flip needed - native left-facing is correct for right side)
+        ctx.save();
+        ctx.shadowColor = '#0066FF';
+        ctx.shadowBlur = 20;
+        if (enemySprite) {
+            ctx.drawImage(enemySprite, 520, 210, 180, 240);
+        } else {
+            ctx.drawImage(svgToImage(SPRITES.robotBlue), 540, 230, 144, 192);
+        }
+        ctx.restore();
 
         // VS
-        ctx.font = 'bold 36px "Courier New", monospace';
-        ctx.fillStyle = '#FFFF00';
-        ctx.fillText('VS', GAME_WIDTH / 2, 280);
+        ctx.font = 'bold 48px Courier New';
+        ctx.fillStyle = '#ffff00';
+        ctx.textAlign = 'center';
+        ctx.fillText('VS', GAME_WIDTH / 2, 330);
 
         // Menu
-        const menuItems = ['START GAME', 'ONLINE', 'HOW TO PLAY'];
-        const startY = 380;
+        const menuItems = ['VS CPU', 'ONLINE BATTLE', 'HOW TO PLAY', 'CREDITS'];
+        const startY = 400;
 
         for (let i = 0; i < menuItems.length; i++) {
             const isSelected = i === this.menuSelection;
-            const y = startY + i * 45;
-
-            ctx.font = isSelected ? 'bold 22px "Courier New", monospace' : '18px "Courier New", monospace';
-            ctx.fillStyle = isSelected ? '#FFFF00' : '#888888';
-
-            if (isSelected) {
-                ctx.shadowColor = '#FFFF00';
-                ctx.shadowBlur = 10;
-            }
-
-            const prefix = isSelected ? '> ' : '  ';
-            ctx.fillText(prefix + menuItems[i], GAME_WIDTH / 2, y);
-
-            ctx.shadowBlur = 0;
+            ctx.font = isSelected ? 'bold 20px Courier New' : '18px Courier New';
+            ctx.fillStyle = isSelected ? '#ffff00' : '#888888';
+            ctx.fillText((isSelected ? '> ' : '  ') + menuItems[i], GAME_WIDTH / 2, startY + i * 40);
         }
 
         // Instructions
-        ctx.font = FONTS.small;
+        ctx.font = '14px Courier New';
         ctx.fillStyle = '#666666';
-        ctx.fillText('Arrow Keys / WASD to navigate, SPACE to select', GAME_WIDTH / 2, GAME_HEIGHT - 30);
-    }
-
-    renderRobotSilhouettes() {
-        const ctx = this.ctx;
-
-        // Player robot (red glow)
-        ctx.save();
-        ctx.shadowColor = '#FF4400';
-        ctx.shadowBlur = 15;
-        ctx.fillStyle = '#FF3333';
-        this.drawRobotShape(180, 200, 100, 130, 1);
-        ctx.restore();
-
-        // Enemy robot (blue glow)
-        ctx.save();
-        ctx.shadowColor = '#0066FF';
-        ctx.shadowBlur = 15;
-        ctx.fillStyle = '#3366FF';
-        this.drawRobotShape(520, 200, 100, 130, -1);
-        ctx.restore();
-    }
-
-    drawRobotShape(x, y, width, height, direction) {
-        const ctx = this.ctx;
-
-        // Head
-        ctx.fillRect(x + width * 0.3, y, width * 0.4, height * 0.25);
-
-        // Body
-        ctx.fillRect(x + width * 0.25, y + height * 0.25, width * 0.5, height * 0.4);
-
-        // Arms
-        ctx.fillRect(x, y + height * 0.3, width * 0.25, height * 0.25);
-        ctx.fillRect(x + width * 0.75, y + height * 0.3, width * 0.25, height * 0.25);
-
-        // Legs
-        ctx.fillRect(x + width * 0.25, y + height * 0.65, width * 0.2, height * 0.35);
-        ctx.fillRect(x + width * 0.55, y + height * 0.65, width * 0.2, height * 0.35);
-
-        // Eyes
-        ctx.fillStyle = '#FFFF00';
-        const eyeSize = width * 0.08;
-        ctx.fillRect(x + width * 0.35, y + height * 0.08, eyeSize, eyeSize);
-        ctx.fillRect(x + width * 0.57, y + height * 0.08, eyeSize, eyeSize);
-    }
-
-    renderLobby() {
-        const ctx = this.ctx;
-        this.renderBackground();
-
-        // Title
-        ctx.font = FONTS.heading;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('ROBO BATTLE V3', GAME_WIDTH / 2, 80);
-
-        // Subtitle
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#00FFFF';
-        ctx.fillText('Select Game Mode', GAME_WIDTH / 2, 130);
-
-        // Decorative line
-        ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(GAME_WIDTH / 2 - 150, 160);
-        ctx.lineTo(GAME_WIDTH / 2 + 150, 160);
-        ctx.stroke();
-
-        // Buttons
-        const buttons = this.lobbyUI.buttons.lobby;
-        buttons.online.render(ctx);
-        buttons.vsCpu.render(ctx);
-        buttons.back.render(ctx);
-
-        // Mode descriptions
-        ctx.font = FONTS.small;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('Battle against players online', GAME_WIDTH / 2, 330);
-        ctx.fillText('Practice against CPU opponent', GAME_WIDTH / 2, 420);
-    }
-
-    renderCreateRoom() {
-        const ctx = this.ctx;
-        this.renderBackground();
-
-        // Title
-        ctx.font = FONTS.heading;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00FF88';
-        ctx.fillText('ONLINE BATTLE', GAME_WIDTH / 2, 80);
-
-        // Subtitle
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('Create or Join a Room', GAME_WIDTH / 2, 130);
-
-        // Decorative line
-        ctx.strokeStyle = 'rgba(0, 255, 136, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(GAME_WIDTH / 2 - 150, 160);
-        ctx.lineTo(GAME_WIDTH / 2 + 150, 160);
-        ctx.stroke();
-
-        // Buttons
-        const buttons = this.lobbyUI.buttons.createRoom;
-        buttons.create.render(ctx);
-        buttons.join.render(ctx);
-        buttons.back.render(ctx);
-
-        // Button descriptions
-        ctx.font = FONTS.small;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('Host a new game room', GAME_WIDTH / 2, 330);
-        ctx.fillText('Enter a room code to join', GAME_WIDTH / 2, 420);
-    }
-
-    renderJoinRoom() {
-        const ctx = this.ctx;
-        this.renderBackground();
-
-        // Title
-        ctx.font = FONTS.heading;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#0088FF';
-        ctx.fillText('JOIN ROOM', GAME_WIDTH / 2, 80);
-
-        // Instructions
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('Enter Room Code:', GAME_WIDTH / 2, 200);
-
-        // Room code input
-        this.lobbyUI.roomCodeInput.render(ctx);
-
-        // Keyboard hint
-        ctx.font = FONTS.small;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('Type 6-character code (A-Z, 0-9)', GAME_WIDTH / 2, 330);
-
-        // Buttons
-        const buttons = this.lobbyUI.buttons.joinRoom;
-        buttons.join.disabled = !this.lobbyUI.roomCodeInput.isComplete();
-        buttons.join.render(ctx);
-        buttons.back.render(ctx);
-
-        // Error message
-        if (this.lobbyUI.errorMessage) {
-            ctx.font = FONTS.body;
-            ctx.fillStyle = COLORS.error;
-            ctx.fillText(this.lobbyUI.errorMessage, GAME_WIDTH / 2, 520);
-        }
-    }
-
-    renderWaiting() {
-        const ctx = this.ctx;
-        this.renderBackground();
-
-        // Title
-        ctx.font = FONTS.heading;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#FFFF00';
-        ctx.fillText('WAITING FOR OPPONENT', GAME_WIDTH / 2, 80);
-
-        // Room code display
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('Room Code:', GAME_WIDTH / 2, 180);
-
-        // Large room code
-        ctx.save();
-        ctx.shadowColor = '#00FFFF';
-        ctx.shadowBlur = 15;
-        ctx.font = 'bold 48px "Courier New", monospace';
-        ctx.fillStyle = '#00FFFF';
-        ctx.fillText(this.lobbyUI.roomCode, GAME_WIDTH / 2, 240);
-        ctx.restore();
-
-        // Share instruction
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('Share this code with your opponent!', GAME_WIDTH / 2, 300);
-
-        // Waiting animation
-        const dots = this.lobbyUI.getLoadingDots();
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#FFFF00';
-        ctx.fillText('Waiting for player' + dots, GAME_WIDTH / 2, 380);
-
-        // Connection animation (pulsing circles)
-        this.renderConnectionAnimation(GAME_WIDTH / 2, 420);
-
-        // Cancel button
-        this.lobbyUI.buttons.waiting.cancel.render(ctx);
-    }
-
-    renderConnecting() {
-        const ctx = this.ctx;
-        this.renderBackground();
-
-        // Title
-        ctx.font = FONTS.heading;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00FFFF';
-        ctx.fillText('CONNECTING', GAME_WIDTH / 2, 200);
-
-        // Loading animation
-        const dots = this.lobbyUI.getLoadingDots();
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('Establishing P2P connection' + dots, GAME_WIDTH / 2, 260);
-
-        // Connection visualization
-        this.renderP2PAnimation();
-
-        // Status
-        ctx.font = FONTS.small;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('Exchanging signaling data via Firebase', GAME_WIDTH / 2, 450);
-    }
-
-    renderP2PAnimation() {
-        const ctx = this.ctx;
-        const centerY = 350;
-        const leftX = 250;
-        const rightX = 550;
-
-        // Left node (You)
-        ctx.beginPath();
-        ctx.arc(leftX, centerY, 30, 0, Math.PI * 2);
-        ctx.fillStyle = '#FF3333';
-        ctx.fill();
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.font = FONTS.small;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'center';
-        ctx.fillText('YOU', leftX, centerY + 60);
-
-        // Right node (Opponent)
-        ctx.beginPath();
-        ctx.arc(rightX, centerY, 30, 0, Math.PI * 2);
-        ctx.fillStyle = '#3366FF';
-        ctx.fill();
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.fillText('OPPONENT', rightX, centerY + 60);
-
-        // Animated connection line
-        const progress = (this.animationFrame % 60) / 60;
-        const dashOffset = progress * 40;
-
-        ctx.setLineDash([10, 10]);
-        ctx.lineDashOffset = -dashOffset;
-        ctx.strokeStyle = '#00FFFF';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(leftX + 35, centerY);
-        ctx.lineTo(rightX - 35, centerY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    renderReadyCheck() {
-        const ctx = this.ctx;
-        this.renderBackground();
-
-        // Title
-        ctx.font = FONTS.heading;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00FF00';
-        ctx.fillText('CONNECTED!', GAME_WIDTH / 2, 80);
-
-        // Room code
-        ctx.font = FONTS.small;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('Room: ' + this.lobbyUI.roomCode, GAME_WIDTH / 2, 120);
-
-        // Player boxes
-        const boxWidth = 200;
-        const boxHeight = 180;
-        const boxY = 180;
-        const spacing = 80;
-
-        // Player box
-        const playerX = GAME_WIDTH / 2 - boxWidth - spacing / 2;
-        this.renderPlayerBox(playerX, boxY, boxWidth, boxHeight, 'YOU', true, this.lobbyUI.playerReady);
-
-        // Opponent box
-        const opponentX = GAME_WIDTH / 2 + spacing / 2;
-        this.renderPlayerBox(opponentX, boxY, boxWidth, boxHeight, 'OPPONENT', this.lobbyUI.opponentConnected, this.lobbyUI.opponentReady);
-
-        // Ready button
-        const readyBtn = this.lobbyUI.buttons.readyCheck.ready;
-        readyBtn.text = this.lobbyUI.playerReady ? 'READY!' : 'PRESS TO READY';
-        readyBtn.color = this.lobbyUI.playerReady ? '#00AA00' : COLORS.online;
-        readyBtn.render(ctx);
-
-        // Status message
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#FFFF00';
-        if (this.lobbyUI.playerReady && !this.lobbyUI.opponentReady) {
-            ctx.fillText('Waiting for opponent to ready...', GAME_WIDTH / 2, 500);
-        } else if (!this.lobbyUI.playerReady && this.lobbyUI.opponentReady) {
-            ctx.fillText('Opponent is ready! Press READY to start', GAME_WIDTH / 2, 500);
-        } else if (this.lobbyUI.playerReady && this.lobbyUI.opponentReady) {
-            ctx.fillText('Both ready! Starting battle...', GAME_WIDTH / 2, 500);
-        }
-    }
-
-    renderPlayerBox(x, y, width, height, label, connected, ready) {
-        const ctx = this.ctx;
-
-        // Box background
-        ctx.fillStyle = connected ? 'rgba(0, 100, 0, 0.3)' : 'rgba(50, 50, 50, 0.3)';
-        ctx.fillRect(x, y, width, height);
-
-        // Box border
-        ctx.strokeStyle = connected ? (ready ? '#00FF00' : '#FFFF00') : '#666666';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
-
-        // Label
-        ctx.font = FONTS.subheading;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = connected ? '#FFFFFF' : '#666666';
-        ctx.fillText(label, x + width / 2, y + 30);
-
-        // Robot icon or waiting
-        if (connected) {
-            // Simple robot icon
-            ctx.fillStyle = label === 'YOU' ? '#FF3333' : '#3366FF';
-            this.drawRobotShape(x + width / 2 - 40, y + 50, 80, 80, 1);
-        } else {
-            ctx.font = FONTS.body;
-            ctx.fillStyle = '#666666';
-            ctx.fillText('Waiting...', x + width / 2, y + height / 2);
-        }
-
-        // Ready status
-        if (connected) {
-            ctx.font = FONTS.body;
-            if (ready) {
-                ctx.fillStyle = '#00FF00';
-                ctx.fillText('READY', x + width / 2, y + height - 20);
-            } else {
-                ctx.fillStyle = '#FFFF00';
-                ctx.fillText('NOT READY', x + width / 2, y + height - 20);
-            }
-        }
-    }
-
-    renderConnectionAnimation(x, y) {
-        const ctx = this.ctx;
-        const time = this.animationFrame * 0.1;
-
-        for (let i = 0; i < 3; i++) {
-            const phase = (time + i * 0.7) % 3;
-            const alpha = 1 - (phase / 3);
-            const radius = 10 + phase * 15;
-
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
+        ctx.fillText('Use Arrow Keys / WASD to navigate, SPACE to select', GAME_WIDTH / 2, GAME_HEIGHT - 30);
     }
 
     renderSetup() {
         const ctx = this.ctx;
-        this.renderBackground();
+        const params = this.settings.playerParams;
+        const total = params.jump + params.walk + params.beam + params.kick;
+
+        // Background
+        ctx.fillStyle = '#0d0221';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
         // Title
-        ctx.font = FONTS.heading;
+        ctx.font = 'bold 24px Courier New';
+        ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('ROBOT CUSTOMIZATION', GAME_WIDTH / 2, 80);
+        ctx.fillText('ROBOT CUSTOMIZATION', GAME_WIDTH / 2, 50);
 
-        // Placeholder for setup screen
-        ctx.font = FONTS.body;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('(Setup screen - inherited from V2)', GAME_WIDTH / 2, GAME_HEIGHT / 2);
+        // Points remaining
+        ctx.font = '18px Courier New';
+        ctx.fillStyle = total <= 20 ? '#00ff00' : '#ff0000';
+        ctx.fillText(`Points: ${total}/20`, GAME_WIDTH / 2, 80);
 
-        ctx.font = FONTS.small;
+        // Parameters
+        const paramNames = ['JUMP', 'WALK', 'BEAM', 'KICK'];
+        const paramValues = [params.jump, params.walk, params.beam, params.kick];
+        const startY = 130;
+
+        for (let i = 0; i < 4; i++) {
+            const isSelected = i === this.setupSelection;
+            const y = startY + i * 60;
+
+            // Label
+            ctx.font = isSelected ? 'bold 18px Courier New' : '16px Courier New';
+            ctx.fillStyle = isSelected ? '#ffff00' : '#ffffff';
+            ctx.textAlign = 'left';
+            ctx.fillText(paramNames[i], 200, y);
+
+            // Value bar
+            const barX = 300;
+            const barWidth = 200;
+            const barHeight = 20;
+
+            ctx.fillStyle = '#333';
+            ctx.fillRect(barX, y - 15, barWidth, barHeight);
+
+            const fillColor = isSelected ? '#ffff00' : '#00ff00';
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(barX + 2, y - 13, (barWidth - 4) * (paramValues[i] / 10), barHeight - 4);
+
+            ctx.strokeStyle = isSelected ? '#ffff00' : '#666';
+            ctx.lineWidth = isSelected ? 2 : 1;
+            ctx.strokeRect(barX, y - 15, barWidth, barHeight);
+
+            // Value
+            ctx.textAlign = 'right';
+            ctx.fillStyle = isSelected ? '#ffff00' : '#ffffff';
+            ctx.fillText(paramValues[i].toString(), 550, y);
+
+            // Arrows
+            if (isSelected) {
+                ctx.fillText('< >', 590, y);
+            }
+        }
+
+        // Stage selection
+        const stageY = startY + 4 * 60 + 20;
+        const isStageSelected = this.setupSelection === 4;
+        ctx.font = isStageSelected ? 'bold 18px Courier New' : '16px Courier New';
+        ctx.fillStyle = isStageSelected ? '#ffff00' : '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.fillText('STAGE', 200, stageY);
+        ctx.textAlign = 'right';
+        const stageName = `${this.settings.stage + 1}. ${STAGES[this.settings.stage].displayName}`;
+        ctx.fillText(stageName, 550, stageY);
+        if (isStageSelected) ctx.fillText('< >', 590, stageY);
+
+        // Difficulty
+        const diffY = stageY + 50;
+        const isDiffSelected = this.setupSelection === 5;
+        ctx.font = isDiffSelected ? 'bold 18px Courier New' : '16px Courier New';
+        ctx.fillStyle = isDiffSelected ? '#ffff00' : '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.fillText('DIFFICULTY', 200, diffY);
+        ctx.textAlign = 'right';
+        ctx.fillText(this.settings.difficulty.toUpperCase(), 550, diffY);
+        if (isDiffSelected) ctx.fillText('< >', 590, diffY);
+
+        // Items Mode toggle
+        const itemsY = diffY + 50;
+        const isItemsSelected = this.setupSelection === 6;
+        ctx.font = isItemsSelected ? 'bold 18px Courier New' : '16px Courier New';
+        ctx.fillStyle = isItemsSelected ? '#ffff00' : '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.fillText('ITEMS MODE', 200, itemsY);
+        ctx.textAlign = 'right';
+
+        // Show ON/OFF with color coding
+        if (this.settings.itemsMode) {
+            ctx.fillStyle = isItemsSelected ? '#00ff00' : '#00cc00';
+            ctx.fillText('ON', 550, itemsY);
+        } else {
+            ctx.fillStyle = isItemsSelected ? '#ff6666' : '#888888';
+            ctx.fillText('OFF', 550, itemsY);
+        }
+        if (isItemsSelected) {
+            ctx.fillStyle = isItemsSelected ? '#ffff00' : '#ffffff';
+            ctx.fillText('< >', 590, itemsY);
+        }
+
+        // Items Mode description (when selected)
+        if (isItemsSelected) {
+            ctx.font = '12px Courier New';
+            ctx.fillStyle = '#9900ff';
+            ctx.textAlign = 'center';
+            ctx.fillText('ワープゾーン・デスゾーン・回復アイテム・特殊武器が出現！', GAME_WIDTH / 2, itemsY + 22);
+        }
+
+        // Buttons row
+        const btnY = GAME_HEIGHT - 80;
+
+        // BACK button (left side)
+        const backBtnX = GAME_WIDTH / 2 - 220;
+        const isBackSelected = this.setupSelection === 8;
+        ctx.fillStyle = isBackSelected ? '#666666' : '#444444';
+        ctx.fillRect(backBtnX, btnY, 100, 50);
+        ctx.strokeStyle = isBackSelected ? '#ffffff' : '#888888';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(backBtnX, btnY, 100, 50);
+        ctx.font = 'bold 16px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('BACK', backBtnX + 50, btnY + 32);
+
+        // START BATTLE button (right side)
+        const startBtnX = GAME_WIDTH / 2 - 100;
+        const isStartSelected = this.setupSelection === 7;
+        ctx.fillStyle = isStartSelected ? '#0088ff' : '#0066cc';
+        ctx.fillRect(startBtnX, btnY, 200, 50);
+        ctx.strokeStyle = isStartSelected ? '#00ffff' : '#00aaff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(startBtnX, btnY, 200, 50);
+        ctx.font = 'bold 20px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('START BATTLE', GAME_WIDTH / 2, btnY + 32);
+
+        // Instructions
+        ctx.font = '14px Courier New';
         ctx.fillStyle = '#666666';
-        ctx.fillText('Press ESC to go back', GAME_WIDTH / 2, GAME_HEIGHT - 30);
+        ctx.fillText('Arrow Keys to adjust, ESC to go back', GAME_WIDTH / 2, GAME_HEIGHT - 20);
+    }
+
+    renderBattle() {
+        const ctx = this.ctx;
+        const stage = STAGES[this.currentStage];
+
+        // Apply screen shake
+        const shake = ScreenEffects.getShakeOffset();
+        ctx.save();
+        ctx.translate(shake.x, shake.y);
+
+        // Background - Use AI-generated image if available
+        const bgImage = SpriteLoader.getBackground(stage.name);
+        if (bgImage) {
+            // Draw photorealistic AI-generated background
+            ctx.drawImage(bgImage, -shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
+            // Add slight darkening overlay for better robot visibility
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(-shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
+        } else {
+            // Fallback to solid color + procedural elements
+            ctx.fillStyle = stage.bgColor;
+            ctx.fillRect(-shake.x, -shake.y, GAME_WIDTH + Math.abs(shake.x) * 2, GAME_HEIGHT + Math.abs(shake.y) * 2);
+            // Draw stage-specific background elements
+            this.renderStageBackground(stage);
+        }
+
+        // Draw platforms
+        for (const platform of stage.platforms) {
+            ctx.fillStyle = platform.type === 'solid' ? '#4d4d6a' : 'rgba(77, 77, 106, 0.6)';
+            ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+
+            // Platform top highlight
+            ctx.fillStyle = platform.type === 'solid' ? '#6d6d8a' : 'rgba(109, 109, 138, 0.6)';
+            ctx.fillRect(platform.x, platform.y, platform.width, 4);
+        }
+
+        // ====================================================================
+        // ITEMS MODE: Draw Zones and Items
+        // ====================================================================
+        if (this.settings.itemsMode) {
+            // Draw death zones (red danger areas)
+            for (const death of stage.deathZones) {
+                this.renderDeathZone(ctx, death);
+            }
+
+            // Draw dynamic warp zones (static zones removed for better UX)
+            for (const warp of (this.activeWarpZones || [])) {
+                const age = Date.now() - warp.spawnTime;
+                const totalLifetime = warp.lifetime + warp.warningTime;
+                const fadeStart = totalLifetime - 1500; // Start fading 1.5s before despawn
+
+                let alpha = 1.0;
+                let isWarning = !warp.isActive;
+
+                // Fade out near end
+                if (age > fadeStart) {
+                    alpha = 1.0 - (age - fadeStart) / 1500;
+                }
+
+                // During warning: blink effect
+                if (isWarning) {
+                    const blinkRate = 8; // Blinks per second
+                    const blink = Math.sin(age * 0.001 * blinkRate * Math.PI * 2);
+                    alpha = 0.3 + blink * 0.3; // Pulsing between 0.0 and 0.6
+                }
+
+                this.renderWarpZone(ctx, warp.entry, alpha, isWarning);
+            }
+
+            // Draw items
+            for (const item of this.activeItems) {
+                item.render(ctx);
+            }
+
+            // Draw powerup indicators on robots
+            this.renderPowerupIndicators(ctx, this.player);
+            this.renderPowerupIndicators(ctx, this.enemy);
+        }
+
+        // Draw beams
+        for (const beam of this.beams) {
+            beam.render(ctx);
+        }
+
+        // Draw robots
+        this.player.render(ctx);
+        this.enemy.render(ctx);
+
+        // Draw charge indicator if player is charging
+        if (this.player.isCharging) {
+            this.renderChargeIndicator(ctx, this.player);
+        }
+
+        // Draw charge indicator if enemy is charging (important for online mode)
+        if (this.enemy.isCharging) {
+            this.renderChargeIndicator(ctx, this.enemy);
+        }
+
+        // Draw effects
+        for (const effect of this.effects) {
+            effect.render(ctx);
+        }
+
+        // HUD
+        // Player HP
+        this.ui.drawHPBar(20, 20, 180, 25, this.player.hp, this.player.maxHp, '#ff3333');
+        ctx.font = '12px Courier New';
+        ctx.fillStyle = '#ff3333';
+        ctx.textAlign = 'left';
+        ctx.fillText('PLAYER', 20, 60);
+
+        // Enemy HP
+        this.ui.drawHPBar(GAME_WIDTH - 200, 20, 180, 25, this.enemy.hp, this.enemy.maxHp, '#3333ff');
+        ctx.fillStyle = '#3333ff';
+        ctx.textAlign = 'right';
+        ctx.fillText('CPU', GAME_WIDTH - 20, 60);
+
+        // Stage name
+        ctx.font = '16px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText(stage.displayName, GAME_WIDTH / 2, 35);
+
+        // Draw particles
+        ParticleSystem.render(ctx);
+
+        // Debug labels removed for production
+
+        // Restore from shake transform
+        ctx.restore();
+
+        // Draw screen flash (outside shake transform)
+        ScreenEffects.renderFlash(ctx);
+    }
+
+    renderChargeIndicator(ctx, robot) {
+        const chargeLevel = robot.chargeLevel;
+        const centerX = robot.x + robot.width / 2;
+        const centerY = robot.y + robot.height / 2;
+
+        // Determine color based on charge level
+        let color, glowColor;
+        if (chargeLevel >= 1.0) {
+            color = '#ff0000';
+            glowColor = 'rgba(255, 0, 0, 0.5)';
+        } else if (chargeLevel >= 0.66) {
+            color = '#ff6600';
+            glowColor = 'rgba(255, 102, 0, 0.4)';
+        } else if (chargeLevel >= 0.33) {
+            color = '#ffff00';
+            glowColor = 'rgba(255, 255, 0, 0.3)';
+        } else {
+            color = '#00ffff';
+            glowColor = 'rgba(0, 255, 255, 0.2)';
+        }
+
+        // Draw pulsing aura
+        const pulsePhase = (Date.now() % 500) / 500;
+        const pulseSize = 1 + Math.sin(pulsePhase * Math.PI * 2) * 0.2;
+        const auraRadius = (40 + chargeLevel * 30) * pulseSize;
+
+        ctx.save();
+
+        // Outer glow
+        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, auraRadius);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        gradient.addColorStop(0.5, glowColor);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, auraRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Charge bar below robot
+        const barWidth = 60;
+        const barHeight = 8;
+        const barX = centerX - barWidth / 2;
+        const barY = robot.y + robot.height + 10;
+
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+
+        // Border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+
+        // Fill
+        ctx.fillStyle = color;
+        ctx.fillRect(barX, barY, barWidth * chargeLevel, barHeight);
+
+        // MAX text when fully charged
+        if (chargeLevel >= 1.0) {
+            // Flashing effect
+            const flashAlpha = 0.5 + Math.sin(Date.now() / 100) * 0.5;
+
+            ctx.font = 'bold 16px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 0, ${flashAlpha})`;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText('MAX!', centerX, barY - 5);
+            ctx.fillText('MAX!', centerX, barY - 5);
+
+            // Electric sparks around the robot
+            for (let i = 0; i < 3; i++) {
+                const sparkAngle = Math.random() * Math.PI * 2;
+                const sparkDist = 30 + Math.random() * 20;
+                const sparkX = centerX + Math.cos(sparkAngle) * sparkDist;
+                const sparkY = centerY + Math.sin(sparkAngle) * sparkDist;
+
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(sparkX, sparkY);
+                ctx.lineTo(sparkX + (Math.random() - 0.5) * 15, sparkY + (Math.random() - 0.5) * 15);
+                ctx.stroke();
+            }
+        }
+
+        ctx.restore();
+    }
+
+    renderStageBackground(stage) {
+        const ctx = this.ctx;
+
+        switch (stage.name) {
+            case 'Urban City':
+                // Buildings
+                ctx.fillStyle = '#2d2d44';
+                ctx.fillRect(50, 200, 80, 320);
+                ctx.fillRect(150, 150, 100, 370);
+                ctx.fillRect(550, 180, 90, 340);
+                ctx.fillRect(660, 220, 100, 300);
+                // Windows
+                ctx.fillStyle = '#ffff00';
+                for (let i = 0; i < 5; i++) {
+                    ctx.fillRect(60, 220 + i * 50, 15, 20);
+                    ctx.fillRect(560, 200 + i * 50, 15, 20);
+                }
+                break;
+
+            case 'Pyramid':
+                // Sun
+                ctx.fillStyle = '#ffcc00';
+                ctx.beginPath();
+                ctx.arc(100, 100, 50, 0, Math.PI * 2);
+                ctx.fill();
+                // Pyramid silhouette
+                ctx.fillStyle = '#d4a574';
+                ctx.beginPath();
+                ctx.moveTo(200, 520);
+                ctx.lineTo(400, 100);
+                ctx.lineTo(600, 520);
+                ctx.closePath();
+                ctx.fill();
+                break;
+
+            case 'Parthenon':
+                // Clouds
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(100, 80, 30, 0, Math.PI * 2);
+                ctx.arc(130, 80, 40, 0, Math.PI * 2);
+                ctx.arc(170, 80, 30, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+
+            case 'Factory':
+                // Gears
+                ctx.strokeStyle = '#95a5a6';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(350, 300, 80, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(500, 350, 60, 0, Math.PI * 2);
+                ctx.stroke();
+                // Smoke stacks
+                ctx.fillStyle = '#bdc3c7';
+                ctx.fillRect(100, 100, 20, 100);
+                ctx.fillRect(700, 50, 20, 150);
+                break;
+
+            case 'Cave':
+                // Crystals
+                ctx.fillStyle = 'rgba(0, 255, 204, 0.4)';
+                ctx.beginPath();
+                ctx.moveTo(150, 150);
+                ctx.lineTo(170, 250);
+                ctx.lineTo(130, 250);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.4)';
+                ctx.beginPath();
+                ctx.moveTo(600, 100);
+                ctx.lineTo(620, 200);
+                ctx.lineTo(580, 200);
+                ctx.closePath();
+                ctx.fill();
+                // Stalactites
+                ctx.fillStyle = '#444';
+                for (let i = 0; i < 10; i++) {
+                    const x = 50 + i * 80;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x + 15, 40 + Math.random() * 30);
+                    ctx.lineTo(x - 15, 40 + Math.random() * 30);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                break;
+
+            case 'Neo City':
+                // Neon buildings
+                ctx.fillStyle = '#1a0a30';
+                ctx.fillRect(30, 180, 100, 420);
+                ctx.fillRect(160, 120, 120, 480);
+                ctx.fillRect(320, 80, 150, 520);
+                ctx.fillRect(510, 150, 110, 450);
+                ctx.fillRect(660, 200, 100, 400);
+                // Neon lights
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillRect(35, 200, 20, 30);
+                ctx.fillStyle = '#00ffff';
+                ctx.fillRect(180, 180, 30, 40);
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillRect(340, 120, 40, 50);
+                // Flying cars (lines)
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(200, 100);
+                ctx.lineTo(400, 80);
+                ctx.stroke();
+                break;
+        }
+    }
+
+    renderPauseOverlay() {
+        const ctx = this.ctx;
+
+        // Dim background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // Pause text
+        ctx.font = 'bold 48px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAUSED', GAME_WIDTH / 2, GAME_HEIGHT / 2);
+
+        ctx.font = '18px Courier New';
+        ctx.fillText('Press ESC or P to resume', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
+    }
+
+    // KO演出の描画
+    renderKO() {
+        const ctx = this.ctx;
+
+        // まず通常のバトル画面を描画
+        this.renderBattle();
+
+        // 画面全体を少し暗くする（フラッシュ効果）
+        const flashProgress = Math.min(this.koTimer / 200, 1);
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 * (1 - flashProgress)})`;
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // KOエフェクトを描画
+        for (const effect of this.koEffects) {
+            effect.render(ctx);
+        }
+
+        // KO!テキスト（スケールアニメーション付き）
+        if (this.koTextScale > 0) {
+            ctx.save();
+            ctx.translate(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50);
+            ctx.scale(this.koTextScale, this.koTextScale);
+
+            // 外枠
+            ctx.font = 'bold 72px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 8;
+            ctx.strokeText('KO!', 0, 0);
+
+            // グラデーション塗り
+            const gradient = ctx.createLinearGradient(-80, -40, 80, 40);
+            gradient.addColorStop(0, '#FF0000');
+            gradient.addColorStop(0.5, '#FFFF00');
+            gradient.addColorStop(1, '#FF0000');
+            ctx.fillStyle = gradient;
+            ctx.fillText('KO!', 0, 0);
+
+            // ハイライト
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.strokeText('KO!', 0, 0);
+
+            ctx.restore();
+        }
+
+        // 勝者表示（少し遅れて表示）
+        if (this.koTimer > 500) {
+            const winnerText = this.winner === 'player' ? 'YOU WIN!' : 'CPU WINS!';
+            const winnerColor = this.winner === 'player' ? '#FF3333' : '#3333FF';
+
+            ctx.font = 'bold 36px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = winnerColor;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.fillText(winnerText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
+            ctx.strokeText(winnerText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
+        }
+    }
+
+    renderResult() {
+        const ctx = this.ctx;
+
+        // Background
+        ctx.fillStyle = '#0d0221';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // Winner announcement
+        const isPlayerWinner = this.winner === 'player';
+
+        ctx.font = 'bold 48px Courier New';
+        ctx.fillStyle = isPlayerWinner ? '#ff3333' : '#3333ff';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.fillText(isPlayerWinner ? 'YOU WIN!' : 'YOU LOSE...', GAME_WIDTH / 2, 100);
+        ctx.strokeText(isPlayerWinner ? 'YOU WIN!' : 'YOU LOSE...', GAME_WIDTH / 2, 100);
+
+        // Get sprites for both robots
+        // Winner: idle/standing, Loser: ko
+        const winnerSprite = SpriteLoader.getSprite(isPlayerWinner, 'idle');
+        const loserSprite = SpriteLoader.getSprite(!isPlayerWinner, 'ko');
+
+        // Robot positions - winner on left, loser on right
+        const winnerX = 120;
+        const loserX = 480;
+        const robotY = 140;
+        const robotWidth = 180;
+        const robotHeight = 240;
+
+        // Draw winner robot (standing, idle state)
+        ctx.save();
+        ctx.shadowColor = isPlayerWinner ? '#FF4400' : '#0066FF';
+        ctx.shadowBlur = 25;
+
+        if (winnerSprite) {
+            // Sprite native directions:
+            // - Player (red) faces RIGHT, Enemy (blue) faces LEFT
+            // Winner should face toward center (toward loser)
+            if (isPlayerWinner) {
+                // Player won - red robot on left, should face RIGHT (native) → no flip
+                ctx.drawImage(winnerSprite, winnerX, robotY, robotWidth, robotHeight);
+            } else {
+                // Enemy won - blue robot on left, should face RIGHT → flip needed
+                ctx.save();
+                ctx.translate(winnerX + robotWidth / 2, robotY + robotHeight / 2);
+                ctx.scale(-1, 1);
+                ctx.drawImage(winnerSprite, -robotWidth / 2, -robotHeight / 2, robotWidth, robotHeight);
+                ctx.restore();
+            }
+        }
+        ctx.restore();
+
+        // Draw "WINNER" label above winner
+        ctx.font = 'bold 18px Courier New';
+        ctx.fillStyle = '#ffff00';
+        ctx.fillText('WINNER', winnerX + robotWidth / 2, robotY - 10);
+
+        // Draw loser robot (KO state, lying down)
+        ctx.save();
+        ctx.shadowColor = !isPlayerWinner ? '#FF4400' : '#0066FF';
+        ctx.shadowBlur = 15;
+        ctx.globalAlpha = 0.8;  // Slightly faded
+
+        if (loserSprite) {
+            // Loser should face toward center (toward winner)
+            if (!isPlayerWinner) {
+                // Player lost - red robot on right, should face LEFT → flip needed
+                ctx.save();
+                ctx.translate(loserX + robotWidth / 2, robotY + robotHeight / 2);
+                ctx.scale(-1, 1);
+                ctx.drawImage(loserSprite, -robotWidth / 2, -robotHeight / 2, robotWidth, robotHeight);
+                ctx.restore();
+            } else {
+                // Enemy lost - blue robot on right, should face LEFT (native) → no flip
+                ctx.drawImage(loserSprite, loserX, robotY, robotWidth, robotHeight);
+            }
+        }
+        ctx.restore();
+
+        // Draw "K.O." label above loser
+        ctx.font = 'bold 18px Courier New';
+        ctx.fillStyle = '#ff0000';
+        ctx.fillText('K.O.', loserX + robotWidth / 2, robotY - 10);
+
+        // VS text between robots
+        ctx.font = 'bold 36px Courier New';
+        ctx.fillStyle = '#888888';
+        ctx.fillText('VS', GAME_WIDTH / 2, robotY + robotHeight / 2);
+
+        // Menu
+        const menuItems = ['REMATCH', 'CHANGE SETTINGS', 'TITLE'];
+        const startY = 430;
+
+        for (let i = 0; i < menuItems.length; i++) {
+            const isSelected = i === this.menuSelection;
+            ctx.font = isSelected ? 'bold 20px Courier New' : '18px Courier New';
+            ctx.fillStyle = isSelected ? '#ffff00' : '#888888';
+            ctx.fillText((isSelected ? '> ' : '  ') + menuItems[i], GAME_WIDTH / 2, startY + i * 40);
+        }
+    }
+
+    // ========================================================================
+    // ONLINE MODE METHODS
+    // ========================================================================
+
+    updateOnlineLobby(deltaTime) {
+        const input = this.input.getInput();
+        if (this.inputCooldown > 0) return;
+
+        // Navigate
+        if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
+            this.onlineLobbySelection = Math.max(0, this.onlineLobbySelection - 1);
+            this.inputCooldown = 200;
+        }
+        if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
+            this.onlineLobbySelection = Math.min(2, this.onlineLobbySelection + 1);
+            this.inputCooldown = 200;
+        }
+
+        // Select
+        if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys['Space']) {
+            this.handleOnlineLobbySelect();
+            this.inputCooldown = 300;
+        }
+    }
+
+    handleOnlineLobbyClick(x, y) {
+        // Button positions (same as renderOnlineLobby)
+        const buttons = [
+            { label: 'CREATE ROOM', y: 280 },
+            { label: 'JOIN ROOM', y: 350 },
+            { label: 'BACK', y: 500 }
+        ];
+
+        for (let i = 0; i < buttons.length; i++) {
+            const btnY = buttons[i].y;
+            if (y >= btnY && y <= btnY + 50 && x >= GAME_WIDTH/2 - 120 && x <= GAME_WIDTH/2 + 120) {
+                this.onlineLobbySelection = i;
+                this.handleOnlineLobbySelect();
+                break;
+            }
+        }
+    }
+
+    async handleOnlineLobbySelect() {
+        SoundManager.playMenuSelect();
+
+        switch (this.onlineLobbySelection) {
+            case 0: // Create Room
+                await this.createOnlineRoom();
+                break;
+            case 1: // Join Room
+                await this.joinOnlineRoom();
+                break;
+            case 2: // Back
+                this.isOnlineMode = false;
+                this.state = GameState.TITLE;
+                this.menuSelection = 0;
+                break;
+        }
+    }
+
+    async createOnlineRoom() {
+        this.onlineStatus = 'Creating room...';
+        this.state = GameState.ONLINE_WAITING;
+
+        try {
+            if (!this.onlineController) {
+                this.onlineController = new OnlineModeController(this);
+            }
+            this.setupOnlineCallbacks();
+            this.roomCode = await this.onlineController.createRoom();
+            this.isHost = true;
+            this.onlineStatus = `Room: ${this.roomCode}\nWaiting for opponent...`;
+        } catch (e) {
+            console.error('[Online] Create room failed:', e);
+            this.onlineStatus = 'Failed to create room.\nCheck your connection.';
+            setTimeout(() => {
+                this.state = GameState.ONLINE_LOBBY;
+            }, 2000);
+        }
+    }
+
+    async joinOnlineRoom() {
+        const code = prompt('Enter 6-digit Room Code:');
+        if (!code) {
+            return;  // User cancelled
+        }
+
+        // Clean up input: remove spaces, get only digits
+        const cleanCode = code.replace(/\s/g, '').replace(/\D/g, '');
+
+        if (cleanCode.length !== 6) {
+            this.onlineStatus = 'Invalid code (need 6 digits)';
+            return;
+        }
+
+        this.roomCodeInput = cleanCode;
+        this.onlineStatus = 'Joining room...';
+        this.state = GameState.ONLINE_CONNECTING;
+
+        try {
+            if (!this.onlineController) {
+                this.onlineController = new OnlineModeController(this);
+            }
+            this.setupOnlineCallbacks();
+            await this.onlineController.joinRoom(this.roomCodeInput);
+            this.isHost = false;
+            this.roomCode = this.roomCodeInput;
+            this.onlineStatus = `Joined: ${this.roomCode}\nConnecting...`;
+        } catch (e) {
+            console.error('[Online] Join room failed:', e);
+            this.onlineStatus = e.message || 'Failed to join room';
+            setTimeout(() => {
+                this.state = GameState.ONLINE_LOBBY;
+            }, 2000);
+        }
+    }
+
+    setupOnlineCallbacks() {
+        // Called when P2P connection is established
+        this.onOnlineConnected = () => {
+            console.log('[Online] Connected! Starting battle...');
+            this.onlineStatus = 'Connected! Starting battle...';
+
+            setTimeout(() => {
+                this.state = GameState.SETUP;
+            }, 1000);
+        };
+
+        // Called when connection is lost
+        this.onOnlineDisconnected = () => {
+            console.log('[Online] Disconnected');
+            this.onlineStatus = 'Connection lost';
+            this.state = GameState.ONLINE_LOBBY;
+            if (this.onlineController) {
+                this.onlineController.disconnect();
+                this.onlineController = null;
+            }
+        };
+
+        // Called when opponent signals battle start (for client)
+        this.onNetworkBattleStart = (data) => {
+            console.log('[Online] Battle start signal received', data);
+            console.log('[CLIENT] About to call startBattle() - isHost:', this.isHost);
+
+            // Apply ALL settings from HOST before starting battle
+            // Stage/Background
+            if (data.stage !== undefined) {
+                this.settings.stage = data.stage;
+                console.log('[CLIENT] Stage set to:', this.settings.stage);
+            }
+            // Difficulty
+            if (data.difficulty !== undefined) {
+                this.settings.difficulty = data.difficulty;
+                console.log('[CLIENT] Difficulty set to:', this.settings.difficulty);
+            }
+            // Items Mode
+            if (data.itemsMode !== undefined) {
+                this.settings.itemsMode = data.itemsMode;
+                console.log('[CLIENT] Items Mode set to:', this.settings.itemsMode);
+            }
+
+            console.log('[CLIENT] Applied host settings:', {
+                stage: this.settings.stage,
+                difficulty: this.settings.difficulty,
+                itemsMode: this.settings.itemsMode
+            });
+
+            // Client receives battle start from host
+            this.startBattle();
+            // DEBUG: Verify robot creation on CLIENT side
+            console.log('[CLIENT] After startBattle():');
+            console.log(`[CLIENT] this.player: isPlayer=${this.player?.isPlayer}, color=${this.player?.color}, x=${this.player?.x}`);
+            console.log(`[CLIENT] this.enemy: isPlayer=${this.enemy?.isPlayer}, color=${this.enemy?.color}, x=${this.enemy?.x}`);
+        };
+
+        // Apply network state (client only)
+        this.applyNetworkState = (state) => {
+            if (this.isHost) return; // Host controls state
+
+            // DEBUG: Log robot position verification (periodically)
+            if (Math.random() < 0.02) { // 2% chance to log (reduce spam)
+                console.log('[CLIENT] State sync - Robots:');
+                console.log(`[CLIENT] state.player.x=${Math.round(state.player?.x)}, state.enemy.x=${Math.round(state.enemy?.x)}`);
+                console.log(`[CLIENT] this.player.isPlayer=${this.player?.isPlayer}, this.enemy.isPlayer=${this.enemy?.isPlayer}`);
+            }
+
+            // Update player robot (host's robot - red)
+            if (this.player && state.player) {
+                this.player.x = state.player.x;
+                this.player.y = state.player.y;
+                this.player.hp = state.player.hp;
+                this.player.velocityX = state.player.velocityX || 0;
+                this.player.velocityY = state.player.velocityY || 0;
+                this.player.facingRight = state.player.facingRight;
+                this.player.isOnGround = state.player.isOnGround;
+                if (state.player.state) this.player.state = state.player.state;
+                // Sync charge state for proper visual display
+                if (state.player.isCharging !== undefined) {
+                    this.player.isCharging = state.player.isCharging;
+                    this.player.chargeLevel = state.player.chargeLevel || 0;
+                }
+                // Sync powerup states for visual indicators
+                if (state.player.powerups) {
+                    this.player.powerups.rapid.active = state.player.powerups.rapid?.active || false;
+                    this.player.powerups.rapid.endTime = state.player.powerups.rapid?.endTime || 0;
+                    this.player.powerups.mega.active = state.player.powerups.mega?.active || false;
+                    this.player.powerups.mega.endTime = state.player.powerups.mega?.endTime || 0;
+                    this.player.powerups.shield.active = state.player.powerups.shield?.active || false;
+                    this.player.powerups.shield.endTime = state.player.powerups.shield?.endTime || 0;
+                }
+            }
+
+            // Update enemy robot (client's robot - blue)
+            if (this.enemy && state.enemy) {
+                this.enemy.x = state.enemy.x;
+                this.enemy.y = state.enemy.y;
+                this.enemy.hp = state.enemy.hp;
+                this.enemy.velocityX = state.enemy.velocityX || 0;
+                this.enemy.velocityY = state.enemy.velocityY || 0;
+                this.enemy.facingRight = state.enemy.facingRight;
+                this.enemy.isOnGround = state.enemy.isOnGround;
+                if (state.enemy.state) this.enemy.state = state.enemy.state;
+                // Sync charge state for proper visual display
+                if (state.enemy.isCharging !== undefined) {
+                    this.enemy.isCharging = state.enemy.isCharging;
+                    this.enemy.chargeLevel = state.enemy.chargeLevel || 0;
+                }
+                // Sync powerup states for visual indicators
+                if (state.enemy.powerups) {
+                    this.enemy.powerups.rapid.active = state.enemy.powerups.rapid?.active || false;
+                    this.enemy.powerups.rapid.endTime = state.enemy.powerups.rapid?.endTime || 0;
+                    this.enemy.powerups.mega.active = state.enemy.powerups.mega?.active || false;
+                    this.enemy.powerups.mega.endTime = state.enemy.powerups.mega?.endTime || 0;
+                    this.enemy.powerups.shield.active = state.enemy.powerups.shield?.active || false;
+                    this.enemy.powerups.shield.endTime = state.enemy.powerups.shield?.endTime || 0;
+                }
+            }
+
+            // Sync beams from host
+            if (state.beams && Array.isArray(state.beams)) {
+                // Debug: log received beam data with detailed analysis
+                if (state.beams.length > 0) {
+                    const playerX = Math.round(this.player.x);
+                    const enemyX = Math.round(this.enemy.x);
+
+                    state.beams.forEach((b, i) => {
+                        const beamX = Math.round(b.x);
+                        const distToPlayer = Math.abs(beamX - playerX);
+                        const distToEnemy = Math.abs(beamX - enemyX);
+                        const nearestRobot = distToPlayer < distToEnemy ? 'PLAYER(red)' : 'ENEMY(blue)';
+                        const expectedColor = b.owner === 'player' ? 'RED' : 'BLUE';
+
+                        console.log(`[Client] Beam ${i}: x=${beamX}, owner=${b.owner}, color=${expectedColor}`);
+                        console.log(`[Client] Beam ${i} nearest to: ${nearestRobot} (distPlayer=${distToPlayer}, distEnemy=${distToEnemy})`);
+                        console.log(`[Client] Robot positions - Player(red): x=${playerX}, Enemy(blue): x=${enemyX}`);
+                    });
+                }
+                // Create proper Beam objects for correct rendering
+                this.beams = state.beams.map(b => {
+                    // Create a real Beam object for proper rendering (color, glow, etc.)
+                    const beam = new Beam(
+                        b.x,
+                        b.y,
+                        b.direction,
+                        b.damage,
+                        b.owner,  // 'player' or 'enemy' - determines red or blue color
+                        b.chargeLevel || 0
+                    );
+                    // Debug: verify sprite assignment
+                    console.log(`[Client] Created Beam with owner='${b.owner}', sprite should be ${b.owner === 'player' ? 'RED' : 'BLUE'}`);
+                    // Override size from host
+                    if (b.width) beam.width = b.width;
+                    if (b.height) beam.height = b.height;
+                    return beam;
+                });
+            }
+
+            // Sync game state (KO, RESULT, etc.)
+            if (state.gameState && state.gameState !== this.state) {
+                console.log(`[Client] State sync: ${this.state} -> ${state.gameState}`);
+                const previousState = this.state;
+                this.state = state.gameState;
+
+                // If winner is set, update it
+                if (state.winner) {
+                    this.winner = state.winner;
+                }
+
+                // If transitioned to KO, start KO effects on client
+                if (state.gameState === GameState.KO && previousState !== GameState.KO) {
+                    console.log(`[Client] KO state triggered! Winner: ${state.winner}`);
+                    this.koTimer = 0;
+                    this.koTextScale = 0;
+                    this.koEffects = [];
+
+                    if (state.winner === 'player') {
+                        this.koTarget = this.enemy;
+                    } else {
+                        this.koTarget = this.player;
+                    }
+
+                    // Trigger KO effects on client (sound, visual)
+                    SoundManager.stopBGM();
+                    SoundManager.playKO();
+                    ScreenEffects.shake(15, 30);
+                    ScreenEffects.flash('#ffffff', 0.8);
+
+                    // Particle explosion at defeated robot
+                    if (this.koTarget) {
+                        ParticleSystem.explosion(
+                            this.koTarget.x + this.koTarget.width / 2,
+                            this.koTarget.y + this.koTarget.height / 2
+                        );
+
+                        // Explosion effects
+                        for (let i = 0; i < 8; i++) {
+                            const offsetX = (Math.random() - 0.5) * this.koTarget.width * 1.5;
+                            const offsetY = (Math.random() - 0.5) * this.koTarget.height * 1.5;
+                            const effect = new Effect(
+                                this.koTarget.x + this.koTarget.width / 2 + offsetX,
+                                this.koTarget.y + this.koTarget.height / 2 + offsetY,
+                                'explosion'
+                            );
+                            effect.maxFrames = 30;
+                            this.koEffects.push(effect);
+                        }
+                    }
+
+                    // Victory/Defeat sound (delayed)
+                    setTimeout(() => {
+                        if (state.winner === 'player') {
+                            SoundManager.playVictory();
+                        } else {
+                            SoundManager.playDefeat();
+                        }
+                    }, 600);
+                }
+
+                // If transitioned to RESULT
+                if (state.gameState === GameState.RESULT && previousState !== GameState.RESULT) {
+                    console.log(`[Client] RESULT state - Winner: ${state.winner}`);
+                    this.menuSelection = 0;
+                }
+            }
+
+            // Sync koTimer during KO state for animation sync
+            if (state.gameState === GameState.KO && typeof state.koTimer === 'number') {
+                this.koTimer = state.koTimer;
+            }
+
+            // Sync items from host (for display)
+            if (state.items && Array.isArray(state.items)) {
+                this.activeItems = state.items.filter(i => i.active).map(itemData => {
+                    const item = new Item(itemData.x, itemData.y, itemData.type);
+                    item.active = itemData.active;
+                    return item;
+                });
+            }
+
+            // Sync warp zones from host (for display - include all properties for rendering)
+            if (state.warpZones && Array.isArray(state.warpZones)) {
+                this.activeWarpZones = state.warpZones.map(warpData => ({
+                    entry: warpData.entry,
+                    exit: warpData.exit,
+                    isActive: warpData.isActive,
+                    spawnTime: warpData.spawnTime,
+                    lifetime: warpData.lifetime,
+                    warningTime: warpData.warningTime
+                }));
+            }
+        };
+    }
+
+    renderOnlineLobby() {
+        const ctx = this.ctx;
+
+        // Background
+        ctx.fillStyle = '#0d0221';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // Title
+        ctx.font = 'bold 36px Courier New';
+        ctx.fillStyle = '#00ffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('ONLINE BATTLE', GAME_WIDTH / 2, 80);
+
+        // Subtitle
+        ctx.font = '16px Courier New';
+        ctx.fillStyle = '#888888';
+        ctx.fillText('Fight against real players!', GAME_WIDTH / 2, 120);
+
+        // Network icon
+        ctx.font = '64px Courier New';
+        ctx.fillStyle = '#00ff88';
+        ctx.fillText('🌐', GAME_WIDTH / 2, 200);
+
+        // Buttons
+        const buttons = [
+            { label: 'CREATE ROOM', y: 280, desc: 'Host a battle' },
+            { label: 'JOIN ROOM', y: 350, desc: 'Join with code' },
+            { label: 'BACK', y: 500, desc: '' }
+        ];
+
+        for (let i = 0; i < buttons.length; i++) {
+            const isSelected = i === this.onlineLobbySelection;
+            const btn = buttons[i];
+
+            // Button background
+            ctx.fillStyle = isSelected ? '#0088ff' : '#333355';
+            ctx.fillRect(GAME_WIDTH/2 - 120, btn.y, 240, 50);
+
+            // Button border
+            ctx.strokeStyle = isSelected ? '#00ffff' : '#555577';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(GAME_WIDTH/2 - 120, btn.y, 240, 50);
+
+            // Button text
+            ctx.font = 'bold 18px Courier New';
+            ctx.fillStyle = isSelected ? '#ffffff' : '#aaaaaa';
+            ctx.fillText(btn.label, GAME_WIDTH / 2, btn.y + 32);
+
+            // Description
+            if (btn.desc && isSelected) {
+                ctx.font = '12px Courier New';
+                ctx.fillStyle = '#888888';
+                ctx.fillText(btn.desc, GAME_WIDTH / 2, btn.y + 70);
+            }
+        }
+
+        // Instructions
+        ctx.font = '14px Courier New';
+        ctx.fillStyle = '#666666';
+        ctx.fillText('Use Arrow Keys to navigate, SPACE to select', GAME_WIDTH / 2, GAME_HEIGHT - 30);
+    }
+
+    renderOnlineWaiting() {
+        const ctx = this.ctx;
+
+        // Background
+        ctx.fillStyle = '#0d0221';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // Title
+        ctx.font = 'bold 36px Courier New';
+        ctx.fillStyle = '#00ffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('ONLINE BATTLE', GAME_WIDTH / 2, 80);
+
+        // Room code display (for host)
+        if (this.isHost && this.roomCode) {
+            ctx.font = 'bold 48px Courier New';
+            ctx.fillStyle = '#ffff00';
+            ctx.fillText(this.roomCode, GAME_WIDTH / 2, 250);
+
+            ctx.font = '16px Courier New';
+            ctx.fillStyle = '#888888';
+            ctx.fillText('Share this code with your opponent', GAME_WIDTH / 2, 290);
+        }
+
+        // Status message
+        ctx.font = '20px Courier New';
+        ctx.fillStyle = '#00ff88';
+        const statusLines = this.onlineStatus.split('\n');
+        for (let i = 0; i < statusLines.length; i++) {
+            ctx.fillText(statusLines[i], GAME_WIDTH / 2, 350 + i * 30);
+        }
+
+        // Loading animation
+        const dots = '.'.repeat((Math.floor(Date.now() / 500) % 4));
+        ctx.fillText(dots, GAME_WIDTH / 2, 420);
+
+        // Cancel button
+        ctx.fillStyle = '#aa3333';
+        ctx.fillRect(GAME_WIDTH/2 - 80, 480, 160, 40);
+        ctx.strokeStyle = '#ff5555';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(GAME_WIDTH/2 - 80, 480, 160, 40);
+        ctx.font = 'bold 16px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('CANCEL', GAME_WIDTH / 2, 505);
+
+        // Cancel click area (handle in next frame if clicked)
+        // Simple keyboard cancel
+        if (this.input.keys['Escape']) {
+            this.cancelOnlineWaiting();
+        }
+    }
+
+    cancelOnlineWaiting() {
+        if (this.onlineController) {
+            this.onlineController.disconnect();
+            this.onlineController = null;
+        }
+        this.roomCode = '';
+        this.isHost = false;
+        this.state = GameState.ONLINE_LOBBY;
     }
 }
 
@@ -1249,23 +5592,51 @@ class RoboBattleGame {
 // INITIALIZATION
 // ============================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('gameCanvas');
-    if (!canvas) {
-        console.error('Canvas element not found!');
-        return;
-    }
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('=== ROBO BATTLE V3.0 - Online Multiplayer Edition ===');
+    console.log('📅 Build: 2026-01-05 DEBUG VERSION');
+    console.log('🎨 Features: AI-generated 3D Sprites + Online P2P Battle!');
+    console.log('Mobile: Tilt to move, Top tap = Beam, Bottom tap = Jump, Auto-kick when close!');
+    console.log('PC: Arrow keys to move, Z = Beam, Space = Jump, X = Kick');
+    console.log('Tip: Play in landscape mode for best experience!');
+    window.game = new Game();
 
-    canvas.width = GAME_WIDTH;
-    canvas.height = GAME_HEIGHT;
+    // Initialize sound on first user interaction (browser requirement)
+    const initSound = () => {
+        SoundManager.init();
+        SoundManager.resume();
+        console.log('🔊 Sound initialized on user interaction');
 
-    // Hide loading screen
-    const loading = document.getElementById('loading');
-    if (loading) {
-        loading.style.display = 'none';
-    }
+        // Start title BGM if still on title/setup screen
+        if (window.game && (window.game.state === 'title' || window.game.state === 'setup')) {
+            SoundManager.playBGM('title');
+        }
 
-    // Initialize game
-    window.game = new RoboBattleGame(canvas);
-    console.log('ROBO BATTLE V3 initialized');
+        // Remove listeners after first activation
+        document.removeEventListener('click', initSound);
+        document.removeEventListener('touchstart', initSound);
+        document.removeEventListener('keydown', initSound);
+    };
+    document.addEventListener('click', initSound);
+    document.addEventListener('touchstart', initSound);
+    document.addEventListener('keydown', initSound);
 });
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        Game,
+        Robot,
+        Beam,
+        Effect,
+        EnemyAI,
+        InputSystem,
+        PHYSICS,
+        ROBOT,
+        BEAM,
+        STAGES,
+        checkCollision,
+        clamp,
+        distance
+    };
+}
