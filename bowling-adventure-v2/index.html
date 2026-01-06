@@ -1,154 +1,954 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="screen-orientation" content="portrait">
-  <title>Bowling Adventure</title>
-  <script type="module" crossorigin src="/ai-agent-portfolio/bowling-adventure-v2/assets/index-CyVodD06.js"></script>
-  <link rel="stylesheet" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/index-DFK3wp4p.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Bowling Adventure - Obstacle Course Bowling</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* UI Overlay */
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .hud-section {
+      background: rgba(0,0,0,0.5);
+      padding: 10px 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(5px);
+    }
+
+    #frame-display {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #score-display {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: right;
+    }
+
+    #score-label {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    /* Speed Gauge */
+    #speed-gauge-container {
+      position: absolute;
+      bottom: 120px;
+      left: 20px;
+      width: 30px;
+      height: 150px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 15px;
+      border: 2px solid rgba(255,255,255,0.3);
+      overflow: hidden;
+    }
+
+    #speed-gauge {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0%;
+      background: linear-gradient(to top, #00ff88, #ffff00, #ff4444);
+      transition: height 0.1s ease-out;
+    }
+
+    #speed-label {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* Virtual Joystick */
+    #joystick-container {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      width: 120px;
+      height: 120px;
+      background: rgba(255,255,255,0.1);
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      pointer-events: auto;
+    }
+
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50px;
+      height: 50px;
+      margin-left: -25px;
+      margin-top: -25px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    /* Control Mode Toggle */
+    #control-toggle {
+      position: absolute;
+      bottom: 30px;
+      left: 20px;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 25px;
+      font-size: 14px;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    #control-toggle:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Tilt Indicator */
+    #tilt-indicator {
+      position: absolute;
+      bottom: 170px;
+      left: 20px;
+      width: 80px;
+      height: 80px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      display: none;
+      overflow: hidden;
+    }
+
+    #tilt-indicator.visible {
+      display: block;
+    }
+
+    #tilt-ball {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s ease-out;
+      box-shadow: 0 2px 8px rgba(0,255,136,0.5);
+    }
+
+    #tilt-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 100%;
+      background: rgba(255,255,255,0.2);
+      transform: translate(-50%, -50%);
+    }
+
+    #tilt-crosshair::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100px;
+      height: 2px;
+      background: rgba(255,255,255,0.2);
+      transform: translate(-50%, -50%);
+    }
+
+    #tilt-label {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 11px;
+      white-space: nowrap;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+
+    /* Pins Standing Display */
+    #pins-standing {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      padding: 8px 16px;
+      border-radius: 20px;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      display: none;
+      border: 2px solid rgba(0,255,136,0.5);
+    }
+
+    #pins-standing.visible {
+      display: block;
+    }
+
+    #pins-standing .pin-icons {
+      display: flex;
+      gap: 3px;
+      margin-top: 4px;
+      justify-content: center;
+    }
+
+    #pins-standing .pin-icon {
+      width: 8px;
+      height: 16px;
+      background: #fff;
+      border-radius: 3px 3px 1px 1px;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    #pins-standing .pin-icon.knocked {
+      opacity: 0.2;
+      transform: rotate(45deg);
+    }
+
+    /* Control Hint */
+    #control-hint {
+      position: absolute;
+      bottom: 180px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+      animation: pulse 2s infinite;
+      max-width: 280px;
+      border: 1px solid rgba(0,255,136,0.3);
+    }
+
+    #control-hint.visible {
+      display: block;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 0.6; }
+    }
+
+    #control-hint .hint-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    /* Screens */
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+      pointer-events: auto;
+      z-index: 100;
+    }
+
+    .screen.hidden {
+      display: none;
+    }
+
+    .screen h1 {
+      font-size: clamp(32px, 8vw, 64px);
+      color: #00ff88;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(0,255,136,0.5);
+    }
+
+    .screen p {
+      color: white;
+      font-size: 18px;
+      margin-bottom: 30px;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .btn {
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 5px 20px rgba(0,255,136,0.4);
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 30px rgba(0,255,136,0.6);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      box-shadow: 0 5px 20px rgba(99,102,241,0.4);
+      font-size: 16px;
+      padding: 12px 24px;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 8px 30px rgba(99,102,241,0.6);
+    }
+
+    .btn-secondary.enabled {
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      box-shadow: 0 5px 20px rgba(0,255,136,0.4);
+    }
+
+    #control-options {
+      margin-bottom: 20px;
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    .status-text.success {
+      color: #00ff88;
+    }
+
+    .status-text.error {
+      color: #ff6b6b;
+    }
+
+    /* Scoreboard (Result screen) */
+    #scoreboard {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 2px;
+      margin: 20px;
+      padding: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      max-width: 600px;
+      width: 90%;
+    }
+
+    .frame-box {
+      background: rgba(255,255,255,0.05);
+      padding: 5px;
+      text-align: center;
+      border-radius: 5px;
+    }
+
+    .frame-number {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .frame-throws {
+      font-size: 14px;
+      color: white;
+      min-height: 20px;
+    }
+
+    .frame-score {
+      font-size: 16px;
+      font-weight: bold;
+      color: #00ff88;
+      min-height: 20px;
+    }
+
+    /* Live Scoresheet (during gameplay) */
+    #live-scoresheet {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      border-radius: 10px;
+      padding: 8px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.2);
+      max-width: 95%;
+      overflow-x: auto;
+      display: none;
+    }
+
+    #live-scoresheet.visible {
+      display: block;
+    }
+
+    .scoresheet-table {
+      display: flex;
+      gap: 2px;
+      min-width: max-content;
+    }
+
+    .scoresheet-frame {
+      display: flex;
+      flex-direction: column;
+      min-width: 44px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .scoresheet-frame.current {
+      background: rgba(0,255,136,0.2);
+      border: 1px solid #00ff88;
+    }
+
+    .scoresheet-frame.tenth {
+      min-width: 66px;
+    }
+
+    .frame-header {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.7);
+      font-size: 10px;
+      padding: 2px 4px;
+      text-align: center;
+    }
+
+    .frame-throws-row {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .throw-cell {
+      flex: 1;
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 12px;
+      color: white;
+      min-width: 20px;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .throw-cell:last-child {
+      border-right: none;
+    }
+
+    .throw-cell.strike {
+      color: #ff4444;
+      font-weight: bold;
+    }
+
+    .throw-cell.spare {
+      color: #00ff88;
+      font-weight: bold;
+    }
+
+    .frame-total {
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: bold;
+      color: #00ff88;
+      background: rgba(0,0,0,0.3);
+    }
+
+    /* Ready Screen */
+    .ready-content {
+      text-align: center;
+    }
+
+    .ready-frame {
+      font-size: clamp(48px, 12vw, 96px);
+      font-weight: bold;
+      color: #00ff88;
+      text-shadow: 0 0 30px rgba(0,255,136,0.5);
+      margin-bottom: 10px;
+    }
+
+    .ready-throw {
+      font-size: clamp(32px, 8vw, 64px);
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    /* Pin Count Display */
+    #pin-count-display {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      pointer-events: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    #pin-count-display.hidden {
+      display: none;
+    }
+
+    #pin-count-number {
+      font-size: clamp(120px, 30vw, 300px);
+      font-weight: bold;
+      color: #ffdd00;
+      text-shadow: 0 0 50px rgba(255,221,0,0.8);
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #pin-count-label {
+      font-size: clamp(36px, 8vw, 72px);
+      color: white;
+      margin-top: -20px;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Celebration Display */
+    #celebration-display {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+      z-index: 250;
+      pointer-events: none;
+    }
+
+    #celebration-display.hidden {
+      display: none;
+    }
+
+    #celebration-image {
+      width: clamp(150px, 40vw, 300px);
+      height: clamp(150px, 40vw, 300px);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #celebration-image img {
+      max-width: 100%;
+      max-height: 100%;
+      animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #celebration-image .emoji-fallback {
+      font-size: clamp(80px, 20vw, 180px);
+      animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+      50% { transform: scale(1.2) rotate(10deg); }
+      70% { transform: scale(0.9) rotate(-5deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    #celebration-text {
+      font-size: clamp(48px, 12vw, 120px);
+      font-weight: bold;
+      text-align: center;
+      animation: textGlow 1s ease-in-out infinite alternate;
+    }
+
+    #celebration-text.strike { color: #ff4444; }
+    #celebration-text.double { color: #ff8800; }
+    #celebration-text.turkey { color: #ffdd00; }
+    #celebration-text.spare { color: #00ff88; }
+
+    @keyframes textGlow {
+      from { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+      to { text-shadow: 0 0 40px currentColor, 0 0 80px currentColor, 0 0 120px currentColor; }
+    }
+
+    /* Particles */
+    #celebration-particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: particleFall 2s ease-out forwards;
+    }
+
+    @keyframes particleFall {
+      0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* Gutter display */
+    #pin-count-number.gutter {
+      color: #666;
+      text-shadow: none;
+    }
+
+    /* Result Screen */
+    #final-score {
+      font-size: 72px;
+      color: #ffdd00;
+      text-shadow: 0 0 30px rgba(255,221,0,0.5);
+    }
+
+    /* Loading */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid rgba(255,255,255,0.2);
+      border-top-color: #00ff88;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      #joystick-container {
+        width: 100px;
+        height: 100px;
+        bottom: 20px;
+        right: 20px;
+      }
+
+      #joystick-knob {
+        width: 40px;
+        height: 40px;
+        margin-left: -20px;
+        margin-top: -20px;
+      }
+
+      #speed-gauge-container {
+        height: 120px;
+        bottom: 100px;
+      }
+
+      .hud-section {
+        padding: 8px 12px;
+      }
+
+      #frame-display {
+        font-size: 14px;
+      }
+
+      #score-display {
+        font-size: 20px;
+      }
+
+      #live-scoresheet {
+        top: 50px;
+        padding: 6px;
+      }
+
+      .scoresheet-frame {
+        min-width: 36px;
+      }
+
+      .scoresheet-frame.tenth {
+        min-width: 54px;
+      }
+
+      .frame-header {
+        font-size: 9px;
+      }
+
+      .throw-cell {
+        font-size: 10px;
+        padding: 3px 1px;
+        min-width: 16px;
+      }
+
+      .frame-total {
+        font-size: 9px;
+        padding: 3px 1px;
+      }
+    }
+
+    /* Landscape mobile */
+    @media (max-height: 500px) and (orientation: landscape) {
+      #speed-gauge-container {
+        height: 100px;
+        bottom: 80px;
+      }
+
+      #joystick-container {
+        width: 80px;
+        height: 80px;
+        bottom: 10px;
+        right: 10px;
+      }
+
+      #joystick-knob {
+        width: 35px;
+        height: 35px;
+        margin-left: -17.5px;
+        margin-top: -17.5px;
+      }
+
+      #control-toggle {
+        bottom: 10px;
+        padding: 8px 15px;
+        font-size: 12px;
+      }
+
+      #live-scoresheet {
+        top: 45px;
+        padding: 4px;
+      }
+
+      .scoresheet-frame {
+        min-width: 32px;
+      }
+
+      .scoresheet-frame.tenth {
+        min-width: 48px;
+      }
+
+      .frame-header {
+        font-size: 8px;
+        padding: 1px 2px;
+      }
+
+      .throw-cell {
+        font-size: 9px;
+        padding: 2px 1px;
+        min-width: 14px;
+      }
+
+      .frame-total {
+        font-size: 8px;
+        padding: 2px 1px;
+      }
+    }
+  </style>
+  <script type="module" crossorigin src="/ai-agent-portfolio/bowling-adventure-v2/assets/index-C6P2zqtk.js"></script>
+  <link rel="modulepreload" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/three-rc0JfRGK.js">
+  <link rel="modulepreload" crossorigin href="/ai-agent-portfolio/bowling-adventure-v2/assets/cannon-CMZeK6Ld.js">
 </head>
 <body>
-  <!-- Landscape Warning Overlay -->
-  <div id="landscape-warning">
-    <div class="rotate-message">
-      <span class="rotate-icon">📱</span>
-      <p>縦向きにしてください</p>
-      <p class="rotate-hint">Please rotate to portrait</p>
-    </div>
-  </div>
+  <div id="game-container">
+    <!-- Three.js Canvas will be inserted here -->
 
-  <div id="app">
-    <!-- Title Screen -->
-    <div id="title-screen" class="screen">
-      <div class="title-header">
-        <h1>Bowling Adventure</h1>
-        <span class="version-badge">v2.6.4</span>
-      </div>
-      <p class="subtitle">傾けて転がす！障害物ボーリング</p>
-
-      <!-- How to Play -->
-      <div class="how-to-play">
-        <h3>遊び方</h3>
-        <div class="instructions">
-          <div class="instruction-item">
-            <span class="instruction-icon">📱</span>
-            <span>前に傾ける → 加速</span>
-          </div>
-          <div class="instruction-item">
-            <span class="instruction-icon">↔️</span>
-            <span>左右に傾ける → 曲がる</span>
-          </div>
-          <div class="instruction-item">
-            <span class="instruction-icon">👆</span>
-            <span>タップ → ブースト！</span>
-          </div>
-          <div class="instruction-item">
-            <span class="instruction-icon">🎯</span>
-            <span>ピン付近でタップ → パワーヒット！</span>
-          </div>
-        </div>
-        <div class="zone-info">
-          <span class="zone-tag speed">⚡加速</span>
-          <span class="zone-tag slip">🧊滑る</span>
-          <span class="zone-tag shrink">🔬縮小</span>
-          <span class="zone-tag giant">🔮巨大</span>
-        </div>
-      </div>
-
-      <button id="gyro-btn" class="btn-secondary">傾きセンサーを有効化</button>
-      <p id="gyro-status" class="status"></p>
-      <button id="start-btn" class="btn-primary">START</button>
-      <p class="hint">スマホ: 傾けて操作 / PC: 矢印キーで操作</p>
-    </div>
-
-    <!-- Game Screen -->
-    <div id="game-screen" class="screen hidden">
+    <div id="ui-overlay">
+      <!-- HUD -->
       <div id="hud">
-        <!-- Bowling Scoreboard -->
-        <div id="scoreboard">
-          <div class="frame" data-frame="1">
-            <div class="frame-number">1</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="2">
-            <div class="frame-number">2</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="3">
-            <div class="frame-number">3</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="4">
-            <div class="frame-number">4</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="5">
-            <div class="frame-number">5</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="6">
-            <div class="frame-number">6</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="7">
-            <div class="frame-number">7</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="8">
-            <div class="frame-number">8</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame" data-frame="9">
-            <div class="frame-number">9</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
-          <div class="frame frame-10" data-frame="10">
-            <div class="frame-number">10</div>
-            <div class="throws"><span class="t1">-</span><span class="t2">-</span><span class="t3">-</span></div>
-            <div class="frame-score">-</div>
-          </div>
+        <div class="hud-section">
+          <div id="frame-display">Frame: 1 / 10</div>
+          <div id="throw-display">Throw: 1</div>
+        </div>
+        <div class="hud-section">
+          <div id="score-label">SCORE</div>
+          <div id="score-display">0</div>
         </div>
       </div>
-      <canvas id="game-canvas"></canvas>
-      <div id="speed-gauge">
-        <div id="speed-bar"></div>
-        <span id="speed-text">0%</span>
-      </div>
-      <div id="timer-display">30s</div>
-      <!-- Status Effects Indicator -->
-      <div id="status-effects">
-        <div id="effect-reverse" class="effect-badge hidden">🔄 REVERSE</div>
-        <div id="effect-shrink" class="effect-badge hidden">🔬 SHRINK</div>
-        <div id="effect-giant" class="effect-badge hidden">🔮 GIANT</div>
-        <div id="effect-slow" class="effect-badge hidden">🐌 SLOW</div>
-        <div id="effect-speed" class="effect-badge hidden">⚡ SPEED</div>
-        <div id="effect-slip" class="effect-badge hidden">🧊 SLIP</div>
-        <div id="effect-chaos" class="effect-badge hidden">🌀 CHAOS</div>
-        <div id="effect-shield" class="effect-badge hidden">🛡️ SHIELD</div>
-      </div>
-      <!-- Zone Warning -->
-      <div id="zone-warning" class="hidden"></div>
-      <div id="message-overlay" class="hidden"></div>
-    </div>
 
-    <!-- Result Screen -->
-    <div id="result-screen" class="screen hidden">
-      <div id="result-scoreboard"></div>
-      <h2>Frame Result</h2>
-      <div id="pins-knocked"></div>
-      <div id="total-score-display">Total: <span id="result-total">0</span></div>
-      <button id="next-frame-btn" class="btn-primary">Next Frame</button>
+      <!-- Live Scoresheet -->
+      <div id="live-scoresheet">
+        <div class="scoresheet-table" id="scoresheet-frames">
+          <!-- Frames 1-10 will be generated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Pins Standing Display -->
+      <div id="pins-standing">
+        <span id="pins-count-text">残り 10 本</span>
+        <div class="pin-icons" id="pin-icons">
+          <!-- Generated by JS -->
+        </div>
+      </div>
+
+      <!-- Speed Gauge -->
+      <div id="speed-gauge-container">
+        <div id="speed-gauge"></div>
+        <div id="speed-label">Speed</div>
+      </div>
+
+      <!-- Tilt Indicator -->
+      <div id="tilt-indicator">
+        <div id="tilt-crosshair"></div>
+        <div id="tilt-ball"></div>
+        <div id="tilt-label">傾き</div>
+      </div>
+
+      <!-- Control Hint -->
+      <div id="control-hint">
+        <div class="hint-icon">📱</div>
+        <div id="hint-text">スマホを傾けてボールを操作！</div>
+      </div>
+
+      <!-- Virtual Joystick -->
+      <div id="joystick-container">
+        <div id="joystick-knob"></div>
+      </div>
+
+      <!-- Control Mode Toggle -->
+      <button id="control-toggle">Joystick</button>
+
+      <!-- Title Screen -->
+      <div id="title-screen" class="screen">
+        <h1>Bowling Adventure</h1>
+        <p>Navigate through obstacles to knock down the pins!</p>
+        <div id="control-options">
+          <button id="enable-gyro-btn" class="btn btn-secondary">📱 Enable Tilt Controls</button>
+          <p id="gyro-status" class="status-text"></p>
+        </div>
+        <button id="start-btn" class="btn">Start Game</button>
+      </div>
+
+      <!-- Loading Screen -->
+      <div id="loading-screen" class="screen hidden">
+        <div id="loading">
+          <div class="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+
+      <!-- Ready Screen (before each throw) -->
+      <div id="ready-screen" class="screen hidden">
+        <div class="ready-content">
+          <div id="ready-frame" class="ready-frame">1フレーム</div>
+          <div id="ready-throw" class="ready-throw">1投目</div>
+          <button id="throw-btn" class="btn">投球開始</button>
+        </div>
+      </div>
+
+      <!-- Pin Count Display -->
+      <div id="pin-count-display" class="hidden">
+        <div id="pin-count-number">0</div>
+        <div id="pin-count-label">本</div>
+      </div>
+
+      <!-- Celebration Display -->
+      <div id="celebration-display" class="hidden">
+        <div id="celebration-image"></div>
+        <div id="celebration-text"></div>
+        <div id="celebration-particles"></div>
+      </div>
+
+      <!-- Result Screen -->
+      <div id="result-screen" class="screen hidden">
+        <h1>Game Over!</h1>
+        <p>Your final score:</p>
+        <div id="final-score">0</div>
+        <div id="scoreboard"></div>
+        <button id="restart-btn" class="btn">Play Again</button>
+      </div>
     </div>
   </div>
+
+  <!-- Sound Effects -->
+  <audio id="sound-roll" preload="auto"></audio>
+  <audio id="sound-pin-hit" preload="auto"></audio>
+  <audio id="sound-strike" preload="auto"></audio>
+  <audio id="sound-spare" preload="auto"></audio>
+  <audio id="sound-gutter" preload="auto"></audio>
+  <audio id="sound-cheer" preload="auto"></audio>
+
 </body>
 </html>
