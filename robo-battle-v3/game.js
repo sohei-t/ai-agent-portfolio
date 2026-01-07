@@ -2902,6 +2902,24 @@ class Game {
         this.onlineStatus = '';
         this.isHost = false;
 
+        // Online Ready system
+        this.myReady = false;           // Am I ready?
+        this.opponentReady = false;     // Is opponent ready?
+        this.opponentParams = null;     // Opponent's robot parameters
+        this.readyCountdown = 0;        // Countdown timer (ms) when one player is ready
+        this.readyCountdownStart = 0;   // Timestamp when countdown started
+        this.READY_TIMEOUT = 10000;     // 10 seconds timeout
+
+        // Battle countdown (3-2-1-FIGHT)
+        this.battleCountdown = 0;       // Countdown before battle starts (seconds)
+        this.battleCountdownStart = 0;  // Timestamp when battle countdown started
+
+        // Online Rematch consent system
+        this.rematchRequestSent = false;      // Did I send a rematch request?
+        this.rematchRequestReceived = false;  // Did opponent send a rematch request?
+        this.rematchWaitingResponse = false;  // Am I waiting for opponent's response?
+        this.rematchSelection = 0;            // 0 = OK, 1 = 拒否 (for keyboard navigation)
+
         // Setup mouse click handler
         this.setupMouseHandler();
 
@@ -3072,31 +3090,112 @@ class Game {
             console.log('[DEBUG] BACK clicked! Returning to title');
             SoundManager.playMenuSelect();
             this.setupSelection = 8;
+            // Reset ready state when leaving
+            this.myReady = false;
+            this.opponentReady = false;
+            this.opponentParams = null;
+            this.readyCountdownStart = 0;
             this.state = GameState.TITLE;
             this.menuSelection = 0;
             SoundManager.playBGM('title');
             return;
         }
 
-        // START BATTLE button
+        // START BATTLE / READY button
         const startBtnX = GAME_WIDTH / 2 - 100;  // 300
         const startBtnWidth = 200;
 
-        console.log(`[DEBUG] START BATTLE button area: x=${startBtnX}-${startBtnX+startBtnWidth}, y=${btnY}-${btnY+btnHeight}`);
+        console.log(`[DEBUG] START/READY button area: x=${startBtnX}-${startBtnX+startBtnWidth}, y=${btnY}-${btnY+btnHeight}`);
         console.log(`[DEBUG] Click position: x=${x.toFixed(0)}, y=${y.toFixed(0)}`);
         console.log(`[DEBUG] In button? x: ${x >= startBtnX && x <= startBtnX + startBtnWidth}, y: ${y >= btnY && y <= btnY + btnHeight}`);
 
         if (x >= startBtnX && x <= startBtnX + startBtnWidth && y >= btnY && y <= btnY + btnHeight) {
-            console.log('[DEBUG] START BATTLE clicked! Calling startBattle()');
-            SoundManager.playMenuSelect();
             this.setupSelection = 7;
-            this.startBattle();
+
+            if (this.isOnlineMode) {
+                // Online mode: Handle Ready button
+                if (!this.myReady) {
+                    console.log('[DEBUG] READY clicked!');
+                    SoundManager.playMenuSelect();
+                    this.myReady = true;
+                    console.log('[Online] I am ready! Sending params:', this.settings.playerParams);
+                    this.onlineController.sendReady(this.settings.playerParams);
+
+                    // If opponent is already ready, start battle (host only)
+                    if (this.opponentReady && this.isHost) {
+                        console.log('[Online] Both ready - starting battle!');
+                        this.startOnlineBattle();
+                    }
+                    // If opponent is not ready, start countdown
+                    else if (!this.opponentReady && this.readyCountdownStart === 0) {
+                        this.readyCountdownStart = Date.now();
+                        console.log('[Online] I am ready first - starting 10s countdown');
+                    }
+                }
+            } else {
+                // Offline mode: Start battle directly
+                console.log('[DEBUG] START BATTLE clicked! Calling startBattle()');
+                SoundManager.playMenuSelect();
+                this.startBattle();
+            }
             return;
         }
         console.log('[DEBUG] Click not on any interactive element');
     }
 
     handleResultClick(x, y) {
+        // Online mode with rematch request received - handle accept/reject buttons
+        if (this.isOnlineMode && this.rematchRequestReceived && !this.rematchRequestSent) {
+            // Accept button area (left side)
+            if (x >= 200 && x <= 350 && y >= 510 && y <= 560) {
+                console.log('[Online] Accepting rematch request');
+                SoundManager.playMenuSelect();
+                if (this.onlineController) {
+                    this.onlineController.sendRematchAccept();
+                }
+                this.goToRematchSetup();
+                return;
+            }
+            // Reject button area (right side)
+            if (x >= 450 && x <= 600 && y >= 510 && y <= 560) {
+                console.log('[Online] Rejecting rematch request');
+                SoundManager.playMenuSelect();
+                if (this.onlineController) {
+                    this.onlineController.sendRematchReject();
+                }
+                // Return to title
+                this.rematchRequestReceived = false;
+                this.rematchRequestSent = false;
+                this.rematchWaitingResponse = false;
+                this.state = GameState.TITLE;
+                this.menuSelection = 0;
+                SoundManager.playBGM('title');
+                return;
+            }
+            return; // Ignore other clicks while showing accept/reject
+        }
+
+        // If waiting for response, only allow TITLE button
+        if (this.isOnlineMode && this.rematchWaitingResponse && !this.rematchRequestReceived) {
+            // TITLE button area (same position as in rendering)
+            const titleY = 550;
+            if (x >= 250 && x <= 550 && y >= titleY - 20 && y <= titleY + 20) {
+                console.log('[Online] Cancelling rematch wait - going to TITLE');
+                SoundManager.playMenuSelect();
+                // Notify opponent we're leaving
+                if (this.onlineController) {
+                    this.onlineController.sendRematchReject();
+                }
+                this.rematchRequestSent = false;
+                this.rematchRequestReceived = false;
+                this.rematchWaitingResponse = false;
+                this.state = GameState.TITLE;
+                this.menuSelection = 0;
+                SoundManager.playBGM('title');
+            }
+            return;
+        }
+
         // Menu items: REMATCH, CHANGE SETTINGS, TITLE
         const menuItems = 3;
         const startY = 430;
@@ -3109,13 +3208,45 @@ class Game {
                 SoundManager.playMenuSelect();
                 switch (i) {
                     case 0: // Rematch
-                        this.startBattle();
+                        if (this.isOnlineMode) {
+                            // Online mode: Send rematch request and wait for response
+                            console.log('[Online] REMATCH clicked - sending rematch request');
+                            this.rematchRequestSent = true;
+                            this.rematchWaitingResponse = true;
+                            if (this.onlineController) {
+                                this.onlineController.sendRematchRequest();
+                            }
+                            // Check if opponent already sent request (mutual rematch)
+                            if (this.rematchRequestReceived) {
+                                console.log('[Online] Both want rematch - going to SETUP');
+                                this.goToRematchSetup();
+                            }
+                        } else {
+                            // Offline mode: Start immediately
+                            this.startBattle();
+                        }
                         break;
                     case 1: // Change Settings
+                        this.myReady = false;
+                        this.opponentReady = false;
+                        this.opponentParams = null;
+                        this.readyCountdownStart = 0;
+                        this.rematchRequestSent = false;
+                        this.rematchRequestReceived = false;
+                        this.rematchWaitingResponse = false;
                         this.state = GameState.SETUP;
                         SoundManager.playBGM('title');
                         break;
                     case 2: // Title
+                        // If in online mode, notify opponent we're leaving
+                        if (this.isOnlineMode && this.rematchRequestReceived) {
+                            if (this.onlineController) {
+                                this.onlineController.sendRematchReject();
+                            }
+                        }
+                        this.rematchRequestSent = false;
+                        this.rematchRequestReceived = false;
+                        this.rematchWaitingResponse = false;
                         this.state = GameState.TITLE;
                         this.menuSelection = 0;
                         SoundManager.playBGM('title');
@@ -3124,6 +3255,20 @@ class Game {
                 return;
             }
         }
+    }
+
+    // Go to setup screen for rematch (resets ready states)
+    goToRematchSetup() {
+        this.myReady = false;
+        this.opponentReady = false;
+        this.opponentParams = null;
+        this.readyCountdownStart = 0;
+        this.rematchRequestSent = false;
+        this.rematchRequestReceived = false;
+        this.rematchWaitingResponse = false;
+        this.rematchSelection = 0;
+        this.state = GameState.SETUP;
+        console.log('[Online] Going to SETUP for rematch');
     }
 
     async loadResources() {
@@ -3285,31 +3430,74 @@ class Game {
     updateSetup(deltaTime) {
         const input = this.input.getInput();
 
+        // Online mode: Check countdown timer
+        if (this.isOnlineMode && this.readyCountdownStart > 0) {
+            const elapsed = Date.now() - this.readyCountdownStart;
+            if (elapsed >= this.READY_TIMEOUT) {
+                console.log('[Online] Countdown timeout - starting battle!');
+                // Timeout reached - auto-start battle
+                if (this.isHost) {
+                    // Host handles the start
+                    if (!this.myReady) {
+                        // I wasn't ready, but opponent was - set myself as ready
+                        this.myReady = true;
+                        this.onlineController.sendReady(this.settings.playerParams);
+                    }
+                    this.startOnlineBattle();
+                }
+                return;
+            }
+        }
+
         if (this.inputCooldown > 0) return;
 
-        // Navigate parameters
-        if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
-            this.setupSelection = Math.max(0, this.setupSelection - 1);
-            this.inputCooldown = 150;
-        }
-        if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
-            this.setupSelection = Math.min(7, this.setupSelection + 1);
-            this.inputCooldown = 150;
+        // Navigate parameters (only if not ready in online mode)
+        if (!this.isOnlineMode || !this.myReady) {
+            if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
+                this.setupSelection = Math.max(0, this.setupSelection - 1);
+                this.inputCooldown = 150;
+            }
+            if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
+                this.setupSelection = Math.min(7, this.setupSelection + 1);
+                this.inputCooldown = 150;
+            }
+
+            // Adjust values
+            if (input.moveX < -0.5 || this.input.keys['ArrowLeft']) {
+                this.adjustSetup(-1);
+                this.inputCooldown = 150;
+            }
+            if (input.moveX > 0.5 || this.input.keys['ArrowRight']) {
+                this.adjustSetup(1);
+                this.inputCooldown = 150;
+            }
         }
 
-        // Adjust values
-        if (input.moveX < -0.5 || this.input.keys['ArrowLeft']) {
-            this.adjustSetup(-1);
-            this.inputCooldown = 150;
-        }
-        if (input.moveX > 0.5 || this.input.keys['ArrowRight']) {
-            this.adjustSetup(1);
-            this.inputCooldown = 150;
-        }
-
-        // Start battle
+        // Start battle / Ready button
         if (this.setupSelection === 7 && (input.shoot || input.jump || this.input.keys['Enter'])) {
-            this.startBattle();
+            if (this.isOnlineMode) {
+                // Online mode: Handle Ready button
+                if (!this.myReady) {
+                    this.myReady = true;
+                    console.log('[Online] I am ready! Sending params:', this.settings.playerParams);
+                    this.onlineController.sendReady(this.settings.playerParams);
+                    SoundManager.playMenuSelect();
+
+                    // If opponent is already ready, start battle (host only)
+                    if (this.opponentReady && this.isHost) {
+                        console.log('[Online] Both ready - starting battle!');
+                        this.startOnlineBattle();
+                    }
+                    // If opponent is not ready, start countdown
+                    else if (!this.opponentReady && this.readyCountdownStart === 0) {
+                        this.readyCountdownStart = Date.now();
+                        console.log('[Online] I am ready first - starting 10s countdown');
+                    }
+                }
+            } else {
+                // Offline mode: Start battle directly
+                this.startBattle();
+            }
             this.inputCooldown = 200;
         }
 
@@ -3317,6 +3505,12 @@ class Game {
         if (this.input.keys['Escape']) {
             console.log('[DEBUG] ESC pressed! Returning to title');
             SoundManager.playMenuSelect();
+            // Reset ready state when leaving
+            this.myReady = false;
+            this.opponentReady = false;
+            this.opponentParams = null;
+            this.readyCountdownStart = 0;
+
             this.state = GameState.TITLE;
             this.menuSelection = 0;
             SoundManager.playBGM('title');
@@ -3441,12 +3635,116 @@ class Game {
         this.winner = null;
         this.state = GameState.BATTLE;
 
+        // Start 3-second countdown before battle begins
+        this.battleCountdown = 3;
+        this.battleCountdownStart = Date.now();
+
         // Start battle BGM
         SoundManager.playBGM('battle');
 
         console.log('[DEBUG] State changed to:', this.state);
+        console.log('[DEBUG] Battle countdown started!');
         console.log('[DEBUG] Player created at:', this.player.x, this.player.y);
         console.log('[DEBUG] Enemy created at:', this.enemy.x, this.enemy.y);
+    }
+
+    // Called by host to start online battle when both are ready
+    startOnlineBattle() {
+        console.log('[HOST] Starting online battle - both ready!');
+
+        // Send bothReady signal to client with host's settings and client's params
+        this.onlineController.sendBothReady({
+            stage: this.settings.stage,
+            itemsMode: this.settings.itemsMode,
+            opponentParams: this.settings.playerParams  // Host's params for client's enemy
+        });
+
+        // Start battle with params
+        this.startBattleWithParams();
+    }
+
+    // Start battle with opponent's parameters applied to enemy robot
+    startBattleWithParams() {
+        console.log('[Online] startBattleWithParams called');
+        console.log('[Online] My params:', this.settings.playerParams);
+        console.log('[Online] Opponent params:', this.opponentParams);
+
+        this.currentStage = this.settings.stage;
+        const stage = STAGES[this.currentStage];
+
+        // Create MY robot (player) with MY parameters
+        this.player = new Robot(
+            stage.spawnPoints.player.x,
+            stage.spawnPoints.player.y,
+            true,
+            'red'
+        );
+        this.player.setParameters(
+            this.settings.playerParams.jump,
+            this.settings.playerParams.walk,
+            this.settings.playerParams.beam,
+            this.settings.playerParams.kick
+        );
+        console.log('[Online] Created MY robot with MY params:', this.settings.playerParams);
+
+        // Create OPPONENT's robot (enemy) with OPPONENT's parameters
+        this.enemy = new Robot(
+            stage.spawnPoints.enemy.x,
+            stage.spawnPoints.enemy.y,
+            false,
+            'blue'
+        );
+
+        // Apply opponent's parameters if available, otherwise use defaults
+        if (this.opponentParams) {
+            this.enemy.setParameters(
+                this.opponentParams.jump,
+                this.opponentParams.walk,
+                this.opponentParams.beam,
+                this.opponentParams.kick
+            );
+            console.log('[Online] Created OPPONENT robot with OPPONENT params:', this.opponentParams);
+        } else {
+            // Fallback to default parameters
+            this.enemy.setParameters(5, 5, 5, 5);
+            console.log('[Online] Warning: No opponent params, using defaults');
+        }
+
+        // Create NetworkPlayer for opponent
+        if (this.onlineController) {
+            this.ai = this.onlineController.createNetworkPlayer(this.enemy);
+            console.log('[Online] Using NetworkPlayer for opponent');
+        }
+
+        // Clear projectiles and effects
+        this.beams = [];
+        this.effects = [];
+        ParticleSystem.clear();
+
+        // Reset Items Mode state
+        this.activeItems = [];
+        this.itemSpawnTimer = 0;
+        this.activeWarpZones = [];
+        this.warpSpawnTimer = 0;
+
+        // Reset Ready state for next match
+        this.myReady = false;
+        this.opponentReady = false;
+        this.readyCountdownStart = 0;
+
+        this.winner = null;
+        this.state = GameState.BATTLE;
+
+        // Start 3-second countdown before battle begins
+        this.battleCountdown = 3;
+        this.battleCountdownStart = Date.now();
+
+        // Start battle BGM
+        SoundManager.playBGM('battle');
+
+        console.log('[Online] Battle screen shown - 3 second countdown started!');
+        console.log('[Online] Player at:', this.player.x, this.player.y);
+        console.log('[Online] Enemy at:', this.enemy.x, this.enemy.y);
     }
 
     updateBattle(deltaTime) {
@@ -3455,6 +3753,32 @@ class Game {
 
         const input = this.input.getInput();
         const stage = STAGES[this.currentStage];
+
+        // =====================================================
+        // BATTLE COUNTDOWN: 3-2-1-FIGHT before battle starts
+        // =====================================================
+        if (this.battleCountdown > 0) {
+            const elapsed = Date.now() - this.battleCountdownStart;
+            const secondsElapsed = Math.floor(elapsed / 1000);
+            const newCountdown = 3 - secondsElapsed;
+
+            if (newCountdown !== this.battleCountdown) {
+                this.battleCountdown = Math.max(0, newCountdown);
+                if (this.battleCountdown > 0) {
+                    console.log('[Battle] Countdown:', this.battleCountdown);
+                    SoundManager.playMenuSelect(); // Sound for each countdown tick
+                } else {
+                    console.log('[Battle] FIGHT!');
+                    SoundManager.playBeamShoot(1.0); // Sound for FIGHT (charged beam sound)
+                }
+            }
+
+            // During countdown, only update physics for idle animations
+            this.player.update(deltaTime, stage.platforms);
+            this.enemy.update(deltaTime, stage.platforms);
+            ParticleSystem.update();
+            return; // Skip all input processing during countdown
+        }
 
         // Pause
         if (this.input.keys['Escape'] || this.input.keys['KeyP']) {
@@ -3637,6 +3961,11 @@ class Game {
         // Update robots
         this.player.update(deltaTime, stage.platforms);
         this.enemy.update(deltaTime, stage.platforms);
+
+        // =====================================================
+        // ROBOT-TO-ROBOT COLLISION (Push mechanics)
+        // =====================================================
+        this.handleRobotCollision(this.player, this.enemy);
 
         // Post-update: Ensure correct facing direction during charge (HOST)
         // This must be after Robot.update() to prevent any accidental resets
@@ -3929,6 +4258,92 @@ class Game {
                robotCenterY <= zone.y + zone.h;
     }
 
+    // =========================================================================
+    // ROBOT-TO-ROBOT COLLISION: Push mechanics based on kickPower
+    // =========================================================================
+    handleRobotCollision(robotA, robotB) {
+        // Check if robots overlap
+        if (!checkCollision(robotA, robotB)) {
+            return; // No collision
+        }
+
+        // Calculate overlap
+        const overlapLeft = (robotA.x + robotA.width) - robotB.x;   // A's right into B's left
+        const overlapRight = (robotB.x + robotB.width) - robotA.x;  // B's right into A's left
+
+        // Determine push direction (horizontal only, vertical handled by platforms)
+        const pushFromLeft = overlapLeft < overlapRight;
+        const overlap = Math.min(overlapLeft, overlapRight);
+
+        if (overlap <= 0) return;
+
+        // Calculate push strength ratio based on kickPower
+        // Higher kickPower = more push strength = less pushed back
+        const powerA = robotA.kickPower + 1; // +1 to avoid division by zero
+        const powerB = robotB.kickPower + 1;
+        const totalPower = powerA + powerB;
+
+        // Robot with LOWER power gets pushed MORE
+        // ratioA = how much of the overlap robotA absorbs (gets pushed)
+        const ratioA = powerB / totalPower; // If B is stronger, A gets pushed more
+        const ratioB = powerA / totalPower; // If A is stronger, B gets pushed more
+
+        // Add minimum push to prevent complete stalemate when powers are equal
+        const minPush = 1;
+        const pushA = Math.max(overlap * ratioA, minPush);
+        const pushB = Math.max(overlap * ratioB, minPush);
+
+        // Apply push based on direction
+        if (pushFromLeft) {
+            // A is on left, B is on right
+            robotA.x -= pushA;
+            robotB.x += pushB;
+        } else {
+            // B is on left, A is on right
+            robotA.x += pushA;
+            robotB.x -= pushB;
+        }
+
+        // Keep robots within screen bounds
+        robotA.x = clamp(robotA.x, 0, GAME_WIDTH - robotA.width);
+        robotB.x = clamp(robotB.x, 0, GAME_WIDTH - robotB.width);
+
+        // Apply small velocity change for natural feel
+        // The weaker robot gets pushed back with some momentum
+        const velocityPush = 0.5;
+        if (pushFromLeft) {
+            // A pushed left, B pushed right
+            if (powerA < powerB) {
+                robotA.velocityX = -velocityPush * (powerB / powerA);
+            }
+            if (powerB < powerA) {
+                robotB.velocityX = velocityPush * (powerA / powerB);
+            }
+        } else {
+            // A pushed right, B pushed left
+            if (powerA < powerB) {
+                robotA.velocityX = velocityPush * (powerB / powerA);
+            }
+            if (powerB < powerA) {
+                robotB.velocityX = -velocityPush * (powerA / powerB);
+            }
+        }
+
+        // Visual feedback: Small spark particles at collision point
+        const collisionX = (robotA.x + robotA.width / 2 + robotB.x + robotB.width / 2) / 2;
+        const collisionY = Math.max(robotA.y, robotB.y) + 30;
+
+        // Only show particles occasionally to avoid spam
+        if (Math.random() < 0.3) {
+            ParticleSystem.emit(collisionX, collisionY, 3, {
+                color: '#ffaa00',
+                size: 3,
+                life: 15,
+                type: 'spark'
+            });
+        }
+    }
+
     // Teleport a robot to exit position with visual effect
     teleportRobot(robot, exit) {
         // Set warp cooldown to prevent immediate re-warp
@@ -4122,6 +4537,69 @@ class Game {
 
         if (this.inputCooldown > 0) return;
 
+        // Online mode: Handle rematch consent UI with keyboard
+        if (this.isOnlineMode) {
+            // Waiting for opponent's response - only TITLE option available
+            if (this.rematchWaitingResponse && !this.rematchRequestReceived) {
+                if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys['Space'] || this.input.keys['Escape']) {
+                    console.log('[Online] Cancelling rematch wait (keyboard) - going to TITLE');
+                    SoundManager.playMenuSelect();
+                    if (this.onlineController) {
+                        this.onlineController.sendRematchReject();
+                    }
+                    this.rematchRequestSent = false;
+                    this.rematchRequestReceived = false;
+                    this.rematchWaitingResponse = false;
+                    this.state = GameState.TITLE;
+                    this.menuSelection = 0;
+                    SoundManager.playBGM('title');
+                    this.inputCooldown = 200;
+                }
+                return;
+            }
+
+            // Received rematch request - handle accept/reject with keyboard
+            if (this.rematchRequestReceived && !this.rematchRequestSent) {
+                // Left/Right to switch between OK and 拒否
+                if (input.moveX < -0.5 || this.input.keys['ArrowLeft']) {
+                    this.rematchSelection = 0; // OK
+                    this.inputCooldown = 200;
+                }
+                if (input.moveX > 0.5 || this.input.keys['ArrowRight']) {
+                    this.rematchSelection = 1; // 拒否
+                    this.inputCooldown = 200;
+                }
+
+                // Confirm selection
+                if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys['Space']) {
+                    SoundManager.playMenuSelect();
+                    if (this.rematchSelection === 0) {
+                        // Accept
+                        console.log('[Online] Accepting rematch (keyboard)');
+                        if (this.onlineController) {
+                            this.onlineController.sendRematchAccept();
+                        }
+                        this.goToRematchSetup();
+                    } else {
+                        // Reject
+                        console.log('[Online] Rejecting rematch (keyboard)');
+                        if (this.onlineController) {
+                            this.onlineController.sendRematchReject();
+                        }
+                        this.rematchRequestReceived = false;
+                        this.rematchRequestSent = false;
+                        this.rematchWaitingResponse = false;
+                        this.state = GameState.TITLE;
+                        this.menuSelection = 0;
+                        SoundManager.playBGM('title');
+                    }
+                    this.inputCooldown = 200;
+                }
+                return;
+            }
+        }
+
+        // Normal menu navigation
         if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
             this.menuSelection = Math.max(0, this.menuSelection - 1);
             this.inputCooldown = 200;
@@ -4135,13 +4613,47 @@ class Game {
             SoundManager.playMenuSelect();
             switch (this.menuSelection) {
                 case 0: // Rematch
-                    this.startBattle();
+                    if (this.isOnlineMode) {
+                        // Online mode: Send rematch request and wait for response
+                        console.log('[Online] REMATCH selected - sending rematch request');
+                        this.rematchRequestSent = true;
+                        this.rematchWaitingResponse = true;
+                        this.rematchSelection = 0; // Default to OK
+                        if (this.onlineController) {
+                            this.onlineController.sendRematchRequest();
+                        }
+                        // Check if opponent already sent request (mutual rematch)
+                        if (this.rematchRequestReceived) {
+                            console.log('[Online] Both want rematch - going to SETUP');
+                            this.goToRematchSetup();
+                        }
+                    } else {
+                        // Offline mode: Start immediately
+                        this.startBattle();
+                    }
                     break;
                 case 1: // Change Settings
+                    // Reset Ready states when going to settings
+                    this.myReady = false;
+                    this.opponentReady = false;
+                    this.opponentParams = null;
+                    this.readyCountdownStart = 0;
+                    this.rematchRequestSent = false;
+                    this.rematchRequestReceived = false;
+                    this.rematchWaitingResponse = false;
                     this.state = GameState.SETUP;
                     SoundManager.playBGM('title');
                     break;
                 case 2: // Title
+                    // If in online mode with pending rematch, notify opponent
+                    if (this.isOnlineMode && this.rematchRequestReceived) {
+                        if (this.onlineController) {
+                            this.onlineController.sendRematchReject();
+                        }
+                    }
+                    this.rematchRequestSent = false;
+                    this.rematchRequestReceived = false;
+                    this.rematchWaitingResponse = false;
                     this.state = GameState.TITLE;
                     this.menuSelection = 0;
                     SoundManager.playBGM('title');
@@ -4548,23 +5060,80 @@ class Game {
         ctx.textAlign = 'center';
         ctx.fillText('BACK', backBtnX + 50, btnY + 32);
 
-        // START BATTLE button (right side)
+        // START BATTLE / READY button (right side)
         const startBtnX = GAME_WIDTH / 2 - 100;
         const isStartSelected = this.setupSelection === 7;
-        ctx.fillStyle = isStartSelected ? '#0088ff' : '#0066cc';
-        ctx.fillRect(startBtnX, btnY, 200, 50);
-        ctx.strokeStyle = isStartSelected ? '#00ffff' : '#00aaff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(startBtnX, btnY, 200, 50);
-        ctx.font = 'bold 20px Courier New';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.fillText('START BATTLE', GAME_WIDTH / 2, btnY + 32);
+
+        if (this.isOnlineMode) {
+            // Online mode: Show READY button
+            if (this.myReady) {
+                // Already ready - show waiting state
+                ctx.fillStyle = '#006600';
+                ctx.fillRect(startBtnX, btnY, 200, 50);
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startBtnX, btnY, 200, 50);
+                ctx.font = 'bold 20px Courier New';
+                ctx.fillStyle = '#00ff00';
+                ctx.textAlign = 'center';
+                ctx.fillText('READY!', GAME_WIDTH / 2, btnY + 32);
+            } else {
+                // Not ready yet - show READY button
+                ctx.fillStyle = isStartSelected ? '#0088ff' : '#0066cc';
+                ctx.fillRect(startBtnX, btnY, 200, 50);
+                ctx.strokeStyle = isStartSelected ? '#00ffff' : '#00aaff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startBtnX, btnY, 200, 50);
+                ctx.font = 'bold 20px Courier New';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.fillText('READY', GAME_WIDTH / 2, btnY + 32);
+            }
+
+            // Show Ready status above buttons
+            const statusY = btnY - 60;
+            ctx.font = '16px Courier New';
+            ctx.textAlign = 'center';
+
+            // My status
+            ctx.fillStyle = this.myReady ? '#00ff00' : '#ff6666';
+            const myStatus = this.myReady ? '● YOU: READY' : '○ YOU: WAITING';
+            ctx.fillText(myStatus, GAME_WIDTH / 2 - 100, statusY);
+
+            // Opponent status
+            ctx.fillStyle = this.opponentReady ? '#00ff00' : '#ff6666';
+            const opponentStatus = this.opponentReady ? '● OPPONENT: READY' : '○ OPPONENT: WAITING';
+            ctx.fillText(opponentStatus, GAME_WIDTH / 2 + 100, statusY);
+
+            // Show countdown timer if one player is ready
+            if (this.readyCountdownStart > 0) {
+                const elapsed = Date.now() - this.readyCountdownStart;
+                const remaining = Math.max(0, Math.ceil((this.READY_TIMEOUT - elapsed) / 1000));
+                ctx.font = 'bold 24px Courier New';
+                ctx.fillStyle = remaining <= 3 ? '#ff0000' : '#ffff00';
+                ctx.fillText(`Battle starts in ${remaining}...`, GAME_WIDTH / 2, statusY - 30);
+            }
+        } else {
+            // Offline mode: Show START BATTLE button
+            ctx.fillStyle = isStartSelected ? '#0088ff' : '#0066cc';
+            ctx.fillRect(startBtnX, btnY, 200, 50);
+            ctx.strokeStyle = isStartSelected ? '#00ffff' : '#00aaff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(startBtnX, btnY, 200, 50);
+            ctx.font = 'bold 20px Courier New';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText('START BATTLE', GAME_WIDTH / 2, btnY + 32);
+        }
 
         // Instructions
         ctx.font = '14px Courier New';
         ctx.fillStyle = '#666666';
-        ctx.fillText('Arrow Keys to adjust, ESC to go back', GAME_WIDTH / 2, GAME_HEIGHT - 20);
+        if (this.isOnlineMode) {
+            ctx.fillText('Arrow Keys to adjust, READY when done!', GAME_WIDTH / 2, GAME_HEIGHT - 20);
+        } else {
+            ctx.fillText('Arrow Keys to adjust, ESC to go back', GAME_WIDTH / 2, GAME_HEIGHT - 20);
+        }
     }
 
     renderBattle() {
@@ -4681,7 +5250,7 @@ class Game {
         this.ui.drawHPBar(GAME_WIDTH - 200, 20, 180, 25, this.enemy.hp, this.enemy.maxHp, '#3333ff');
         ctx.fillStyle = '#3333ff';
         ctx.textAlign = 'right';
-        ctx.fillText('CPU', GAME_WIDTH - 20, 60);
+        ctx.fillText(this.isOnlineMode ? 'OPPONENT' : 'CPU', GAME_WIDTH - 20, 60);
 
         // Stage name
         ctx.font = '16px Courier New';
@@ -4693,6 +5262,66 @@ class Game {
         ParticleSystem.render(ctx);
 
         // Debug labels removed for production
+
+        // =====================================================
+        // BATTLE COUNTDOWN DISPLAY: 3-2-1-FIGHT
+        // =====================================================
+        if (this.battleCountdownStart > 0) {
+            const elapsed = Date.now() - this.battleCountdownStart;
+            const countdownValue = 3 - Math.floor(elapsed / 1000);
+
+            // Only show during countdown or shortly after for FIGHT!
+            if (countdownValue > 0 || elapsed < 3800) {
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Semi-transparent overlay during countdown only
+                if (countdownValue > 0) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                }
+
+                // Calculate pulse animation
+                const pulsePhase = (elapsed % 1000) / 1000;
+                const scale = 1 + Math.sin(pulsePhase * Math.PI) * 0.2;
+
+                ctx.translate(GAME_WIDTH / 2, GAME_HEIGHT / 2);
+                ctx.scale(scale, scale);
+
+                if (countdownValue > 0) {
+                    // Countdown numbers: 3, 2, 1
+                    ctx.font = 'bold 200px Impact, sans-serif';
+                    ctx.shadowColor = '#00ffff';
+                    ctx.shadowBlur = 30;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.lineWidth = 4;
+                    ctx.strokeText(countdownValue.toString(), 0, 0);
+                    ctx.fillText(countdownValue.toString(), 0, 0);
+                } else {
+                    // FIGHT! text (fade out)
+                    const fightElapsed = elapsed - 3000;
+                    const alpha = Math.max(0, 1 - fightElapsed / 800);
+                    ctx.globalAlpha = alpha;
+                    ctx.font = 'bold 100px Impact, sans-serif';
+                    ctx.shadowColor = '#ff0000';
+                    ctx.shadowBlur = 40;
+                    ctx.fillStyle = '#ffff00';
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 6;
+                    ctx.strokeText('FIGHT!', 0, 0);
+                    ctx.fillText('FIGHT!', 0, 0);
+                }
+
+                ctx.restore();
+            }
+
+            // Reset countdown start after animation completes
+            if (elapsed >= 3800) {
+                this.battleCountdownStart = 0;
+            }
+        }
 
         // Restore from shake transform
         ctx.restore();
@@ -4973,7 +5602,12 @@ class Game {
 
         // 勝者表示（少し遅れて表示）
         if (this.koTimer > 500) {
-            const winnerText = this.winner === 'player' ? 'YOU WIN!' : 'CPU WINS!';
+            let winnerText;
+            if (this.winner === 'player') {
+                winnerText = 'YOU WIN!';
+            } else {
+                winnerText = this.isOnlineMode ? 'OPPONENT WINS!' : 'CPU WINS!';
+            }
             const winnerColor = this.winner === 'player' ? '#FF3333' : '#3333FF';
 
             ctx.font = 'bold 36px Courier New';
@@ -5075,6 +5709,71 @@ class Game {
         ctx.font = 'bold 36px Courier New';
         ctx.fillStyle = '#888888';
         ctx.fillText('VS', GAME_WIDTH / 2, robotY + robotHeight / 2);
+
+        // Online mode rematch UI
+        if (this.isOnlineMode) {
+            // If waiting for opponent's response
+            if (this.rematchWaitingResponse && !this.rematchRequestReceived) {
+                ctx.font = 'bold 18px Courier New';
+                ctx.fillStyle = '#00ffff';
+                ctx.fillText('相手の応答を待っています...', GAME_WIDTH / 2, 440);
+
+                // Animated dots
+                const dots = '.'.repeat((Math.floor(Date.now() / 500) % 3) + 1);
+                ctx.fillText(dots, GAME_WIDTH / 2, 470);
+
+                // Cancel option
+                ctx.font = '16px Courier New';
+                ctx.fillStyle = '#888888';
+                ctx.fillText('TITLE で戻る', GAME_WIDTH / 2, 520);
+
+                // Draw TITLE button only
+                const titleY = 550;
+                const isSelected = this.menuSelection === 2;
+                ctx.font = isSelected ? 'bold 20px Courier New' : '18px Courier New';
+                ctx.fillStyle = isSelected ? '#ffff00' : '#888888';
+                ctx.fillText((isSelected ? '> ' : '  ') + 'TITLE', GAME_WIDTH / 2, titleY);
+                return;
+            }
+
+            // If received rematch request from opponent
+            if (this.rematchRequestReceived && !this.rematchRequestSent) {
+                ctx.font = 'bold 20px Courier New';
+                ctx.fillStyle = '#ffff00';
+                ctx.fillText('再戦依頼が来ています', GAME_WIDTH / 2, 440);
+
+                ctx.font = '18px Courier New';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText('再戦しますか？', GAME_WIDTH / 2, 470);
+
+                // Accept button (highlight if selected)
+                const okSelected = this.rematchSelection === 0;
+                ctx.fillStyle = okSelected ? '#00ff88' : '#00aa44';
+                ctx.fillRect(200, 510, 150, 50);
+                ctx.strokeStyle = okSelected ? '#ffffff' : '#00ff66';
+                ctx.lineWidth = okSelected ? 4 : 2;
+                ctx.strokeRect(200, 510, 150, 50);
+                ctx.font = 'bold 20px Courier New';
+                ctx.fillStyle = okSelected ? '#ffffff' : '#000000';
+                ctx.fillText('OK', 275, 542);
+
+                // Reject button (highlight if selected)
+                const rejectSelected = this.rematchSelection === 1;
+                ctx.fillStyle = rejectSelected ? '#ff5588' : '#aa2244';
+                ctx.fillRect(450, 510, 150, 50);
+                ctx.strokeStyle = rejectSelected ? '#ffffff' : '#ff3366';
+                ctx.lineWidth = rejectSelected ? 4 : 2;
+                ctx.strokeRect(450, 510, 150, 50);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText('拒否', 525, 542);
+
+                // Keyboard hint
+                ctx.font = '14px Courier New';
+                ctx.fillStyle = '#888888';
+                ctx.fillText('← → で選択、Enter で決定', GAME_WIDTH / 2, 580);
+                return;
+            }
+        }
 
         // Menu
         const menuItems = ['REMATCH', 'CHANGE SETTINGS', 'TITLE'];
@@ -5209,8 +5908,14 @@ class Game {
     setupOnlineCallbacks() {
         // Called when P2P connection is established
         this.onOnlineConnected = () => {
-            console.log('[Online] Connected! Starting battle...');
-            this.onlineStatus = 'Connected! Starting battle...';
+            console.log('[Online] Connected! Entering setup...');
+            this.onlineStatus = 'Connected! Set your parameters!';
+
+            // Reset Ready states for new match
+            this.myReady = false;
+            this.opponentReady = false;
+            this.opponentParams = null;
+            this.readyCountdownStart = 0;
 
             setTimeout(() => {
                 this.state = GameState.SETUP;
@@ -5221,6 +5926,11 @@ class Game {
         this.onOnlineDisconnected = () => {
             console.log('[Online] Disconnected');
             this.onlineStatus = 'Connection lost';
+            // Reset Ready states
+            this.myReady = false;
+            this.opponentReady = false;
+            this.opponentParams = null;
+            this.readyCountdownStart = 0;
             this.state = GameState.ONLINE_LOBBY;
             if (this.onlineController) {
                 this.onlineController.disconnect();
@@ -5271,6 +5981,81 @@ class Game {
             console.log('[CLIENT] After startBattle():');
             console.log(`[CLIENT] this.player: isPlayer=${this.player?.isPlayer}, color=${this.player?.color}, x=${this.player?.x}`);
             console.log(`[CLIENT] this.enemy: isPlayer=${this.enemy?.isPlayer}, color=${this.enemy?.color}, x=${this.enemy?.x}`);
+        };
+
+        // Called when opponent signals ready
+        this.onOpponentReady = (data) => {
+            console.log('[Online] Opponent is ready!', data);
+            this.opponentReady = true;
+            if (data.params) {
+                this.opponentParams = data.params;
+                console.log('[Online] Received opponent params:', this.opponentParams);
+            }
+
+            // If I'm also ready, check if we should start (host decides)
+            if (this.myReady && this.isHost) {
+                this.startOnlineBattle();
+            }
+            // If I'm not ready yet, start countdown
+            else if (!this.myReady && this.readyCountdownStart === 0) {
+                this.readyCountdownStart = Date.now();
+                console.log('[Online] Opponent ready first - starting 10s countdown');
+            }
+        };
+
+        // Called when receiving opponent's parameters
+        this.onOpponentParams = (params) => {
+            console.log('[Online] Received opponent params:', params);
+            this.opponentParams = params;
+        };
+
+        // Called when host signals both players are ready (for client)
+        this.onBothReady = (data) => {
+            console.log('[Online] Both ready signal received - starting battle!', data);
+            // Apply game settings from host
+            if (data.stage !== undefined) {
+                this.settings.stage = data.stage;
+            }
+            if (data.itemsMode !== undefined) {
+                this.settings.itemsMode = data.itemsMode;
+            }
+            // Start battle with opponent's params
+            if (data.opponentParams) {
+                this.opponentParams = data.opponentParams;
+            }
+            this.startBattleWithParams();
+        };
+
+        // Called when opponent requests a rematch
+        this.onRematchRequest = (data) => {
+            console.log('[Online] Opponent wants a rematch!');
+            this.rematchRequestReceived = true;
+            this.rematchSelection = 0; // Default to OK
+            // If I also sent a request, both want rematch - go to SETUP
+            if (this.rematchRequestSent) {
+                console.log('[Online] Both want rematch - going to SETUP');
+                this.goToRematchSetup();
+            }
+        };
+
+        // Called when opponent accepts rematch
+        this.onRematchAccept = (data) => {
+            console.log('[Online] Opponent accepted rematch!');
+            this.rematchWaitingResponse = false;
+            this.goToRematchSetup();
+        };
+
+        // Called when opponent rejects rematch
+        this.onRematchReject = (data) => {
+            console.log('[Online] Opponent rejected rematch - returning to title');
+            this.rematchWaitingResponse = false;
+            this.rematchRequestSent = false;
+            this.rematchRequestReceived = false;
+            this.rematchSelection = 0;
+            // Both go to title
+            this.state = GameState.TITLE;
+            this.menuSelection = 0;
+            SoundManager.playBGM('title');
         };
 
         // Apply network state (client only)
@@ -5382,6 +6167,21 @@ class Game {
                 // Don't allow BATTLE -> RESULT directly (must go through KO)
                 if (state.gameState === GameState.RESULT && this.state === GameState.BATTLE) {
                     console.log('[Client] Ignoring invalid state transition: BATTLE -> RESULT (must go through KO)');
+                    return;
+                }
+
+                // Don't allow forcing client back to RESULT from menu states (SETUP, TITLE)
+                // This prevents flickering when client selects REMATCH but host is still in RESULT
+                if (state.gameState === GameState.RESULT &&
+                    (this.state === GameState.SETUP || this.state === GameState.TITLE)) {
+                    console.log('[Client] Ignoring state sync: staying in menu state');
+                    return;
+                }
+
+                // Don't allow forcing client back to KO from menu states
+                if (state.gameState === GameState.KO &&
+                    (this.state === GameState.SETUP || this.state === GameState.TITLE || this.state === GameState.RESULT)) {
+                    console.log('[Client] Ignoring state sync: KO after menu transition');
                     return;
                 }
 

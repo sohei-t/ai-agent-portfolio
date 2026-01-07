@@ -596,6 +596,48 @@ class OnlineModeController {
                     this.game.onNetworkBattleStart(data);
                 }
                 break;
+
+            case 'ready':
+                // Opponent is ready to start battle
+                if (this.game.onOpponentReady) {
+                    this.game.onOpponentReady(data);
+                }
+                break;
+
+            case 'playerParams':
+                // Receive opponent's robot parameters
+                if (this.game.onOpponentParams) {
+                    this.game.onOpponentParams(data.params);
+                }
+                break;
+
+            case 'bothReady':
+                // Both players are ready - start battle (sent by host)
+                if (this.game.onBothReady) {
+                    this.game.onBothReady(data);
+                }
+                break;
+
+            case 'rematchRequest':
+                // Opponent wants a rematch
+                if (this.game.onRematchRequest) {
+                    this.game.onRematchRequest(data);
+                }
+                break;
+
+            case 'rematchAccept':
+                // Opponent accepted rematch
+                if (this.game.onRematchAccept) {
+                    this.game.onRematchAccept(data);
+                }
+                break;
+
+            case 'rematchReject':
+                // Opponent rejected rematch
+                if (this.game.onRematchReject) {
+                    this.game.onRematchReject(data);
+                }
+                break;
         }
     }
 
@@ -633,6 +675,73 @@ class OnlineModeController {
             type: 'startBattle',
             ...data
         });
+    }
+
+    // Send ready state to opponent
+    sendReady(params) {
+        if (!this.isConnected) return;
+
+        this.webrtc.send({
+            type: 'ready',
+            params: params,
+            timestamp: Date.now()
+        });
+        console.log('[Online] Sent ready state with params:', params);
+    }
+
+    // Send player parameters to opponent
+    sendPlayerParams(params) {
+        if (!this.isConnected) return;
+
+        this.webrtc.send({
+            type: 'playerParams',
+            params: params
+        });
+        console.log('[Online] Sent player params:', params);
+    }
+
+    // Called by host when both players are ready
+    sendBothReady(data) {
+        if (!this.isConnected || !this.roomManager.isHost) return;
+
+        this.webrtc.send({
+            type: 'bothReady',
+            ...data
+        });
+        console.log('[Online] Sent bothReady signal');
+    }
+
+    // Send rematch request to opponent
+    sendRematchRequest() {
+        if (!this.isConnected) return;
+
+        this.webrtc.send({
+            type: 'rematchRequest',
+            timestamp: Date.now()
+        });
+        console.log('[Online] Sent rematch request');
+    }
+
+    // Send rematch accept response
+    sendRematchAccept() {
+        if (!this.isConnected) return;
+
+        this.webrtc.send({
+            type: 'rematchAccept',
+            timestamp: Date.now()
+        });
+        console.log('[Online] Sent rematch accept');
+    }
+
+    // Send rematch reject response
+    sendRematchReject() {
+        if (!this.isConnected) return;
+
+        this.webrtc.send({
+            type: 'rematchReject',
+            timestamp: Date.now()
+        });
+        console.log('[Online] Sent rematch reject');
     }
 
     // Create NetworkPlayer instance (call when starting online battle)
