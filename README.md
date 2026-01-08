@@ -3,7 +3,7 @@
 > **AIエージェントによる一気通貫の高速アプリ開発** を実証するポートフォリオ
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-success)](https://sohei-t.github.io/ai-agent-portfolio/)
-[![Apps](https://img.shields.io/badge/Apps-12+-blue)](#-portfolio-applications)
+[![Apps](https://img.shields.io/badge/Apps-13+-blue)](#-portfolio-applications)
 [![Workflow](https://img.shields.io/badge/Workflow-7%20Phases-purple)](#-development-workflow)
 
 [English](#english) | [日本語](#日本語)
@@ -144,9 +144,10 @@ evaluation_criteria:
 
 | アプリ名 | 説明 | デモ |
 |---------|------|------|
+| [Robo Battle v4](./robo-battle-v4/) | ロボット対戦ゲーム（魔獣召喚システム搭載） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/) |
 | [CLI Sticky Notes](./cli-sticky-notes/) | ターミナル作業用グローバルホットキー付箋 | [Live](https://sohei-t.github.io/ai-agent-portfolio/cli-sticky-notes/) |
 | [Space Shooter](./space-shooter/) | 宇宙シューティングゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/) |
-| [Robo Battle v3](./robo-battle-v3/) | ロボット対戦ゲーム（最新版） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v3/) |
+| [Robo Battle v3](./robo-battle-v3/) | ロボット対戦ゲーム（オンライン対戦対応） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v3/) |
 | [Dungeon Battles](./dungeon-battles/) | ダンジョン探索バトルゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/) |
 | [Boss Shooter 2](./boss-shooter2/) | ボス戦シューティング | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) |
 | [Piano App](./piano-app/) | ブラウザピアノアプリ | [Live](https://sohei-t.github.io/ai-agent-portfolio/piano-app/) |
