@@ -1,136 +1,145 @@
-# ROBO BATTLE V3 - Online Multiplayer Edition
+# ROBO BATTLE V4 - Beast Summon Edition
 
-オンライン対戦機能を搭載した、次世代ロボット対戦アクションゲーム。
+魔獣召喚システムと強化されたCPU AIを搭載した、究極のロボット対戦アクションゲーム。
 
-## 🎮 Play Now
+## Play Now
 
-**[🕹️ ライブデモ](https://robo-battle-v3-game.web.app)** | **[📖 About](https://robo-battle-v3-game.web.app/about.html)** | **[🔊 音声解説](https://robo-battle-v3-game.web.app/explanation.mp3)**
+**[Live Demo](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/about.html)** | **[Audio Guide](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/explanation.mp3)**
 
-## ✨ V3の新機能
+## V4 New Features
 
-- **オンライン対戦**: WebRTC P2Pによるリアルタイム対戦
-- **ルーム作成/参加**: 6桁のルームコードで友達と対戦
-- **設定同期**: ホストの設定（ステージ・難易度・アイテム）がクライアントに反映
-- **アイテムモード**: ワープゾーン、デスゾーン、パワーアップアイテム
-- **フォトリアル背景**: 6種類のAI生成シネマティック背景
-- **スムーズなアニメーション**: 全16種類のロボットスプライト
+### V4.4: Beast Summon System
+- **Beast Summon Item**: Summons an AI-controlled beast that attacks your opponent
+- **Beast AI**: Maintains optimal distance, breathes fire, and auto-targets
+- **Beast Sprites**: Blue/Red variants with 5 animations (idle, walk, jump, flame, down)
+- **Balance**: HP 45 (3 normal shots), Flame damage 15, 1 beast per player
 
-## 🤖 ゲーム概要
+### V4.4: Enhanced CPU AI
+- **Active Item Pursuit**: CPU actively chases nearby items (400px range)
+- **Immediate Weapon Use**: Fires equipped weapon immediately after pickup
+- **Beast Targeting**: Prioritizes attacking enemy beasts when threatened
 
-赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。
-ビームライフル、ジャンプ、キックを駆使して敵を倒せ！
+### V4.3: Knockdown System & New Weapons
+- **Knockdown Mechanic**: Heavy attacks cause knockdown state with recovery animation
+- **Green Dragon**: Powerful dragon flame attack
+- **Meteor Strike**: Devastating meteor shower from above
 
-### ゲームモード
+### V4.2: Guard System
+- **Shield/Guard**: Block incoming attacks (replaces crouch)
+- **Guard Break**: Heavy attacks break through guards
 
-- **VS CPU**: コンピューターとの対戦（難易度選択可能）
-- **ONLINE BATTLE**: インターネット経由でリアルタイム対戦
+## Game Overview
 
-### 操作方法
+Red robot (Player) vs Blue robot (CPU/Opponent) in 1v1 action combat.
+Master beam rifles, jumps, kicks, and special weapons to defeat your enemy!
 
-**PC（キーボード）**
-- 矢印キー左右: 移動
-- 上矢印 / スペース: ジャンプ
-- Z: ビーム発射（長押しでチャージ）
-- X: キック
+### Game Modes
 
-**モバイル**
-- 画面左: ビーム発射
-- 画面中央上: ジャンプ
-- 画面右: キック
-- バーチャルジョイスティック / 傾きセンサー: 移動
+- **VS CPU**: Battle against computer AI (Easy/Normal/Hard)
+- **ONLINE BATTLE**: Real-time P2P battles via WebRTC
 
-## 🌐 オンライン対戦
+### Controls
 
-### ホスト（部屋を作る）
-1. ONLINE BATTLE を選択
-2. CREATE ROOM をクリック
-3. 表示される6桁のルームコードを相手に伝える
-4. 相手が参加したら START BATTLE
+**PC (Keyboard)**
+- Arrow Left/Right: Move
+- Arrow Up / Space: Jump
+- Z: Beam (hold to charge)
+- X: Kick
+- C: Guard/Shield
 
-### クライアント（部屋に参加）
-1. ONLINE BATTLE を選択
-2. JOIN ROOM をクリック
-3. ホストから教えてもらったルームコードを入力
-4. ホストがバトルを開始するのを待つ
+**Mobile**
+- Left side upper: Guard
+- Left side lower: Jump
+- Right side: Beam
+- Virtual joystick / Tilt sensor: Move
 
-### オンライン設定同期
-ホスト側で設定した以下の項目がクライアントに反映されます：
-- ステージ（背景）
-- 難易度
-- アイテムモード ON/OFF
+## Weapon Items
 
-## 🎯 カスタマイズシステム
+| Weapon | Description | Power |
+|--------|-------------|-------|
+| Bazooka | Explosive projectile | High |
+| Machinegun | Rapid fire bullets | Medium |
+| Spread Shot | Wide-angle attack | Medium |
+| Sword | Close-range slash | High |
+| Homing Missile | Auto-targeting (1 shot) | Very High |
+| Clone | Creates decoy | Special |
+| Tiger | Rushing attack | High |
+| Aerial | Air-to-ground assault | High |
+| Green Dragon | Dragon flame breath | Very High |
+| Meteor Strike | Meteor shower | Very High |
+| Beast Summon | AI beast companion | Special |
 
-JUMP, WALK, BEAM, KICKに合計20ポイントを振り分け：
-- **JUMP**: ジャンプ力（高いほど高くジャンプ）
-- **WALK**: 移動速度（高いほど速く移動）
-- **BEAM**: ビーム攻撃力（高いほど高ダメージ）
-- **KICK**: キック攻撃力（高いほど高ダメージ）
+## Online Battle
 
-## 🗺️ ステージ
+### Host (Create Room)
+1. Select ONLINE BATTLE
+2. Click CREATE ROOM
+3. Share the 6-digit room code
+4. Press START BATTLE when opponent joins
 
-| ステージ | 背景テーマ |
-|---------|-----------|
-| NEO CITY | サイバーパンク都市 |
-| PYRAMID | 古代エジプト遺跡 |
-| PARTHENON | ギリシャ神殿 |
-| FACTORY | 巨大ロボット工場 |
-| CAVE | クリスタル洞窟 |
-| FINAL ARENA | 宇宙チャンピオンシップアリーナ |
+### Client (Join Room)
+1. Select ONLINE BATTLE
+2. Click JOIN ROOM
+3. Enter the room code
+4. Wait for host to start
 
-## 🛠 技術スタック
+## Customization System
+
+Allocate 20 points across JUMP, WALK, BEAM, KICK:
+- **JUMP**: Jump height
+- **WALK**: Movement speed
+- **BEAM**: Beam attack power
+- **KICK**: Kick attack power
+
+## Stages
+
+| Stage | Theme |
+|-------|-------|
+| NEO CITY | Cyberpunk cityscape |
+| PYRAMID | Ancient Egyptian ruins |
+| PARTHENON | Greek temple |
+| FACTORY | Giant robot factory |
+| CAVE | Crystal cavern |
+| FINAL ARENA | Space championship arena |
+
+## Tech Stack
 
 - **Frontend**: Vanilla JavaScript (ES6+)
 - **Graphics**: HTML5 Canvas (60FPS)
-- **Online**: WebRTC (P2P), Firebase Realtime Database (Signaling)
-- **Hosting**: Firebase Hosting
+- **Online**: WebRTC (P2P), Firebase Realtime Database
+- **Hosting**: GitHub Pages
 - **AI Image Generation**: Vertex AI Imagen 3.0
-- **Sprites**: Photorealistic 3D-style PNG (512x512)
-- **Backgrounds**: Cinematic 16:9 JPG (1024x576)
+- **Sprites**: Photorealistic 3D-style PNG
+- **Beast Sprites**: AI-generated demon beast animations
 
-## 📁 ファイル構成
+## File Structure
 
 ```
-robo-battle-v3/
-├── index.html           # ゲームエントリーポイント
-├── game.js              # ゲームロジック（5500+ lines）
-├── online-mode.js       # オンライン対戦モジュール
-├── firebase-config.js   # Firebase設定
+robo-battle-v4/
+├── index.html           # Game entry point
+├── game.js              # Game logic (10000+ lines)
+├── online-mode.js       # Online battle module
+├── firebase-config.js   # Firebase config
 ├── assets/
-│   ├── sprites/         # 16種類のAI生成3Dスプライト
-│   │   ├── player_*.png # プレイヤーロボット（8ポーズ）
-│   │   └── enemy_*.png  # 敵ロボット（8ポーズ）
-│   └── backgrounds/     # 6種類のAI生成背景
-│       └── bg_*.jpg     # フォトリアル背景画像
-├── about.html           # 技術解説ページ
-└── README.md            # このファイル
+│   ├── sprites/         # Robot & Beast sprites
+│   │   ├── player_*.png # Player robot (8 poses)
+│   │   ├── enemy_*.png  # Enemy robot (8 poses)
+│   │   ├── beast_blue_*.png # Blue beast (5 animations)
+│   │   └── beast_red_*.png  # Red beast (5 animations)
+│   └── backgrounds/     # AI-generated backgrounds
+├── about.html           # Technical documentation
+└── README.md            # This file
 ```
 
-## 🔧 ローカル実行
+## Version History
 
-```bash
-# 簡易サーバーで起動
-python3 -m http.server 8080
-
-# ブラウザで開く
-open http://localhost:8080
-```
-
-## 📊 開発情報
-
-- **開発期間**: 2026年1月
-- **AI画像生成**: Vertex AI Imagen 3.0
-- **画像生成コスト**: $0.44（22画像 × $0.02）
-- **AI支援**: Claude Code + AI Agent Workflow
-
-## 🔄 バージョン履歴
-
-| バージョン | 主な機能 |
-|-----------|---------|
-| V1 | 基本対戦システム、SVGスプライト |
-| V2 | AI生成フォトリアルスプライト＆背景 |
-| V3 | オンライン対戦、アイテムモード、設定同期 |
+| Version | Features |
+|---------|----------|
+| V1 | Basic battle system, SVG sprites |
+| V2 | AI-generated photorealistic sprites & backgrounds |
+| V3 | Online battles, item mode, settings sync |
+| V4 | Beast summon, guard system, knockdown, enhanced AI |
 
 ---
 
-Generated with [Claude Code](https://claude.com/claude-code) and [Firebase](https://firebase.google.com/)
+Generated with [Claude Code](https://claude.com/claude-code)
