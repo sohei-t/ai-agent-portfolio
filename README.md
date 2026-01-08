@@ -144,10 +144,10 @@ evaluation_criteria:
 
 | アプリ名 | 説明 | デモ |
 |---------|------|------|
-| [Robo Battle v4](./robo-battle-v4/) | ロボット対戦ゲーム（魔獣召喚システム搭載） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/) |
+| [Robo Battle v4](./robo-battle-v4/) | ロボット対戦ゲーム（魔獣召喚システム搭載） | [Live](https://robo-battle-v3-game.web.app/) |
 | [CLI Sticky Notes](./cli-sticky-notes/) | ターミナル作業用グローバルホットキー付箋 | [Live](https://sohei-t.github.io/ai-agent-portfolio/cli-sticky-notes/) |
 | [Space Shooter](./space-shooter/) | 宇宙シューティングゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/) |
-| [Robo Battle v3](./robo-battle-v3/) | ロボット対戦ゲーム（オンライン対戦対応） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v3/) |
+| [Robo Battle v3](./robo-battle-v3/) | ロボット対戦ゲーム（オンライン対戦対応） | [Live](https://robo-battle-v3-game.web.app/) |
 | [Dungeon Battles](./dungeon-battles/) | ダンジョン探索バトルゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/) |
 | [Boss Shooter 2](./boss-shooter2/) | ボス戦シューティング | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) |
 | [Piano App](./piano-app/) | ブラウザピアノアプリ | [Live](https://sohei-t.github.io/ai-agent-portfolio/piano-app/) |
