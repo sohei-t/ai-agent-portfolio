@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="screen-orientation" content="landscape">
+    <meta name="x5-orientation" content="landscape">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>ROBO BATTLE V4 - Photorealistic 3D Graphics Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0d0221;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
+            background: linear-gradient(180deg, #0d0221 0%, #1a0a30 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            background: #1a1a2e;
+            border: 2px solid #3a1a50;
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.5);
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* Minimal border on mobile for maximum screen usage */
+        @media (max-width: 840px) {
+            #gameCanvas {
+                border-width: 1px;
+                box-shadow: none;
+            }
+        }
+
+        /* Landscape orientation prompt for portrait mode */
+        #rotate-prompt {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 2, 33, 0.95);
+            z-index: 500;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #rotate-prompt .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: rotateHint 2s ease-in-out infinite;
+        }
+
+        @keyframes rotateHint {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+
+        #rotate-prompt h2 {
+            color: #00ffff;
+            margin-bottom: 10px;
+        }
+
+        #rotate-prompt p {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        /* Show rotate prompt only on mobile in portrait */
+        @media (max-width: 840px) and (orientation: portrait) {
+            #rotate-prompt {
+                display: flex;
+            }
+        }
+
+        /* Mobile zone indicator (visual guide only) */
+        #mobile-zone-guide {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #mobile-zone-guide.visible {
+            opacity: 1;
+        }
+
+        .zone-hint {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            pointer-events: none;
+        }
+
+        /* V4.1: Left zone split into upper (JUMP) and lower (CROUCH) */
+        .zone-hint-left-upper {
+            left: 10px;
+            top: 10%;
+            bottom: 50%;
+            width: 60px;
+            color: rgba(0, 255, 100, 0.8);
+        }
+
+        .zone-hint-left-lower {
+            left: 10px;
+            top: 50%;
+            bottom: 10%;
+            width: 60px;
+            color: rgba(255, 200, 0, 0.8);
+        }
+
+        .zone-hint-right {
+            right: 10px;
+            top: 10%;
+            bottom: 10%;
+            width: 60px;
+            color: rgba(255, 100, 50, 0.8);
+        }
+
+        .zone-divider {
+            position: absolute;
+            top: 10%;
+            bottom: 10%;
+            left: 50%;
+            width: 2px;
+            background: linear-gradient(180deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 20%,
+                rgba(255, 255, 255, 0.3) 80%,
+                transparent 100%
+            );
+        }
+
+        /* V4.1: Horizontal divider for left zone (JUMP/CROUCH split) */
+        .zone-divider-horizontal {
+            position: absolute;
+            top: 50%;
+            left: 5%;
+            right: 50%;
+            height: 2px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 20%,
+                rgba(255, 255, 255, 0.3) 80%,
+                transparent 100%
+            );
+        }
+
+        /* Gyro permission button */
+        #gyro-permission {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #00ffff;
+            text-align: center;
+        }
+
+        #gyro-permission h2 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        #gyro-permission p {
+            color: #ccc;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        #gyro-permission button {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(180deg, #00aaff, #0066cc);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4);
+        }
+
+        #gyro-permission button:active {
+            transform: scale(0.95);
+        }
+
+        /* Loading screen */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0d0221;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #loading h1 {
+            font-size: 36px;
+            color: #ff3333;
+            text-shadow: 0 0 10px #ff0000;
+            margin-bottom: 20px;
+        }
+
+        #loading-bar {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #666;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #loading-progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff3333, #ffff00);
+            transition: width 0.3s;
+        }
+
+        /* Touch feedback */
+        .touch-feedback {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            animation: touchPulse 0.3s ease-out forwards;
+            z-index: 150;
+        }
+
+        @keyframes touchPulse {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+
+        /* Responsive styles */
+        @media (max-width: 840px) {
+            #mobile-zone-guide {
+                display: block;
+            }
+        }
+
+        /* Landscape mode optimizations */
+        @media (orientation: landscape) {
+            #game-container {
+                flex-direction: row;
+            }
+
+            /* In landscape, zone hints at screen edges */
+            .zone-hint-left {
+                left: 5px;
+                font-size: 12px;
+                width: 50px;
+            }
+
+            .zone-hint-right {
+                right: 5px;
+                font-size: 12px;
+                width: 50px;
+            }
+
+            .zone-divider {
+                top: 5%;
+                bottom: 5%;
+            }
+        }
+
+        @media (orientation: portrait) {
+            #game-container {
+                flex-direction: column;
+            }
+        }
+
+        /* Safe area insets for notched phones */
+        @supports (padding: env(safe-area-inset-left)) {
+            #game-container {
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+
+        /* ===== Mobile Control Hints (Outside Canvas) ===== */
+        .control-hint {
+            display: none;
+            position: fixed;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .control-hint-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid;
+            margin-bottom: 8px;
+        }
+
+        .control-hint-label {
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* V4.2: GUARD hint - Left side, UPPER portion (less frequent use) */
+        #hint-guard {
+            left: 15px;
+            top: 25%;
+            transform: translateY(-50%);
+        }
+
+        #hint-guard .control-hint-circle {
+            background: rgba(0, 150, 255, 0.25);
+            border-color: rgba(0, 200, 255, 0.7);
+        }
+
+        #hint-guard .control-hint-circle svg {
+            fill: rgba(255, 255, 255, 0.85);
+        }
+
+        #hint-guard .control-hint-label {
+            color: rgba(0, 200, 255, 0.9);
+        }
+
+        /* V4.2: JUMP hint - Left side, LOWER portion (frequent use) */
+        #hint-jump {
+            left: 15px;
+            top: 75%;
+            transform: translateY(-50%);
+        }
+
+        #hint-jump .control-hint-circle {
+            background: rgba(0, 255, 100, 0.25);
+            border-color: rgba(0, 255, 100, 0.7);
+        }
+
+        #hint-jump .control-hint-circle svg {
+            fill: rgba(255, 255, 255, 0.85);
+        }
+
+        #hint-jump .control-hint-label {
+            color: rgba(0, 255, 100, 0.9);
+        }
+
+        /* V4.2: BEAM hint - Right side, LOWER portion (frequent use, symmetric with JUMP) */
+        #hint-beam {
+            right: 15px;
+            top: 75%;
+            transform: translateY(-50%);
+        }
+
+        #hint-beam .control-hint-circle {
+            background: rgba(255, 100, 0, 0.25);
+            border-color: rgba(255, 150, 0, 0.7);
+        }
+
+        #hint-beam .control-hint-circle svg {
+            stroke: rgba(255, 255, 255, 0.85);
+            fill: none;
+        }
+
+        #hint-beam .control-hint-label {
+            color: rgba(255, 150, 0, 0.9);
+        }
+
+        /* Show only on mobile in landscape */
+        @media (max-width: 1200px) and (orientation: landscape) {
+            .control-hint {
+                display: flex;
+            }
+        }
+
+        /* Hide on very small screens where there's no margin */
+        @media (max-width: 840px) and (orientation: landscape) {
+            .control-hint {
+                display: none;
+            }
+        }
+
+        /* Tablet landscape - show hints */
+        @media (min-width: 841px) and (max-width: 1400px) and (orientation: landscape) {
+            .control-hint {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <h1>ROBO BATTLE</h1>
+        <div id="loading-bar">
+            <div id="loading-progress"></div>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <!-- V4.2: Mobile zone guide (Left: GUARD upper/JUMP lower, Right: BEAM lower) -->
+    <div id="mobile-zone-guide">
+        <div class="zone-hint zone-hint-left-upper">🛡️ GUARD</div>
+        <div class="zone-divider-horizontal"></div>
+        <div class="zone-hint zone-hint-left-lower">JUMP ↑</div>
+        <div class="zone-divider"></div>
+        <div class="zone-hint zone-hint-right">BEAM</div>
+    </div>
+
+    <!-- Gyro permission dialog (iOS requires user gesture) -->
+    <div id="gyro-permission">
+        <h2>TILT CONTROL</h2>
+        <p>傾きセンサーを使って<br>ロボットを操作します</p>
+        <button id="btn-enable-gyro">START</button>
+    </div>
+
+    <!-- Rotate device prompt (shown in portrait mode on mobile) -->
+    <div id="rotate-prompt">
+        <div class="icon">📱</div>
+        <h2>横向きでプレイ</h2>
+        <p>スマホを横に回転してください<br>Rotate your device for best experience</p>
+    </div>
+
+    <!-- Mobile Control Hints (Outside Canvas) -->
+    <div id="hint-jump" class="control-hint">
+        <div class="control-hint-circle">
+            <!-- Upward Arrow SVG -->
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path d="M16 4 L26 18 L20 18 L20 28 L12 28 L12 18 L6 18 Z"/>
+            </svg>
+        </div>
+        <span class="control-hint-label">JUMP</span>
+    </div>
+
+    <!-- V4.2: GUARD hint - Left side, lower portion -->
+    <div id="hint-guard" class="control-hint">
+        <div class="control-hint-circle">
+            <!-- Shield SVG -->
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path d="M16 2 L28 6 L28 14 C28 22 22 28 16 30 C10 28 4 22 4 14 L4 6 Z"/>
+            </svg>
+        </div>
+        <span class="control-hint-label">GUARD</span>
+    </div>
+
+    <div id="hint-beam" class="control-hint">
+        <div class="control-hint-circle">
+            <!-- Crosshair/Target SVG -->
+            <svg width="36" height="36" viewBox="0 0 36 36" stroke-width="3">
+                <circle cx="18" cy="18" r="8"/>
+                <line x1="18" y1="2" x2="18" y2="10"/>
+                <line x1="18" y1="26" x2="18" y2="34"/>
+                <line x1="2" y1="18" x2="10" y2="18"/>
+                <line x1="26" y1="18" x2="34" y2="18"/>
+            </svg>
+        </div>
+        <span class="control-hint-label">BEAM</span>
+    </div>
+
+    <!-- Firebase (for online mode signaling) -->
+    <script src="firebase-config.js"></script>
+    <!-- Online mode (WebRTC P2P) -->
+    <script src="online-mode.js?v=16"></script>
+    <!-- Main game -->
+    <script src="game.js?v=46"></script>
+</body>
+</html>
