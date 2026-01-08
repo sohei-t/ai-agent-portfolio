@@ -1,15 +1,45 @@
 /**
  * Firebase Configuration for ROBO BATTLE V3 Online Mode
+ *
+ * ============================================================
+ * SETUP INSTRUCTIONS / セットアップ手順
+ * ============================================================
+ *
+ * 1. Create a Firebase project at https://console.firebase.google.com/
+ *    Firebase プロジェクトを作成
+ *
+ * 2. Enable Realtime Database (asia-southeast1 recommended)
+ *    Realtime Database を有効化
+ *
+ * 3. Set Security Rules:
+ *    セキュリティルールを設定:
+ *    {
+ *      "rules": {
+ *        "rooms": {
+ *          "$roomId": {
+ *            ".read": true,
+ *            ".write": true
+ *          }
+ *        }
+ *      }
+ *    }
+ *
+ * 4. Copy this file to firebase-config.js and fill in your values
+ *    このファイルを firebase-config.js にコピーして値を入力
+ *
+ * 5. Deploy to Firebase Hosting (optional)
+ *    Firebase Hosting にデプロイ（任意）
+ * ============================================================
  */
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDXaFtpAMxiTX72Fa8YXZEwTmwgKWgIbkg",
-    authDomain: "robo-battle-v3-game.firebaseapp.com",
-    databaseURL: "https://robo-battle-v3-game-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "robo-battle-v3-game",
-    storageBucket: "robo-battle-v3-game.firebasestorage.app",
-    messagingSenderId: "254763140382",
-    appId: "1:254763140382:web:7290cacfc5e6ee228d750f"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
 // Firebase state

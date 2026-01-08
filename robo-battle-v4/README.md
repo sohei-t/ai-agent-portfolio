@@ -131,6 +131,53 @@ robo-battle-v4/
 └── README.md            # This file
 ```
 
+## Firebase Setup (For Online Battles)
+
+To enable online battles, you need to set up your own Firebase project.
+
+### Steps
+
+1. **Create Firebase Project**
+   - Go to https://console.firebase.google.com/
+   - Create a new project
+
+2. **Enable Realtime Database**
+   - Menu: Build → Realtime Database
+   - Click "Create Database"
+   - Region: `asia-southeast1` recommended
+
+3. **Set Security Rules**
+   ```json
+   {
+     "rules": {
+       "rooms": {
+         "$roomId": {
+           ".read": true,
+           ".write": true
+         }
+       }
+     }
+   }
+   ```
+
+4. **Add Web App**
+   - Project Settings → Add App → Web (</>)
+   - Copy the `firebaseConfig` values
+
+5. **Create Config File**
+   ```bash
+   cp firebase-config.example.js firebase-config.js
+   ```
+   - Paste your config values into `firebase-config.js`
+
+6. **(Optional) Deploy to Firebase Hosting**
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   firebase init hosting
+   firebase deploy
+   ```
+
 ## Version History
 
 | Version | Features |
