@@ -6412,6 +6412,9 @@ class Game {
                         this.rematchRequestSent = false;
                         this.rematchRequestReceived = false;
                         this.rematchWaitingResponse = false;
+                        // V4.4: Reset setup screen state for proper interaction
+                        this.setupSelection = 0;
+                        this.inputCooldown = 0;
                         this.state = GameState.SETUP;
                         SoundManager.playBGM('title');
                         break;
@@ -6445,6 +6448,9 @@ class Game {
         this.rematchRequestReceived = false;
         this.rematchWaitingResponse = false;
         this.rematchSelection = 0;
+        // V4.4: Reset setup screen state for proper interaction
+        this.setupSelection = 0;
+        this.inputCooldown = 0;
         this.state = GameState.SETUP;
         console.log('[Online] Going to SETUP for rematch');
     }
