@@ -6145,23 +6145,27 @@ class Game {
         // Items Mode toggle Y position
         const itemsY = diffY + 50;
 
-        // Items Mode toggle (narrower range to avoid conflicts with CONFIG button below)
-        if (y >= itemsY - 15 && y <= itemsY + 12) {  // Reduced bottom boundary
+        // Items Mode toggle (normal range - CONFIG button is now far away)
+        if (y >= itemsY - 15 && y <= itemsY + 25) {
             this.setupSelection = 6;
             this.adjustSetup(1);
             return;
         }
 
-        // V4.3: ITEM CONFIG button - positioned well BELOW Items Mode toggle with large tap target
+        // Button positions (must match renderSetup)
+        const btnY = GAME_HEIGHT - 50;
+        const btnHeight = 50;
+
+        // V4.4: ITEM CONFIG button - positioned RIGHT ABOVE the BACK/START buttons
         if (this.settings.itemsMode) {
-            const configBtnWidth = 240;   // Wider button
-            const configBtnHeight = 45;   // Taller button for easier tapping
+            const configBtnWidth = 400;   // Almost full width
+            const configBtnHeight = 55;   // Very tall for easy tapping
             const configBtnX = GAME_WIDTH / 2 - configBtnWidth / 2;  // Centered
-            const configBtnY = itemsY + 50;  // Much further below (was +35)
+            const configBtnY = btnY - 70;  // 70px above BACK/START row
 
             if (x >= configBtnX && x <= configBtnX + configBtnWidth &&
                 y >= configBtnY && y <= configBtnY + configBtnHeight) {
-                console.log('[DEBUG] ITEM CONFIG clicked!');
+                console.log('[DEBUG] ITEM CONFIG SETTING clicked! v0109-1105');
                 SoundManager.playMenuSelect();
                 this.setupSelection = itemConfigSelectionIdx;
                 this.itemConfigSelection = 0;
@@ -6169,10 +6173,6 @@ class Game {
                 return;
             }
         }
-
-        // Button positions (must match renderSetup)
-        const btnY = GAME_HEIGHT - 50;       // Updated to match render
-        const btnHeight = 50;
 
         // BACK button
         const backBtnX = GAME_WIDTH / 2 - 220;  // 180
@@ -9007,50 +9007,51 @@ class Game {
             ctx.fillText('ワープゾーン・デスゾーン・回復アイテム・特殊武器が出現！', GAME_WIDTH / 2, itemsY + 22);
         }
 
-        // V4.3: ITEM CONFIG button - positioned well BELOW Items Mode toggle with large tap target
+        // Buttons row position (used for both CONFIG and BACK/START)
+        const btnY = GAME_HEIGHT - 50;
+
+        // V4.4: ITEM CONFIG button - positioned RIGHT ABOVE the BACK/START buttons with maximum visibility
         // Calculate button selections based on Items Mode
         const itemConfigSelection = 7;  // Only used when Items Mode is ON
         const startButtonSelection = this.settings.itemsMode ? 8 : 7;
         const backButtonSelection = this.settings.itemsMode ? 9 : 8;
 
         if (this.settings.itemsMode) {
-            // V4.3: Show ITEM CONFIG as a large, clearly separated button
+            // V4.4: Large, obvious button positioned above BACK/START row
             const isConfigSelected = this.setupSelection === itemConfigSelection;
 
-            // Draw large centered button well below Items Mode row
-            const configBtnWidth = 240;   // Wider button
-            const configBtnHeight = 45;   // Taller button for easier tapping
+            // Full-width button above the BACK/START buttons
+            const configBtnWidth = 400;   // Almost full width
+            const configBtnHeight = 55;   // Very tall for easy tapping
             const configBtnX = GAME_WIDTH / 2 - configBtnWidth / 2;  // Centered
-            const configBtnY = itemsY + 50;  // Much further below
+            const configBtnY = btnY - 70;  // 70px above BACK/START row
 
-            // Button background with gradient effect
-            ctx.fillStyle = isConfigSelected ? '#7700ff' : '#550099';
+            // Bright, obvious button style
+            ctx.fillStyle = isConfigSelected ? '#0066ff' : '#004499';
             ctx.fillRect(configBtnX, configBtnY, configBtnWidth, configBtnHeight);
-            ctx.strokeStyle = isConfigSelected ? '#ff00ff' : '#aa66ff';
-            ctx.lineWidth = isConfigSelected ? 3 : 2;
+            ctx.strokeStyle = isConfigSelected ? '#00ffff' : '#0099ff';
+            ctx.lineWidth = 3;
             ctx.strokeRect(configBtnX, configBtnY, configBtnWidth, configBtnHeight);
 
-            ctx.font = isConfigSelected ? 'bold 16px Courier New' : '15px Courier New';
-            ctx.fillStyle = isConfigSelected ? '#ffffff' : '#ddccff';
+            // Large, clear text
+            ctx.font = 'bold 18px Courier New';
+            ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
 
             // Count enabled items
             const enabledCount = Object.values(this.settings.enabledItems).filter(v => v).length;
             const totalCount = Object.keys(this.settings.enabledItems).length;
-            // DEBUG: Timestamp to verify code deployment
-            ctx.fillText(`⚙ CONFIG (${enabledCount}/${totalCount}) [v0109-1100]`, configBtnX + configBtnWidth / 2, configBtnY + 29);
+            // DEBUG: Timestamp v0109-1105
+            ctx.fillText(`▶ ITEM CONFIG SETTING (${enabledCount}/${totalCount}) ◀`, configBtnX + configBtnWidth / 2, configBtnY + 35);
 
-            // V4.3: Show hint for online mode guests
+            // V4.4: Show hint for online mode guests
             if (this.isOnlineMode && !this.isHost) {
                 ctx.font = '10px Courier New';
-                ctx.fillStyle = '#888800';
+                ctx.fillStyle = '#ffff00';
                 ctx.textAlign = 'center';
-                ctx.fillText('※ ホストの設定が使用されます', GAME_WIDTH / 2, configBtnY + configBtnHeight + 12);
+                ctx.fillText('※ ホストの設定が使用されます', GAME_WIDTH / 2, configBtnY - 8);
             }
         }
-
-        // Buttons row
-        const btnY = GAME_HEIGHT - 50;
 
         // BACK button (left side) - V4.1: Dynamic selection
         const backBtnX = GAME_WIDTH / 2 - 220;
