@@ -142,19 +142,38 @@ evaluation_criteria:
 
 ## 📱 Portfolio Applications
 
+### 🤖 Robo Battle シリーズ
+
+| バージョン | 説明 | デモ |
+|-----------|------|------|
+| [Robo Battle v4](./robo-battle-v4/) | 魔獣召喚システム + 強化CPU AI搭載 | [Live](https://robo-battle-v3-game.web.app/) |
+| [Robo Battle v3](./robo-battle-v3/) | WebRTC P2Pオンライン対戦対応 | [Live](https://robo-battle-v3-game.web.app/) |
+| [Robo Battle v2](./robo-battle-v2/) | フォトリアル3Dグラフィックス（AI生成スプライト） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v2/) |
+| [Robo Battle](./robo-battle/) | 初期版ロボット対戦ゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/) |
+
+### 👾 シューティングゲーム
+
 | アプリ名 | 説明 | デモ |
 |---------|------|------|
-| [Robo Battle v4](./robo-battle-v4/) | ロボット対戦ゲーム（魔獣召喚システム搭載） | [Live](https://robo-battle-v3-game.web.app/) |
-| [CLI Sticky Notes](./cli-sticky-notes/) | ターミナル作業用グローバルホットキー付箋 | [Live](https://sohei-t.github.io/ai-agent-portfolio/cli-sticky-notes/) |
-| [Space Shooter](./space-shooter/) | 宇宙シューティングゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/) |
-| [Robo Battle v3](./robo-battle-v3/) | ロボット対戦ゲーム（オンライン対戦対応） | [Live](https://robo-battle-v3-game.web.app/) |
-| [Dungeon Battles](./dungeon-battles/) | ダンジョン探索バトルゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/) |
-| [Boss Shooter 2](./boss-shooter2/) | ボス戦シューティング | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) |
-| [Piano App](./piano-app/) | ブラウザピアノアプリ | [Live](https://sohei-t.github.io/ai-agent-portfolio/piano-app/) |
-| [Gradius Clone](./gradius-clone/) | グラディウス風横スクロールSTG | [Live](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/) |
-| [Bowling Adventure](./bowling-adventure-v2/) | ボウリングゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure-v2/) |
+| [Boss Shooter 2](./boss-shooter2/) | 10ステージ構成のボス戦シューティング（改良版） | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) |
+| [Boss Shooting](./boss-shooting/) | レトロスタイル縦スクロールシューティング | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/) |
+| [Space Shooter](./space-shooter/) | Space Invaders風シューティング | [Live](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/) |
+| [Gradius Clone](./gradius-clone/) | グラディウス風横スクロールSTG（Phaser 3） | [Live](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/) |
 
-*他4アプリも公開中*
+### 🎮 その他のゲーム
+
+| アプリ名 | 説明 | デモ |
+|---------|------|------|
+| [Bowling Adventure v2](./bowling-adventure-v2/) | 3D障害物コースボウリング（Three.js + Cannon.js） | [Live](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure-v2/) |
+| [Bowling Adventure](./bowling-adventure/) | 3Dボウリングゲーム（初期版） | [Live](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure/) |
+| [Dungeon Battles](./dungeon-battles/) | 縦スクロール型ダンジョンRPG | [Live](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/) |
+
+### 🛠️ ユーティリティ / その他
+
+| アプリ名 | 説明 | デモ |
+|---------|------|------|
+| [CLI Sticky Notes](./cli-sticky-notes/) | ターミナル用グローバルホットキー付箋（Electron） | [About](https://sohei-t.github.io/ai-agent-portfolio/cli-sticky-notes/about.html) |
+| [Piano App](./piano-app/) | 18種類の楽器音源搭載ピアノアプリ（Web Audio API） | [Live](https://sohei-t.github.io/ai-agent-portfolio/piano-app/) |
 
 ---
 
