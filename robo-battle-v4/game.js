@@ -6137,16 +6137,34 @@ class Game {
             return;
         }
 
-        // Items Mode toggle
+        // V4.1: Calculate button selections based on Items Mode (must match renderSetup and updateSetup)
+        const itemConfigSelectionIdx = 7;  // Only used when Items Mode is ON
+        const startButtonSelectionIdx = this.settings.itemsMode ? 8 : 7;
+        const backButtonSelectionIdx = this.settings.itemsMode ? 9 : 8;
+
+        // Items Mode toggle Y position
         const itemsY = diffY + 50;
-        if (y >= itemsY - 15 && y <= itemsY + 25) {  // Items Mode row only
-            this.setupSelection = 6;
-            // Any click on the row toggles Items Mode
-            this.adjustSetup(1);
-            return;
+
+        // V4.1: ITEM CONFIG button click (inline next to ON toggle) - CHECK BEFORE Items Mode toggle
+        // This must come before Items Mode toggle to prevent the toggle from capturing CONFIG button taps
+        if (this.settings.itemsMode) {
+            const configItemsY = 130 + 4 * 60 + 20 + 50 + 50;  // Calculate from startY + offsets
+            const configBtnX = 570;
+            const configBtnY = configItemsY - 12;
+            const configBtnWidth = 120;
+            const configBtnHeight = 24;
+
+            if (x >= configBtnX && x <= configBtnX + configBtnWidth && y >= configBtnY && y <= configBtnY + configBtnHeight) {
+                console.log('[DEBUG] ITEM CONFIG clicked!');
+                SoundManager.playMenuSelect();
+                this.setupSelection = itemConfigSelectionIdx;
+                this.itemConfigSelection = 0;
+                this.state = GameState.ITEM_CONFIG;
+                return;
+            }
         }
 
-        // V4: ITEM CONFIG button (only when Items Mode is ON)
+        // V4: ITEM CONFIG button (center button, only when Items Mode is ON)
         if (this.settings.itemsMode) {
             const configY = itemsY + 40;
             const configBtnX = GAME_WIDTH / 2 - 100;
@@ -6164,25 +6182,16 @@ class Game {
             }
         }
 
-        // V4.1: Calculate button selections based on Items Mode (must match renderSetup and updateSetup)
-        const itemConfigSelectionIdx = 7;  // Only used when Items Mode is ON
-        const startButtonSelectionIdx = this.settings.itemsMode ? 8 : 7;
-        const backButtonSelectionIdx = this.settings.itemsMode ? 9 : 8;
-
-        // V4.1: ITEM CONFIG button click (inline next to ON toggle)
-        if (this.settings.itemsMode) {
-            const itemsY = 130 + 4 * 60 + 20 + 50 + 50;  // Calculate from startY + offsets
-            const configBtnX = 570;
-            const configBtnY = itemsY - 12;
-            const configBtnWidth = 120;
-            const configBtnHeight = 24;
-
-            if (x >= configBtnX && x <= configBtnX + configBtnWidth && y >= configBtnY && y <= configBtnY + configBtnHeight) {
-                console.log('[DEBUG] ITEM CONFIG clicked!');
-                SoundManager.playMenuSelect();
-                this.setupSelection = itemConfigSelectionIdx;
-                this.itemConfigSelection = 0;
-                this.state = GameState.ITEM_CONFIG;
+        // Items Mode toggle - exclude CONFIG button area when Items Mode is ON
+        if (y >= itemsY - 15 && y <= itemsY + 25) {  // Items Mode row only
+            // When Items Mode is ON, don't toggle if clicking on CONFIG button area (x >= 570)
+            if (this.settings.itemsMode && x >= 550) {
+                // Click is in CONFIG button area, don't toggle
+                console.log('[DEBUG] Click in CONFIG button area, not toggling Items Mode');
+            } else {
+                this.setupSelection = 6;
+                // Any click on the row (except CONFIG area) toggles Items Mode
+                this.adjustSetup(1);
                 return;
             }
         }
