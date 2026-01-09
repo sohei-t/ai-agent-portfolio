@@ -172,6 +172,38 @@
             }
         }
 
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: rgba(102, 126, 234, 0.3);
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+        }
+
+        .lang-btn:hover {
+            background: rgba(102, 126, 234, 0.5);
+            transform: scale(1.1);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -188,94 +220,101 @@
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    </div>
+
     <div class="container">
         <div class="header">
-            <h1>🚀 Project</h1>
-            <p>AIエージェントによる完全自動開発プロジェクト</p>
+            <h1>🚀 Gradius Clone</h1>
+            <p data-ja="AIエージェントによる完全自動開発プロジェクト" data-en="Fully Automated Development Project by AI Agent">AIエージェントによる完全自動開発プロジェクト</p>
             <div class="ai-badge">🤖 AI Generated</div>
         </div>
 
         <div class="main-content">
             <div class="section">
-                <h2>📋 プロジェクト概要</h2>
-                <p>
+                <h2 data-ja="📋 プロジェクト概要" data-en="📋 Project Overview">📋 プロジェクト概要</h2>
+                <p data-ja="このプロジェクトは、Claude Code の AIエージェントシステムにより、要件定義から実装、テスト、ドキュメント生成まで 完全自動化 されたプロセスで開発されました。" data-en="This project was developed through a fully automated process by Claude Code's AI agent system, from requirements definition to implementation, testing, and documentation generation.">
                     このプロジェクトは、Claude Code の AIエージェントシステムにより、
                     要件定義から実装、テスト、ドキュメント生成まで <strong>完全自動化</strong> されたプロセスで開発されました。
                 </p>
-                <p style="margin-top: 1rem;">
+                <p style="margin-top: 1rem;" data-ja="人間の開発者が行ったのは「要件を伝える」ことだけ。あとはAIエージェントたちが協調して、プロダクションレベルのアプリケーションを生成しました。" data-en="The only thing human developers did was 'communicate the requirements'. The AI agents then collaborated to generate a production-level application.">
                     人間の開発者が行ったのは「要件を伝える」ことだけ。
                     あとはAIエージェントたちが協調して、プロダクションレベルのアプリケーションを生成しました。
                 </p>
             </div>
 
             <div class="section">
-                <h2>✨ 主要機能</h2>
+                <h2 data-ja="✨ 主要機能" data-en="✨ Key Features">✨ 主要機能</h2>
                 <div class="feature-grid">
                     <div class="feature-card">
-                        <h3>🎯 機能1</h3>
-                        <p>ユーザーフレンドリーなインターフェース</p>
+                        <h3 data-ja="🎮 横スクロールシューター" data-en="🎮 Horizontal Scrolling Shooter">🎮 横スクロールシューター</h3>
+                        <p data-ja="クラシックなグラディウススタイルの滑らかなスクロール" data-en="Smooth scrolling in classic Gradius style">クラシックなグラディウススタイルの滑らかなスクロール</p>
                     </div>
                     <div class="feature-card">
-                        <h3>⚡ 機能2</h3>
-                        <p>高速なレスポンス処理</p>
+                        <h3 data-ja="⚡ パワーアップシステム" data-en="⚡ Power-up System">⚡ パワーアップシステム</h3>
+                        <p data-ja="6種類のアップグレードで自機を強化" data-en="Enhance your ship with 6 types of upgrades">6種類のアップグレードで自機を強化</p>
                     </div>
                     <div class="feature-card">
-                        <h3>🔒 機能3</h3>
-                        <p>セキュアなデータ管理</p>
+                        <h3 data-ja="🔵 オプションシステム" data-en="🔵 Option System">🔵 オプションシステム</h3>
+                        <p data-ja="最大4つの追従砲台を装備可能" data-en="Equip up to 4 following turrets">最大4つの追従砲台を装備可能</p>
                     </div>
                     <div class="feature-card">
-                        <h3>📊 機能4</h3>
-                        <p>リアルタイム更新</p>
+                        <h3 data-ja="👾 ボスバトル" data-en="👾 Boss Battles">👾 ボスバトル</h3>
+                        <p data-ja="複数フェーズの迫力あるボス戦" data-en="Exciting boss battles with multiple phases">複数フェーズの迫力あるボス戦</p>
                     </div>
                 </div>
             </div>
 
             <div class="section">
-                <h2>🛠 技術スタック</h2>
+                <h2 data-ja="🛠 技術スタック" data-en="🛠 Technology Stack">🛠 技術スタック</h2>
                 <div class="tech-stack">
-                    <span class="tech-badge">JavaScript</span>
-                    <span class="tech-badge">HTML5</span>
-                    <span class="tech-badge">CSS3</span>
-                    <span class="tech-badge">Node.js</span>
+                    <span class="tech-badge">Phaser 3.80</span>
+                    <span class="tech-badge">TypeScript 5</span>
+                    <span class="tech-badge">Vite</span>
+                    <span class="tech-badge">HTML5 Canvas</span>
+                    <span class="tech-badge">Google Imagen API</span>
                     <span class="tech-badge">AI Agent</span>
                 </div>
             </div>
 
             <div class="section">
-                <h2>🤖 AI開発プロセス</h2>
+                <h2 data-ja="🤖 AI開発プロセス" data-en="🤖 AI Development Process">🤖 AI開発プロセス</h2>
                 <ol style="line-height: 2; font-size: 1.1rem;">
-                    <li><strong>要件分析</strong>: Requirements Analyst が要件を整理・明確化</li>
-                    <li><strong>計画立案</strong>: Planner が WBS（作業分解構造）を作成</li>
-                    <li><strong>テスト設計</strong>: Test Designer がテストコードを先行作成（TDD）</li>
-                    <li><strong>並列開発</strong>: 複数の Developer エージェントが同時開発</li>
-                    <li><strong>品質保証</strong>: Evaluator が品質チェック、Fixer が修正</li>
-                    <li><strong>文書生成</strong>: Documenter が解説とマニュアルを自動生成</li>
+                    <li data-ja="要件分析: Requirements Analyst が要件を整理・明確化" data-en="Requirements Analysis: Requirements Analyst organizes and clarifies requirements"><strong>要件分析</strong>: Requirements Analyst が要件を整理・明確化</li>
+                    <li data-ja="計画立案: Planner が WBS（作業分解構造）を作成" data-en="Planning: Planner creates WBS (Work Breakdown Structure)"><strong>計画立案</strong>: Planner が WBS（作業分解構造）を作成</li>
+                    <li data-ja="テスト設計: Test Designer がテストコードを先行作成（TDD）" data-en="Test Design: Test Designer creates test code first (TDD)"><strong>テスト設計</strong>: Test Designer がテストコードを先行作成（TDD）</li>
+                    <li data-ja="並列開発: 複数の Developer エージェントが同時開発" data-en="Parallel Development: Multiple Developer agents develop simultaneously"><strong>並列開発</strong>: 複数の Developer エージェントが同時開発</li>
+                    <li data-ja="品質保証: Evaluator が品質チェック、Fixer が修正" data-en="Quality Assurance: Evaluator checks quality, Fixer makes corrections"><strong>品質保証</strong>: Evaluator が品質チェック、Fixer が修正</li>
+                    <li data-ja="文書生成: Documenter が解説とマニュアルを自動生成" data-en="Documentation: Documenter automatically generates explanations and manuals"><strong>文書生成</strong>: Documenter が解説とマニュアルを自動生成</li>
                 </ol>
             </div>
 
             <div class="audio-player">
-                <h3>🎧 音声解説</h3>
-                <p>AIが生成した音声で、このプロジェクトの詳細を解説します</p>
+                <h3 data-ja="🎧 音声解説" data-en="🎧 Audio Walkthrough">🎧 音声解説</h3>
+                <p data-ja="AIが生成した音声で、このプロジェクトの詳細を解説します" data-en="Listen to an AI-generated audio explanation of this project">AIが生成した音声で、このプロジェクトの詳細を解説します</p>
                 <audio controls>
                     <source src="explanation.mp3" type="audio/mpeg">
-                    お使いのブラウザは音声再生に対応していません。
+                    <span data-ja="お使いのブラウザは音声再生に対応していません。" data-en="Your browser does not support audio playback.">お使いのブラウザは音声再生に対応していません。</span>
                 </audio>
             </div>
 
             <div class="section">
-                <h2>📊 開発メトリクス</h2>
+                <h2 data-ja="📊 開発メトリクス" data-en="📊 Development Metrics">📊 開発メトリクス</h2>
                 <ul style="line-height: 2; font-size: 1.1rem;">
-                    <li>⏱ <strong>開発時間</strong>: 約1-2時間（従来の開発の10倍速）</li>
-                    <li>👥 <strong>投入エージェント数</strong>: 8体</li>
-                    <li>📝 <strong>自動生成コード行数</strong>: 1000行以上</li>
-                    <li>✅ <strong>テストカバレッジ</strong>: 80%以上</li>
-                    <li>📄 <strong>自動生成ドキュメント</strong>: 5種類以上</li>
+                    <li data-ja="⏱ 開発時間: 約1-2時間（従来の開発の10倍速）" data-en="⏱ Development Time: About 1-2 hours (10x faster than traditional development)">⏱ <strong>開発時間</strong>: 約1-2時間（従来の開発の10倍速）</li>
+                    <li data-ja="👥 投入エージェント数: 8体" data-en="👥 Number of Agents: 8">👥 <strong>投入エージェント数</strong>: 8体</li>
+                    <li data-ja="📝 自動生成コード行数: 1000行以上" data-en="📝 Auto-generated Code Lines: Over 1000">📝 <strong>自動生成コード行数</strong>: 1000行以上</li>
+                    <li data-ja="✅ テストカバレッジ: 80%以上" data-en="✅ Test Coverage: Over 80%">✅ <strong>テストカバレッジ</strong>: 80%以上</li>
+                    <li data-ja="📄 自動生成ドキュメント: 5種類以上" data-en="📄 Auto-generated Documents: Over 5 types">📄 <strong>自動生成ドキュメント</strong>: 5種類以上</li>
                 </ul>
             </div>
 
             <div class="section" style="text-align: center; padding: 2rem; background: #f9fafb; border-radius: 15px;">
-                <h2>🏆 このプロジェクトが実証すること</h2>
-                <p style="font-size: 1.2rem; line-height: 1.8; margin-top: 1rem;">
+                <h2 data-ja="🏆 このプロジェクトが実証すること" data-en="🏆 What This Project Demonstrates">🏆 このプロジェクトが実証すること</h2>
+                <p style="font-size: 1.2rem; line-height: 1.8; margin-top: 1rem;" data-ja="AIエージェントを活用することで、開発速度10倍、品質の標準化、完全な自動化が実現可能であることを証明しています。" data-en="By utilizing AI agents, this project proves that 10x development speed, quality standardization, and complete automation are achievable.">
                     AIエージェントを活用することで、<br>
                     <strong>開発速度10倍</strong>、<strong>品質の標準化</strong>、<strong>完全な自動化</strong><br>
                     が実現可能であることを証明しています。
@@ -286,5 +325,49 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Language switching function
+        function setLanguage(lang) {
+            // Update button states
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+
+            // Save preference
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check for saved language preference
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            if (savedLang === 'ja') {
+                setLanguage('ja');
+                document.querySelectorAll('.lang-btn')[0].classList.add('active');
+                document.querySelectorAll('.lang-btn')[1].classList.remove('active');
+            } else {
+                setLanguage('en');
+                document.querySelectorAll('.lang-btn')[0].classList.remove('active');
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>

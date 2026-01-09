@@ -4,11 +4,7 @@
 
 ## Play Now
 
-**[アプリを開く](https://sohei-t.github.io/ai-agent-portfolio/piano-app/index.html)**
-
-## About
-
-**[プロジェクト解説ページ](https://sohei-t.github.io/ai-agent-portfolio/piano-app/about.html)** - 技術詳細・開発プロセス・アーキテクチャの解説
+**[ライブデモ](https://sohei-t.github.io/ai-agent-portfolio/piano-app/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/piano-app/about.html)** | **[音声解説](https://sohei-t.github.io/ai-agent-portfolio/piano-app/explanation.mp3)**
 
 ## Features
 

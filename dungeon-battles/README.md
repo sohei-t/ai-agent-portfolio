@@ -1,14 +1,10 @@
 # Dungeon Battles - Vertical Scrolling Action RPG
 
-縦スクロール型ダンジョンRPG。廃墟ダンジョンを探索し、敵とリアルタイムバトルを行いながらボスを倒すアクションRPG。
-
 ## Play Now
 
-**[ゲームをプレイ](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/index.html)**
+**[ライブデモ](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/about.html)** | **[音声解説](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/explanation.mp3)**
 
-## About
-
-**[プロジェクト解説ページ](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/about.html)** - 技術詳細・開発プロセス・アーキテクチャの解説
+縦スクロール型ダンジョンRPG。廃墟ダンジョンを探索し、敵とリアルタイムバトルを行いながらボスを倒すアクションRPG。
 
 ## Features
 

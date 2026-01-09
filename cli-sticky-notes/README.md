@@ -1,5 +1,9 @@
 # CLI Sticky Notes
 
+## About
+
+**[詳細情報](https://sohei-t.github.io/ai-agent-portfolio/cli-sticky-notes/about.html)**
+
 ターミナルユーザー向けの付箋アプリ。グローバルホットキーで複数のターミナルセッションを管理できます。
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)

@@ -156,6 +156,38 @@
             max-width: 400px;
         }
 
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+        }
+
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+            border-color: #4caf50;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 30px 20px;
@@ -177,15 +209,21 @@
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    </div>
+
     <div class="container">
         <span class="emoji">🎹</span>
         <h1>Piano App</h1>
-        <p style="text-align: center; font-size: 1.2rem; margin-bottom: 30px;">
+        <p style="text-align: center; font-size: 1.2rem; margin-bottom: 30px;" data-ja="インタラクティブなピアノ演奏Webアプリケーション" data-en="Interactive Piano Web Application">
             インタラクティブなピアノ演奏Webアプリケーション
         </p>
 
         <div class="cta-buttons">
-            <a href="https://sohei-t.github.io/ai-agent-portfolio/piano-app/" class="cta-button">
+            <a href="https://sohei-t.github.io/ai-agent-portfolio/piano-app/" class="cta-button" data-ja="🎵 今すぐ演奏を始める" data-en="🎵 Start Playing Now">
                 🎵 今すぐ演奏を始める
             </a>
             <a href="https://github.com/sohei-t/piano-app" class="cta-button secondary">
@@ -193,97 +231,97 @@
             </a>
         </div>
 
-        <h2>✨ 主な特徴</h2>
+        <h2 data-ja="✨ 主な特徴" data-en="✨ Key Features">✨ 主な特徴</h2>
         <div class="feature-grid">
             <div class="feature-card">
                 <div class="feature-icon">🎵</div>
-                <h3>18種類の楽器音源</h3>
-                <p>ピアノ、オルガン、ギター、動物の鳴き声など</p>
+                <h3 data-ja="18種類の楽器音源" data-en="18 Instrument Sounds">18種類の楽器音源</h3>
+                <p data-ja="ピアノ、オルガン、ギター、動物の鳴き声など" data-en="Piano, organ, guitar, animal sounds, and more">ピアノ、オルガン、ギター、動物の鳴き声など</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎼</div>
-                <h3>9曲の自動演奏</h3>
-                <p>ジングルベルなど有名な楽曲を収録</p>
+                <h3 data-ja="9曲の自動演奏" data-en="9 Auto-Play Songs">9曲の自動演奏</h3>
+                <p data-ja="ジングルベルなど有名な楽曲を収録" data-en="Includes famous songs like Jingle Bells">ジングルベルなど有名な楽曲を収録</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🥁</div>
-                <h3>ドラムマシン</h3>
-                <p>14種類のリズムパターン</p>
+                <h3 data-ja="ドラムマシン" data-en="Drum Machine">ドラムマシン</h3>
+                <p data-ja="14種類のリズムパターン" data-en="14 rhythm patterns">14種類のリズムパターン</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎙️</div>
-                <h3>録音機能</h3>
-                <p>演奏を録音・再生・ダウンロード</p>
+                <h3 data-ja="録音機能" data-en="Recording Function">録音機能</h3>
+                <p data-ja="演奏を録音・再生・ダウンロード" data-en="Record, play, and download your performance">演奏を録音・再生・ダウンロード</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎨</div>
-                <h3>5つのテーマ</h3>
-                <p>気分に合わせて選べるカラーテーマ</p>
+                <h3 data-ja="5つのテーマ" data-en="5 Themes">5つのテーマ</h3>
+                <p data-ja="気分に合わせて選べるカラーテーマ" data-en="Color themes to match your mood">気分に合わせて選べるカラーテーマ</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">📱</div>
-                <h3>モバイル対応</h3>
-                <p>スマホ・タブレット最適化</p>
+                <h3 data-ja="モバイル対応" data-en="Mobile Support">モバイル対応</h3>
+                <p data-ja="スマホ・タブレット最適化" data-en="Optimized for smartphones and tablets">スマホ・タブレット最適化</p>
             </div>
         </div>
 
-        <h2>🎹 楽器音源の詳細</h2>
-        <p>以下の18種類の音源から選択できます：</p>
+        <h2 data-ja="🎹 楽器音源の詳細" data-en="🎹 Instrument Sound Details">🎹 楽器音源の詳細</h2>
+        <p data-ja="以下の18種類の音源から選択できます：" data-en="Choose from 18 different sound sources:">以下の18種類の音源から選択できます：</p>
         <ul style="columns: 2; column-gap: 40px; margin: 20px;">
-            <li>🎹 ピアノ</li>
-            <li>🎹 オルガン</li>
-            <li>⛪ パイプオルガン</li>
-            <li>🎸 ギター</li>
-            <li>🎸 ベース</li>
-            <li>🎻 バイオリン</li>
-            <li>🎻 チェロ</li>
-            <li>🎺 フルート</li>
-            <li>🎺 トランペット</li>
-            <li>🎹 シンセサイザー</li>
-            <li>🐕 犬の鳴き声</li>
-            <li>🐈 猫の鳴き声</li>
-            <li>🐄 牛の鳴き声</li>
-            <li>🐑 羊の鳴き声</li>
-            <li>🐦 鳥の鳴き声</li>
-            <li>🤖 ロボット</li>
-            <li>👽 エイリアン</li>
-            <li>🔔 ベル</li>
+            <li data-ja="🎹 ピアノ" data-en="🎹 Piano">🎹 ピアノ</li>
+            <li data-ja="🎹 オルガン" data-en="🎹 Organ">🎹 オルガン</li>
+            <li data-ja="⛪ パイプオルガン" data-en="⛪ Pipe Organ">⛪ パイプオルガン</li>
+            <li data-ja="🎸 ギター" data-en="🎸 Guitar">🎸 ギター</li>
+            <li data-ja="🎸 ベース" data-en="🎸 Bass">🎸 ベース</li>
+            <li data-ja="🎻 バイオリン" data-en="🎻 Violin">🎻 バイオリン</li>
+            <li data-ja="🎻 チェロ" data-en="🎻 Cello">🎻 チェロ</li>
+            <li data-ja="🎺 フルート" data-en="🎺 Flute">🎺 フルート</li>
+            <li data-ja="🎺 トランペット" data-en="🎺 Trumpet">🎺 トランペット</li>
+            <li data-ja="🎹 シンセサイザー" data-en="🎹 Synthesizer">🎹 シンセサイザー</li>
+            <li data-ja="🐕 犬の鳴き声" data-en="🐕 Dog Sound">🐕 犬の鳴き声</li>
+            <li data-ja="🐈 猫の鳴き声" data-en="🐈 Cat Sound">🐈 猫の鳴き声</li>
+            <li data-ja="🐄 牛の鳴き声" data-en="🐄 Cow Sound">🐄 牛の鳴き声</li>
+            <li data-ja="🐑 羊の鳴き声" data-en="🐑 Sheep Sound">🐑 羊の鳴き声</li>
+            <li data-ja="🐦 鳥の鳴き声" data-en="🐦 Bird Sound">🐦 鳥の鳴き声</li>
+            <li data-ja="🤖 ロボット" data-en="🤖 Robot">🤖 ロボット</li>
+            <li data-ja="👽 エイリアン" data-en="👽 Alien">👽 エイリアン</li>
+            <li data-ja="🔔 ベル" data-en="🔔 Bell">🔔 ベル</li>
         </ul>
 
-        <h2>🎼 収録楽曲</h2>
-        <p>以下の9曲をフルバージョン（約3分）で自動演奏できます：</p>
+        <h2 data-ja="🎼 収録楽曲" data-en="🎼 Included Songs">🎼 収録楽曲</h2>
+        <p data-ja="以下の9曲をフルバージョン（約3分）で自動演奏できます：" data-en="Auto-play the following 9 songs in full version (about 3 minutes each):">以下の9曲をフルバージョン（約3分）で自動演奏できます：</p>
         <ul style="columns: 2; column-gap: 40px; margin: 20px;">
-            <li>ジングルベル</li>
-            <li>聖者の行進</li>
-            <li>メリーさんの羊</li>
-            <li>喜びの歌</li>
-            <li>アメイジング・グレイス</li>
-            <li>グリーンスリーブス</li>
-            <li>スカボロー・フェア</li>
-            <li>ダニー・ボーイ</li>
-            <li>エリーゼのために</li>
+            <li data-ja="ジングルベル" data-en="Jingle Bells">ジングルベル</li>
+            <li data-ja="聖者の行進" data-en="When the Saints Go Marching In">聖者の行進</li>
+            <li data-ja="メリーさんの羊" data-en="Mary Had a Little Lamb">メリーさんの羊</li>
+            <li data-ja="喜びの歌" data-en="Ode to Joy">喜びの歌</li>
+            <li data-ja="アメイジング・グレイス" data-en="Amazing Grace">アメイジング・グレイス</li>
+            <li data-ja="グリーンスリーブス" data-en="Greensleeves">グリーンスリーブス</li>
+            <li data-ja="スカボロー・フェア" data-en="Scarborough Fair">スカボロー・フェア</li>
+            <li data-ja="ダニー・ボーイ" data-en="Danny Boy">ダニー・ボーイ</li>
+            <li data-ja="エリーゼのために" data-en="Fur Elise">エリーゼのために</li>
         </ul>
 
-        <h2>🥁 ドラムパターン</h2>
-        <p>14種類の多様なリズムパターンを搭載：</p>
+        <h2 data-ja="🥁 ドラムパターン" data-en="🥁 Drum Patterns">🥁 ドラムパターン</h2>
+        <p data-ja="14種類の多様なリズムパターンを搭載：" data-en="Equipped with 14 diverse rhythm patterns:">14種類の多様なリズムパターンを搭載：</p>
         <div class="tech-stack">
-            <span class="tech-tag">8ビート</span>
-            <span class="tech-tag">16ビート</span>
-            <span class="tech-tag">ジャズ</span>
-            <span class="tech-tag">ファンク</span>
-            <span class="tech-tag">ディスコ</span>
-            <span class="tech-tag">ラテン</span>
-            <span class="tech-tag">ボサノバ</span>
-            <span class="tech-tag">サンバ</span>
-            <span class="tech-tag">レゲエ</span>
-            <span class="tech-tag">ポップ</span>
-            <span class="tech-tag">バラード</span>
-            <span class="tech-tag">トリップレット</span>
-            <span class="tech-tag">シャッフル</span>
-            <span class="tech-tag">メトロノーム</span>
+            <span class="tech-tag" data-ja="8ビート" data-en="8-Beat">8ビート</span>
+            <span class="tech-tag" data-ja="16ビート" data-en="16-Beat">16ビート</span>
+            <span class="tech-tag" data-ja="ジャズ" data-en="Jazz">ジャズ</span>
+            <span class="tech-tag" data-ja="ファンク" data-en="Funk">ファンク</span>
+            <span class="tech-tag" data-ja="ディスコ" data-en="Disco">ディスコ</span>
+            <span class="tech-tag" data-ja="ラテン" data-en="Latin">ラテン</span>
+            <span class="tech-tag" data-ja="ボサノバ" data-en="Bossa Nova">ボサノバ</span>
+            <span class="tech-tag" data-ja="サンバ" data-en="Samba">サンバ</span>
+            <span class="tech-tag" data-ja="レゲエ" data-en="Reggae">レゲエ</span>
+            <span class="tech-tag" data-ja="ポップ" data-en="Pop">ポップ</span>
+            <span class="tech-tag" data-ja="バラード" data-en="Ballad">バラード</span>
+            <span class="tech-tag" data-ja="トリップレット" data-en="Triplet">トリップレット</span>
+            <span class="tech-tag" data-ja="シャッフル" data-en="Shuffle">シャッフル</span>
+            <span class="tech-tag" data-ja="メトロノーム" data-en="Metronome">メトロノーム</span>
         </div>
 
-        <h2>💻 技術スタック</h2>
+        <h2 data-ja="💻 技術スタック" data-en="💻 Technology Stack">💻 技術スタック</h2>
         <div class="tech-stack">
             <span class="tech-tag">React 18</span>
             <span class="tech-tag">Web Audio API</span>
@@ -291,53 +329,53 @@
             <span class="tech-tag">Vite</span>
             <span class="tech-tag">JavaScript ES6+</span>
             <span class="tech-tag">HTML5</span>
-            <span class="tech-tag">Responsive Design</span>
+            <span class="tech-tag" data-ja="レスポンシブデザイン" data-en="Responsive Design">レスポンシブデザイン</span>
         </div>
 
-        <h2>🤖 開発プロセス</h2>
+        <h2 data-ja="🤖 開発プロセス" data-en="🤖 Development Process">🤖 開発プロセス</h2>
         <div class="metadata">
             <div class="metadata-item">
-                <span>開発手法</span>
-                <span>AIエージェント自動開発</span>
+                <span data-ja="開発手法" data-en="Development Method">開発手法</span>
+                <span data-ja="AIエージェント自動開発" data-en="AI Agent Automated Development">AIエージェント自動開発</span>
             </div>
             <div class="metadata-item">
-                <span>開発ツール</span>
+                <span data-ja="開発ツール" data-en="Development Tool">開発ツール</span>
                 <span>Claude Code</span>
             </div>
             <div class="metadata-item">
-                <span>テストカバレッジ</span>
+                <span data-ja="テストカバレッジ" data-en="Test Coverage">テストカバレッジ</span>
                 <span>100% (281/281 tests)</span>
             </div>
             <div class="metadata-item">
-                <span>開発期間</span>
-                <span>2025年12月</span>
+                <span data-ja="開発期間" data-en="Development Period">開発期間</span>
+                <span data-ja="2025年12月" data-en="December 2025">2025年12月</span>
             </div>
             <div class="metadata-item">
-                <span>対応ブラウザ</span>
+                <span data-ja="対応ブラウザ" data-en="Supported Browsers">対応ブラウザ</span>
                 <span>Chrome, Safari, Firefox</span>
             </div>
             <div class="metadata-item">
-                <span>対応デバイス</span>
+                <span data-ja="対応デバイス" data-en="Supported Devices">対応デバイス</span>
                 <span>iOS, Android, PC</span>
             </div>
         </div>
 
-        <h2>🚀 使い方</h2>
+        <h2 data-ja="🚀 使い方" data-en="🚀 How to Use">🚀 使い方</h2>
         <ol style="margin: 20px;">
-            <li>上の「今すぐ演奏を始める」ボタンをクリック</li>
-            <li>鍵盤をタップまたはクリックして演奏</li>
-            <li>楽器を変更して様々な音色を楽しむ</li>
-            <li>自動演奏で有名な曲を聴く</li>
-            <li>ドラムマシンでリズムを追加</li>
-            <li>録音機能で自分の演奏を保存</li>
+            <li data-ja="上の「今すぐ演奏を始める」ボタンをクリック" data-en="Click the 'Start Playing Now' button above">上の「今すぐ演奏を始める」ボタンをクリック</li>
+            <li data-ja="鍵盤をタップまたはクリックして演奏" data-en="Tap or click the keys to play">鍵盤をタップまたはクリックして演奏</li>
+            <li data-ja="楽器を変更して様々な音色を楽しむ" data-en="Change instruments to enjoy various sounds">楽器を変更して様々な音色を楽しむ</li>
+            <li data-ja="自動演奏で有名な曲を聴く" data-en="Listen to famous songs with auto-play">自動演奏で有名な曲を聴く</li>
+            <li data-ja="ドラムマシンでリズムを追加" data-en="Add rhythm with the drum machine">ドラムマシンでリズムを追加</li>
+            <li data-ja="録音機能で自分の演奏を保存" data-en="Save your performance with the recording function">録音機能で自分の演奏を保存</li>
         </ol>
 
         <div class="audio-player">
-            <h3>🎧 音声解説</h3>
-            <p>AIが生成した音声で、このプロジェクトの詳細を解説します</p>
+            <h3 data-ja="🎧 音声解説" data-en="🎧 Audio Walkthrough">🎧 音声解説</h3>
+            <p data-ja="AIが生成した音声で、このプロジェクトの詳細を解説します" data-en="Listen to an AI-generated audio explanation of this project">AIが生成した音声で、このプロジェクトの詳細を解説します</p>
             <audio controls>
                 <source src="explanation.mp3" type="audio/mpeg">
-                お使いのブラウザは音声再生に対応していません。
+                <span data-ja="お使いのブラウザは音声再生に対応していません。" data-en="Your browser does not support audio playback.">お使いのブラウザは音声再生に対応していません。</span>
             </audio>
         </div>
 
@@ -346,5 +384,47 @@
             <p>Developed by sohei-t</p>
         </div>
     </div>
+
+    <script>
+        // Language switching function
+        function setLanguage(lang) {
+            // Update button states
+            const langBtns = document.querySelectorAll('.lang-btn');
+            langBtns.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Set active state based on language
+            if (lang === 'ja') {
+                langBtns[0].classList.add('active');
+            } else {
+                langBtns[1].classList.add('active');
+            }
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+
+            // Save preference
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check for saved language preference, default to Japanese
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            setLanguage(savedLang);
+        });
+    </script>
 </body>
 </html>

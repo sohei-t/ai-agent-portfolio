@@ -79,6 +79,44 @@
             z-index: 999;
         }
 
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: rgba(13, 2, 33, 0.8);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 4px;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .lang-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            color: var(--bg-deep);
+            text-shadow: none;
+        }
+
         .screen-container {
             max-width: 900px;
             margin: 0 auto;
@@ -565,6 +603,12 @@
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    </div>
+
     <div class="screen-container">
         <header>
             <div class="logo">
@@ -572,16 +616,16 @@
                 <span class="logo-battle">BATTLE</span>
             </div>
             <div class="subtitle">── SIMPLE INTEGRATED EDITION ──</div>
-            <a href="index.html" class="back-link">▶ PLAY GAME</a>
+            <a href="index.html" class="back-link" data-ja="▶ PLAY GAME" data-en="▶ PLAY GAME">▶ PLAY GAME</a>
         </header>
 
         <!-- Audio Explanation -->
         <div class="audio-section">
-            <div class="audio-title">VOICE GUIDE</div>
+            <div class="audio-title" data-ja="VOICE GUIDE" data-en="VOICE GUIDE">VOICE GUIDE</div>
             <div class="audio-player">
                 <button class="play-btn" id="playBtn" onclick="toggleAudio()">
                     <span id="playIcon">▶</span>
-                    <span id="playText">PLAY</span>
+                    <span id="playText" data-ja="PLAY" data-en="PLAY">PLAY</span>
                 </button>
                 <audio id="audioPlayer" src="explanation.mp3" preload="metadata"></audio>
             </div>
@@ -591,15 +635,15 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">🤖</div>
-                <h2 class="section-title">GAME OVERVIEW</h2>
+                <h2 class="section-title" data-ja="GAME OVERVIEW" data-en="GAME OVERVIEW">GAME OVERVIEW</h2>
             </div>
             <div class="section-content">
                 <div class="game-description">
-                    <p>
+                    <p data-ja="<span class='highlight'>ROBO BATTLE</span>は、1985年のMSX用ゲーム「WARROID」にインスパイアされたレトロスタイルのロボット対戦アクションゲームです。" data-en="<span class='highlight'>ROBO BATTLE</span> is a retro-style robot fighting action game inspired by the 1985 MSX game 'WARROID'.">
                         <span class="highlight">ROBO BATTLE</span>は、1985年のMSX用ゲーム
                         「WARROID」にインスパイアされたレトロスタイルのロボット対戦アクションゲームです。
                     </p>
-                    <p>
+                    <p data-ja="赤いロボット<span class='highlight'>（プレイヤー）</span>と青いロボット<span class='highlight'>（CPU）</span>が1対1で戦う白熱のバトルを繰り広げます。ビームライフル、ジャンプ、キックを駆使して敵を倒しましょう！" data-en="The red robot <span class='highlight'>(Player)</span> and blue robot <span class='highlight'>(CPU)</span> face off in intense 1-on-1 battles. Use beam rifles, jumps, and kicks to defeat your enemy!">
                         赤いロボット<span class="highlight">（プレイヤー）</span>と
                         青いロボット<span class="highlight">（CPU）</span>が1対1で戦う
                         白熱のバトルを繰り広げます。ビームライフル、ジャンプ、キックを
@@ -611,17 +655,17 @@
                     <div class="robot-card player">
                         <div class="robot-name">RED ROBOT</div>
                         <div style="font-size: 48px;">🔴</div>
-                        <div style="margin-top: 10px; color: var(--text-dim); font-size: 12px;">PLAYER</div>
+                        <div style="margin-top: 10px; color: var(--text-dim); font-size: 12px;" data-ja="PLAYER" data-en="PLAYER">PLAYER</div>
                     </div>
                     <div class="robot-card enemy">
                         <div class="robot-name">BLUE ROBOT</div>
                         <div style="font-size: 48px;">🔵</div>
-                        <div style="margin-top: 10px; color: var(--text-dim); font-size: 12px;">CPU ENEMY</div>
+                        <div style="margin-top: 10px; color: var(--text-dim); font-size: 12px;" data-ja="CPU ENEMY" data-en="CPU ENEMY">CPU ENEMY</div>
                     </div>
                 </div>
 
                 <div class="stats-grid">
-                    <div style="margin-top: 25px; margin-bottom: 15px; color: var(--neon-yellow); font-size: 12px; letter-spacing: 2px;">
+                    <div style="margin-top: 25px; margin-bottom: 15px; color: var(--neon-yellow); font-size: 12px; letter-spacing: 2px;" data-ja="▼ CUSTOMIZABLE STATS (20 POINTS)" data-en="▼ CUSTOMIZABLE STATS (20 POINTS)">
                         ▼ CUSTOMIZABLE STATS (20 POINTS)
                     </div>
                     <div class="stat-row">
@@ -656,7 +700,7 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">🎮</div>
-                <h2 class="section-title">CONTROLS</h2>
+                <h2 class="section-title" data-ja="CONTROLS" data-en="CONTROLS">CONTROLS</h2>
             </div>
             <div class="section-content">
                 <div class="controls-grid">
@@ -664,38 +708,38 @@
                         <h4>▼ KEYBOARD (PC)</h4>
                         <div class="control-item">
                             <span class="key">← →</span>
-                            <span class="control-desc">移動</span>
+                            <span class="control-desc" data-ja="移動" data-en="Move">移動</span>
                         </div>
                         <div class="control-item">
                             <span class="key">↑ / SPACE</span>
-                            <span class="control-desc">ジャンプ</span>
+                            <span class="control-desc" data-ja="ジャンプ" data-en="Jump">ジャンプ</span>
                         </div>
                         <div class="control-item">
                             <span class="key">Z</span>
-                            <span class="control-desc">ビーム発射</span>
+                            <span class="control-desc" data-ja="ビーム発射" data-en="Fire Beam">ビーム発射</span>
                         </div>
                         <div class="control-item">
                             <span class="key">X</span>
-                            <span class="control-desc">キック</span>
+                            <span class="control-desc" data-ja="キック" data-en="Kick">キック</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <h4>▼ TOUCH (MOBILE)</h4>
                         <div class="control-item">
                             <span class="key">TILT/STICK</span>
-                            <span class="control-desc">移動</span>
+                            <span class="control-desc" data-ja="移動" data-en="Move">移動</span>
                         </div>
                         <div class="control-item">
                             <span class="key">LEFT</span>
-                            <span class="control-desc">ビーム発射</span>
+                            <span class="control-desc" data-ja="ビーム発射" data-en="Fire Beam">ビーム発射</span>
                         </div>
                         <div class="control-item">
                             <span class="key">CENTER</span>
-                            <span class="control-desc">ジャンプ</span>
+                            <span class="control-desc" data-ja="ジャンプ" data-en="Jump">ジャンプ</span>
                         </div>
                         <div class="control-item">
                             <span class="key">RIGHT</span>
-                            <span class="control-desc">キック</span>
+                            <span class="control-desc" data-ja="キック" data-en="Kick">キック</span>
                         </div>
                     </div>
                 </div>
@@ -710,7 +754,7 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">⚙️</div>
-                <h2 class="section-title">TECHNICAL</h2>
+                <h2 class="section-title" data-ja="TECHNICAL" data-en="TECHNICAL">TECHNICAL</h2>
             </div>
             <div class="section-content">
                 <div class="tech-grid">
@@ -750,11 +794,11 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">✨</div>
-                <h2 class="section-title">CREDITS</h2>
+                <h2 class="section-title" data-ja="CREDITS" data-en="CREDITS">CREDITS</h2>
             </div>
             <div class="section-content credits-content">
                 <div class="credits-year">2026</div>
-                <div class="credits-text">
+                <div class="credits-text" data-ja="Inspired by MSX WARROID (1985)<br><br>Developed with AI Agent Workflow System<br>Powered by <a href='https://claude.com/claude-code' class='credits-link'>Claude Code</a><br><br>21 Agents • 6 Phases • Full Automation" data-en="Inspired by MSX WARROID (1985)<br><br>Developed with AI Agent Workflow System<br>Powered by <a href='https://claude.com/claude-code' class='credits-link'>Claude Code</a><br><br>21 Agents • 6 Phases • Full Automation">
                     Inspired by MSX WARROID (1985)<br><br>
                     Developed with AI Agent Workflow System<br>
                     Powered by <a href="https://claude.com/claude-code" class="credits-link">Claude Code</a><br><br>
@@ -764,9 +808,9 @@
         </section>
 
         <footer>
-            <div>PRESS START TO PLAY <span class="blinking-cursor">▌</span></div>
+            <div data-ja="PRESS START TO PLAY <span class='blinking-cursor'>▌</span>" data-en="PRESS START TO PLAY <span class='blinking-cursor'>▌</span>">PRESS START TO PLAY <span class="blinking-cursor">▌</span></div>
             <div style="margin-top: 20px;">
-                <a href="index.html" class="back-link">▶ START GAME</a>
+                <a href="index.html" class="back-link" data-ja="▶ START GAME" data-en="▶ START GAME">▶ START GAME</a>
             </div>
         </footer>
     </div>
@@ -801,6 +845,59 @@
             btn.classList.remove('playing');
             icon.textContent = '▶';
             text.textContent = 'PLAY';
+        });
+
+        // Language switching function
+        function setLanguage(lang) {
+            // Update button states
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.innerHTML = text;
+                    }
+                }
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+
+            // Save preference
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check for saved language preference
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            if (savedLang === 'ja') {
+                document.querySelectorAll('.lang-btn')[0].classList.add('active');
+                document.querySelectorAll('.lang-btn')[1].classList.remove('active');
+            } else {
+                document.querySelectorAll('.lang-btn')[0].classList.remove('active');
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+            }
+
+            // Apply saved language
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + savedLang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.innerHTML = text;
+                    }
+                }
+            });
+            document.documentElement.lang = savedLang;
         });
     </script>
 </body>

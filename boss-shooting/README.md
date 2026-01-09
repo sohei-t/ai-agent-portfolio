@@ -1,5 +1,9 @@
 # Space Odyssey - ボスシューティングゲーム
 
+## Play Now
+
+**[ライブデモ](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)** | **[音声解説](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/explanation.mp3)**
+
 レトロスタイルの縦スクロールシューティングゲームです。ボス戦、モバイル操作、段階的な難易度上昇が特徴です。
 
 ## 特徴

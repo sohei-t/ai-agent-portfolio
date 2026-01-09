@@ -1,10 +1,10 @@
 # Bowling Adventure
 
+## Play Now
+
+**[ライブデモ](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure-v2/)**
+
 Three.jsとCannon.js物理エンジンで構築された革新的な3D障害物コースボウリングゲームです。障害物や地形の変化を乗り越えながらボウリングボールを操作し、ピンを倒しましょう！
-
-## デモ
-
-[Bowling Adventureをプレイする](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure/)
 
 ## 特徴
 

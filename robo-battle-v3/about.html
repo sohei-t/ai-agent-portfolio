@@ -923,9 +923,52 @@
                 font-size: 10px;
             }
         }
+
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: rgba(13, 2, 33, 0.9);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 5px;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .lang-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 15px var(--neon-cyan);
+            transform: scale(1.05);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            color: var(--bg-deep);
+            border-color: transparent;
+        }
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    </div>
+
     <div class="grid-bg"></div>
 
     <div class="container">
@@ -938,8 +981,8 @@
             </h1>
             <p class="subtitle">─── ONLINE MULTIPLAYER EDITION ───</p>
             <div class="nav-buttons">
-                <a href="index.html" class="nav-btn primary">▶ PLAY GAME</a>
-                <a href="https://github.com/sohei-t/ai-agent-portfolio/tree/main/robo-battle-v3" class="nav-btn">◆ SOURCE CODE</a>
+                <a href="index.html" class="nav-btn primary" data-ja="▶ PLAY GAME" data-en="▶ PLAY GAME">▶ PLAY GAME</a>
+                <a href="https://github.com/sohei-t/ai-agent-portfolio/tree/main/robo-battle-v3" class="nav-btn" data-ja="◆ SOURCE CODE" data-en="◆ SOURCE CODE">◆ SOURCE CODE</a>
             </div>
         </header>
 
@@ -948,7 +991,7 @@
             <div class="audio-player">
                 <button class="play-btn" id="playBtn" onclick="toggleAudio()">
                     <span id="playIcon">▶</span>
-                    <span id="playText">PLAY AUDIO GUIDE</span>
+                    <span id="playText" data-ja="PLAY AUDIO GUIDE" data-en="PLAY AUDIO GUIDE">PLAY AUDIO GUIDE</span>
                 </button>
                 <audio id="audioPlayer" src="explanation.mp3" preload="metadata"></audio>
             </div>
@@ -958,33 +1001,24 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">🤖</div>
-                <h2 class="section-title">GAME OVERVIEW</h2>
+                <h2 class="section-title" data-ja="GAME OVERVIEW" data-en="GAME OVERVIEW">GAME OVERVIEW</h2>
             </div>
             <div class="section-content">
                 <div class="overview-text">
-                    <p>
-                        <span class="highlight">ROBO BATTLE V3</span>は、1985年のMSX用ゲーム「WARROID」に
-                        インスパイアされたレトロスタイルのロボット対戦アクションゲームです。
-                    </p>
-                    <p>
-                        V3では<span class="highlight-magenta">オンライン対戦機能</span>を搭載！
-                        <span class="highlight-cyan">WebRTC P2P</span>による低遅延通信で、
-                        世界中のプレイヤーとリアルタイムバトルが可能に。
-                        6桁の<span class="highlight">ルームコード</span>で友達を招待し、
-                        熱いバトルを繰り広げよう！
-                    </p>
+                    <p data-ja="<span class='highlight'>ROBO BATTLE V3</span>は、1985年のMSX用ゲーム「WARROID」にインスパイアされたレトロスタイルのロボット対戦アクションゲームです。" data-en="<span class='highlight'>ROBO BATTLE V3</span> is a retro-style robot fighting action game inspired by the 1985 MSX game 'WARROID'."><span class="highlight">ROBO BATTLE V3</span>は、1985年のMSX用ゲーム「WARROID」にインスパイアされたレトロスタイルのロボット対戦アクションゲームです。</p>
+                    <p data-ja="V3では<span class='highlight-magenta'>オンライン対戦機能</span>を搭載！<span class='highlight-cyan'>WebRTC P2P</span>による低遅延通信で、世界中のプレイヤーとリアルタイムバトルが可能に。6桁の<span class='highlight'>ルームコード</span>で友達を招待し、熱いバトルを繰り広げよう！" data-en="V3 features <span class='highlight-magenta'>online multiplayer</span>! With low-latency <span class='highlight-cyan'>WebRTC P2P</span> communication, battle players worldwide in real-time. Invite friends with a 6-digit <span class='highlight'>room code</span> and enjoy intense battles!">V3では<span class="highlight-magenta">オンライン対戦機能</span>を搭載！<span class="highlight-cyan">WebRTC P2P</span>による低遅延通信で、世界中のプレイヤーとリアルタイムバトルが可能に。6桁の<span class="highlight">ルームコード</span>で友達を招待し、熱いバトルを繰り広げよう！</p>
                 </div>
 
                 <div class="robot-grid">
                     <div class="robot-card player">
                         <div class="robot-icon">🔴</div>
                         <div class="robot-name">RED ROBOT</div>
-                        <div class="robot-label">PLAYER / HOST</div>
+                        <div class="robot-label" data-ja="PLAYER / HOST" data-en="PLAYER / HOST">PLAYER / HOST</div>
                     </div>
                     <div class="robot-card enemy">
                         <div class="robot-icon">🔵</div>
                         <div class="robot-name">BLUE ROBOT</div>
-                        <div class="robot-label">CPU / OPPONENT</div>
+                        <div class="robot-label" data-ja="CPU / OPPONENT" data-en="CPU / OPPONENT">CPU / OPPONENT</div>
                     </div>
                 </div>
             </div>
@@ -1004,25 +1038,17 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">🎮</div>
-                <h2 class="section-title">GAME MODES</h2>
+                <h2 class="section-title" data-ja="GAME MODES" data-en="GAME MODES">GAME MODES</h2>
             </div>
             <div class="section-content">
                 <div class="mode-grid">
                     <div class="mode-card cpu">
                         <h3 class="mode-title">VS CPU</h3>
-                        <p class="mode-desc">
-                            コンピューターとの対戦モード。<br>
-                            EASY / NORMAL / HARD の3段階の難易度から選択可能。
-                            AIは距離に応じた戦術を使い分け、手強い対戦相手に。
-                        </p>
+                        <p class="mode-desc" data-ja="コンピューターとの対戦モード。<br>EASY / NORMAL / HARD の3段階の難易度から選択可能。AIは距離に応じた戦術を使い分け、手強い対戦相手に。" data-en="Battle against the computer.<br>Choose from 3 difficulty levels: EASY / NORMAL / HARD. The AI adapts its tactics based on distance, providing a challenging opponent.">コンピューターとの対戦モード。<br>EASY / NORMAL / HARD の3段階の難易度から選択可能。AIは距離に応じた戦術を使い分け、手強い対戦相手に。</p>
                     </div>
                     <div class="mode-card online">
                         <h3 class="mode-title">ONLINE BATTLE <span class="new-badge">NEW</span></h3>
-                        <p class="mode-desc">
-                            インターネット経由でリアルタイム対戦！<br>
-                            ホストがルームを作成し、6桁のコードで友達を招待。
-                            ホストの設定（ステージ・難易度・アイテム）が自動同期。
-                        </p>
+                        <p class="mode-desc" data-ja="インターネット経由でリアルタイム対戦！<br>ホストがルームを作成し、6桁のコードで友達を招待。ホストの設定（ステージ・難易度・アイテム）が自動同期。" data-en="Real-time battles over the internet!<br>Host creates a room and invites friends with a 6-digit code. Host settings (stage, difficulty, items) sync automatically.">インターネット経由でリアルタイム対戦！<br>ホストがルームを作成し、6桁のコードで友達を招待。ホストの設定（ステージ・難易度・アイテム）が自動同期。</p>
                     </div>
                 </div>
             </div>
@@ -1042,55 +1068,55 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">⌨️</div>
-                <h2 class="section-title">CONTROLS</h2>
+                <h2 class="section-title" data-ja="CONTROLS" data-en="CONTROLS">CONTROLS</h2>
             </div>
             <div class="section-content">
                 <div class="controls-grid">
                     <div class="control-group">
-                        <h4>▼ KEYBOARD (PC)</h4>
+                        <h4 data-ja="▼ KEYBOARD (PC)" data-en="▼ KEYBOARD (PC)">▼ KEYBOARD (PC)</h4>
                         <div class="control-item">
                             <span class="key">← →</span>
-                            <span class="control-desc">移動</span>
+                            <span class="control-desc" data-ja="移動" data-en="Move">移動</span>
                         </div>
                         <div class="control-item">
                             <span class="key">↑ / SPACE</span>
-                            <span class="control-desc">ジャンプ</span>
+                            <span class="control-desc" data-ja="ジャンプ" data-en="Jump">ジャンプ</span>
                         </div>
                         <div class="control-item">
                             <span class="key">Z (HOLD)</span>
-                            <span class="control-desc">ビーム発射（長押しでチャージ）</span>
+                            <span class="control-desc" data-ja="ビーム発射（長押しでチャージ）" data-en="Beam (hold to charge)">ビーム発射（長押しでチャージ）</span>
                         </div>
                         <div class="control-item">
                             <span class="key">X</span>
-                            <span class="control-desc">キック</span>
+                            <span class="control-desc" data-ja="キック" data-en="Kick">キック</span>
                         </div>
                         <div class="control-item">
                             <span class="key">ESC</span>
-                            <span class="control-desc">戻る</span>
+                            <span class="control-desc" data-ja="戻る" data-en="Back">戻る</span>
                         </div>
                     </div>
                     <div class="control-group">
-                        <h4>▼ TOUCH (MOBILE)</h4>
+                        <h4 data-ja="▼ TOUCH (MOBILE)" data-en="▼ TOUCH (MOBILE)">▼ TOUCH (MOBILE)</h4>
                         <div class="control-item">
                             <span class="key">STICK/TILT</span>
-                            <span class="control-desc">移動（ジョイスティック/傾き）</span>
+                            <span class="control-desc" data-ja="移動（ジョイスティック/傾き）" data-en="Move (Joystick/Tilt)">移動（ジョイスティック/傾き）</span>
                         </div>
                         <div class="control-item">
                             <span class="key">LEFT TAP</span>
-                            <span class="control-desc">ビーム発射</span>
+                            <span class="control-desc" data-ja="ビーム発射" data-en="Beam">ビーム発射</span>
                         </div>
                         <div class="control-item">
                             <span class="key">CENTER TAP</span>
-                            <span class="control-desc">ジャンプ</span>
+                            <span class="control-desc" data-ja="ジャンプ" data-en="Jump">ジャンプ</span>
                         </div>
                         <div class="control-item">
                             <span class="key">RIGHT TAP</span>
-                            <span class="control-desc">キック</span>
+                            <span class="control-desc" data-ja="キック" data-en="Kick">キック</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="stats-title">▼ CUSTOMIZABLE STATS (20 POINTS TOTAL)</div>
+                <div class="stats-title" data-ja="▼ CUSTOMIZABLE STATS (20 POINTS TOTAL)" data-en="▼ CUSTOMIZABLE STATS (20 POINTS TOTAL)">▼ CUSTOMIZABLE STATS (20 POINTS TOTAL)</div>
                 <div class="stat-row">
                     <div class="stat-label">JUMP</div>
                     <div class="stat-bar"><div class="stat-fill" style="width: 50%;"></div></div>
@@ -1128,7 +1154,7 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">🗺️</div>
-                <h2 class="section-title">STAGES</h2>
+                <h2 class="section-title" data-ja="STAGES" data-en="STAGES">STAGES</h2>
             </div>
             <div class="section-content">
                 <div class="stage-grid">
@@ -1174,41 +1200,29 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">⚡</div>
-                <h2 class="section-title">V3 NEW FEATURES</h2>
+                <h2 class="section-title" data-ja="V3 NEW FEATURES" data-en="V3 NEW FEATURES">V3 NEW FEATURES</h2>
             </div>
             <div class="section-content">
                 <div class="feature-grid">
                     <div class="feature-card">
                         <div class="feature-icon">🌐</div>
                         <div class="feature-title">ONLINE BATTLE</div>
-                        <div class="feature-desc">
-                            WebRTC P2Pによる低遅延オンライン対戦。
-                            Firebaseでシグナリング、直接接続で高速通信。
-                        </div>
+                        <div class="feature-desc" data-ja="WebRTC P2Pによる低遅延オンライン対戦。Firebaseでシグナリング、直接接続で高速通信。" data-en="Low-latency online battles via WebRTC P2P. Firebase for signaling, direct connection for high-speed communication.">WebRTC P2Pによる低遅延オンライン対戦。Firebaseでシグナリング、直接接続で高速通信。</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">🔗</div>
                         <div class="feature-title">ROOM SYSTEM</div>
-                        <div class="feature-desc">
-                            6桁のルームコードで簡単マッチング。
-                            友達を招待してすぐにバトル開始。
-                        </div>
+                        <div class="feature-desc" data-ja="6桁のルームコードで簡単マッチング。友達を招待してすぐにバトル開始。" data-en="Easy matchmaking with 6-digit room code. Invite friends and start battling immediately.">6桁のルームコードで簡単マッチング。友達を招待してすぐにバトル開始。</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">⚙️</div>
                         <div class="feature-title">SETTINGS SYNC</div>
-                        <div class="feature-desc">
-                            ホストの設定（ステージ・難易度・アイテム）が
-                            クライアントに自動同期。
-                        </div>
+                        <div class="feature-desc" data-ja="ホストの設定（ステージ・難易度・アイテム）がクライアントに自動同期。" data-en="Host settings (stage, difficulty, items) automatically sync to client.">ホストの設定（ステージ・難易度・アイテム）がクライアントに自動同期。</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">🎁</div>
                         <div class="feature-title">ITEMS MODE</div>
-                        <div class="feature-desc">
-                            パワーアップアイテム、ワープゾーン、デスゾーンで
-                            戦略性がさらにアップ！
-                        </div>
+                        <div class="feature-desc" data-ja="パワーアップアイテム、ワープゾーン、デスゾーンで戦略性がさらにアップ！" data-en="Power-up items, warp zones, and death zones add more strategy!">パワーアップアイテム、ワープゾーン、デスゾーンで戦略性がさらにアップ！</div>
                     </div>
                 </div>
             </div>
@@ -1228,7 +1242,7 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">🔧</div>
-                <h2 class="section-title">TECHNICAL STACK</h2>
+                <h2 class="section-title" data-ja="TECHNICAL STACK" data-en="TECHNICAL STACK">TECHNICAL STACK</h2>
             </div>
             <div class="section-content">
                 <div class="tech-grid">
@@ -1282,11 +1296,11 @@
         <section class="section">
             <div class="section-header">
                 <div class="section-icon">✨</div>
-                <h2 class="section-title">CREDITS</h2>
+                <h2 class="section-title" data-ja="CREDITS" data-en="CREDITS">CREDITS</h2>
             </div>
             <div class="section-content credits-content">
                 <div class="credits-year">2026</div>
-                <div class="credits-text">
+                <div class="credits-text" data-ja="Inspired by MSX &quot;WARROID&quot; (1985)<br><br>Developed with AI Agent Workflow System<br>Powered by <a href='https://claude.com/claude-code' class='credits-link'>Claude Code</a><br>Hosted on <a href='https://firebase.google.com' class='credits-link'>Firebase</a><br><br>AI-Generated Sprites by Vertex AI Imagen 3.0" data-en="Inspired by MSX &quot;WARROID&quot; (1985)<br><br>Developed with AI Agent Workflow System<br>Powered by <a href='https://claude.com/claude-code' class='credits-link'>Claude Code</a><br>Hosted on <a href='https://firebase.google.com' class='credits-link'>Firebase</a><br><br>AI-Generated Sprites by Vertex AI Imagen 3.0">
                     Inspired by MSX "WARROID" (1985)<br><br>
                     Developed with AI Agent Workflow System<br>
                     Powered by <a href="https://claude.com/claude-code" class="credits-link">Claude Code</a><br>
@@ -1297,20 +1311,48 @@
         </section>
 
         <footer>
-            <div class="footer-text">
+            <div class="footer-text" data-ja="INSERT COIN TO CONTINUE" data-en="INSERT COIN TO CONTINUE">
                 INSERT COIN TO CONTINUE <span class="blink">▌</span>
             </div>
-            <a href="index.html" class="nav-btn primary">▶ START GAME</a>
+            <a href="index.html" class="nav-btn primary" data-ja="▶ START GAME" data-en="▶ START GAME">▶ START GAME</a>
         </footer>
     </div>
 
     <script>
+        // Language switching function
+        function setLanguage(lang) {
+            // Update button states
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.innerHTML = text;
+                    }
+                }
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+
+            // Save preference
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
         // Audio Player
         function toggleAudio() {
             const audio = document.getElementById('audioPlayer');
             const btn = document.getElementById('playBtn');
             const icon = document.getElementById('playIcon');
             const text = document.getElementById('playText');
+            const lang = localStorage.getItem('preferredLanguage') || 'ja';
 
             if (audio.paused) {
                 audio.play();
@@ -1347,6 +1389,27 @@
         }, { threshold: 0.5 });
 
         document.querySelectorAll('.stat-row').forEach(row => observer.observe(row));
+
+        // Initialize language on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            if (savedLang === 'en') {
+                document.querySelectorAll('.lang-btn')[0].classList.remove('active');
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+            }
+            // Apply saved language
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + savedLang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.innerHTML = text;
+                    }
+                }
+            });
+            document.documentElement.lang = savedLang;
+        });
     </script>
 </body>
 </html>
