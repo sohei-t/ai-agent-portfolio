@@ -571,10 +571,13 @@
         // Language switching function
         function setLanguage(lang) {
             // Update button states
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
+            const langBtns = document.querySelectorAll('.lang-btn');
+            langBtns.forEach(btn => btn.classList.remove('active'));
+            if (lang === 'ja') {
+                langBtns[0].classList.add('active');
+            } else {
+                langBtns[1].classList.add('active');
+            }
 
             // Update all translatable elements
             document.querySelectorAll('[data-en][data-ja]').forEach(element => {
@@ -602,15 +605,7 @@
 
             // Check for saved language preference
             const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
-            if (savedLang === 'ja') {
-                setLanguage('ja');
-                document.querySelectorAll('.lang-btn')[0].classList.add('active');
-                document.querySelectorAll('.lang-btn')[1].classList.remove('active');
-            } else {
-                setLanguage('en');
-                document.querySelectorAll('.lang-btn')[0].classList.remove('active');
-                document.querySelectorAll('.lang-btn')[1].classList.add('active');
-            }
+            setLanguage(savedLang);
         });
 
         // Smooth scroll for links
