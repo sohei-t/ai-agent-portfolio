@@ -758,6 +758,32 @@
             </div>
         </section>
 
+        <!-- Online Battle -->
+        <section>
+            <h2 class="section-title">ONLINE BATTLE / オンライン対戦</h2>
+            <p style="line-height: 1.8; font-size: 1.05rem; margin-bottom: 25px;">
+                V3で実装されたオンライン対戦機能。WebRTC P2P技術により、サーバーを介さずプレイヤー同士が直接接続してリアルタイム対戦が可能。
+            </p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>ルーム作成（ホスト）</h3>
+                    <p>CREATE ROOMでルームを作成すると6桁のルームコードが発行されます。このコードを対戦相手に共有してください。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>ルーム参加（クライアント）</h3>
+                    <p>JOIN ROOMで相手から教えてもらった6桁のルームコードを入力。接続が確立されるとホストがバトルを開始できます。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>設定同期</h3>
+                    <p>ホスト側で設定したステージ・難易度・アイテムモードの設定がクライアントに自動反映されます。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>WebRTC P2P通信</h3>
+                    <p>Firebase Realtime Databaseをシグナリングサーバーとして使用。接続確立後はP2Pで低遅延通信を実現。</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Controls -->
         <section>
             <h2 class="section-title">CONTROLS / 操作方法</h2>
@@ -804,6 +830,16 @@
                         <span>画面左上タップ</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Gyro Feature -->
+            <div style="margin-top: 30px; padding: 25px; background: rgba(0, 255, 255, 0.1); border: 1px solid var(--neon-cyan);">
+                <h3 style="font-family: 'Orbitron', sans-serif; color: var(--neon-cyan); margin-bottom: 15px;">GYRO CONTROL / ジャイロ操作（傾きセンサー）</h3>
+                <p style="line-height: 1.8;">
+                    V1から実装されているスマートフォン向け機能。端末を左右に傾けることで、直感的にロボットを移動操作できます。
+                    バーチャルジョイスティックとの切り替えも可能で、プレイスタイルに合わせて選択できます。
+                    傾きの感度は自動調整され、自然な操作感を実現しています。
+                </p>
             </div>
         </section>
 
@@ -1041,7 +1077,7 @@
             <div class="version-timeline">
                 <div class="version-item">
                     <div class="version-number">V1</div>
-                    <div class="version-desc">基本対戦システム、SVGスプライト</div>
+                    <div class="version-desc">基本対戦システム、SVGスプライト、ジャイロ操作（傾きセンサー）</div>
                 </div>
                 <div class="version-item">
                     <div class="version-number">V2</div>
@@ -1049,7 +1085,7 @@
                 </div>
                 <div class="version-item">
                     <div class="version-number">V3</div>
-                    <div class="version-desc">オンライン対戦、アイテムモード、設定同期</div>
+                    <div class="version-desc">オンライン対戦（WebRTC P2P、ルームコード共有）、アイテムモード、設定同期</div>
                 </div>
                 <div class="version-item">
                     <div class="version-number">V4</div>

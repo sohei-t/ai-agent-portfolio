@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About - Space Shooter Game</title>
+  <title>About - スペースシューター</title>
   <style>
     /* ==================== ROOT VARIABLES ==================== */
     :root {
@@ -413,13 +413,13 @@
     <!-- Header -->
     <header>
       <h1>SPACE SHOOTER</h1>
-      <p class="subtitle">A Modern Take on Classic Arcade Action</p>
+      <p class="subtitle">クラシックアーケードゲームの現代的リメイク</p>
       <div class="nav-links">
-        <a href="src/index.html">Play Game</a>
-        <a href="#overview">Overview</a>
-        <a href="#features">Features</a>
-        <a href="#technical">Technical</a>
-        <a href="#development">Development</a>
+        <a href="src/index.html">ゲームをプレイ</a>
+        <a href="#overview">概要</a>
+        <a href="#features">機能</a>
+        <a href="#technical">技術</a>
+        <a href="#development">開発</a>
       </div>
     </header>
 
@@ -437,166 +437,166 @@
 
     <!-- Overview Section -->
     <section id="overview">
-      <h2>Project Overview</h2>
+      <h2>プロジェクト概要</h2>
       <p>
-        Space Shooter is a browser-based arcade game inspired by the classic Space Invaders,
-        rebuilt with modern web technologies and enhanced with contemporary game design principles.
-        Featuring a cyberpunk neon aesthetic, responsive design, and advanced gameplay mechanics,
-        this project demonstrates the power of HTML5 Canvas and vanilla JavaScript.
+        Space Shooterは、クラシックなスペースインベーダーにインスパイアされたブラウザベースのアーケードゲームです。
+        現代的なWeb技術で再構築され、最新のゲームデザイン原則で強化されています。
+        サイバーパンクなネオン美学、レスポンシブデザイン、高度なゲームプレイメカニクスを特徴とし、
+        HTML5 CanvasとバニラJavaScriptの可能性を示すプロジェクトです。
       </p>
 
       <div class="stats">
         <div class="stat">
           <span class="stat-value">14</span>
-          <span class="stat-label">Modules</span>
+          <span class="stat-label">モジュール</span>
         </div>
         <div class="stat">
           <span class="stat-value">92.24%</span>
-          <span class="stat-label">Test Coverage</span>
+          <span class="stat-label">テストカバレッジ</span>
         </div>
         <div class="stat">
           <span class="stat-value">615</span>
-          <span class="stat-label">Tests</span>
+          <span class="stat-label">テスト数</span>
         </div>
         <div class="stat">
           <span class="stat-value">60</span>
-          <span class="stat-label">Target FPS</span>
+          <span class="stat-label">目標FPS</span>
         </div>
       </div>
 
       <p>
-        Built entirely without frameworks, this game showcases clean architecture,
-        comprehensive testing, and performance optimization techniques. The codebase
-        follows software engineering best practices with modular design, extensive
-        documentation, and maintainable code structure.
+        フレームワークを一切使用せずに構築されたこのゲームは、クリーンなアーキテクチャ、
+        包括的なテスト、パフォーマンス最適化技術を実演しています。コードベースは
+        モジュラー設計、詳細なドキュメント、保守性の高いコード構造といった
+        ソフトウェアエンジニアリングのベストプラクティスに従っています。
       </p>
     </section>
 
     <!-- Key Features -->
     <section id="features">
-      <h2>Key Features</h2>
+      <h2>主な機能</h2>
 
-      <h3>Gameplay Innovations</h3>
+      <h3>ゲームプレイの革新</h3>
       <div class="feature-grid">
         <div class="feature-card">
-          <h3>Power-Up System</h3>
-          <p>Three unique power-ups that can stack for strategic gameplay:</p>
+          <h3>パワーアップシステム</h3>
+          <p>戦略的なゲームプレイのために組み合わせ可能な3種類のパワーアップ:</p>
           <ul>
-            <li><strong>Rapid Fire:</strong> Double your shooting speed (300ms → 150ms)</li>
-            <li><strong>Shield:</strong> Temporary invincibility with visual effects</li>
-            <li><strong>Multi-Shot:</strong> Fire 3 bullets in spread pattern</li>
+            <li><strong>連射:</strong> 射撃速度が2倍に (300ms → 150ms)</li>
+            <li><strong>シールド:</strong> 視覚効果付きの一時的無敵状態</li>
+            <li><strong>マルチショット:</strong> 扇状に3発の弾を発射</li>
           </ul>
-          <p>Stack up to 3 power-ups simultaneously with independent timers.</p>
+          <p>独立したタイマーで最大3つのパワーアップを同時に重ね掛け可能。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Combo System</h3>
-          <p>Reward precise play with score multipliers:</p>
+          <h3>コンボシステム</h3>
+          <p>精密なプレイにスコア倍率で報酬:</p>
           <ul>
-            <li><strong>2x multiplier</strong> at 5 consecutive hits</li>
-            <li><strong>3x multiplier</strong> at 10+ consecutive hits</li>
-            <li>Resets after 2 seconds or missed shots</li>
+            <li>5連続ヒットで<strong>2倍</strong></li>
+            <li>10連続以上で<strong>3倍</strong></li>
+            <li>2秒経過またはミスでリセット</li>
           </ul>
-          <p>Master the combo system to achieve high scores!</p>
+          <p>コンボシステムをマスターしてハイスコアを目指そう!</p>
         </div>
 
         <div class="feature-card">
-          <h3>Adaptive Performance</h3>
-          <p>Automatically adjusts quality based on device capabilities:</p>
+          <h3>適応型パフォーマンス</h3>
+          <p>デバイスの性能に応じて自動的に品質を調整:</p>
           <ul>
-            <li><strong>60 FPS</strong> on high-end devices</li>
-            <li><strong>45 FPS</strong> on mid-range devices</li>
-            <li><strong>30 FPS</strong> minimum on older hardware</li>
+            <li>ハイエンドデバイスで<strong>60 FPS</strong></li>
+            <li>ミッドレンジデバイスで<strong>45 FPS</strong></li>
+            <li>旧型ハードウェアで最低<strong>30 FPS</strong></li>
           </ul>
-          <p>Reduces particle effects when FPS drops below 40.</p>
+          <p>FPSが40以下になるとパーティクルエフェクトを削減。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Responsive Design</h3>
-          <p>Perfect gameplay on any device:</p>
+          <h3>レスポンシブデザイン</h3>
+          <p>あらゆるデバイスで最適なゲームプレイ:</p>
           <ul>
-            <li>Fixed 4:3 aspect ratio (800×600 logical)</li>
-            <li>CSS scaling from 320px to 2560px</li>
-            <li>Touch controls on mobile devices</li>
-            <li>Landscape and portrait support</li>
+            <li>固定4:3アスペクト比 (800×600論理サイズ)</li>
+            <li>320pxから2560pxまでCSSスケーリング</li>
+            <li>モバイルデバイスでのタッチ操作</li>
+            <li>横向き・縦向き両対応</li>
           </ul>
-          <p>30% larger touch zones for comfortable mobile play.</p>
+          <p>快適なモバイルプレイのため30%大きなタッチゾーン。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Enemy AI</h3>
-          <p>Classic movement with modern precision:</p>
+          <h3>敵AI</h3>
+          <p>現代的な精度を持つクラシックな動き:</p>
           <ul>
-            <li>5×11 grid formation (55 enemies)</li>
-            <li>Synchronized movement patterns</li>
-            <li>Speed increases 10% per wave</li>
-            <li>1% random fire rate per enemy per frame</li>
+            <li>5×11グリッド編成 (55体の敵)</li>
+            <li>同期した移動パターン</li>
+            <li>ウェーブごとに速度10%増加</li>
+            <li>敵1体につきフレームあたり1%の発射確率</li>
           </ul>
-          <p>Progressive difficulty scaling for long-term engagement.</p>
+          <p>長時間のエンゲージメントのための段階的な難易度スケーリング。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Visual Effects</h3>
-          <p>Cyberpunk neon aesthetic with particle systems:</p>
+          <h3>ビジュアルエフェクト</h3>
+          <p>パーティクルシステムを備えたサイバーパンクネオン美学:</p>
           <ul>
-            <li>Explosion particles on enemy destruction</li>
-            <li>Power-up glow effects</li>
-            <li>Neon color palette (cyan/magenta/yellow)</li>
-            <li>Smooth animations at 60 FPS</li>
+            <li>敵破壊時の爆発パーティクル</li>
+            <li>パワーアップのグローエフェクト</li>
+            <li>ネオンカラーパレット (シアン/マゼンタ/イエロー)</li>
+            <li>60 FPSでのスムーズなアニメーション</li>
           </ul>
-          <p>Up to 100 particles on high-end devices.</p>
+          <p>ハイエンドデバイスで最大100パーティクル。</p>
         </div>
       </div>
     </section>
 
     <!-- Technical Architecture -->
     <section id="technical">
-      <h2>Technical Architecture</h2>
+      <h2>技術アーキテクチャ</h2>
 
-      <h3>14-Module System</h3>
+      <h3>14モジュールシステム</h3>
       <p>
-        The game is built on a clean, modular architecture with clear separation of concerns:
+        このゲームは、明確な責務分離を持つクリーンでモジュラーなアーキテクチャ上に構築されています:
       </p>
 
-      <h4>Core Modules (4)</h4>
+      <h4>コアモジュール (4)</h4>
       <ul>
-        <li><strong>Game.js:</strong> Main game loop, state machine (MENU → PLAYING → PAUSED → GAME_OVER)</li>
-        <li><strong>Canvas.js:</strong> Rendering engine with responsive scaling</li>
-        <li><strong>InputHandler.js:</strong> Unified keyboard and touch input</li>
-        <li><strong>PerformanceMonitor.js:</strong> FPS tracking and adaptive quality</li>
+        <li><strong>Game.js:</strong> メインゲームループ、ステートマシン (MENU → PLAYING → PAUSED → GAME_OVER)</li>
+        <li><strong>Canvas.js:</strong> レスポンシブスケーリング対応のレンダリングエンジン</li>
+        <li><strong>InputHandler.js:</strong> キーボードとタッチの統合入力</li>
+        <li><strong>PerformanceMonitor.js:</strong> FPSトラッキングと適応品質調整</li>
       </ul>
 
-      <h4>Entity Modules (4)</h4>
+      <h4>エンティティモジュール (4)</h4>
       <ul>
-        <li><strong>Player.js:</strong> Player entity with movement, shooting, and lives</li>
-        <li><strong>Enemy.js:</strong> Enemy entity and grid management (5-step movement algorithm)</li>
-        <li><strong>Bullet.js:</strong> Projectile entity for both player and enemies</li>
-        <li><strong>PowerUp.js:</strong> Power-up drops with 3 types</li>
+        <li><strong>Player.js:</strong> 移動、射撃、ライフを持つプレイヤーエンティティ</li>
+        <li><strong>Enemy.js:</strong> 敵エンティティとグリッド管理 (5ステップ移動アルゴリズム)</li>
+        <li><strong>Bullet.js:</strong> プレイヤーと敵両方の弾エンティティ</li>
+        <li><strong>PowerUp.js:</strong> 3種類のパワーアップドロップ</li>
       </ul>
 
-      <h4>System Modules (4)</h4>
+      <h4>システムモジュール (4)</h4>
       <ul>
-        <li><strong>CollisionSystem.js:</strong> AABB collision detection (<10ms for 5,500 checks)</li>
-        <li><strong>PowerUpSystem.js:</strong> Power-up state, stacking rules, and timers</li>
-        <li><strong>ScoreSystem.js:</strong> Score calculation with combo multipliers</li>
-        <li><strong>ParticleSystem.js:</strong> Explosion effects and visual feedback</li>
+        <li><strong>CollisionSystem.js:</strong> AABB衝突検出 (5,500回のチェックで10ms未満)</li>
+        <li><strong>PowerUpSystem.js:</strong> パワーアップ状態、重ね掛けルール、タイマー</li>
+        <li><strong>ScoreSystem.js:</strong> コンボ倍率付きスコア計算</li>
+        <li><strong>ParticleSystem.js:</strong> 爆発エフェクトと視覚フィードバック</li>
       </ul>
 
-      <h4>UI Modules (3)</h4>
+      <h4>UIモジュール (3)</h4>
       <ul>
-        <li><strong>Menu.js:</strong> Start menu screen</li>
-        <li><strong>HUD.js:</strong> In-game display (score, lives, power-ups, combo)</li>
-        <li><strong>GameOver.js:</strong> End screen with restart option</li>
+        <li><strong>Menu.js:</strong> スタートメニュー画面</li>
+        <li><strong>HUD.js:</strong> ゲーム内表示 (スコア、ライフ、パワーアップ、コンボ)</li>
+        <li><strong>GameOver.js:</strong> リスタートオプション付きエンド画面</li>
       </ul>
 
-      <h4>Utility Modules (2)</h4>
+      <h4>ユーティリティモジュール (2)</h4>
       <ul>
-        <li><strong>Vector2D.js:</strong> 2D vector mathematics</li>
-        <li><strong>Config.js:</strong> Centralized game configuration</li>
+        <li><strong>Vector2D.js:</strong> 2Dベクトル演算</li>
+        <li><strong>Config.js:</strong> 一元化されたゲーム設定</li>
       </ul>
 
-      <h3>Performance Optimizations</h3>
-      <pre><code>// AABB Collision Detection (O(n*m) optimized)
+      <h3>パフォーマンス最適化</h3>
+      <pre><code>// AABB衝突検出 (O(n*m) 最適化済み)
 CollisionSystem.checkCollision(rect1, rect2) {
   return !(
     rect1.right < rect2.left ||
@@ -606,15 +606,15 @@ CollisionSystem.checkCollision(rect1, rect2) {
   );
 }
 
-// Adaptive Quality System
+// 適応品質システム
 if (avgFPS < 40) {
-  particleSystem.maxParticles = 50;  // Reduce quality
+  particleSystem.maxParticles = 50;  // 品質を下げる
 } else {
-  particleSystem.maxParticles = 100; // High quality
+  particleSystem.maxParticles = 100; // 高品質
 }</code></pre>
 
-      <h3>Canvas Scaling Algorithm</h3>
-      <pre><code>// Maintain 4:3 aspect ratio while fitting viewport
+      <h3>Canvasスケーリングアルゴリズム</h3>
+      <pre><code>// ビューポートに収まるよう4:3アスペクト比を維持
 const LOGICAL_WIDTH = 800;
 const LOGICAL_HEIGHT = 600;
 
@@ -627,10 +627,10 @@ function resizeCanvas() {
   canvas.style.height = `${LOGICAL_HEIGHT * scale}px`;
 }</code></pre>
 
-      <h3>Browser Compatibility</h3>
-      <p>Works on all modern browsers with HTML5 Canvas support:</p>
+      <h3>ブラウザ互換性</h3>
+      <p>HTML5 Canvasをサポートするすべての最新ブラウザで動作:</p>
       <ul>
-        <li>Chrome 90+ (recommended)</li>
+        <li>Chrome 90+ (推奨)</li>
         <li>Firefox 88+</li>
         <li>Safari 14+</li>
         <li>Edge 90+</li>
@@ -639,153 +639,153 @@ function resizeCanvas() {
 
     <!-- Development Process -->
     <section id="development">
-      <h2>Development Process</h2>
+      <h2>開発プロセス</h2>
 
-      <h3>AI-Assisted Workflow</h3>
+      <h3>AI支援ワークフロー</h3>
       <p>
-        This project was developed using an advanced AI-assisted workflow with multiple
-        specialized sub-agents handling different aspects of development:
+        このプロジェクトは、開発の異なる側面を処理する複数の専門サブエージェントを使用した
+        高度なAI支援ワークフローで開発されました:
       </p>
 
       <ol>
-        <li><strong>Requirements Analysis:</strong> Comprehensive requirements document with functional and non-functional specs</li>
-        <li><strong>Work Breakdown Structure:</strong> 30 tasks organized into 9 parallel execution groups</li>
-        <li><strong>Test Design:</strong> 615 tests designed before implementation (TDD approach)</li>
-        <li><strong>Parallel Implementation:</strong> Core, entities, systems, and UI modules built simultaneously</li>
-        <li><strong>Quality Assurance:</strong> 3 improvement loops for performance and code quality</li>
-        <li><strong>Documentation:</strong> Comprehensive docs (README, API, GAMEPLAY)</li>
+        <li><strong>要件分析:</strong> 機能要件と非機能要件を含む包括的な要件ドキュメント</li>
+        <li><strong>作業分解構造:</strong> 9つの並列実行グループに整理された30タスク</li>
+        <li><strong>テスト設計:</strong> 実装前に設計された615テスト (TDDアプローチ)</li>
+        <li><strong>並列実装:</strong> コア、エンティティ、システム、UIモジュールを同時構築</li>
+        <li><strong>品質保証:</strong> パフォーマンスとコード品質のための3回の改善ループ</li>
+        <li><strong>ドキュメント:</strong> 包括的なドキュメント (README, API, GAMEPLAY)</li>
       </ol>
 
-      <h3>Test-Driven Development</h3>
+      <h3>テスト駆動開発</h3>
       <p>
-        The entire codebase was built using TDD principles, achieving exceptional test coverage:
+        コードベース全体がTDD原則を使用して構築され、優れたテストカバレッジを達成:
       </p>
 
       <div class="stats">
         <div class="stat">
           <span class="stat-value">90</span>
-          <span class="stat-label">Core Tests</span>
+          <span class="stat-label">コアテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">120</span>
-          <span class="stat-label">Entity Tests</span>
+          <span class="stat-label">エンティティテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">190</span>
-          <span class="stat-label">System Tests</span>
+          <span class="stat-label">システムテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">165</span>
-          <span class="stat-label">UI Tests</span>
+          <span class="stat-label">UIテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">40</span>
-          <span class="stat-label">Utility Tests</span>
+          <span class="stat-label">ユーティリティテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">80</span>
-          <span class="stat-label">Integration & E2E</span>
+          <span class="stat-label">統合 & E2E</span>
         </div>
       </div>
 
-      <h3>Quality Metrics</h3>
+      <h3>品質メトリクス</h3>
       <ul>
-        <li><strong>Statement Coverage:</strong> 88% (target: 80%)</li>
-        <li><strong>Branch Coverage:</strong> 82% (target: 75%)</li>
-        <li><strong>Function Coverage:</strong> 90% (target: 85%)</li>
-        <li><strong>Line Coverage:</strong> 87% (target: 80%)</li>
+        <li><strong>ステートメントカバレッジ:</strong> 88% (目標: 80%)</li>
+        <li><strong>ブランチカバレッジ:</strong> 82% (目標: 75%)</li>
+        <li><strong>関数カバレッジ:</strong> 90% (目標: 85%)</li>
+        <li><strong>行カバレッジ:</strong> 87% (目標: 80%)</li>
       </ul>
 
-      <h3>Project Timeline</h3>
+      <h3>プロジェクトタイムライン</h3>
       <p>
-        Development completed in 2.5 days through optimized parallel execution:
+        最適化された並列実行により2.5日で開発完了:
       </p>
       <ul>
-        <li><strong>Day 1:</strong> Core engine, entity classes, test infrastructure</li>
-        <li><strong>Day 2:</strong> Game systems, UI components, integration</li>
-        <li><strong>Day 2.5:</strong> Testing, optimization, documentation</li>
+        <li><strong>1日目:</strong> コアエンジン、エンティティクラス、テストインフラ</li>
+        <li><strong>2日目:</strong> ゲームシステム、UIコンポーネント、統合</li>
+        <li><strong>2.5日目:</strong> テスト、最適化、ドキュメント</li>
       </ul>
 
-      <h3>Tech Stack</h3>
+      <h3>技術スタック</h3>
       <ul>
-        <li><strong>Language:</strong> ES6+ JavaScript (classes, modules, arrow functions)</li>
-        <li><strong>Rendering:</strong> HTML5 Canvas 2D API</li>
-        <li><strong>Testing:</strong> Jest with jsdom environment</li>
-        <li><strong>Build:</strong> No build step - vanilla JS for simplicity</li>
-        <li><strong>Server:</strong> Simple HTTP server (Python or Node.js)</li>
+        <li><strong>言語:</strong> ES6+ JavaScript (クラス、モジュール、アロー関数)</li>
+        <li><strong>レンダリング:</strong> HTML5 Canvas 2D API</li>
+        <li><strong>テスト:</strong> jsdom環境のJest</li>
+        <li><strong>ビルド:</strong> シンプルさのためバニラJS (ビルドステップなし)</li>
+        <li><strong>サーバー:</strong> シンプルHTTPサーバー (PythonまたはNode.js)</li>
       </ul>
     </section>
 
     <!-- Getting Started -->
     <section>
-      <h2>Getting Started</h2>
+      <h2>はじめに</h2>
 
-      <h3>Installation</h3>
-      <pre><code># Clone the repository
+      <h3>インストール</h3>
+      <pre><code># リポジトリをクローン
 git clone &lt;repository-url&gt;
 cd space-shooter-game
 
-# Install dependencies
+# 依存関係をインストール
 npm install
 
-# Start the development server
+# 開発サーバーを起動
 npm start
 
-# Run tests
+# テストを実行
 npm test
 
-# Run tests with coverage
+# カバレッジ付きでテストを実行
 npm test -- --coverage</code></pre>
 
-      <h3>Play Online</h3>
+      <h3>オンラインでプレイ</h3>
       <p>
-        <a href="src/index.html" class="btn">Launch Game</a>
+        <a href="src/index.html" class="btn">ゲームを起動</a>
       </p>
 
-      <h3>Documentation</h3>
+      <h3>ドキュメント</h3>
       <ul>
-        <li><a href="README.md">README.md</a> - Project overview and setup</li>
-        <li><a href="API.md">API.md</a> - Complete API reference for all 14 modules</li>
-        <li><a href="GAMEPLAY.md">GAMEPLAY.md</a> - Detailed gameplay guide and strategies</li>
-        <li><a href="TEST_COVERAGE_REPORT.md">TEST_COVERAGE_REPORT.md</a> - Test coverage analysis</li>
+        <li><a href="README.md">README.md</a> - プロジェクト概要とセットアップ</li>
+        <li><a href="API.md">API.md</a> - 全14モジュールの完全なAPIリファレンス</li>
+        <li><a href="GAMEPLAY.md">GAMEPLAY.md</a> - 詳細なゲームプレイガイドと戦略</li>
+        <li><a href="TEST_COVERAGE_REPORT.md">TEST_COVERAGE_REPORT.md</a> - テストカバレッジ分析</li>
       </ul>
     </section>
 
     <!-- Future Enhancements -->
     <section>
-      <h2>Future Enhancements</h2>
+      <h2>今後の機能拡張</h2>
 
-      <h3>Planned Features (Priority 3)</h3>
+      <h3>計画中の機能 (優先度3)</h3>
       <ul>
-        <li>Boss enemies with unique attack patterns</li>
-        <li>Local high score persistence (localStorage)</li>
-        <li>Multiple difficulty levels (Easy/Normal/Hard)</li>
-        <li>Sound effects and background music (Web Audio API)</li>
-        <li>Additional weapon types</li>
-        <li>Achievement system</li>
-        <li>Character selection</li>
-        <li>Online leaderboards</li>
+        <li>独自の攻撃パターンを持つボス敵</li>
+        <li>ローカルハイスコア保存 (localStorage)</li>
+        <li>複数の難易度レベル (イージー/ノーマル/ハード)</li>
+        <li>効果音とBGM (Web Audio API)</li>
+        <li>追加の武器タイプ</li>
+        <li>実績システム</li>
+        <li>キャラクター選択</li>
+        <li>オンラインリーダーボード</li>
       </ul>
 
-      <h3>Contributing</h3>
+      <h3>コントリビューション</h3>
       <p>
-        Contributions are welcome! Please follow these guidelines:
+        コントリビューションを歓迎します! 以下のガイドラインに従ってください:
       </p>
       <ol>
-        <li>Fork the repository</li>
-        <li>Create a feature branch</li>
-        <li>Write tests for your changes (maintain 80%+ coverage)</li>
-        <li>Ensure all tests pass</li>
-        <li>Submit a pull request</li>
+        <li>リポジトリをフォーク</li>
+        <li>機能ブランチを作成</li>
+        <li>変更に対するテストを作成 (80%以上のカバレッジを維持)</li>
+        <li>すべてのテストがパスすることを確認</li>
+        <li>プルリクエストを送信</li>
       </ol>
     </section>
 
     <!-- Footer -->
     <footer>
-      <p>Built with Claude Code | Test Coverage: 92.24% | Version 1.0.0</p>
-      <p>Licensed under MIT | 2025</p>
+      <p>Claude Codeで構築 | テストカバレッジ: 92.24% | Version 1.0.0</p>
+      <p>MITライセンス | 2025</p>
       <p>
-        <a href="src/index.html" class="btn btn-secondary">Play Now</a>
+        <a href="src/index.html" class="btn btn-secondary">今すぐプレイ</a>
       </p>
     </footer>
   </div>

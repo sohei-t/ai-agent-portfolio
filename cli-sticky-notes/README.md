@@ -1,119 +1,119 @@
 # CLI Sticky Notes
 
-Terminal-friendly sticky notes app with global hotkeys for managing multiple terminal sessions.
+ターミナルユーザー向けの付箋アプリ。グローバルホットキーで複数のターミナルセッションを管理できます。
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 ![Electron](https://img.shields.io/badge/electron-28.x-47848f)
 
-## Features
+## 機能
 
-- **Global Hotkeys**: Create notes instantly without switching focus (`Cmd+Shift+N`)
-- **Quick Clipboard Notes**: Paste clipboard content as a new note (`Cmd+Shift+V`)
-- **Color Coding**: 6 color themes to categorize your notes
-- **Tags**: Add custom tags to organize notes
-- **Always on Top**: Pin important notes to stay visible
-- **Position Memory**: Notes remember their position and size
-- **System Tray**: Access notes from the menu bar
+- **グローバルホットキー**: フォーカスを切り替えずに付箋を作成 (`Cmd+Shift+N`)
+- **クイックペースト**: クリップボードの内容を新しい付箋に貼り付け (`Cmd+Shift+V`)
+- **カラーコーディング**: 6色のテーマでメモを分類
+- **タグ**: カスタムタグで整理
+- **常に最前面**: 重要な付箋を常に表示
+- **位置記憶**: 付箋の位置とサイズを保持
+- **システムトレイ**: メニューバーからアクセス
 
-## Installation
+## インストール
 
-### From Source
+### ソースから
 
 ```bash
-# Clone or download this repository
+# リポジトリをクローンまたはダウンロード
 cd cli-sticky-notes-agent
 
-# Install dependencies
+# 依存関係をインストール
 npm install
 
-# Run the app
+# アプリを起動
 npm start
 ```
 
-### Build Distributable
+### 配布用ビルド
 
 ```bash
-# Build for your platform
+# 現在のプラットフォーム向けにビルド
 npm run build
 
-# Build for macOS only
+# macOS向けのみビルド
 npm run build:mac
 ```
 
-## Usage
+## 使い方
 
-### Keyboard Shortcuts
+### キーボードショートカット
 
-| Shortcut | Action |
+| ショートカット | 動作 |
 |----------|--------|
-| `Cmd+Shift+N` | Create new note |
-| `Cmd+Shift+V` | Create note from clipboard |
-| `Cmd+Shift+H` | Toggle all notes visibility |
-| `Escape` | Hide current note |
-| `Cmd+S` | Save current note |
+| `Cmd+Shift+N` | 新規付箋を作成 |
+| `Cmd+Shift+V` | クリップボードから付箋を作成 |
+| `Cmd+Shift+H` | 全付箋の表示/非表示を切り替え |
+| `Escape` | 現在の付箋を隠す |
+| `Cmd+S` | 現在の付箋を保存 |
 
-### Color Themes
+### カラーテーマ
 
-| Color | Suggested Use |
+| カラー | 推奨用途 |
 |-------|--------------|
-| Yellow | General notes |
-| Green | Done / Success |
-| Blue | Info / Reference |
-| Pink | Important |
-| Purple | Ideas |
-| Orange | Warning |
+| イエロー | 一般的なメモ |
+| グリーン | 完了 / 成功 |
+| ブルー | 情報 / 参照 |
+| ピンク | 重要 |
+| パープル | アイデア |
+| オレンジ | 警告 |
 
 ### Tips
 
-- **Double-click close button** to delete a note with content (safety feature)
-- **Right-click tray icon** to access all controls
-- **Drag titlebar** to move notes
-- **Drag corner** to resize notes
+- **閉じるボタンをダブルクリック**: 内容がある付箋を削除（安全機能）
+- **トレイアイコンを右クリック**: 全コントロールにアクセス
+- **タイトルバーをドラッグ**: 付箋を移動
+- **角をドラッグ**: 付箋をリサイズ
 
-## Technical Stack
+## 技術スタック
 
-- **Electron** - Cross-platform desktop framework
-- **electron-store** - Persistent local storage
-- **No external APIs** - Works completely offline
+- **Electron** - クロスプラットフォームデスクトップフレームワーク
+- **electron-store** - 永続的なローカルストレージ
+- **外部API不要** - 完全オフラインで動作
 
-## Project Structure
+## プロジェクト構造
 
 ```
 cli-sticky-notes/
-├── main/               # Main process (Node.js)
-│   ├── index.js        # App entry point
-│   ├── windowManager.js # Multi-window handling
+├── main/               # メインプロセス (Node.js)
+│   ├── index.js        # アプリのエントリーポイント
+│   ├── windowManager.js # マルチウィンドウ管理
 │   ├── globalShortcuts.js
 │   ├── trayManager.js
-│   └── store.js        # Data persistence
-├── renderer/           # Renderer process (Chromium)
+│   └── store.js        # データ永続化
+├── renderer/           # レンダラープロセス (Chromium)
 │   ├── index.html
 │   ├── preload.js
 │   ├── styles/
 │   └── scripts/
-├── shared/             # Shared configuration
-├── tests/              # Jest tests
-└── assets/             # Icons and resources
+├── shared/             # 共有設定
+├── tests/              # Jestテスト
+└── assets/             # アイコンとリソース
 ```
 
-## Development
+## 開発
 
 ```bash
-# Run in development mode
+# 開発モードで起動
 npm run dev
 
-# Run tests
+# テストを実行
 npm test
 
-# Run tests with coverage
+# カバレッジ付きでテストを実行
 npm test -- --coverage
 ```
 
-## License
+## ライセンス
 
-MIT License - See [LICENSE](LICENSE) for details.
+MIT License - 詳細は [LICENSE](LICENSE) を参照してください。
 
 ---
 
-Made with Electron and love for terminal productivity.
+Electronとターミナル生産性への愛を込めて作りました。

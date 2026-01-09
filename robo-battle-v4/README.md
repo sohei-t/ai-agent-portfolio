@@ -4,149 +4,160 @@
 
 ## Play Now
 
-**[Live Demo](https://robo-battle-v3-game.web.app/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/about.html)** | **[Audio Guide](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/explanation.mp3)**
+**[ライブデモ](https://robo-battle-v3-game.web.app/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/about.html)** | **[音声解説](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/explanation.mp3)**
 
-## V4 New Features
+## V4の新機能
 
-### V4.4: Beast Summon System
-- **Beast Summon Item**: Summons an AI-controlled beast that attacks your opponent
-- **Beast AI**: Maintains optimal distance, breathes fire, and auto-targets
-- **Beast Sprites**: Blue/Red variants with 5 animations (idle, walk, jump, flame, down)
-- **Balance**: HP 45 (3 normal shots), Flame damage 15, 1 beast per player
+### V4.4: 魔獣召喚システム
+- **魔獣召喚アイテム**: AI制御の魔獣を召喚し、対戦相手を攻撃
+- **魔獣AI**: 最適距離を維持し、火炎を吐いて自動追尾
+- **魔獣スプライト**: 青/赤バリアント、5種類のアニメーション（待機、歩行、ジャンプ、火炎、ダウン）
+- **バランス**: HP 45（通常弾3発で撃破）、火炎ダメージ15、プレイヤー1人につき1体
 
-### V4.4: Enhanced CPU AI
-- **Active Item Pursuit**: CPU actively chases nearby items (400px range)
-- **Immediate Weapon Use**: Fires equipped weapon immediately after pickup
-- **Beast Targeting**: Prioritizes attacking enemy beasts when threatened
+### V4.4: 強化CPU AI
+- **積極的アイテム追跡**: CPUが近くのアイテムを積極的に追跡（400px範囲）
+- **即座の武器使用**: 取得後すぐに装備武器を発射
+- **魔獣優先攻撃**: 脅威がある場合、敵の魔獣を優先的に攻撃
 
-### V4.3: Knockdown System & New Weapons
-- **Knockdown Mechanic**: Heavy attacks cause knockdown state with recovery animation
-- **Green Dragon**: Powerful dragon flame attack
-- **Meteor Strike**: Devastating meteor shower from above
+### V4.3: ノックダウンシステム＆新武器
+- **ノックダウン機構**: 強力な攻撃でダウン状態に、起き上がりアニメーション付き
+- **グリーンドラゴン**: 強力なドラゴンの火炎攻撃
+- **メテオストライク**: 上空からの壊滅的な流星群
 
-### V4.2: Guard System
-- **Shield/Guard**: Block incoming attacks (replaces crouch)
-- **Guard Break**: Heavy attacks break through guards
+### V4.2: ガードシステム
+- **シールド/ガード**: 攻撃をブロック（しゃがみを置き換え）
+- **ガードブレイク**: 強攻撃でガードを崩す
 
-## Game Overview
+## ゲーム概要
 
-Red robot (Player) vs Blue robot (CPU/Opponent) in 1v1 action combat.
-Master beam rifles, jumps, kicks, and special weapons to defeat your enemy!
+赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。
+ビームライフル、ジャンプ、キック、そして魔獣召喚を駆使して敵を倒せ！
 
-### Game Modes
+### ゲームモード
 
-- **VS CPU**: Battle against computer AI (Easy/Normal/Hard)
-- **ONLINE BATTLE**: Real-time P2P battles via WebRTC
+- **VS CPU**: コンピューターとの対戦（難易度: EASY / NORMAL / HARD）
+- **ONLINE BATTLE**: WebRTC P2Pによるリアルタイム対戦
 
-### Controls
+## オンライン対戦
 
-**PC (Keyboard)**
-- Arrow Left/Right: Move
-- Arrow Up / Space: Jump
-- Z: Beam (hold to charge)
-- X: Kick
-- C: Guard/Shield
+V3で実装されたオンライン対戦機能。WebRTC P2Pによるリアルタイム対戦が可能。
 
-**Mobile**
-- Left side upper: Guard
-- Left side lower: Jump
-- Right side: Beam
-- Virtual joystick / Tilt sensor: Move
+### ホスト（部屋を作る）
+1. ONLINE BATTLE を選択
+2. CREATE ROOM をクリック
+3. 表示される6桁のルームコードを相手に伝える
+4. 相手が参加したら START BATTLE
 
-## Weapon Items
+### クライアント（部屋に参加）
+1. ONLINE BATTLE を選択
+2. JOIN ROOM をクリック
+3. ホストから教えてもらったルームコードを入力
+4. ホストがバトルを開始するのを待つ
 
-| Weapon | Description | Power |
-|--------|-------------|-------|
-| Bazooka | Explosive projectile | High |
-| Machinegun | Rapid fire bullets | Medium |
-| Spread Shot | Wide-angle attack | Medium |
-| Sword | Close-range slash | High |
-| Homing Missile | Auto-targeting (1 shot) | Very High |
-| Clone | Creates decoy | Special |
-| Tiger | Rushing attack | High |
-| Aerial | Air-to-ground assault | High |
-| Green Dragon | Dragon flame breath | Very High |
-| Meteor Strike | Meteor shower | Very High |
-| Beast Summon | AI beast companion | Special |
+### オンライン設定同期
+ホスト側で設定した以下の項目がクライアントに自動反映されます：
+- ステージ（背景）
+- 難易度
+- アイテムモード ON/OFF
 
-## Online Battle
+## 操作方法
 
-### Host (Create Room)
-1. Select ONLINE BATTLE
-2. Click CREATE ROOM
-3. Share the 6-digit room code
-4. Press START BATTLE when opponent joins
+### PC（キーボード）
+- 矢印キー左右: 移動
+- 上矢印 / スペース: ジャンプ
+- Z: ビーム発射（長押しでチャージ）
+- X: キック
+- C: ガード/シールド
 
-### Client (Join Room)
-1. Select ONLINE BATTLE
-2. Click JOIN ROOM
-3. Enter the room code
-4. Wait for host to start
+### モバイル（タッチ / ジャイロ）
+- 画面左上: ガード
+- 画面左下: ジャンプ
+- 画面右側: ビーム発射
+- 傾きセンサー / バーチャルジョイスティック: 移動
 
-## Customization System
+### ジャイロ機能（傾きセンサー）
+V1から実装されているスマートフォン向け機能。端末を左右に傾けることで直感的にロボットを移動操作できます。バーチャルジョイスティックとの切り替えも可能。
 
-Allocate 20 points across JUMP, WALK, BEAM, KICK:
-- **JUMP**: Jump height
-- **WALK**: Movement speed
-- **BEAM**: Beam attack power
-- **KICK**: Kick attack power
+## 武器アイテム
 
-## Stages
+| 武器 | 説明 | 威力 |
+|-----|------|-----|
+| Bazooka | 爆発する弾丸 | 高 |
+| Machinegun | 高速連射 | 中 |
+| Spread Shot | 広角攻撃 | 中 |
+| Sword | 近距離斬撃 | 高 |
+| Homing Missile | 自動追尾（1発） | 非常に高 |
+| Clone | 分身生成 | 特殊 |
+| Tiger | 突進攻撃 | 高 |
+| Aerial | 空中からの強襲 | 高 |
+| Green Dragon | ドラゴン火炎 | 非常に高 |
+| Meteor Strike | 流星群 | 非常に高 |
+| Beast Summon | AI魔獣コンパニオン | 特殊 |
 
-| Stage | Theme |
-|-------|-------|
-| NEO CITY | Cyberpunk cityscape |
-| PYRAMID | Ancient Egyptian ruins |
-| PARTHENON | Greek temple |
-| FACTORY | Giant robot factory |
-| CAVE | Crystal cavern |
-| FINAL ARENA | Space championship arena |
+## カスタマイズシステム
 
-## Tech Stack
+JUMP, WALK, BEAM, KICKに合計20ポイントを振り分け：
+- **JUMP**: ジャンプ力（高いほど高くジャンプ）
+- **WALK**: 移動速度（高いほど素早く移動）
+- **BEAM**: ビーム攻撃力（高いほど高ダメージ）
+- **KICK**: キック攻撃力（高いほど高ダメージ）
+
+## ステージ
+
+| ステージ | 背景テーマ |
+|---------|-----------|
+| NEO CITY | サイバーパンク都市 |
+| PYRAMID | 古代エジプト遺跡 |
+| PARTHENON | ギリシャ神殿 |
+| FACTORY | 巨大ロボット工場 |
+| CAVE | クリスタル洞窟 |
+| FINAL ARENA | 宇宙チャンピオンシップアリーナ |
+
+## 技術スタック
 
 - **Frontend**: Vanilla JavaScript (ES6+)
 - **Graphics**: HTML5 Canvas (60FPS)
-- **Online**: WebRTC (P2P), Firebase Realtime Database
+- **Online**: WebRTC (P2P), Firebase Realtime Database（シグナリング）
 - **Hosting**: Firebase Hosting
 - **AI Image Generation**: Vertex AI Imagen 3.0
-- **Sprites**: Photorealistic 3D-style PNG
-- **Beast Sprites**: AI-generated demon beast animations
+- **Sprites**: フォトリアル3Dスタイル PNG
+- **Beast Sprites**: AI生成デーモンビーストアニメーション
 
-## File Structure
+## ファイル構成
 
 ```
 robo-battle-v4/
-├── index.html           # Game entry point
-├── game.js              # Game logic (10000+ lines)
-├── online-mode.js       # Online battle module
-├── firebase-config.js   # Firebase config
+├── index.html           # ゲームエントリーポイント
+├── game.js              # ゲームロジック（10000+ lines）
+├── online-mode.js       # オンライン対戦モジュール
+├── firebase-config.js   # Firebase設定
 ├── assets/
-│   ├── sprites/         # Robot & Beast sprites
-│   │   ├── player_*.png # Player robot (8 poses)
-│   │   ├── enemy_*.png  # Enemy robot (8 poses)
-│   │   ├── beast_blue_*.png # Blue beast (5 animations)
-│   │   └── beast_red_*.png  # Red beast (5 animations)
-│   └── backgrounds/     # AI-generated backgrounds
-├── about.html           # Technical documentation
-└── README.md            # This file
+│   ├── sprites/         # ロボット＆魔獣スプライト
+│   │   ├── player_*.png # プレイヤーロボット（8ポーズ）
+│   │   ├── enemy_*.png  # 敵ロボット（8ポーズ）
+│   │   ├── beast_blue_*.png # 青魔獣（5アニメーション）
+│   │   └── beast_red_*.png  # 赤魔獣（5アニメーション）
+│   └── backgrounds/     # AI生成背景
+├── about.html           # 技術解説ページ
+└── README.md            # このファイル
 ```
 
-## Firebase Setup (For Online Battles)
+## Firebase セットアップ（オンライン対戦を有効にする場合）
 
-To enable online battles, you need to set up your own Firebase project.
+オンライン対戦機能を使用するには、自分のFirebaseプロジェクトをセットアップする必要があります。
 
-### Steps
+### 手順
 
-1. **Create Firebase Project**
-   - Go to https://console.firebase.google.com/
-   - Create a new project
+1. **Firebaseプロジェクト作成**
+   - https://console.firebase.google.com/ にアクセス
+   - 新しいプロジェクトを作成
 
-2. **Enable Realtime Database**
-   - Menu: Build → Realtime Database
-   - Click "Create Database"
-   - Region: `asia-southeast1` recommended
+2. **Realtime Database を有効化**
+   - 左メニュー「Build」→「Realtime Database」
+   - 「Create Database」をクリック
+   - リージョン: `asia-southeast1` 推奨
 
-3. **Set Security Rules**
+3. **セキュリティルール設定**
    ```json
    {
      "rules": {
@@ -160,17 +171,17 @@ To enable online battles, you need to set up your own Firebase project.
    }
    ```
 
-4. **Add Web App**
-   - Project Settings → Add App → Web (</>)
-   - Copy the `firebaseConfig` values
+4. **Webアプリを追加**
+   - プロジェクト設定 → 「アプリを追加」→ Web（</>）
+   - 表示される `firebaseConfig` をコピー
 
-5. **Create Config File**
+5. **設定ファイル作成**
    ```bash
    cp firebase-config.example.js firebase-config.js
    ```
-   - Paste your config values into `firebase-config.js`
+   - コピーした設定値を `firebase-config.js` に貼り付け
 
-6. **(Optional) Deploy to Firebase Hosting**
+6. **（任意）Firebase Hosting にデプロイ**
    ```bash
    npm install -g firebase-tools
    firebase login
@@ -178,14 +189,14 @@ To enable online battles, you need to set up your own Firebase project.
    firebase deploy
    ```
 
-## Version History
+## バージョン履歴
 
-| Version | Features |
-|---------|----------|
-| V1 | Basic battle system, SVG sprites |
-| V2 | AI-generated photorealistic sprites & backgrounds |
-| V3 | Online battles, item mode, settings sync |
-| V4 | Beast summon, guard system, knockdown, enhanced AI |
+| バージョン | 主な機能 |
+|-----------|---------|
+| V1 | 基本対戦システム、SVGスプライト、ジャイロ操作 |
+| V2 | AI生成フォトリアルスプライト＆背景 |
+| V3 | オンライン対戦（WebRTC P2P）、アイテムモード、設定同期 |
+| V4 | 魔獣召喚、ガードシステム、ノックダウン、強化AI |
 
 ---
 

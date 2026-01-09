@@ -1,148 +1,148 @@
 # Bowling Adventure
 
-An innovative 3D obstacle course bowling game built with Three.js and Cannon.js physics. Navigate your bowling ball through challenging terrain and obstacles to knock down pins!
+Three.jsとCannon.js物理エンジンで構築された革新的な3D障害物コースボウリングゲームです。障害物や地形の変化を乗り越えながらボウリングボールを操作し、ピンを倒しましょう！
 
-## Live Demo
+## デモ
 
-[Play Bowling Adventure](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure/)
+[Bowling Adventureをプレイする](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure/)
 
-## Features
+## 特徴
 
-- **3D Physics-Based Gameplay**: Realistic ball and pin physics using Cannon.js
-- **Obstacle Course**: Navigate through rocks, barriers, and terrain changes
-- **Multiple Terrain Types**:
-  - Standard grass lanes
-  - Sand sections (high friction, slows the ball)
-  - Ice sections (low friction, slippery and fast)
-- **Dual Control System**:
-  - Virtual joystick (default) for precise control
-  - Tilt/gyroscope controls for mobile devices (iOS 18 compatible)
-- **Full 10-Frame Bowling**: Complete bowling scoring system with strikes and spares
-- **Responsive Design**: Works on desktop and mobile devices
-- **Beautiful 3D Environment**: Sky, clouds, distant hills, and shadows
+- **3D物理ベースのゲームプレイ**: Cannon.jsによるリアルなボールとピンの物理演算
+- **障害物コース**: 岩、バリア、地形の変化を乗り越えながら進む
+- **複数の地形タイプ**:
+  - 標準の芝生レーン
+  - 砂地セクション（高摩擦でボールが減速）
+  - 氷セクション（低摩擦で滑りやすく高速）
+- **デュアルコントロールシステム**:
+  - バーチャルジョイスティック（デフォルト）による精密操作
+  - モバイルデバイス向けチルト/ジャイロスコープ操作（iOS 18対応）
+- **完全な10フレームボウリング**: ストライクとスペアを含む完全なボウリングスコアリングシステム
+- **レスポンシブデザイン**: デスクトップとモバイルデバイスの両方に対応
+- **美しい3D環境**: 空、雲、遠くの丘、影の表現
 
-## Technology Stack
+## 技術スタック
 
-| Category | Technology |
+| カテゴリ | 技術 |
 |----------|------------|
-| **3D Rendering** | Three.js (v0.160.0) |
-| **Physics Engine** | Cannon-es (v0.20.0) |
-| **Input Handling** | DeviceOrientation API, Touch Events |
-| **Build Tool** | Vite (v5.0.10) |
-| **Testing** | Vitest (v1.1.0) |
-| **Language** | JavaScript (ES Modules) |
+| **3Dレンダリング** | Three.js (v0.160.0) |
+| **物理エンジン** | Cannon-es (v0.20.0) |
+| **入力処理** | DeviceOrientation API, Touch Events |
+| **ビルドツール** | Vite (v5.0.10) |
+| **テスト** | Vitest (v1.1.0) |
+| **言語** | JavaScript (ES Modules) |
 
-## How to Play
+## 遊び方
 
-1. **Start the Game**: Click "Start Game" on the title screen
-2. **Control the Ball**:
-   - **Joystick Mode** (default): Drag the virtual joystick to roll the ball
-   - **Tilt Mode**: Tilt your device to control the ball (tap "Joystick" button to switch)
-3. **Navigate Obstacles**: Avoid rocks and barriers, use terrain to your advantage
-4. **Knock Down Pins**: Roll the ball through the obstacle course to hit the pins
-5. **Score Points**: Standard bowling scoring - strikes (10 pins, 1 throw) and spares (10 pins, 2 throws)
-6. **Complete 10 Frames**: Play through all 10 frames to get your final score
+1. **ゲーム開始**: タイトル画面で「Start Game」をクリック
+2. **ボールを操作**:
+   - **ジョイスティックモード**（デフォルト）: バーチャルジョイスティックをドラッグしてボールを転がす
+   - **チルトモード**: デバイスを傾けてボールを操作（「Joystick」ボタンをタップして切り替え）
+3. **障害物を避ける**: 岩やバリアを避け、地形を有効活用する
+4. **ピンを倒す**: 障害物コースを抜けてピンに当てる
+5. **得点する**: 標準的なボウリングのスコアリング - ストライク（1投で10本）とスペア（2投で10本）
+6. **10フレームを完了**: 全10フレームをプレイして最終スコアを獲得
 
-### Tips
+### ヒント
 
-- Use sand sections to slow down before obstacles
-- Use ice sections for speed boosts
-- The speed gauge shows your current ball velocity
-- Falling off the course counts as a gutter ball (0 points)
+- 障害物の手前で減速するために砂地セクションを活用
+- スピードブーストには氷セクションを利用
+- スピードゲージで現在のボール速度を確認できる
+- コースから落ちるとガターボール扱い（0点）
 
-## Installation
+## インストール
 
-### Prerequisites
+### 必要条件
 
-- Node.js 18.x or higher
-- npm 9.x or higher
+- Node.js 18.x以上
+- npm 9.x以上
 
-### Setup
+### セットアップ
 
 ```bash
-# Clone the repository
+# リポジトリをクローン
 git clone https://github.com/sohei-t/ai-agent-portfolio.git
 cd ai-agent-portfolio/bowling-adventure
 
-# Install dependencies
+# 依存関係をインストール
 npm install
 
-# Start development server
+# 開発サーバーを起動
 npm run dev
 
-# Open browser at http://localhost:5173
+# ブラウザで http://localhost:5173 を開く
 ```
 
-### Build for Production
+### 本番用ビルド
 
 ```bash
-# Build optimized version
+# 最適化バージョンをビルド
 npm run build
 
-# Preview production build
+# 本番ビルドをプレビュー
 npm run preview
 ```
 
-## Running Tests
+## テストの実行
 
 ```bash
-# Run tests once
+# テストを1回実行
 npm test
 
-# Run tests in watch mode
+# ウォッチモードでテストを実行
 npm run test:watch
 
-# Run tests with coverage
+# カバレッジ付きでテストを実行
 npm run test:coverage
 ```
 
-### Test Coverage
+### テストカバレッジ
 
-The project includes comprehensive tests for:
+このプロジェクトには以下の包括的なテストが含まれています：
 
-- `BowlingScore.js` - Scoring logic (strikes, spares, frame completion)
-- `Ball.js` - Ball entity creation and physics
-- `Pins.js` - Pin management and knock-down detection
-- `Course.js` - Course creation and terrain types
-- `Controls.js` - Input handling (joystick and gyroscope)
+- `BowlingScore.js` - スコアリングロジック（ストライク、スペア、フレーム完了）
+- `Ball.js` - ボールエンティティの作成と物理
+- `Pins.js` - ピン管理と倒れ検出
+- `Course.js` - コース作成と地形タイプ
+- `Controls.js` - 入力処理（ジョイスティックとジャイロスコープ）
 
-## Project Structure
+## プロジェクト構成
 
 ```
 bowling-adventure/
-├── index.html          # Main HTML entry point
-├── package.json        # Dependencies and scripts
-├── vite.config.js      # Vite configuration
+├── index.html          # メインHTMLエントリーポイント
+├── package.json        # 依存関係とスクリプト
+├── vite.config.js      # Vite設定
 ├── src/
-│   ├── main.js         # Entry point - creates game instance
-│   ├── BowlingGame.js  # Main game controller
-│   ├── BowlingScore.js # Bowling scoring system
-│   ├── Controls.js     # Joystick and gyroscope input
-│   ├── Course.js       # Obstacle course creation
-│   ├── UI.js           # HUD and screen management
+│   ├── main.js         # エントリーポイント - ゲームインスタンスを作成
+│   ├── BowlingGame.js  # メインゲームコントローラー
+│   ├── BowlingScore.js # ボウリングスコアリングシステム
+│   ├── Controls.js     # ジョイスティックとジャイロスコープ入力
+│   ├── Course.js       # 障害物コース作成
+│   ├── UI.js           # HUDと画面管理
 │   └── entities/
-│       ├── Ball.js     # Bowling ball entity
-│       └── Pins.js     # Pin entities and management
+│       ├── Ball.js     # ボウリングボールエンティティ
+│       └── Pins.js     # ピンエンティティと管理
 └── tests/
-    └── *.test.js       # Unit tests
+    └── *.test.js       # ユニットテスト
 ```
 
-## Architecture
+## アーキテクチャ
 
-### Game Loop
+### ゲームループ
 
 ```
 BowlingGame.animate()
-├── Physics Update (Cannon.js world.step)
-├── Game State Update
-│   ├── Input Processing (Controls.getInput)
-│   ├── Ball Movement (Ball.applyInput)
-│   ├── Camera Follow
-│   └── Pin Detection
-└── Render (Three.js renderer.render)
+├── 物理更新 (Cannon.js world.step)
+├── ゲーム状態更新
+│   ├── 入力処理 (Controls.getInput)
+│   ├── ボール移動 (Ball.applyInput)
+│   ├── カメラ追従
+│   └── ピン検出
+└── レンダリング (Three.js renderer.render)
 ```
 
-### State Machine
+### ステートマシン
 
 ```
 title -> playing -> throwing -> waiting -> result
@@ -150,45 +150,45 @@ title -> playing -> throwing -> waiting -> result
   └──────────── restartGame ─────────────────┘
 ```
 
-## Controls Reference
+## 操作リファレンス
 
-| Control | Desktop | Mobile |
+| 操作 | デスクトップ | モバイル |
 |---------|---------|--------|
-| Move Ball | Drag joystick | Drag joystick or tilt device |
-| Switch Mode | Click toggle button | Tap toggle button |
-| Start Game | Click "Start Game" | Tap "Start Game" |
-| Restart | Click "Play Again" | Tap "Play Again" |
+| ボール移動 | ジョイスティックをドラッグ | ジョイスティックをドラッグまたはデバイスを傾ける |
+| モード切替 | トグルボタンをクリック | トグルボタンをタップ |
+| ゲーム開始 | 「Start Game」をクリック | 「Start Game」をタップ |
+| リスタート | 「Play Again」をクリック | 「Play Again」をタップ |
 
-## Browser Support
+## ブラウザサポート
 
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-- Mobile Safari (iOS 14+)
-- Chrome for Android
+- Chrome 90以上
+- Firefox 88以上
+- Safari 14以上
+- Edge 90以上
+- Mobile Safari (iOS 14以上)
+- Android版Chrome
 
-## Performance
+## パフォーマンス
 
-- Optimized for 60fps gameplay
-- Shadow mapping for realistic lighting
-- Efficient physics with sleep detection
-- Responsive design adapts to screen size
+- 60fpsゲームプレイに最適化
+- リアルな照明のためのシャドウマッピング
+- スリープ検出による効率的な物理演算
+- 画面サイズに適応するレスポンシブデザイン
 
-## Developer Notes
+## 開発者向けメモ
 
-### Adding New Obstacles
+### 新しい障害物の追加
 
 ```javascript
-// In Course.js
+// Course.js内
 this.createRock(new THREE.Vector3(x, 0, z), size);
 this.createBarrier(new THREE.Vector3(x, 0, z), width, height, rotation);
 ```
 
-### Adding New Terrain Types
+### 新しい地形タイプの追加
 
 ```javascript
-// In Course.js
+// Course.js内
 this.createTerrainSection({
   start: 10,
   end: 20,
@@ -199,17 +199,17 @@ this.createTerrainSection({
 });
 ```
 
-## License
+## ライセンス
 
-MIT License - See LICENSE file for details.
+MITライセンス - 詳細はLICENSEファイルを参照してください。
 
-## Credits
+## クレジット
 
-Built with:
-- [Three.js](https://threejs.org/) - 3D graphics library
-- [Cannon-es](https://pmndrs.github.io/cannon-es/) - Physics engine
-- [Vite](https://vitejs.dev/) - Build tool
+使用技術:
+- [Three.js](https://threejs.org/) - 3Dグラフィックスライブラリ
+- [Cannon-es](https://pmndrs.github.io/cannon-es/) - 物理エンジン
+- [Vite](https://vitejs.dev/) - ビルドツール
 
 ---
 
-Generated with [Claude Code](https://github.com/anthropics/claude-code) and AI Agent Workflow
+[Claude Code](https://github.com/anthropics/claude-code)とAI Agent Workflowで生成
