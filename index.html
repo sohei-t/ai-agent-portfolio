@@ -794,6 +794,20 @@
           <div class="stat-label" data-i18n="stat_coverage">テストカバレッジ</div>
         </div>
       </div>
+
+      <!-- Audio Player -->
+      <div class="audio-player-container" style="margin-top: 3rem; opacity: 0; animation: fadeInUp 1s ease 0.9s forwards;">
+        <div class="audio-player" style="background: var(--bg-secondary); border: 1px solid var(--border-dim); padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.5rem;">🔊</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent-cyan);" data-i18n="audio_label">音声解説を聴く</span>
+          </div>
+          <audio controls style="flex: 1; min-width: 250px; height: 40px; filter: invert(1) hue-rotate(180deg);">
+            <source src="./portfolio_explanation.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1275,7 +1289,8 @@
         tech_dev: '開発ツール',
         tech_infra: 'インフラ',
         tech_quality: '品質保証',
-        footer_text: 'AIエージェントによるソフトウェア開発の未来を実証'
+        footer_text: 'AIエージェントによるソフトウェア開発の未来を実証',
+        audio_label: '音声解説を聴く'
       },
       en: {
         nav_workflow: 'Workflow',
@@ -1354,7 +1369,8 @@
         tech_dev: 'Development Tools',
         tech_infra: 'Infrastructure',
         tech_quality: 'Quality Assurance',
-        footer_text: 'Demonstrating the future of AI-driven software development'
+        footer_text: 'Demonstrating the future of AI-driven software development',
+        audio_label: 'Listen to Audio Explanation'
       }
     };
 

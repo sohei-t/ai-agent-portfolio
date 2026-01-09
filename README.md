@@ -8,6 +8,8 @@
 
 [English](#english) | [日本語](#日本語)
 
+**[Live Demo](https://sohei-t.github.io/ai-agent-portfolio/)** | **[音声解説を聴く](https://sohei-t.github.io/ai-agent-portfolio/portfolio_explanation.mp3)**
+
 ---
 
 <a id="日本語"></a>
