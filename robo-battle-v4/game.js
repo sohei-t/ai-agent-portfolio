@@ -6145,19 +6145,19 @@ class Game {
         // Items Mode toggle Y position
         const itemsY = diffY + 50;
 
-        // Items Mode toggle (simple row click)
-        if (y >= itemsY - 15 && y <= itemsY + 25) {  // Items Mode row only
+        // Items Mode toggle (narrower range to avoid conflicts with CONFIG button below)
+        if (y >= itemsY - 15 && y <= itemsY + 12) {  // Reduced bottom boundary
             this.setupSelection = 6;
             this.adjustSetup(1);
             return;
         }
 
-        // V4.2: ITEM CONFIG button - positioned BELOW Items Mode toggle (separated to avoid tap conflicts)
+        // V4.3: ITEM CONFIG button - positioned well BELOW Items Mode toggle with large tap target
         if (this.settings.itemsMode) {
-            const configBtnWidth = 180;
-            const configBtnHeight = 32;
+            const configBtnWidth = 240;   // Wider button
+            const configBtnHeight = 45;   // Taller button for easier tapping
             const configBtnX = GAME_WIDTH / 2 - configBtnWidth / 2;  // Centered
-            const configBtnY = itemsY + 35;  // Below Items Mode toggle with clear separation
+            const configBtnY = itemsY + 50;  // Much further below (was +35)
 
             if (x >= configBtnX && x <= configBtnX + configBtnWidth &&
                 y >= configBtnY && y <= configBtnY + configBtnHeight) {
@@ -9007,43 +9007,44 @@ class Game {
             ctx.fillText('ワープゾーン・デスゾーン・回復アイテム・特殊武器が出現！', GAME_WIDTH / 2, itemsY + 22);
         }
 
-        // V4.2: ITEM CONFIG button - positioned BELOW Items Mode toggle (separated to avoid tap conflicts)
+        // V4.3: ITEM CONFIG button - positioned well BELOW Items Mode toggle with large tap target
         // Calculate button selections based on Items Mode
         const itemConfigSelection = 7;  // Only used when Items Mode is ON
         const startButtonSelection = this.settings.itemsMode ? 8 : 7;
         const backButtonSelection = this.settings.itemsMode ? 9 : 8;
 
         if (this.settings.itemsMode) {
-            // V4.2: Show ITEM CONFIG as a separate centered button below Items Mode
+            // V4.3: Show ITEM CONFIG as a large, clearly separated button
             const isConfigSelected = this.setupSelection === itemConfigSelection;
 
-            // Draw centered button below Items Mode row (with enough spacing to avoid tap conflicts)
-            const configBtnWidth = 180;
-            const configBtnHeight = 32;
+            // Draw large centered button well below Items Mode row
+            const configBtnWidth = 240;   // Wider button
+            const configBtnHeight = 45;   // Taller button for easier tapping
             const configBtnX = GAME_WIDTH / 2 - configBtnWidth / 2;  // Centered
-            const configBtnY = itemsY + 35;  // Below Items Mode toggle with clear separation
+            const configBtnY = itemsY + 50;  // Much further below
 
-            ctx.fillStyle = isConfigSelected ? '#6600ff' : '#440088';
+            // Button background with gradient effect
+            ctx.fillStyle = isConfigSelected ? '#7700ff' : '#550099';
             ctx.fillRect(configBtnX, configBtnY, configBtnWidth, configBtnHeight);
-            ctx.strokeStyle = isConfigSelected ? '#ff00ff' : '#9900ff';
-            ctx.lineWidth = isConfigSelected ? 2 : 1;
+            ctx.strokeStyle = isConfigSelected ? '#ff00ff' : '#aa66ff';
+            ctx.lineWidth = isConfigSelected ? 3 : 2;
             ctx.strokeRect(configBtnX, configBtnY, configBtnWidth, configBtnHeight);
 
-            ctx.font = isConfigSelected ? 'bold 14px Courier New' : '13px Courier New';
-            ctx.fillStyle = isConfigSelected ? '#ffffff' : '#ccaaff';
+            ctx.font = isConfigSelected ? 'bold 16px Courier New' : '15px Courier New';
+            ctx.fillStyle = isConfigSelected ? '#ffffff' : '#ddccff';
             ctx.textAlign = 'center';
 
             // Count enabled items
             const enabledCount = Object.values(this.settings.enabledItems).filter(v => v).length;
             const totalCount = Object.keys(this.settings.enabledItems).length;
-            ctx.fillText(`⚙ ITEM CONFIG (${enabledCount}/${totalCount})`, configBtnX + configBtnWidth / 2, configBtnY + 21);
+            ctx.fillText(`⚙ ITEM CONFIG (${enabledCount}/${totalCount})`, configBtnX + configBtnWidth / 2, configBtnY + 29);
 
-            // V4.2: Show hint for online mode guests
+            // V4.3: Show hint for online mode guests
             if (this.isOnlineMode && !this.isHost) {
                 ctx.font = '10px Courier New';
                 ctx.fillStyle = '#888800';
                 ctx.textAlign = 'center';
-                ctx.fillText('※ ホストの設定が使用されます', GAME_WIDTH / 2, configBtnY + configBtnHeight + 15);
+                ctx.fillText('※ ホストの設定が使用されます', GAME_WIDTH / 2, configBtnY + configBtnHeight + 12);
             }
         }
 
