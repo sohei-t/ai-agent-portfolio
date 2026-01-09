@@ -1,148 +1,152 @@
-# 🚀 Space Odyssey - Boss Shooting Game
+# Space Odyssey - ボスシューティングゲーム
 
-A retro-style vertical scrolling shooter game with boss battles, mobile controls, and progressive difficulty.
+## Play Now
 
-## ✨ Features
+**[ライブデモ](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/about.html)** | **[音声解説](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/explanation.mp3)**
 
-- **10 Stages**: Progressive difficulty with unique enemy patterns
-- **Epic Boss Battles**: Face powerful bosses at the end of each stage
-- **Mobile-Optimized**: Virtual joystick and gyroscope controls
-- **Power-Up System**: Weapon upgrades, shields, bombs, and extra lives
-- **Responsive Design**: Playable on desktop and mobile devices
-- **Multiple Difficulties**: Easy, Normal, Hard, and Expert modes
-- **High Score System**: Track your best performances
-- **Web Audio API**: Dynamic sound effects (when available)
-- **Smooth Performance**: 60 FPS gameplay with optimized rendering
+レトロスタイルの縦スクロールシューティングゲームです。ボス戦、モバイル操作、段階的な難易度上昇が特徴です。
 
-## 🎮 How to Play
+## 特徴
 
-### Desktop Controls
-- **Arrow Keys / WASD**: Move your ship
-- **Mouse**: Move cursor to control ship position
-- **Space / Z**: Fire bullets
-- **X**: Use bomb (limited)
-- **P**: Pause game
+- **全10ステージ**: 段階的に難易度が上昇し、各ステージ固有の敵パターンを搭載
+- **迫力のボス戦**: 各ステージ最後に強力なボスが登場
+- **モバイル最適化**: バーチャルジョイスティックとジャイロスコープ操作に対応
+- **パワーアップシステム**: 武器強化、シールド、ボム、残機増加
+- **レスポンシブデザイン**: デスクトップとモバイル端末の両方でプレイ可能
+- **複数の難易度**: イージー、ノーマル、ハード、エキスパートモード
+- **ハイスコアシステム**: ベストスコアを記録
+- **Web Audio API**: 動的なサウンドエフェクト（対応環境のみ）
+- **滑らかな動作**: 最適化されたレンダリングで60FPSを実現
 
-### Mobile Controls
-- **Virtual Joystick**: Drag to move your ship
-- **Auto-Fire**: Ship fires automatically
-- **Control Mode Toggle**: Switch between joystick and tilt controls
-- **Gyroscope** (optional): Tilt device to move (requires permission)
+## 操作方法
 
-## 🚀 Quick Start
+### デスクトップ操作
+- **矢印キー / WASD**: 自機の移動
+- **マウス**: カーソル位置で自機を操作
+- **スペース / Z**: 弾を発射
+- **X**: ボムを使用（回数制限あり）
+- **P**: ポーズ
 
-1. **Open the game**: Double-click `index.html` or use `launch_app.command`
-2. **Select difficulty**: Choose your preferred challenge level
-3. **Start playing**: Survive waves of enemies and defeat the bosses!
+### モバイル操作
+- **バーチャルジョイスティック**: ドラッグで自機を移動
+- **オートファイア**: 自動で弾を発射
+- **操作モード切替**: ジョイスティックと傾きセンサーの切り替え
+- **ジャイロスコープ**（オプション）: 端末を傾けて移動（許可が必要）
 
-## 📂 Project Structure
+## クイックスタート
+
+1. **ゲームを起動**: `index.html` をダブルクリック、または `launch_app.command` を実行
+2. **難易度を選択**: お好みのチャレンジレベルを選択
+3. **プレイ開始**: 敵の波を生き残り、ボスを倒そう！
+
+## プロジェクト構成
 
 ```
 space-odyssey/
-├── index.html              # Main game file
-├── test_game.html          # Test suite
+├── index.html              # メインゲームファイル
+├── test_game.html          # テストスイート
 ├── assets/
 │   ├── css/
-│   │   └── style.css       # Game styles
+│   │   └── style.css       # ゲームスタイル
 │   ├── js/
-│   │   ├── game.js         # Game engine
-│   │   ├── player.js       # Player mechanics
-│   │   ├── enemy.js        # Enemy AI
-│   │   ├── boss.js         # Boss battles
-│   │   ├── bullet.js       # Projectile system
-│   │   ├── powerup.js      # Power-up system
-│   │   ├── input.js        # Input handling
-│   │   ├── collision.js    # Collision detection
-│   │   ├── stage.js        # Stage management
-│   │   ├── ui.js           # UI updates
-│   │   ├── audio.js        # Sound system
-│   │   ├── save.js         # Save/load system
+│   │   ├── game.js         # ゲームエンジン
+│   │   ├── player.js       # プレイヤー機構
+│   │   ├── enemy.js        # 敵AI
+│   │   ├── boss.js         # ボス戦
+│   │   ├── bullet.js       # 弾システム
+│   │   ├── powerup.js      # パワーアップシステム
+│   │   ├── input.js        # 入力処理
+│   │   ├── collision.js    # 当たり判定
+│   │   ├── stage.js        # ステージ管理
+│   │   ├── ui.js           # UI更新
+│   │   ├── audio.js        # サウンドシステム
+│   │   ├── save.js         # セーブ/ロードシステム
 │   │   └── mobile/
-│   │       ├── gyro.js     # Gyroscope controls
-│   │       └── joystick.js # Virtual joystick
+│   │       ├── gyro.js     # ジャイロスコープ操作
+│   │       └── joystick.js # バーチャルジョイスティック
 │   └── images/
-│       ├── player_ship.svg # Player graphics
-│       ├── enemies/        # Enemy sprites
-│       ├── bosses/         # Boss sprites
-│       └── effects/        # Visual effects
+│       ├── player_ship.svg # プレイヤーグラフィック
+│       ├── enemies/        # 敵スプライト
+│       ├── bosses/         # ボススプライト
+│       └── effects/        # 視覚エフェクト
 ```
 
-## 🎯 Game Mechanics
+## ゲームシステム
 
-### Enemy Types
-- **Basic Fighter**: Simple movement patterns, low HP
-- **Fast Fighter**: Quick movements, harder to hit
-- **Tank**: Slow but high HP, heavy damage
-- **Sniper**: Long-range attacks, precise shots
-- **Bomber**: Area damage attacks
+### 敵の種類
+- **ベーシックファイター**: シンプルな移動パターン、低HP
+- **ファストファイター**: 素早い動き、狙いにくい
+- **タンク**: 遅いが高HP、大ダメージ
+- **スナイパー**: 遠距離攻撃、正確な射撃
+- **ボマー**: 範囲攻撃
 
-### Power-Ups
-- **Weapon Upgrade**: Increases firepower
-- **Extra Life**: +1 life
-- **Bomb**: Clear screen attack
-- **Shield**: Temporary invincibility
-- **Speed Boost**: Faster movement
+### パワーアップ
+- **武器強化**: 火力アップ
+- **残機増加**: +1残機
+- **ボム**: 画面全体攻撃
+- **シールド**: 一時的な無敵状態
+- **スピードブースト**: 移動速度アップ
 
-### Difficulty Levels
-| Difficulty | Lives | Enemy HP | Score Multiplier |
-|------------|-------|----------|------------------|
-| Easy       | 5     | 70%      | 0.8x             |
-| Normal     | 3     | 100%     | 1.0x             |
-| Hard       | 2     | 150%     | 1.5x             |
-| Expert     | 1     | 200%     | 2.0x             |
+### 難易度レベル
+| 難易度 | 残機 | 敵HP | スコア倍率 |
+|--------|------|------|------------|
+| イージー | 5 | 70% | 0.8倍 |
+| ノーマル | 3 | 100% | 1.0倍 |
+| ハード | 2 | 150% | 1.5倍 |
+| エキスパート | 1 | 200% | 2.0倍 |
 
-## 🛠️ Technical Details
+## 技術詳細
 
-### Technologies Used
-- **HTML5 Canvas**: Game rendering
-- **Vanilla JavaScript**: No dependencies
-- **Web Audio API**: Sound generation
-- **LocalStorage**: Save system
-- **SVG Graphics**: Scalable sprites
+### 使用技術
+- **HTML5 Canvas**: ゲーム描画
+- **バニラJavaScript**: 外部ライブラリ不要
+- **Web Audio API**: サウンド生成
+- **LocalStorage**: セーブシステム
+- **SVGグラフィック**: スケーラブルなスプライト
 
-### Performance Optimizations
-- Object pooling for bullets and particles
-- Efficient collision detection algorithms
-- RequestAnimationFrame for smooth rendering
-- Optimized mobile touch handling
+### パフォーマンス最適化
+- 弾とパーティクルのオブジェクトプーリング
+- 効率的な当たり判定アルゴリズム
+- RequestAnimationFrameによる滑らかな描画
+- 最適化されたモバイルタッチ処理
 
-## 📱 Mobile Features
+## モバイル機能
 
-### Gyroscope Controls
-- Tilt device to move ship
-- Automatic calibration
-- iOS 18+ compatible
-- Permission request handling
+### ジャイロスコープ操作
+- 端末を傾けて自機を移動
+- 自動キャリブレーション
+- iOS 18以降に対応
+- 許可リクエスト処理
 
-### Virtual Joystick
-- Responsive touch controls
-- Visual feedback
-- Adjustable sensitivity
-- Default control method
+### バーチャルジョイスティック
+- レスポンシブなタッチ操作
+- 視覚的フィードバック
+- 感度調整可能
+- デフォルトの操作方法
 
-## 🧪 Testing
+## テスト
 
-Run the test suite by opening `test_game.html` in your browser.
+ブラウザで `test_game.html` を開いてテストスイートを実行できます。
 
-Test Coverage:
-- Game initialization ✅
-- Player mechanics ✅
-- Enemy systems ✅
-- Collision detection ✅
-- Score calculation ✅
-- Stage progression ✅
-- Mobile controls ✅
+テストカバレッジ:
+- ゲーム初期化
+- プレイヤー機構
+- 敵システム
+- 当たり判定
+- スコア計算
+- ステージ進行
+- モバイル操作
 
-## 📄 License
+## ライセンス
 
-MIT License - Free to use and modify
+MITライセンス - 自由に使用・改変可能
 
-## 🙏 Credits
+## クレジット
 
-Developed using AI-assisted development workflow with Claude Code.
+Claude Codeを使用したAI支援開発ワークフローで開発されました。
 
 ---
 
-**Version**: 1.0.0
-**Game Engine**: Custom HTML5 Canvas
-**Compatible**: Chrome, Firefox, Safari, Edge (Desktop & Mobile)
+**バージョン**: 1.0.0
+**ゲームエンジン**: カスタムHTML5 Canvas
+**対応ブラウザ**: Chrome、Firefox、Safari、Edge（デスクトップ・モバイル）

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Bowling Adventure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --pin-red: #e63946;
+            --pin-white: #f8f9fa;
+            --lane-wood: #d4a574;
+            --ball-blue: #4361ee;
+            --ball-purple: #7209b7;
+            --ball-green: #06d6a0;
+            --ball-orange: #fb5607;
+            --ball-pink: #ff006e;
+            --dark-bg: #1a1a2e;
+            --neon-yellow: #ffd60a;
+            --neon-cyan: #00f5d4;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--dark-bg);
+            color: var(--pin-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(230, 57, 70, 0.1) 0%, transparent 30%),
+                radial-gradient(circle at 80% 70%, rgba(67, 97, 238, 0.1) 0%, transparent 30%),
+                radial-gradient(circle at 50% 50%, rgba(114, 9, 183, 0.1) 0%, transparent 40%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-2%, -2%) rotate(5deg); }
+        }
+
+        /* Floating bowling pins and balls */
+        .floating-element {
+            position: fixed;
+            opacity: 0.1;
+            pointer-events: none;
+            animation: float 15s ease-in-out infinite;
+        }
+
+        .pin-1 { top: 10%; left: 5%; font-size: 4rem; animation-delay: 0s; }
+        .pin-2 { top: 60%; right: 10%; font-size: 3rem; animation-delay: 3s; }
+        .ball-1 { top: 30%; right: 5%; font-size: 5rem; animation-delay: 1s; }
+        .ball-2 { bottom: 20%; left: 10%; font-size: 4rem; animation-delay: 4s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(180deg, rgba(230, 57, 70, 0.9) 0%, rgba(230, 57, 70, 0.7) 100%);
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 30px rgba(230, 57, 70, 0.4);
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 50px,
+                rgba(255, 255, 255, 0.05) 50px,
+                rgba(255, 255, 255, 0.05) 100px
+            );
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            letter-spacing: 0.1em;
+            text-shadow:
+                3px 3px 0 var(--dark-bg),
+                6px 6px 0 rgba(0, 0, 0, 0.3);
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            margin-top: 0.5rem;
+            opacity: 0.9;
+        }
+
+        /* Language switcher */
+        .lang-switcher {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--pin-white);
+            background: transparent;
+            color: var(--pin-white);
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .lang-btn.active {
+            background: var(--pin-white);
+            color: var(--pin-red);
+        }
+
+        /* Navigation */
+        .back-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            padding: 0.5rem 1.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--pin-white);
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .back-btn:hover {
+            background: var(--pin-white);
+            color: var(--pin-red);
+        }
+
+        /* Main content */
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(230, 57, 70, 0.2);
+        }
+
+        h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: var(--neon-yellow);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: '';
+            width: 30px;
+            height: 30px;
+            background: var(--pin-red);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Audio player */
+        .audio-section {
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.2) 0%, rgba(114, 9, 183, 0.2) 100%);
+            text-align: center;
+        }
+
+        .audio-player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .play-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--ball-blue), var(--ball-purple));
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 30px rgba(67, 97, 238, 0.5);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 40px rgba(67, 97, 238, 0.7);
+        }
+
+        .play-btn svg {
+            width: 30px;
+            height: 30px;
+            fill: white;
+            margin-left: 5px;
+        }
+
+        .audio-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Overview */
+        .overview-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        /* Features */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .feature-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .feature-card:hover {
+            border-color: var(--neon-cyan);
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            color: var(--neon-yellow);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Status effects */
+        .effects-section {
+            background: linear-gradient(135deg, rgba(251, 86, 7, 0.2) 0%, rgba(255, 0, 110, 0.2) 100%);
+        }
+
+        .effects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .effect-badge {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
+            border-radius: 10px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+            border-left: 4px solid;
+        }
+
+        .effect-badge:nth-child(1) { border-color: #ff6b6b; }
+        .effect-badge:nth-child(2) { border-color: #4ecdc4; }
+        .effect-badge:nth-child(3) { border-color: #45b7d1; }
+        .effect-badge:nth-child(4) { border-color: #96ceb4; }
+        .effect-badge:nth-child(5) { border-color: #ffeaa7; }
+        .effect-badge:nth-child(6) { border-color: #dfe6e9; }
+        .effect-badge:nth-child(7) { border-color: #a29bfe; }
+        .effect-badge:nth-child(8) { border-color: #fd79a8; }
+
+        .effect-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .effect-icon {
+            font-size: 1.5rem;
+        }
+
+        .effect-info {
+            flex: 1;
+        }
+
+        .effect-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            color: var(--neon-yellow);
+        }
+
+        .effect-desc {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        /* How to play */
+        .controls-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .control-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .control-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .control-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--neon-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .control-desc {
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        /* Tech stack */
+        .tech-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .tech-badge {
+            background: linear-gradient(135deg, var(--ball-blue), var(--ball-purple));
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .tech-badge:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(67, 97, 238, 0.5);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.3);
+            margin-top: 2rem;
+        }
+
+        .footer-text {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .footer-credit {
+            margin-top: 0.5rem;
+            color: var(--neon-yellow);
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 3rem 1rem 1.5rem;
+            }
+
+            .lang-switcher {
+                position: relative;
+                top: auto;
+                right: auto;
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+
+            .back-btn {
+                position: relative;
+                top: auto;
+                left: auto;
+                display: inline-block;
+                margin-bottom: 1rem;
+            }
+
+            .header-content {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            main {
+                padding: 1rem;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            .effects-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .floating-element {
+                display: none;
+            }
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        section {
+            animation: slideIn 0.6s ease forwards;
+        }
+
+        section:nth-child(2) { animation-delay: 0.1s; }
+        section:nth-child(3) { animation-delay: 0.2s; }
+        section:nth-child(4) { animation-delay: 0.3s; }
+        section:nth-child(5) { animation-delay: 0.4s; }
+        section:nth-child(6) { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Floating decorations -->
+    <div class="floating-element pin-1">🎳</div>
+    <div class="floating-element pin-2">🎳</div>
+    <div class="floating-element ball-1">🔴</div>
+    <div class="floating-element ball-2">🔵</div>
+
+    <header>
+        <a href="index.html" class="back-btn" data-ja="← ゲームに戻る" data-en="← Back to Game">← ゲームに戻る</a>
+
+        <div class="lang-switcher">
+            <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+            <button class="lang-btn" onclick="setLanguage('en')">English</button>
+        </div>
+
+        <div class="header-content">
+            <h1>BOWLING ADVENTURE</h1>
+            <p class="subtitle" data-ja="傾けて転がす！障害物ボウリング" data-en="Tilt and Roll! Obstacle Bowling">傾けて転がす！障害物ボウリング</p>
+        </div>
+    </header>
+
+    <main>
+        <!-- Audio explanation -->
+        <section class="audio-section">
+            <h2 data-ja="音声解説" data-en="Audio Explanation">音声解説</h2>
+            <div class="audio-player">
+                <button class="play-btn" onclick="toggleAudio()" id="playBtn">
+                    <svg viewBox="0 0 24 24" id="playIcon">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </button>
+                <p class="audio-label" data-ja="ゲームの解説を聴く" data-en="Listen to game explanation">ゲームの解説を聴く</p>
+                <audio id="audioPlayer" src="explanation.mp3"></audio>
+            </div>
+        </section>
+
+        <!-- Game overview -->
+        <section>
+            <h2 data-ja="ゲーム概要" data-en="Game Overview">ゲーム概要</h2>
+            <p class="overview-text" data-ja="Bowling Adventureは、スマートフォンの傾きセンサーやキーボードを使ってボウリングボールを操作する、新感覚の3D物理ベースボウリングゲームです。従来のボウリングとは異なり、障害物が配置されたユニークなコースで、8種類のステータスエフェクトが勝負を左右します。10フレームの本格的なスコアリングシステムで、ストライクやスペアを狙いながら、ハイスコアを目指しましょう！" data-en="Bowling Adventure is a new-style 3D physics-based bowling game where you control the bowling ball using your smartphone's tilt sensor or keyboard. Unlike traditional bowling, you'll navigate unique courses with obstacles, where 8 different status effects can turn the tide of the game. Aim for high scores with a full 10-frame scoring system, going for strikes and spares!">Bowling Adventureは、スマートフォンの傾きセンサーやキーボードを使ってボウリングボールを操作する、新感覚の3D物理ベースボウリングゲームです。従来のボウリングとは異なり、障害物が配置されたユニークなコースで、8種類のステータスエフェクトが勝負を左右します。10フレームの本格的なスコアリングシステムで、ストライクやスペアを狙いながら、ハイスコアを目指しましょう！</p>
+        </section>
+
+        <!-- Features -->
+        <section>
+            <h2 data-ja="特徴" data-en="Features">特徴</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎮</div>
+                    <div class="feature-title" data-ja="直感的操作" data-en="Intuitive Controls">直感的操作</div>
+                    <p data-ja="ジャイロセンサーまたはキーボードで簡単操作" data-en="Easy control with gyro sensor or keyboard">ジャイロセンサーまたはキーボードで簡単操作</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏆</div>
+                    <div class="feature-title" data-ja="本格スコアリング" data-en="Real Scoring">本格スコアリング</div>
+                    <p data-ja="10フレーム完全対応、ストライク・スペア判定" data-en="Full 10-frame support with strike and spare detection">10フレーム完全対応、ストライク・スペア判定</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-title" data-ja="障害物コース" data-en="Obstacle Course">障害物コース</div>
+                    <p data-ja="戦略的なルート選択が勝利の鍵" data-en="Strategic route selection is the key to victory">戦略的なルート選択が勝利の鍵</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title" data-ja="スピードゲージ" data-en="Speed Gauge">スピードゲージ</div>
+                    <p data-ja="ボールの速度をリアルタイム表示" data-en="Real-time ball speed display">ボールの速度をリアルタイム表示</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status effects -->
+        <section class="effects-section">
+            <h2 data-ja="ステータスエフェクト" data-en="Status Effects">ステータスエフェクト</h2>
+            <p style="margin-bottom: 1.5rem; opacity: 0.9;" data-ja="コース上の特殊ゾーンを通過すると、様々な効果が発動！戦略的に活用しよう。" data-en="Pass through special zones on the course to trigger various effects! Use them strategically.">コース上の特殊ゾーンを通過すると、様々な効果が発動！戦略的に活用しよう。</p>
+            <div class="effects-grid">
+                <div class="effect-badge">
+                    <span class="effect-icon">🔄</span>
+                    <div class="effect-info">
+                        <div class="effect-name">REVERSE</div>
+                        <p class="effect-desc" data-ja="操作が逆転" data-en="Controls reversed">操作が逆転</p>
+                    </div>
+                </div>
+                <div class="effect-badge">
+                    <span class="effect-icon">🔽</span>
+                    <div class="effect-info">
+                        <div class="effect-name">SHRINK</div>
+                        <p class="effect-desc" data-ja="ボールが縮小" data-en="Ball shrinks">ボールが縮小</p>
+                    </div>
+                </div>
+                <div class="effect-badge">
+                    <span class="effect-icon">🔼</span>
+                    <div class="effect-info">
+                        <div class="effect-name">GIANT</div>
+                        <p class="effect-desc" data-ja="ボールが巨大化" data-en="Ball grows giant">ボールが巨大化</p>
+                    </div>
+                </div>
+                <div class="effect-badge">
+                    <span class="effect-icon">🐢</span>
+                    <div class="effect-info">
+                        <div class="effect-name">SLOW</div>
+                        <p class="effect-desc" data-ja="速度低下" data-en="Speed decreased">速度低下</p>
+                    </div>
+                </div>
+                <div class="effect-badge">
+                    <span class="effect-icon">🚀</span>
+                    <div class="effect-info">
+                        <div class="effect-name">SPEED</div>
+                        <p class="effect-desc" data-ja="速度上昇" data-en="Speed increased">速度上昇</p>
+                    </div>
+                </div>
+                <div class="effect-badge">
+                    <span class="effect-icon">🧊</span>
+                    <div class="effect-info">
+                        <div class="effect-name">SLIP</div>
+                        <p class="effect-desc" data-ja="滑りやすい" data-en="Slippery surface">滑りやすい</p>
+                    </div>
+                </div>
+                <div class="effect-badge">
+                    <span class="effect-icon">🌀</span>
+                    <div class="effect-info">
+                        <div class="effect-name">CHAOS</div>
+                        <p class="effect-desc" data-ja="予測不能な動き" data-en="Unpredictable movement">予測不能な動き</p>
+                    </div>
+                </div>
+                <div class="effect-badge">
+                    <span class="effect-icon">🛡️</span>
+                    <div class="effect-info">
+                        <div class="effect-name">SHIELD</div>
+                        <p class="effect-desc" data-ja="効果を無効化" data-en="Nullifies effects">効果を無効化</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How to play -->
+        <section>
+            <h2 data-ja="遊び方" data-en="How to Play">遊び方</h2>
+            <div class="controls-container">
+                <div class="control-box">
+                    <div class="control-icon">📱</div>
+                    <div class="control-title" data-ja="スマートフォン" data-en="Smartphone">スマートフォン</div>
+                    <p class="control-desc" data-ja="端末を傾けてボールを操作。直感的なジャイロセンサー操作で、まるで本物のボウリングのような体験ができます。" data-en="Tilt your device to control the ball. Intuitive gyro sensor controls give you a real bowling-like experience.">端末を傾けてボールを操作。直感的なジャイロセンサー操作で、まるで本物のボウリングのような体験ができます。</p>
+                </div>
+                <div class="control-box">
+                    <div class="control-icon">⌨️</div>
+                    <div class="control-title" data-ja="PC / キーボード" data-en="PC / Keyboard">PC / キーボード</div>
+                    <p class="control-desc" data-ja="矢印キー（←→↑↓）でボールを操作。精密なコントロールでハイスコアを狙おう！" data-en="Control the ball with arrow keys. Aim for high scores with precise control!">矢印キー（←→↑↓）でボールを操作。精密なコントロールでハイスコアを狙おう！</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tech stack -->
+        <section>
+            <h2 data-ja="技術スタック" data-en="Tech Stack">技術スタック</h2>
+            <div class="tech-grid">
+                <span class="tech-badge">Three.js</span>
+                <span class="tech-badge">Cannon.js</span>
+                <span class="tech-badge">Vite</span>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p class="footer-text" data-ja="スマートフォンのジャイロセンサー機能を使用します。" data-en="Uses smartphone gyroscope sensor function.">スマートフォンのジャイロセンサー機能を使用します。</p>
+        <p class="footer-credit">© 2026 Claude Code</p>
+    </footer>
+
+    <script>
+        // Language switching
+        function setLanguage(lang) {
+            const langBtns = document.querySelectorAll('.lang-btn');
+            langBtns.forEach(btn => btn.classList.remove('active'));
+            if (lang === 'ja') {
+                langBtns[0].classList.add('active');
+            } else {
+                langBtns[1].classList.add('active');
+            }
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) element.textContent = text;
+            });
+            document.documentElement.lang = lang;
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            setLanguage(savedLang);
+        });
+
+        // Audio player
+        const audio = document.getElementById('audioPlayer');
+        const playBtn = document.getElementById('playBtn');
+        const playIcon = document.getElementById('playIcon');
+        let isPlaying = false;
+
+        function toggleAudio() {
+            if (isPlaying) {
+                audio.pause();
+                playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                isPlaying = false;
+            } else {
+                audio.play().catch(e => {
+                    console.log('Audio playback failed:', e);
+                });
+                playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+                isPlaying = true;
+            }
+        }
+
+        audio.addEventListener('ended', () => {
+            playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            isPlaying = false;
+        });
+    </script>
+</body>
+</html>

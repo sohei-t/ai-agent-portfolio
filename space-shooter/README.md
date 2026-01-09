@@ -4,11 +4,7 @@ Space Invaders風のシューティングゲーム。レトロな雰囲気とモ
 
 ## Play Now
 
-**[ゲームをプレイ](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/index.html)**
-
-## About
-
-**[プロジェクト解説ページ](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/about.html)** - 技術詳細・開発プロセス・アーキテクチャの解説
+**[ライブデモ](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/about.html)** | **[音声解説](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/explanation.mp3)**
 
 ## Features
 

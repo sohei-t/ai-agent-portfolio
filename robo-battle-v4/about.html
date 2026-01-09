@@ -662,21 +662,64 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--neon-magenta);
         }
+
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: rgba(13, 2, 33, 0.9);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 5px;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .lang-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 15px var(--neon-cyan);
+            transform: scale(1.05);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            color: var(--bg-deep);
+            border-color: transparent;
+        }
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    </div>
+
     <div class="grid-bg"></div>
 
     <div class="container">
         <header>
             <h1 class="main-title">ROBO BATTLE V4</h1>
             <p class="subtitle">BEAST SUMMON EDITION</p>
-            <a href="index.html" class="back-link">PLAY GAME</a>
+            <a href="index.html" class="back-link" data-ja="PLAY GAME" data-en="PLAY GAME">PLAY GAME</a>
         </header>
 
         <!-- Audio Player -->
         <div class="audio-section">
-            <h2 class="audio-title">AUDIO GUIDE / 音声解説</h2>
+            <h2 class="audio-title" data-ja="AUDIO GUIDE / 音声解説" data-en="AUDIO GUIDE">AUDIO GUIDE / 音声解説</h2>
             <div class="audio-player">
                 <button class="play-btn" id="playBtn" aria-label="Play audio"></button>
                 <div class="audio-info">
@@ -689,127 +732,154 @@
 
         <!-- Game Overview -->
         <section>
-            <h2 class="section-title">GAME OVERVIEW / ゲーム概要</h2>
-            <p style="line-height: 1.8; font-size: 1.05rem;">
-                赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。
-                ビームライフル、ジャンプ、キック、そして<span style="color: var(--neon-red);">魔獣召喚</span>を駆使して敵を倒せ！
-            </p>
+            <h2 class="section-title" data-ja="GAME OVERVIEW / ゲーム概要" data-en="GAME OVERVIEW">GAME OVERVIEW / ゲーム概要</h2>
+            <p style="line-height: 1.8; font-size: 1.05rem;" data-ja="赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。ビームライフル、ジャンプ、キック、そして<span style='color: var(--neon-red);'>魔獣召喚</span>を駆使して敵を倒せ！" data-en="An action game where a red robot (player) battles a blue robot (CPU/opponent) 1-on-1. Use beam rifles, jumps, kicks, and <span style='color: var(--neon-red);'>Beast Summon</span> to defeat enemies!">赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。ビームライフル、ジャンプ、キック、そして<span style="color: var(--neon-red);">魔獣召喚</span>を駆使して敵を倒せ！</p>
             <div class="feature-grid" style="margin-top: 30px;">
                 <div class="feature-card">
                     <h3>ONLINE BATTLE</h3>
-                    <p>WebRTC P2Pによるリアルタイム対戦。6桁のルームコードで友達と対戦可能。</p>
+                    <p data-ja="WebRTC P2Pによるリアルタイム対戦。6桁のルームコードで友達と対戦可能。" data-en="Real-time battles via WebRTC P2P. Battle friends with a 6-digit room code.">WebRTC P2Pによるリアルタイム対戦。6桁のルームコードで友達と対戦可能。</p>
                 </div>
                 <div class="feature-card">
                     <h3>SETTINGS SYNC</h3>
-                    <p>ホストの設定（ステージ・難易度・アイテム）がクライアントに自動反映。</p>
+                    <p data-ja="ホストの設定（ステージ・難易度・アイテム）がクライアントに自動反映。" data-en="Host settings (stage, difficulty, items) automatically sync to client.">ホストの設定（ステージ・難易度・アイテム）がクライアントに自動反映。</p>
                 </div>
                 <div class="feature-card">
                     <h3>ITEM MODE</h3>
-                    <p>ワープゾーン、デスゾーン、11種類のパワーアップ武器アイテム。</p>
+                    <p data-ja="ワープゾーン、デスゾーン、11種類のパワーアップ武器アイテム。" data-en="Warp zones, death zones, and 11 types of power-up weapon items.">ワープゾーン、デスゾーン、11種類のパワーアップ武器アイテム。</p>
                 </div>
             </div>
         </section>
 
         <!-- V4 New Features - Beast Section -->
         <section class="beast-section">
-            <h2 class="section-title">V4 NEW FEATURES / V4新機能</h2>
+            <h2 class="section-title" data-ja="V4 NEW FEATURES / V4新機能" data-en="V4 NEW FEATURES">V4 NEW FEATURES / V4新機能</h2>
 
             <div class="feature-grid">
                 <div class="feature-card">
                     <span class="beast-icon">🐉</span>
-                    <h3>BEAST SUMMON / 魔獣召喚</h3>
-                    <p>AI制御の魔獣を召喚！自動で敵を追跡し火炎攻撃。HP45（通常弾3発で撃破）、プレイヤー1人につき1体まで。</p>
+                    <h3 data-ja="BEAST SUMMON / 魔獣召喚" data-en="BEAST SUMMON">BEAST SUMMON / 魔獣召喚</h3>
+                    <p data-ja="AI制御の魔獣を召喚！自動で敵を追跡し火炎攻撃。HP45（通常弾3発で撃破）、プレイヤー1人につき1体まで。" data-en="Summon an AI-controlled beast! Automatically tracks enemies and attacks with flames. HP45 (defeated by 3 normal shots), 1 per player.">AI制御の魔獣を召喚！自動で敵を追跡し火炎攻撃。HP45（通常弾3発で撃破）、プレイヤー1人につき1体まで。</p>
                 </div>
                 <div class="feature-card">
                     <h3>ENHANCED CPU AI</h3>
-                    <p>CPU AIが大幅強化。アイテムを積極的に取得し、武器を即座に使用。敵の魔獣も優先的に攻撃。</p>
+                    <p data-ja="CPU AIが大幅強化。アイテムを積極的に取得し、武器を即座に使用。敵の魔獣も優先的に攻撃。" data-en="Greatly enhanced CPU AI. Actively collects items and uses weapons immediately. Prioritizes attacking enemy beasts.">CPU AIが大幅強化。アイテムを積極的に取得し、武器を即座に使用。敵の魔獣も優先的に攻撃。</p>
                 </div>
                 <div class="feature-card">
                     <h3>KNOCKDOWN SYSTEM</h3>
-                    <p>強力な攻撃でダウン状態に。ダウン中は無敵だが行動不能。起き上がりモーション追加。</p>
+                    <p data-ja="強力な攻撃でダウン状態に。ダウン中は無敵だが行動不能。起き上がりモーション追加。" data-en="Powerful attacks cause knockdown state. Invincible while down but unable to act. Get-up animation added.">強力な攻撃でダウン状態に。ダウン中は無敵だが行動不能。起き上がりモーション追加。</p>
                 </div>
                 <div class="feature-card">
-                    <h3>GUARD SYSTEM / ガード</h3>
-                    <p>シールドで攻撃をブロック。ガード中はダメージ軽減。強攻撃でガードブレイク可能。</p>
+                    <h3 data-ja="GUARD SYSTEM / ガード" data-en="GUARD SYSTEM">GUARD SYSTEM / ガード</h3>
+                    <p data-ja="シールドで攻撃をブロック。ガード中はダメージ軽減。強攻撃でガードブレイク可能。" data-en="Block attacks with shield. Damage reduction while guarding. Strong attacks can break guard.">シールドで攻撃をブロック。ガード中はダメージ軽減。強攻撃でガードブレイク可能。</p>
                 </div>
                 <div class="feature-card">
-                    <h3>GREEN DRAGON / グリーンドラゴン</h3>
-                    <p>強力なドラゴンの火炎攻撃。広範囲に高ダメージを与える必殺技。</p>
+                    <h3 data-ja="GREEN DRAGON / グリーンドラゴン" data-en="GREEN DRAGON">GREEN DRAGON / グリーンドラゴン</h3>
+                    <p data-ja="強力なドラゴンの火炎攻撃。広範囲に高ダメージを与える必殺技。" data-en="Powerful dragon flame attack. A special move dealing high damage over a wide area.">強力なドラゴンの火炎攻撃。広範囲に高ダメージを与える必殺技。</p>
                 </div>
                 <div class="feature-card">
-                    <h3>METEOR STRIKE / メテオ</h3>
-                    <p>空から降り注ぐ流星群。画面全体を攻撃する究極の大技。</p>
+                    <h3 data-ja="METEOR STRIKE / メテオ" data-en="METEOR STRIKE">METEOR STRIKE / メテオ</h3>
+                    <p data-ja="空から降り注ぐ流星群。画面全体を攻撃する究極の大技。" data-en="Meteors rain from the sky. The ultimate move attacking the entire screen.">空から降り注ぐ流星群。画面全体を攻撃する究極の大技。</p>
                 </div>
             </div>
         </section>
 
         <!-- Game Modes -->
         <section>
-            <h2 class="section-title">GAME MODES / ゲームモード</h2>
+            <h2 class="section-title" data-ja="GAME MODES / ゲームモード" data-en="GAME MODES">GAME MODES / ゲームモード</h2>
             <div class="feature-grid">
                 <div class="feature-card">
                     <h3>VS CPU</h3>
-                    <p>コンピューターとの対戦。難易度はEASY / NORMAL / HARDから選択可能。強化されたAIで白熱のバトル！</p>
+                    <p data-ja="コンピューターとの対戦。難易度はEASY / NORMAL / HARDから選択可能。強化されたAIで白熱のバトル！" data-en="Battle against the computer. Choose from EASY / NORMAL / HARD difficulty. Intense battles with enhanced AI!">コンピューターとの対戦。難易度はEASY / NORMAL / HARDから選択可能。強化されたAIで白熱のバトル！</p>
                 </div>
                 <div class="feature-card">
                     <h3>ONLINE BATTLE</h3>
-                    <p>インターネット経由でリアルタイム対戦。CREATE ROOMで部屋を作成、JOIN ROOMで参加。</p>
+                    <p data-ja="インターネット経由でリアルタイム対戦。CREATE ROOMで部屋を作成、JOIN ROOMで参加。" data-en="Real-time battles over the internet. Create a room with CREATE ROOM, join with JOIN ROOM.">インターネット経由でリアルタイム対戦。CREATE ROOMで部屋を作成、JOIN ROOMで参加。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Online Battle -->
+        <section>
+            <h2 class="section-title" data-ja="ONLINE BATTLE / オンライン対戦" data-en="ONLINE BATTLE">ONLINE BATTLE / オンライン対戦</h2>
+            <p style="line-height: 1.8; font-size: 1.05rem; margin-bottom: 25px;" data-ja="V3で実装されたオンライン対戦機能。WebRTC P2P技術により、サーバーを介さずプレイヤー同士が直接接続してリアルタイム対戦が可能。" data-en="Online battle feature implemented in V3. WebRTC P2P technology enables direct player-to-player connections for real-time battles without a server.">V3で実装されたオンライン対戦機能。WebRTC P2P技術により、サーバーを介さずプレイヤー同士が直接接続してリアルタイム対戦が可能。</p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3 data-ja="ルーム作成（ホスト）" data-en="Create Room (Host)">ルーム作成（ホスト）</h3>
+                    <p data-ja="CREATE ROOMでルームを作成すると6桁のルームコードが発行されます。このコードを対戦相手に共有してください。" data-en="Creating a room with CREATE ROOM generates a 6-digit room code. Share this code with your opponent.">CREATE ROOMでルームを作成すると6桁のルームコードが発行されます。このコードを対戦相手に共有してください。</p>
+                </div>
+                <div class="feature-card">
+                    <h3 data-ja="ルーム参加（クライアント）" data-en="Join Room (Client)">ルーム参加（クライアント）</h3>
+                    <p data-ja="JOIN ROOMで相手から教えてもらった6桁のルームコードを入力。接続が確立されるとホストがバトルを開始できます。" data-en="Enter the 6-digit room code from your opponent in JOIN ROOM. Once connected, the host can start the battle.">JOIN ROOMで相手から教えてもらった6桁のルームコードを入力。接続が確立されるとホストがバトルを開始できます。</p>
+                </div>
+                <div class="feature-card">
+                    <h3 data-ja="設定同期" data-en="Settings Sync">設定同期</h3>
+                    <p data-ja="ホスト側で設定したステージ・難易度・アイテムモードの設定がクライアントに自動反映されます。" data-en="Stage, difficulty, and item mode settings configured by the host are automatically applied to the client.">ホスト側で設定したステージ・難易度・アイテムモードの設定がクライアントに自動反映されます。</p>
+                </div>
+                <div class="feature-card">
+                    <h3 data-ja="WebRTC P2P通信" data-en="WebRTC P2P Communication">WebRTC P2P通信</h3>
+                    <p data-ja="Firebase Realtime Databaseをシグナリングサーバーとして使用。接続確立後はP2Pで低遅延通信を実現。" data-en="Uses Firebase Realtime Database as signaling server. After connection, achieves low-latency communication via P2P.">Firebase Realtime Databaseをシグナリングサーバーとして使用。接続確立後はP2Pで低遅延通信を実現。</p>
                 </div>
             </div>
         </section>
 
         <!-- Controls -->
         <section>
-            <h2 class="section-title">CONTROLS / 操作方法</h2>
+            <h2 class="section-title" data-ja="CONTROLS / 操作方法" data-en="CONTROLS">CONTROLS / 操作方法</h2>
             <div class="controls-grid">
                 <div class="control-group">
                     <h3>PC (KEYBOARD)</h3>
                     <div class="control-item">
-                        <span>移動</span>
+                        <span data-ja="移動" data-en="Move">移動</span>
                         <span><span class="key">←</span> <span class="key">→</span></span>
                     </div>
                     <div class="control-item">
-                        <span>ジャンプ</span>
+                        <span data-ja="ジャンプ" data-en="Jump">ジャンプ</span>
                         <span><span class="key">↑</span> / <span class="key">SPACE</span></span>
                     </div>
                     <div class="control-item">
-                        <span>ビーム</span>
-                        <span><span class="key">Z</span> (長押しでチャージ)</span>
+                        <span data-ja="ビーム" data-en="Beam">ビーム</span>
+                        <span data-ja="<span class='key'>Z</span> (長押しでチャージ)" data-en="<span class='key'>Z</span> (hold to charge)"><span class="key">Z</span> (長押しでチャージ)</span>
                     </div>
                     <div class="control-item">
-                        <span>キック</span>
+                        <span data-ja="キック" data-en="Kick">キック</span>
                         <span><span class="key">X</span></span>
                     </div>
                     <div class="control-item">
-                        <span>ガード</span>
+                        <span data-ja="ガード" data-en="Guard">ガード</span>
                         <span><span class="key">C</span></span>
                     </div>
                 </div>
                 <div class="control-group">
                     <h3>MOBILE (TOUCH / GYRO)</h3>
                     <div class="control-item">
-                        <span>移動</span>
-                        <span>傾きセンサー / ジョイスティック</span>
+                        <span data-ja="移動" data-en="Move">移動</span>
+                        <span data-ja="傾きセンサー / ジョイスティック" data-en="Tilt sensor / Joystick">傾きセンサー / ジョイスティック</span>
                     </div>
                     <div class="control-item">
-                        <span>ジャンプ</span>
-                        <span>画面左下タップ</span>
+                        <span data-ja="ジャンプ" data-en="Jump">ジャンプ</span>
+                        <span data-ja="画面左下タップ" data-en="Bottom-left tap">画面左下タップ</span>
                     </div>
                     <div class="control-item">
-                        <span>ビーム</span>
-                        <span>画面右側タップ</span>
+                        <span data-ja="ビーム" data-en="Beam">ビーム</span>
+                        <span data-ja="画面右側タップ" data-en="Right side tap">画面右側タップ</span>
                     </div>
                     <div class="control-item">
-                        <span>ガード</span>
-                        <span>画面左上タップ</span>
+                        <span data-ja="ガード" data-en="Guard">ガード</span>
+                        <span data-ja="画面左上タップ" data-en="Top-left tap">画面左上タップ</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Gyro Feature -->
+            <div style="margin-top: 30px; padding: 25px; background: rgba(0, 255, 255, 0.1); border: 1px solid var(--neon-cyan);">
+                <h3 style="font-family: 'Orbitron', sans-serif; color: var(--neon-cyan); margin-bottom: 15px;" data-ja="GYRO CONTROL / ジャイロ操作（傾きセンサー）" data-en="GYRO CONTROL">GYRO CONTROL / ジャイロ操作（傾きセンサー）</h3>
+                <p style="line-height: 1.8;" data-ja="V1から実装されているスマートフォン向け機能。端末を左右に傾けることで、直感的にロボットを移動操作できます。バーチャルジョイスティックとの切り替えも可能で、プレイスタイルに合わせて選択できます。傾きの感度は自動調整され、自然な操作感を実現しています。" data-en="A smartphone feature implemented since V1. Tilt your device left and right to intuitively move your robot. You can switch between virtual joystick and tilt controls to match your play style. Tilt sensitivity is automatically adjusted for a natural control feel.">V1から実装されているスマートフォン向け機能。端末を左右に傾けることで、直感的にロボットを移動操作できます。バーチャルジョイスティックとの切り替えも可能で、プレイスタイルに合わせて選択できます。傾きの感度は自動調整され、自然な操作感を実現しています。</p>
             </div>
         </section>
 
         <!-- Weapons -->
         <section>
-            <h2 class="section-title">WEAPONS / 武器一覧</h2>
+            <h2 class="section-title" data-ja="WEAPONS / 武器一覧" data-en="WEAPONS">WEAPONS / 武器一覧</h2>
             <table class="weapon-table">
                 <thead>
                     <tr>
@@ -821,7 +891,7 @@
                 <tbody>
                     <tr>
                         <td>BAZOOKA</td>
-                        <td>爆発する弾丸</td>
+                        <td data-ja="爆発する弾丸" data-en="Explosive bullet">爆発する弾丸</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -834,7 +904,7 @@
                     </tr>
                     <tr>
                         <td>MACHINEGUN</td>
-                        <td>高速連射</td>
+                        <td data-ja="高速連射" data-en="Rapid fire">高速連射</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -847,7 +917,7 @@
                     </tr>
                     <tr>
                         <td>SPREAD</td>
-                        <td>広角攻撃</td>
+                        <td data-ja="広角攻撃" data-en="Wide angle attack">広角攻撃</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -860,7 +930,7 @@
                     </tr>
                     <tr>
                         <td>SWORD</td>
-                        <td>近距離斬撃</td>
+                        <td data-ja="近距離斬撃" data-en="Close-range slash">近距離斬撃</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -873,7 +943,7 @@
                     </tr>
                     <tr>
                         <td>HOMING</td>
-                        <td>自動追尾（1発）</td>
+                        <td data-ja="自動追尾（1発）" data-en="Auto-tracking (1 shot)">自動追尾（1発）</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -886,7 +956,7 @@
                     </tr>
                     <tr>
                         <td>CLONE</td>
-                        <td>分身生成</td>
+                        <td data-ja="分身生成" data-en="Clone creation">分身生成</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -899,7 +969,7 @@
                     </tr>
                     <tr>
                         <td>TIGER</td>
-                        <td>突進攻撃</td>
+                        <td data-ja="突進攻撃" data-en="Rush attack">突進攻撃</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -912,7 +982,7 @@
                     </tr>
                     <tr>
                         <td>AERIAL</td>
-                        <td>空中攻撃</td>
+                        <td data-ja="空中攻撃" data-en="Aerial attack">空中攻撃</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -925,7 +995,7 @@
                     </tr>
                     <tr>
                         <td style="color: var(--neon-green);">DRAGON</td>
-                        <td>ドラゴン火炎</td>
+                        <td data-ja="ドラゴン火炎" data-en="Dragon flame">ドラゴン火炎</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -938,7 +1008,7 @@
                     </tr>
                     <tr>
                         <td style="color: var(--neon-yellow);">METEOR</td>
-                        <td>流星群</td>
+                        <td data-ja="流星群" data-en="Meteor shower">流星群</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -951,7 +1021,7 @@
                     </tr>
                     <tr>
                         <td style="color: var(--neon-red);">BEAST</td>
-                        <td>魔獣召喚</td>
+                        <td data-ja="魔獣召喚" data-en="Beast summon">魔獣召喚</td>
                         <td>
                             <div class="power-bar">
                                 <div class="power-segment active"></div>
@@ -968,62 +1038,62 @@
 
         <!-- Customization -->
         <section>
-            <h2 class="section-title">CUSTOMIZE / カスタマイズ</h2>
-            <p style="margin-bottom: 20px;">合計20ポイントを4つのパラメータに振り分け：</p>
+            <h2 class="section-title" data-ja="CUSTOMIZE / カスタマイズ" data-en="CUSTOMIZE">CUSTOMIZE / カスタマイズ</h2>
+            <p style="margin-bottom: 20px;" data-ja="合計20ポイントを4つのパラメータに振り分け：" data-en="Distribute 20 total points across 4 parameters:">合計20ポイントを4つのパラメータに振り分け：</p>
             <div class="feature-grid">
                 <div class="feature-card">
                     <h3>JUMP</h3>
-                    <p>ジャンプ力。高いほど高くジャンプ可能。空中戦に有利。</p>
+                    <p data-ja="ジャンプ力。高いほど高くジャンプ可能。空中戦に有利。" data-en="Jump power. Higher values allow higher jumps. Advantageous in aerial combat.">ジャンプ力。高いほど高くジャンプ可能。空中戦に有利。</p>
                 </div>
                 <div class="feature-card">
                     <h3>WALK</h3>
-                    <p>移動速度。高いほど素早く移動。回避や接近に有利。</p>
+                    <p data-ja="移動速度。高いほど素早く移動。回避や接近に有利。" data-en="Movement speed. Higher values mean faster movement. Advantageous for evasion and closing in.">移動速度。高いほど素早く移動。回避や接近に有利。</p>
                 </div>
                 <div class="feature-card">
                     <h3>BEAM</h3>
-                    <p>ビーム攻撃力。高いほど高ダメージ。遠距離戦に有利。</p>
+                    <p data-ja="ビーム攻撃力。高いほど高ダメージ。遠距離戦に有利。" data-en="Beam attack power. Higher values deal more damage. Advantageous in ranged combat.">ビーム攻撃力。高いほど高ダメージ。遠距離戦に有利。</p>
                 </div>
                 <div class="feature-card">
                     <h3>KICK</h3>
-                    <p>キック攻撃力。高いほど高ダメージ。近距離戦に有利。</p>
+                    <p data-ja="キック攻撃力。高いほど高ダメージ。近距離戦に有利。" data-en="Kick attack power. Higher values deal more damage. Advantageous in close combat.">キック攻撃力。高いほど高ダメージ。近距離戦に有利。</p>
                 </div>
             </div>
         </section>
 
         <!-- Stages -->
         <section>
-            <h2 class="section-title">STAGES / ステージ</h2>
+            <h2 class="section-title" data-ja="STAGES / ステージ" data-en="STAGES">STAGES / ステージ</h2>
             <div class="stage-grid">
                 <div class="stage-item">
                     <div class="stage-name">NEO CITY</div>
-                    <div class="stage-desc">サイバーパンク都市</div>
+                    <div class="stage-desc" data-ja="サイバーパンク都市" data-en="Cyberpunk City">サイバーパンク都市</div>
                 </div>
                 <div class="stage-item">
                     <div class="stage-name">PYRAMID</div>
-                    <div class="stage-desc">古代エジプト遺跡</div>
+                    <div class="stage-desc" data-ja="古代エジプト遺跡" data-en="Ancient Egyptian Ruins">古代エジプト遺跡</div>
                 </div>
                 <div class="stage-item">
                     <div class="stage-name">PARTHENON</div>
-                    <div class="stage-desc">ギリシャ神殿</div>
+                    <div class="stage-desc" data-ja="ギリシャ神殿" data-en="Greek Temple">ギリシャ神殿</div>
                 </div>
                 <div class="stage-item">
                     <div class="stage-name">FACTORY</div>
-                    <div class="stage-desc">巨大ロボット工場</div>
+                    <div class="stage-desc" data-ja="巨大ロボット工場" data-en="Giant Robot Factory">巨大ロボット工場</div>
                 </div>
                 <div class="stage-item">
                     <div class="stage-name">CAVE</div>
-                    <div class="stage-desc">クリスタル洞窟</div>
+                    <div class="stage-desc" data-ja="クリスタル洞窟" data-en="Crystal Cave">クリスタル洞窟</div>
                 </div>
                 <div class="stage-item">
                     <div class="stage-name">FINAL ARENA</div>
-                    <div class="stage-desc">宇宙アリーナ</div>
+                    <div class="stage-desc" data-ja="宇宙アリーナ" data-en="Space Arena">宇宙アリーナ</div>
                 </div>
             </div>
         </section>
 
         <!-- Tech Stack -->
         <section>
-            <h2 class="section-title">TECH STACK / 技術スタック</h2>
+            <h2 class="section-title" data-ja="TECH STACK / 技術スタック" data-en="TECH STACK">TECH STACK / 技術スタック</h2>
             <div class="tech-list">
                 <span class="tech-item">Vanilla JS (ES6+)</span>
                 <span class="tech-item">HTML5 Canvas</span>
@@ -1037,23 +1107,23 @@
 
         <!-- Version History -->
         <section>
-            <h2 class="section-title">VERSION HISTORY / バージョン履歴</h2>
+            <h2 class="section-title" data-ja="VERSION HISTORY / バージョン履歴" data-en="VERSION HISTORY">VERSION HISTORY / バージョン履歴</h2>
             <div class="version-timeline">
                 <div class="version-item">
                     <div class="version-number">V1</div>
-                    <div class="version-desc">基本対戦システム、SVGスプライト</div>
+                    <div class="version-desc" data-ja="基本対戦システム、SVGスプライト、ジャイロ操作（傾きセンサー）" data-en="Basic battle system, SVG sprites, gyro controls (tilt sensor)">基本対戦システム、SVGスプライト、ジャイロ操作（傾きセンサー）</div>
                 </div>
                 <div class="version-item">
                     <div class="version-number">V2</div>
-                    <div class="version-desc">AI生成フォトリアルスプライト＆背景</div>
+                    <div class="version-desc" data-ja="AI生成フォトリアルスプライト＆背景" data-en="AI-generated photorealistic sprites & backgrounds">AI生成フォトリアルスプライト＆背景</div>
                 </div>
                 <div class="version-item">
                     <div class="version-number">V3</div>
-                    <div class="version-desc">オンライン対戦、アイテムモード、設定同期</div>
+                    <div class="version-desc" data-ja="オンライン対戦（WebRTC P2P、ルームコード共有）、アイテムモード、設定同期" data-en="Online battles (WebRTC P2P, room code sharing), item mode, settings sync">オンライン対戦（WebRTC P2P、ルームコード共有）、アイテムモード、設定同期</div>
                 </div>
                 <div class="version-item">
                     <div class="version-number">V4</div>
-                    <div class="version-desc">魔獣召喚、ガードシステム、ノックダウン、強化AI、新武器（ドラゴン＆メテオ）</div>
+                    <div class="version-desc" data-ja="魔獣召喚、ガードシステム、ノックダウン、強化AI、新武器（ドラゴン＆メテオ）" data-en="Beast summon, guard system, knockdown, enhanced AI, new weapons (Dragon & Meteor)">魔獣召喚、ガードシステム、ノックダウン、強化AI、新武器（ドラゴン＆メテオ）</div>
                 </div>
             </div>
         </section>
@@ -1067,6 +1137,33 @@
     </div>
 
     <script>
+        // Language switching function
+        function setLanguage(lang) {
+            // Update button states
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.innerHTML = text;
+                    }
+                }
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+
+            // Save preference
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
         // Audio Player
         const playBtn = document.getElementById('playBtn');
         const audio = document.getElementById('audioElement');
@@ -1107,6 +1204,27 @@
 
         document.querySelectorAll('section').forEach(section => {
             observer.observe(section);
+        });
+
+        // Initialize language on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            if (savedLang === 'en') {
+                document.querySelectorAll('.lang-btn')[0].classList.remove('active');
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+            }
+            // Apply saved language
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + savedLang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.innerHTML = text;
+                    }
+                }
+            });
+            document.documentElement.lang = savedLang;
         });
     </script>
 </body>

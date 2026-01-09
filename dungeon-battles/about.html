@@ -339,13 +339,52 @@
         audio {
             margin-top: 20px;
         }
+
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 2px solid #4ECDC4;
+            border-radius: 20px;
+            color: #4ECDC4;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+        }
+
+        .lang-btn:hover {
+            background: rgba(78, 205, 196, 0.2);
+            transform: scale(1.1);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-color: transparent;
+        }
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    </div>
+
     <div class="container">
         <header>
             <h1>🎮 DUNGEON BATTLES 🎮</h1>
-            <p class="tagline">縦スクロール型アクションRPG - 究極のボスバトルに挑戦！</p>
+            <p class="tagline" data-ja="縦スクロール型アクションRPG - 究極のボスバトルに挑戦！" data-en="Vertical Scrolling Action RPG - Take on the Ultimate Boss Battle!">縦スクロール型アクションRPG - 究極のボスバトルに挑戦！</p>
         </header>
 
         <div class="game-preview">
@@ -355,89 +394,89 @@
         </div>
 
         <div style="text-align: center; margin: 40px 0;">
-            <a href="index.html" class="play-button">🚀 今すぐプレイ！</a>
+            <a href="index.html" class="play-button" data-ja="🚀 今すぐプレイ！" data-en="🚀 Play Now!">🚀 今すぐプレイ！</a>
         </div>
 
         <div class="features">
             <div class="feature-card">
-                <h3><span class="icon">⚔️</span> バトルシステム</h3>
+                <h3><span class="icon">⚔️</span> <span data-ja="バトルシステム" data-en="Battle System">バトルシステム</span></h3>
                 <ul>
-                    <li>6段階の武器レベルアップシステム</li>
-                    <li>最大4体のオプション（分身）追加</li>
-                    <li>全方向攻撃（12発同時発射）</li>
-                    <li>魔法攻撃で画面クリア＆弾消し</li>
-                    <li>HP連動武器ダウングレードシステム</li>
-                    <li>リアルタイム弾幕シューティング</li>
+                    <li data-ja="6段階の武器レベルアップシステム" data-en="6-level weapon upgrade system">6段階の武器レベルアップシステム</li>
+                    <li data-ja="最大4体のオプション（分身）追加" data-en="Up to 4 options (clones) added">最大4体のオプション（分身）追加</li>
+                    <li data-ja="全方向攻撃（12発同時発射）" data-en="All-direction attack (12 shots simultaneously)">全方向攻撃（12発同時発射）</li>
+                    <li data-ja="魔法攻撃で画面クリア＆弾消し" data-en="Magic attack clears screen and bullets">魔法攻撃で画面クリア＆弾消し</li>
+                    <li data-ja="HP連動武器ダウングレードシステム" data-en="HP-linked weapon downgrade system">HP連動武器ダウングレードシステム</li>
+                    <li data-ja="リアルタイム弾幕シューティング" data-en="Real-time bullet hell shooting">リアルタイム弾幕シューティング</li>
                 </ul>
             </div>
 
             <div class="feature-card">
-                <h3><span class="icon">🎯</span> ゲームプレイ</h3>
+                <h3><span class="icon">🎯</span> <span data-ja="ゲームプレイ" data-en="Gameplay">ゲームプレイ</span></h3>
                 <ul>
-                    <li>5ステージ + ボスバトル</li>
-                    <li>無限ループで難易度上昇</li>
-                    <li>3つの難易度モード選択</li>
-                    <li>スコアシステム＆コンボ機能</li>
-                    <li>多彩なアイテム収集</li>
-                    <li>サウンドエフェクト搭載</li>
+                    <li data-ja="5ステージ + ボスバトル" data-en="5 stages + boss battle">5ステージ + ボスバトル</li>
+                    <li data-ja="無限ループで難易度上昇" data-en="Infinite loop with increasing difficulty">無限ループで難易度上昇</li>
+                    <li data-ja="3つの難易度モード選択" data-en="3 difficulty modes to choose">3つの難易度モード選択</li>
+                    <li data-ja="スコアシステム＆コンボ機能" data-en="Score system & combo feature">スコアシステム＆コンボ機能</li>
+                    <li data-ja="多彩なアイテム収集" data-en="Various item collection">多彩なアイテム収集</li>
+                    <li data-ja="サウンドエフェクト搭載" data-en="Sound effects included">サウンドエフェクト搭載</li>
                 </ul>
             </div>
         </div>
 
         <div class="boss-section">
-            <h2 style="text-align: center; color: #FF0000; margin-bottom: 30px;">
+            <h2 style="text-align: center; color: #FF0000; margin-bottom: 30px;" data-ja="🐲 最終ボス：ドラゴン 🐲" data-en="🐲 Final Boss: Dragon 🐲">
                 🐲 最終ボス：ドラゴン 🐲
             </h2>
             <div class="features">
                 <div class="feature-card" style="background: rgba(139, 0, 139, 0.3);">
-                    <h3><span class="icon">💀</span> ボス特性</h3>
+                    <h3><span class="icon">💀</span> <span data-ja="ボス特性" data-en="Boss Attributes">ボス特性</span></h3>
                     <ul>
-                        <li>HP: 10,000（超耐久力）</li>
-                        <li>ダメージ: 50（即死級）</li>
-                        <li>レーザービーム3方向同時発射</li>
-                        <li>2.5秒間の無敵モード（5秒周期）</li>
-                        <li>魔法攻撃完全無効</li>
-                        <li>開始5秒間の待機時間（右上に出現）</li>
+                        <li data-ja="HP: 10,000（超耐久力）" data-en="HP: 10,000 (Ultra Durability)">HP: 10,000（超耐久力）</li>
+                        <li data-ja="ダメージ: 50（即死級）" data-en="Damage: 50 (Lethal)">ダメージ: 50（即死級）</li>
+                        <li data-ja="レーザービーム3方向同時発射" data-en="3-directional laser beam attack">レーザービーム3方向同時発射</li>
+                        <li data-ja="2.5秒間の無敵モード（5秒周期）" data-en="2.5s invincibility mode (5s cycle)">2.5秒間の無敵モード（5秒周期）</li>
+                        <li data-ja="魔法攻撃完全無効" data-en="Complete magic immunity">魔法攻撃完全無効</li>
+                        <li data-ja="開始5秒間の待機時間（右上に出現）" data-en="5s initial wait time (appears top-right)">開始5秒間の待機時間（右上に出現）</li>
                     </ul>
                 </div>
                 <div class="feature-card" style="background: rgba(255, 0, 0, 0.2);">
-                    <h3><span class="icon">👾</span> ミニオンシステム</h3>
+                    <h3><span class="icon">👾</span> <span data-ja="ミニオンシステム" data-en="Minion System">ミニオンシステム</span></h3>
                     <ul>
-                        <li>スライム、ゴブリン、スケルトン、デーモン</li>
-                        <li>各種族1体ずつ常時配置</li>
-                        <li>倒されると上から自動補充</li>
-                        <li>ボスステージで1.5倍強化</li>
-                        <li>全方向攻撃（ハードモード）</li>
+                        <li data-ja="スライム、ゴブリン、スケルトン、デーモン" data-en="Slime, Goblin, Skeleton, Demon">スライム、ゴブリン、スケルトン、デーモン</li>
+                        <li data-ja="各種族1体ずつ常時配置" data-en="1 of each type always deployed">各種族1体ずつ常時配置</li>
+                        <li data-ja="倒されると上から自動補充" data-en="Auto-respawn from above when defeated">倒されると上から自動補充</li>
+                        <li data-ja="ボスステージで1.5倍強化" data-en="1.5x boost in boss stage">ボスステージで1.5倍強化</li>
+                        <li data-ja="全方向攻撃（ハードモード）" data-en="All-direction attack (Hard mode)">全方向攻撃（ハードモード）</li>
                     </ul>
                 </div>
             </div>
         </div>
 
         <div class="weapon-progression">
-            <h2 style="text-align: center; color: #00FFFF; margin-bottom: 20px;">
+            <h2 style="text-align: center; color: #00FFFF; margin-bottom: 20px;" data-ja="🔫 武器進化システム" data-en="🔫 Weapon Evolution System">
                 🔫 武器進化システム
             </h2>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
                 <div>
-                    <h4 style="color: #FFD700; margin-bottom: 10px;">メイン武器</h4>
+                    <h4 style="color: #FFD700; margin-bottom: 10px;" data-ja="メイン武器" data-en="Main Weapon">メイン武器</h4>
                     <ol style="color: #cbd5e1; line-height: 1.8; padding-left: 20px;">
-                        <li>Level 1: シングルショット</li>
-                        <li>Level 2: 2-WAY拡散</li>
-                        <li>Level 3: 前方3-WAY</li>
-                        <li>Level 4: 前方＋右3-WAY</li>
-                        <li>Level 5: 前方＋右＋左3-WAY</li>
-                        <li>Level 6: 全方向12連射！</li>
+                        <li data-ja="Level 1: シングルショット" data-en="Level 1: Single Shot">Level 1: シングルショット</li>
+                        <li data-ja="Level 2: 2-WAY拡散" data-en="Level 2: 2-WAY Spread">Level 2: 2-WAY拡散</li>
+                        <li data-ja="Level 3: 前方3-WAY" data-en="Level 3: Front 3-WAY">Level 3: 前方3-WAY</li>
+                        <li data-ja="Level 4: 前方＋右3-WAY" data-en="Level 4: Front + Right 3-WAY">Level 4: 前方＋右3-WAY</li>
+                        <li data-ja="Level 5: 前方＋右＋左3-WAY" data-en="Level 5: Front + Right + Left 3-WAY">Level 5: 前方＋右＋左3-WAY</li>
+                        <li data-ja="Level 6: 全方向12連射！" data-en="Level 6: 12-shot All Direction!">Level 6: 全方向12連射！</li>
                     </ol>
                 </div>
                 <div>
-                    <h4 style="color: #FFD700; margin-bottom: 10px;">オプション（分身）</h4>
+                    <h4 style="color: #FFD700; margin-bottom: 10px;" data-ja="オプション（分身）" data-en="Options (Clones)">オプション（分身）</h4>
                     <ol style="color: #cbd5e1; line-height: 1.8; padding-left: 20px;">
-                        <li>メイン武器MAX後に追加</li>
-                        <li>最大4体まで装備可能</li>
-                        <li>各オプション個別にレベルアップ</li>
-                        <li>プレイヤーの周りを回転</li>
-                        <li>装備時プレイヤーが赤く発光</li>
-                        <li>独立した攻撃パターン</li>
+                        <li data-ja="メイン武器MAX後に追加" data-en="Added after main weapon MAX">メイン武器MAX後に追加</li>
+                        <li data-ja="最大4体まで装備可能" data-en="Up to 4 can be equipped">最大4体まで装備可能</li>
+                        <li data-ja="各オプション個別にレベルアップ" data-en="Each option levels up individually">各オプション個別にレベルアップ</li>
+                        <li data-ja="プレイヤーの周りを回転" data-en="Rotates around the player">プレイヤーの周りを回転</li>
+                        <li data-ja="装備時プレイヤーが赤く発光" data-en="Player glows red when equipped">装備時プレイヤーが赤く発光</li>
+                        <li data-ja="独立した攻撃パターン" data-en="Independent attack pattern">独立した攻撃パターン</li>
                     </ol>
                 </div>
             </div>
@@ -445,26 +484,26 @@
 
         <div class="features">
             <div class="feature-card">
-                <h3><span class="icon">💎</span> アイテムシステム</h3>
+                <h3><span class="icon">💎</span> <span data-ja="アイテムシステム" data-en="Item System">アイテムシステム</span></h3>
                 <ul>
-                    <li>HP回復（1分毎に出現）</li>
-                    <li>MP回復（ステージ毎1回）</li>
-                    <li>スピードブースト（1.2倍速/5秒）</li>
-                    <li>武器強化（15-25秒毎に出現）</li>
-                    <li>自動収集システム</li>
-                    <li>アイテム取得時サウンドエフェクト</li>
+                    <li data-ja="HP回復（1分毎に出現）" data-en="HP Recovery (appears every 1 min)">HP回復（1分毎に出現）</li>
+                    <li data-ja="MP回復（ステージ毎1回）" data-en="MP Recovery (once per stage)">MP回復（ステージ毎1回）</li>
+                    <li data-ja="スピードブースト（1.2倍速/5秒）" data-en="Speed Boost (1.2x for 5s)">スピードブースト（1.2倍速/5秒）</li>
+                    <li data-ja="武器強化（15-25秒毎に出現）" data-en="Weapon Upgrade (every 15-25s)">武器強化（15-25秒毎に出現）</li>
+                    <li data-ja="自動収集システム" data-en="Auto-collection system">自動収集システム</li>
+                    <li data-ja="アイテム取得時サウンドエフェクト" data-en="Item pickup sound effects">アイテム取得時サウンドエフェクト</li>
                 </ul>
             </div>
 
             <div class="feature-card">
-                <h3><span class="icon">🎵</span> サウンドシステム</h3>
+                <h3><span class="icon">🎵</span> <span data-ja="サウンドシステム" data-en="Sound System">サウンドシステム</span></h3>
                 <ul>
-                    <li>プレイヤービーム音（高音）</li>
-                    <li>エネミービーム音（低音）</li>
-                    <li>ヒット音エフェクト</li>
-                    <li>爆発音エフェクト</li>
-                    <li>アイテム取得音</li>
-                    <li>Web Audio API使用</li>
+                    <li data-ja="プレイヤービーム音（高音）" data-en="Player beam sound (high pitch)">プレイヤービーム音（高音）</li>
+                    <li data-ja="エネミービーム音（低音）" data-en="Enemy beam sound (low pitch)">エネミービーム音（低音）</li>
+                    <li data-ja="ヒット音エフェクト" data-en="Hit sound effect">ヒット音エフェクト</li>
+                    <li data-ja="爆発音エフェクト" data-en="Explosion sound effect">爆発音エフェクト</li>
+                    <li data-ja="アイテム取得音" data-en="Item pickup sound">アイテム取得音</li>
+                    <li data-ja="Web Audio API使用" data-en="Uses Web Audio API">Web Audio API使用</li>
                 </ul>
             </div>
         </div>
@@ -474,57 +513,57 @@
                 <h3 style="color: #00FF00;">EASY</h3>
                 <p>HP: 150</p>
                 <p>MP: 75</p>
-                <p>敵数: 少</p>
-                <p>初心者向け</p>
+                <p data-ja="敵数: 少" data-en="Enemies: Few">敵数: 少</p>
+                <p data-ja="初心者向け" data-en="For Beginners">初心者向け</p>
             </div>
             <div class="difficulty normal">
                 <h3 style="color: #FFFF00;">NORMAL</h3>
                 <p>HP: 100</p>
                 <p>MP: 50</p>
-                <p>敵数: 標準</p>
-                <p>バランス型</p>
+                <p data-ja="敵数: 標準" data-en="Enemies: Standard">敵数: 標準</p>
+                <p data-ja="バランス型" data-en="Balanced">バランス型</p>
             </div>
             <div class="difficulty hard">
                 <h3 style="color: #FF4444;">HARD</h3>
                 <p>HP: 75</p>
                 <p>MP: 40</p>
-                <p>全方向攻撃</p>
-                <p>上級者向け</p>
+                <p data-ja="全方向攻撃" data-en="All-Direction Attack">全方向攻撃</p>
+                <p data-ja="上級者向け" data-en="For Experts">上級者向け</p>
             </div>
         </div>
 
         <div class="controls">
-            <h2>🎮 操作方法</h2>
+            <h2 data-ja="🎮 操作方法" data-en="🎮 Controls">🎮 操作方法</h2>
             <div class="control-grid">
                 <div class="control-item">
                     <span class="key">↑↓←→</span>
-                    <span class="action">移動（8方向）</span>
+                    <span class="action" data-ja="移動（8方向）" data-en="Move (8 directions)">移動（8方向）</span>
                 </div>
                 <div class="control-item">
                     <span class="key">W A S D</span>
-                    <span class="action">移動（代替キー）</span>
+                    <span class="action" data-ja="移動（代替キー）" data-en="Move (Alt Keys)">移動（代替キー）</span>
                 </div>
                 <div class="control-item">
                     <span class="key">SPACE</span>
-                    <span class="action">通常攻撃</span>
+                    <span class="action" data-ja="通常攻撃" data-en="Normal Attack">通常攻撃</span>
                 </div>
                 <div class="control-item">
                     <span class="key">X</span>
-                    <span class="action">魔法攻撃（MP10消費・弾消し）</span>
+                    <span class="action" data-ja="魔法攻撃（MP10消費・弾消し）" data-en="Magic Attack (10 MP, clears bullets)">魔法攻撃（MP10消費・弾消し）</span>
                 </div>
                 <div class="control-item">
                     <span class="key">P</span>
-                    <span class="action">ポーズ</span>
+                    <span class="action" data-ja="ポーズ" data-en="Pause">ポーズ</span>
                 </div>
                 <div class="control-item">
                     <span class="key">R</span>
-                    <span class="action">リスタート</span>
+                    <span class="action" data-ja="リスタート" data-en="Restart">リスタート</span>
                 </div>
             </div>
         </div>
 
         <div class="audio-section">
-            <h3 style="color: #4ECDC4;">🔊 プロジェクト解説音声</h3>
+            <h3 style="color: #4ECDC4;" data-ja="🔊 プロジェクト解説音声" data-en="🔊 Project Audio Guide">🔊 プロジェクト解説音声</h3>
             <audio controls>
                 <source src="explanation.mp3" type="audio/mpeg">
                 お使いのブラウザは音声再生に対応していません。
@@ -532,7 +571,7 @@
         </div>
 
         <div class="tech-stack">
-            <h3>🛠️ 使用技術</h3>
+            <h3 data-ja="🛠️ 使用技術" data-en="🛠️ Technology Stack">🛠️ 使用技術</h3>
             <div class="tech-badges">
                 <span class="badge">HTML5 Canvas</span>
                 <span class="badge">JavaScript ES6+</span>
@@ -546,7 +585,7 @@
         </div>
 
         <div style="text-align: center; margin: 60px 0;">
-            <a href="index.html" class="play-button">🎮 START GAME 🎮</a>
+            <a href="index.html" class="play-button" data-ja="🎮 START GAME 🎮" data-en="🎮 START GAME 🎮">🎮 START GAME 🎮</a>
         </div>
     </div>
 
@@ -654,6 +693,48 @@
         }
 
         drawDemo();
+
+        // Language switching function
+        function setLanguage(lang) {
+            // Update button states
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+
+            // Save preference
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
+        // Initialize language on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check for saved language preference
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            if (savedLang === 'ja') {
+                setLanguage('ja');
+                document.querySelectorAll('.lang-btn')[0].classList.add('active');
+                document.querySelectorAll('.lang-btn')[1].classList.remove('active');
+            } else {
+                setLanguage('en');
+                document.querySelectorAll('.lang-btn')[0].classList.remove('active');
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+            }
+        });
     </script>
 </body>
 </html>

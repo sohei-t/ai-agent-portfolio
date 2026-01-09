@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About - Space Odyssey Boss Shooting Game</title>
+    <title>Space Odyssey ボスシューティングゲーム - 紹介</title>
     <style>
         * {
             margin: 0;
@@ -348,73 +348,111 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: rgba(20, 20, 40, 0.8);
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            color: #00ffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+        }
+
+        .lang-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            color: #0a0a1a;
+        }
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+    </div>
+
     <!-- Starfield Background -->
     <div class="starfield" id="starfield"></div>
 
     <!-- Hero Section -->
     <section class="hero">
         <h1>SPACE ODYSSEY</h1>
-        <p class="subtitle">Boss Shooting Game</p>
-        <a href="index.html" class="cta-button">Play Now</a>
+        <p class="subtitle" data-ja="ボスシューティングゲーム" data-en="Boss Shooting Game">ボスシューティングゲーム</p>
+        <a href="index.html" class="cta-button" data-ja="今すぐプレイ" data-en="Play Now">今すぐプレイ</a>
     </section>
 
     <!-- Features Section -->
     <div class="container">
         <div class="section-header fade-in">
-            <h2>Epic Features</h2>
-            <p>Experience the ultimate retro arcade shooter</p>
+            <h2 data-ja="ゲームの特徴" data-en="Epic Features">ゲームの特徴</h2>
+            <p data-ja="究極のレトロアーケードシューターを体験しよう" data-en="Experience the ultimate retro arcade shooter">究極のレトロアーケードシューターを体験しよう</p>
         </div>
 
         <div class="features-grid">
             <div class="feature-card fade-in">
                 <div class="feature-icon">🎮</div>
-                <h3>10 Challenging Stages</h3>
-                <p>Progress through increasingly difficult levels with unique enemy patterns and strategic challenges.</p>
+                <h3 data-ja="全10ステージ" data-en="10 Challenging Stages">全10ステージ</h3>
+                <p data-ja="段階的に難易度が上昇し、各ステージ固有の敵パターンと戦略的なチャレンジが待ち受けます。" data-en="Progress through increasingly difficult levels with unique enemy patterns and strategic challenges.">段階的に難易度が上昇し、各ステージ固有の敵パターンと戦略的なチャレンジが待ち受けます。</p>
             </div>
 
             <div class="feature-card fade-in">
                 <div class="feature-icon">👾</div>
-                <h3>Epic Boss Battles</h3>
-                <p>Face powerful bosses at the end of each stage. Master their attack patterns to emerge victorious!</p>
+                <h3 data-ja="迫力のボス戦" data-en="Epic Boss Battles">迫力のボス戦</h3>
+                <p data-ja="各ステージ最後に強力なボスが登場。攻撃パターンをマスターして勝利を掴め！" data-en="Face powerful bosses at the end of each stage. Master their attack patterns to emerge victorious!">各ステージ最後に強力なボスが登場。攻撃パターンをマスターして勝利を掴め！</p>
             </div>
 
             <div class="feature-card fade-in">
                 <div class="feature-icon">📱</div>
-                <h3>Mobile-Optimized</h3>
-                <p>Play anywhere with virtual joystick controls and optional gyroscope support for mobile devices.</p>
+                <h3 data-ja="モバイル最適化" data-en="Mobile-Optimized">モバイル最適化</h3>
+                <p data-ja="バーチャルジョイスティック操作とオプションのジャイロスコープ対応で、どこでもプレイ可能。" data-en="Play anywhere with virtual joystick controls and optional gyroscope support for mobile devices.">バーチャルジョイスティック操作とオプションのジャイロスコープ対応で、どこでもプレイ可能。</p>
             </div>
 
             <div class="feature-card fade-in">
                 <div class="feature-icon">⚡</div>
-                <h3>Power-Up System</h3>
-                <p>Collect weapon upgrades, shields, bombs, and extra lives to enhance your combat capabilities.</p>
+                <h3 data-ja="パワーアップシステム" data-en="Power-Up System">パワーアップシステム</h3>
+                <p data-ja="武器強化、シールド、ボム、残機増加を集めて戦闘能力を強化しよう。" data-en="Collect weapon upgrades, shields, bombs, and extra lives to enhance your combat capabilities.">武器強化、シールド、ボム、残機増加を集めて戦闘能力を強化しよう。</p>
             </div>
 
             <div class="feature-card fade-in">
                 <div class="feature-icon">🎯</div>
-                <h3>Multiple Difficulties</h3>
-                <p>Choose from Easy, Normal, Hard, and Expert modes to match your skill level and challenge yourself.</p>
+                <h3 data-ja="複数の難易度" data-en="Multiple Difficulties">複数の難易度</h3>
+                <p data-ja="イージー、ノーマル、ハード、エキスパートモードから自分のスキルレベルに合わせて選択。" data-en="Choose from Easy, Normal, Hard, and Expert modes to match your skill level and challenge yourself.">イージー、ノーマル、ハード、エキスパートモードから自分のスキルレベルに合わせて選択。</p>
             </div>
 
             <div class="feature-card fade-in">
                 <div class="feature-icon">🏆</div>
-                <h3>High Score System</h3>
-                <p>Track your best performances and compete to beat your own records across all difficulty levels.</p>
+                <h3 data-ja="ハイスコアシステム" data-en="High Score System">ハイスコアシステム</h3>
+                <p data-ja="ベストスコアを記録し、全難易度で自己記録更新を目指そう。" data-en="Track your best performances and compete to beat your own records across all difficulty levels.">ベストスコアを記録し、全難易度で自己記録更新を目指そう。</p>
             </div>
 
             <div class="feature-card fade-in">
                 <div class="feature-icon">⚙️</div>
-                <h3>Smooth 60 FPS</h3>
-                <p>Optimized rendering engine ensures fluid gameplay with consistent 60 frames per second.</p>
+                <h3 data-ja="滑らかな60FPS" data-en="Smooth 60 FPS">滑らかな60FPS</h3>
+                <p data-ja="最適化されたレンダリングエンジンにより、安定した60フレーム/秒のスムーズな動作を実現。" data-en="Optimized rendering engine ensures fluid gameplay with consistent 60 frames per second.">最適化されたレンダリングエンジンにより、安定した60フレーム/秒のスムーズな動作を実現。</p>
             </div>
 
             <div class="feature-card fade-in">
                 <div class="feature-icon">💻</div>
-                <h3>Responsive Design</h3>
-                <p>Seamlessly playable on desktop, tablet, and mobile devices with adaptive controls.</p>
+                <h3 data-ja="レスポンシブデザイン" data-en="Responsive Design">レスポンシブデザイン</h3>
+                <p data-ja="デスクトップ、タブレット、モバイル端末で適応型コントロールによりシームレスにプレイ可能。" data-en="Seamlessly playable on desktop, tablet, and mobile devices with adaptive controls.">デスクトップ、タブレット、モバイル端末で適応型コントロールによりシームレスにプレイ可能。</p>
             </div>
         </div>
     </div>
@@ -422,27 +460,27 @@
     <!-- How to Play Section -->
     <div class="container">
         <div class="section-header fade-in">
-            <h2>How to Play</h2>
-            <p>Get started in three simple steps</p>
+            <h2 data-ja="遊び方" data-en="How to Play">遊び方</h2>
+            <p data-ja="3つの簡単なステップで始めよう" data-en="Get started in three simple steps">3つの簡単なステップで始めよう</p>
         </div>
 
         <div class="steps">
             <div class="step fade-in">
                 <div class="step-number">1</div>
-                <h3>Choose Your Difficulty</h3>
-                <p>Select from Easy, Normal, Hard, or Expert mode based on your skill level and desired challenge.</p>
+                <h3 data-ja="難易度を選択" data-en="Choose Your Difficulty">難易度を選択</h3>
+                <p data-ja="スキルレベルと挑戦したい難度に応じて、イージー、ノーマル、ハード、エキスパートから選択。" data-en="Select from Easy, Normal, Hard, or Expert mode based on your skill level and desired challenge.">スキルレベルと挑戦したい難度に応じて、イージー、ノーマル、ハード、エキスパートから選択。</p>
             </div>
 
             <div class="step fade-in">
                 <div class="step-number">2</div>
-                <h3>Master the Controls</h3>
-                <p>Use arrow keys or WASD to move, Spacebar to shoot. On mobile, use the virtual joystick or tilt controls.</p>
+                <h3 data-ja="操作をマスター" data-en="Master the Controls">操作をマスター</h3>
+                <p data-ja="矢印キーまたはWASDで移動、スペースキーで射撃。モバイルではバーチャルジョイスティックまたは傾きセンサーで操作。" data-en="Use arrow keys or WASD to move, Spacebar to shoot. On mobile, use the virtual joystick or tilt controls.">矢印キーまたはWASDで移動、スペースキーで射撃。モバイルではバーチャルジョイスティックまたは傾きセンサーで操作。</p>
             </div>
 
             <div class="step fade-in">
                 <div class="step-number">3</div>
-                <h3>Defeat the Bosses</h3>
-                <p>Survive through waves of enemies, collect power-ups, and defeat the boss at the end of each stage!</p>
+                <h3 data-ja="ボスを倒せ" data-en="Defeat the Bosses">ボスを倒せ</h3>
+                <p data-ja="敵の波を生き残り、パワーアップを集め、各ステージ最後のボスを撃破しよう！" data-en="Survive through waves of enemies, collect power-ups, and defeat the boss at the end of each stage!">敵の波を生き残り、パワーアップを集め、各ステージ最後のボスを撃破しよう！</p>
             </div>
         </div>
     </div>
@@ -451,8 +489,8 @@
     <div class="container">
         <div class="tech-stack fade-in">
             <div class="section-header">
-                <h2>Technology Stack</h2>
-                <p>Built with modern web technologies</p>
+                <h2 data-ja="技術スタック" data-en="Technology Stack">技術スタック</h2>
+                <p data-ja="最新のWeb技術で構築" data-en="Built with modern web technologies">最新のWeb技術で構築</p>
             </div>
             <div class="tech-list">
                 <span class="tech-badge">HTML5 Canvas</span>
@@ -460,8 +498,8 @@
                 <span class="tech-badge">Web Audio API</span>
                 <span class="tech-badge">Gyroscope API</span>
                 <span class="tech-badge">LocalStorage</span>
-                <span class="tech-badge">Responsive Design</span>
-                <span class="tech-badge">60 FPS Rendering</span>
+                <span class="tech-badge" data-ja="レスポンシブデザイン" data-en="Responsive Design">レスポンシブデザイン</span>
+                <span class="tech-badge" data-ja="60FPSレンダリング" data-en="60 FPS Rendering">60FPSレンダリング</span>
             </div>
         </div>
     </div>
@@ -469,12 +507,12 @@
     <!-- Audio Player Section -->
     <div class="container">
         <div class="audio-section fade-in">
-            <h2>🔊 Audio Walkthrough</h2>
-            <p style="color: #a0a0a0; margin-bottom: 1.5rem;">Listen to a detailed explanation of the game features and mechanics</p>
+            <h2 data-ja="音声ガイド" data-en="Audio Walkthrough">音声ガイド</h2>
+            <p style="color: #a0a0a0; margin-bottom: 1.5rem;" data-ja="ゲームの機能とシステムについての詳細な解説をお聴きください" data-en="Listen to a detailed explanation of the game features and mechanics">ゲームの機能とシステムについての詳細な解説をお聴きください</p>
             <div class="audio-player">
                 <audio controls>
                     <source src="./explanation.mp3" type="audio/mpeg">
-                    Your browser does not support the audio element.
+                    お使いのブラウザは音声再生に対応していません。
                 </audio>
             </div>
         </div>
@@ -482,8 +520,8 @@
 
     <!-- Footer CTA -->
     <div class="footer-cta">
-        <h2>Ready for the Challenge?</h2>
-        <a href="index.html" class="cta-button">Start Playing Now</a>
+        <h2 data-ja="挑戦する準備はできた？" data-en="Ready for the Challenge?">挑戦する準備はできた？</h2>
+        <a href="index.html" class="cta-button" data-ja="今すぐプレイ開始" data-en="Start Playing Now">今すぐプレイ開始</a>
     </div>
 
     <script>
@@ -530,10 +568,44 @@
             });
         }
 
+        // Language switching function
+        function setLanguage(lang) {
+            // Update button states
+            const langBtns = document.querySelectorAll('.lang-btn');
+            langBtns.forEach(btn => btn.classList.remove('active'));
+            if (lang === 'ja') {
+                langBtns[0].classList.add('active');
+            } else {
+                langBtns[1].classList.add('active');
+            }
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+                const text = element.getAttribute('data-' + lang);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang;
+
+            // Save preference
+            localStorage.setItem('preferredLanguage', lang);
+        }
+
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             createStars();
             initScrollAnimations();
+
+            // Check for saved language preference
+            const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+            setLanguage(savedLang);
         });
 
         // Smooth scroll for links

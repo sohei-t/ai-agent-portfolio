@@ -4,11 +4,7 @@
 
 ## Play Now
 
-**[ゲームをプレイ](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/index.html)**
-
-## About
-
-**[プロジェクト解説ページ](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/about.html)** - 技術詳細・開発プロセス・アーキテクチャの解説
+**[ライブデモ](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/about.html)** | **[音声解説](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/explanation.mp3)**
 
 ## Features
 

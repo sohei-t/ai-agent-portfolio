@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About - Space Shooter Game</title>
+  <title>About - スペースシューター</title>
   <style>
     /* ==================== ROOT VARIABLES ==================== */
     :root {
@@ -362,6 +362,40 @@
       animation: fade-in 0.6s ease-out;
     }
 
+    /* ==================== LANGUAGE SWITCHER ==================== */
+    .language-switcher {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+
+    .lang-btn {
+      padding: 8px 16px;
+      background: rgba(26, 26, 46, 0.8);
+      border: 2px solid var(--color-primary);
+      border-radius: 4px;
+      color: var(--color-primary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      font-family: var(--font-mono);
+      font-weight: bold;
+    }
+
+    .lang-btn:hover {
+      background: rgba(0, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+
+    .lang-btn.active {
+      background: var(--color-primary);
+      color: var(--color-background);
+      box-shadow: var(--glow-cyan);
+    }
+
     /* ==================== CORNER DECORATIONS ==================== */
     .corner-decoration {
       position: fixed;
@@ -403,6 +437,12 @@
   </style>
 </head>
 <body>
+  <!-- Language Switcher -->
+  <div class="language-switcher">
+    <button class="lang-btn active" onclick="setLanguage('ja')">日本語</button>
+    <button class="lang-btn" onclick="setLanguage('en')">English</button>
+  </div>
+
   <!-- Corner Decorations -->
   <div class="corner-decoration top-left"></div>
   <div class="corner-decoration top-right"></div>
@@ -413,190 +453,190 @@
     <!-- Header -->
     <header>
       <h1>SPACE SHOOTER</h1>
-      <p class="subtitle">A Modern Take on Classic Arcade Action</p>
+      <p class="subtitle" data-ja="クラシックアーケードゲームの現代的リメイク" data-en="A Modern Remake of Classic Arcade Game">クラシックアーケードゲームの現代的リメイク</p>
       <div class="nav-links">
-        <a href="src/index.html">Play Game</a>
-        <a href="#overview">Overview</a>
-        <a href="#features">Features</a>
-        <a href="#technical">Technical</a>
-        <a href="#development">Development</a>
+        <a href="src/index.html" data-ja="ゲームをプレイ" data-en="Play Game">ゲームをプレイ</a>
+        <a href="#overview" data-ja="概要" data-en="Overview">概要</a>
+        <a href="#features" data-ja="機能" data-en="Features">機能</a>
+        <a href="#technical" data-ja="技術" data-en="Technical">技術</a>
+        <a href="#development" data-ja="開発" data-en="Development">開発</a>
       </div>
     </header>
 
     <!-- Audio Narration -->
     <section style="text-align: center; margin: 30px 0;">
-      <h3 style="color: var(--color-accent); margin-bottom: 15px;">🎙️ プロジェクト解説音声</h3>
+      <h3 style="color: var(--color-accent); margin-bottom: 15px;" data-ja="プロジェクト解説音声" data-en="Project Audio Walkthrough">プロジェクト解説音声</h3>
       <audio controls style="width: 100%; max-width: 500px;">
         <source src="explanation.mp3" type="audio/mpeg">
         お使いのブラウザは音声再生に対応していません。
       </audio>
-      <p style="color: var(--color-text-dim); font-size: 14px; margin-top: 10px;">
+      <p style="color: var(--color-text-dim); font-size: 14px; margin-top: 10px;" data-ja="約2分30秒の日本語解説（Google Cloud Text-to-Speech Neural2音声）" data-en="Approximately 2.5 minutes Japanese narration (Google Cloud Text-to-Speech Neural2)">
         約2分30秒の日本語解説（Google Cloud Text-to-Speech Neural2音声）
       </p>
     </section>
 
     <!-- Overview Section -->
     <section id="overview">
-      <h2>Project Overview</h2>
-      <p>
-        Space Shooter is a browser-based arcade game inspired by the classic Space Invaders,
-        rebuilt with modern web technologies and enhanced with contemporary game design principles.
-        Featuring a cyberpunk neon aesthetic, responsive design, and advanced gameplay mechanics,
-        this project demonstrates the power of HTML5 Canvas and vanilla JavaScript.
+      <h2 data-ja="プロジェクト概要" data-en="Project Overview">プロジェクト概要</h2>
+      <p data-ja="Space Shooterは、クラシックなスペースインベーダーにインスパイアされたブラウザベースのアーケードゲームです。現代的なWeb技術で再構築され、最新のゲームデザイン原則で強化されています。サイバーパンクなネオン美学、レスポンシブデザイン、高度なゲームプレイメカニクスを特徴とし、HTML5 CanvasとバニラJavaScriptの可能性を示すプロジェクトです。" data-en="Space Shooter is a browser-based arcade game inspired by the classic Space Invaders. Rebuilt with modern web technologies and enhanced with the latest game design principles. Featuring cyberpunk neon aesthetics, responsive design, and advanced gameplay mechanics, this project demonstrates the potential of HTML5 Canvas and vanilla JavaScript.">
+        Space Shooterは、クラシックなスペースインベーダーにインスパイアされたブラウザベースのアーケードゲームです。
+        現代的なWeb技術で再構築され、最新のゲームデザイン原則で強化されています。
+        サイバーパンクなネオン美学、レスポンシブデザイン、高度なゲームプレイメカニクスを特徴とし、
+        HTML5 CanvasとバニラJavaScriptの可能性を示すプロジェクトです。
       </p>
 
       <div class="stats">
         <div class="stat">
           <span class="stat-value">14</span>
-          <span class="stat-label">Modules</span>
+          <span class="stat-label" data-ja="モジュール" data-en="Modules">モジュール</span>
         </div>
         <div class="stat">
           <span class="stat-value">92.24%</span>
-          <span class="stat-label">Test Coverage</span>
+          <span class="stat-label" data-ja="テストカバレッジ" data-en="Test Coverage">テストカバレッジ</span>
         </div>
         <div class="stat">
           <span class="stat-value">615</span>
-          <span class="stat-label">Tests</span>
+          <span class="stat-label" data-ja="テスト数" data-en="Tests">テスト数</span>
         </div>
         <div class="stat">
           <span class="stat-value">60</span>
-          <span class="stat-label">Target FPS</span>
+          <span class="stat-label" data-ja="目標FPS" data-en="Target FPS">目標FPS</span>
         </div>
       </div>
 
-      <p>
-        Built entirely without frameworks, this game showcases clean architecture,
-        comprehensive testing, and performance optimization techniques. The codebase
-        follows software engineering best practices with modular design, extensive
-        documentation, and maintainable code structure.
+      <p data-ja="フレームワークを一切使用せずに構築されたこのゲームは、クリーンなアーキテクチャ、包括的なテスト、パフォーマンス最適化技術を実演しています。コードベースはモジュラー設計、詳細なドキュメント、保守性の高いコード構造といったソフトウェアエンジニアリングのベストプラクティスに従っています。" data-en="Built without any frameworks, this game demonstrates clean architecture, comprehensive testing, and performance optimization techniques. The codebase follows software engineering best practices including modular design, detailed documentation, and maintainable code structure.">
+        フレームワークを一切使用せずに構築されたこのゲームは、クリーンなアーキテクチャ、
+        包括的なテスト、パフォーマンス最適化技術を実演しています。コードベースは
+        モジュラー設計、詳細なドキュメント、保守性の高いコード構造といった
+        ソフトウェアエンジニアリングのベストプラクティスに従っています。
       </p>
     </section>
 
     <!-- Key Features -->
     <section id="features">
-      <h2>Key Features</h2>
+      <h2 data-ja="主な機能" data-en="Key Features">主な機能</h2>
 
-      <h3>Gameplay Innovations</h3>
+      <h3 data-ja="ゲームプレイの革新" data-en="Gameplay Innovations">ゲームプレイの革新</h3>
       <div class="feature-grid">
         <div class="feature-card">
-          <h3>Power-Up System</h3>
-          <p>Three unique power-ups that can stack for strategic gameplay:</p>
+          <h3 data-ja="パワーアップシステム" data-en="Power-Up System">パワーアップシステム</h3>
+          <p data-ja="戦略的なゲームプレイのために組み合わせ可能な3種類のパワーアップ:" data-en="Three types of combinable power-ups for strategic gameplay:">戦略的なゲームプレイのために組み合わせ可能な3種類のパワーアップ:</p>
           <ul>
-            <li><strong>Rapid Fire:</strong> Double your shooting speed (300ms → 150ms)</li>
-            <li><strong>Shield:</strong> Temporary invincibility with visual effects</li>
-            <li><strong>Multi-Shot:</strong> Fire 3 bullets in spread pattern</li>
+            <li data-ja="連射: 射撃速度が2倍に (300ms → 150ms)" data-en="Rapid Fire: Double firing rate (300ms → 150ms)"><strong>連射:</strong> 射撃速度が2倍に (300ms → 150ms)</li>
+            <li data-ja="シールド: 視覚効果付きの一時的無敵状態" data-en="Shield: Temporary invincibility with visual effects"><strong>シールド:</strong> 視覚効果付きの一時的無敵状態</li>
+            <li data-ja="マルチショット: 扇状に3発の弾を発射" data-en="Multi-Shot: Fire 3 bullets in a spread pattern"><strong>マルチショット:</strong> 扇状に3発の弾を発射</li>
           </ul>
-          <p>Stack up to 3 power-ups simultaneously with independent timers.</p>
+          <p data-ja="独立したタイマーで最大3つのパワーアップを同時に重ね掛け可能。" data-en="Stack up to 3 power-ups simultaneously with independent timers.">独立したタイマーで最大3つのパワーアップを同時に重ね掛け可能。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Combo System</h3>
-          <p>Reward precise play with score multipliers:</p>
+          <h3 data-ja="コンボシステム" data-en="Combo System">コンボシステム</h3>
+          <p data-ja="精密なプレイにスコア倍率で報酬:" data-en="Reward precise play with score multipliers:">精密なプレイにスコア倍率で報酬:</p>
           <ul>
-            <li><strong>2x multiplier</strong> at 5 consecutive hits</li>
-            <li><strong>3x multiplier</strong> at 10+ consecutive hits</li>
-            <li>Resets after 2 seconds or missed shots</li>
+            <li data-ja="5連続ヒットで2倍" data-en="2x multiplier at 5 consecutive hits">5連続ヒットで<strong>2倍</strong></li>
+            <li data-ja="10連続以上で3倍" data-en="3x multiplier at 10+ consecutive hits">10連続以上で<strong>3倍</strong></li>
+            <li data-ja="2秒経過またはミスでリセット" data-en="Reset after 2 seconds or on miss">2秒経過またはミスでリセット</li>
           </ul>
-          <p>Master the combo system to achieve high scores!</p>
+          <p data-ja="コンボシステムをマスターしてハイスコアを目指そう!" data-en="Master the combo system to achieve high scores!">コンボシステムをマスターしてハイスコアを目指そう!</p>
         </div>
 
         <div class="feature-card">
-          <h3>Adaptive Performance</h3>
-          <p>Automatically adjusts quality based on device capabilities:</p>
+          <h3 data-ja="適応型パフォーマンス" data-en="Adaptive Performance">適応型パフォーマンス</h3>
+          <p data-ja="デバイスの性能に応じて自動的に品質を調整:" data-en="Automatically adjust quality based on device performance:">デバイスの性能に応じて自動的に品質を調整:</p>
           <ul>
-            <li><strong>60 FPS</strong> on high-end devices</li>
-            <li><strong>45 FPS</strong> on mid-range devices</li>
-            <li><strong>30 FPS</strong> minimum on older hardware</li>
+            <li data-ja="ハイエンドデバイスで60 FPS" data-en="60 FPS on high-end devices">ハイエンドデバイスで<strong>60 FPS</strong></li>
+            <li data-ja="ミッドレンジデバイスで45 FPS" data-en="45 FPS on mid-range devices">ミッドレンジデバイスで<strong>45 FPS</strong></li>
+            <li data-ja="旧型ハードウェアで最低30 FPS" data-en="Minimum 30 FPS on older hardware">旧型ハードウェアで最低<strong>30 FPS</strong></li>
           </ul>
-          <p>Reduces particle effects when FPS drops below 40.</p>
+          <p data-ja="FPSが40以下になるとパーティクルエフェクトを削減。" data-en="Reduce particle effects when FPS drops below 40.">FPSが40以下になるとパーティクルエフェクトを削減。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Responsive Design</h3>
-          <p>Perfect gameplay on any device:</p>
+          <h3 data-ja="レスポンシブデザイン" data-en="Responsive Design">レスポンシブデザイン</h3>
+          <p data-ja="あらゆるデバイスで最適なゲームプレイ:" data-en="Optimal gameplay on any device:">あらゆるデバイスで最適なゲームプレイ:</p>
           <ul>
-            <li>Fixed 4:3 aspect ratio (800×600 logical)</li>
-            <li>CSS scaling from 320px to 2560px</li>
-            <li>Touch controls on mobile devices</li>
-            <li>Landscape and portrait support</li>
+            <li data-ja="固定4:3アスペクト比 (800×600論理サイズ)" data-en="Fixed 4:3 aspect ratio (800×600 logical size)">固定4:3アスペクト比 (800×600論理サイズ)</li>
+            <li data-ja="320pxから2560pxまでCSSスケーリング" data-en="CSS scaling from 320px to 2560px">320pxから2560pxまでCSSスケーリング</li>
+            <li data-ja="モバイルデバイスでのタッチ操作" data-en="Touch controls on mobile devices">モバイルデバイスでのタッチ操作</li>
+            <li data-ja="横向き・縦向き両対応" data-en="Landscape and portrait support">横向き・縦向き両対応</li>
           </ul>
-          <p>30% larger touch zones for comfortable mobile play.</p>
+          <p data-ja="快適なモバイルプレイのため30%大きなタッチゾーン。" data-en="30% larger touch zones for comfortable mobile play.">快適なモバイルプレイのため30%大きなタッチゾーン。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Enemy AI</h3>
-          <p>Classic movement with modern precision:</p>
+          <h3 data-ja="敵AI" data-en="Enemy AI">敵AI</h3>
+          <p data-ja="現代的な精度を持つクラシックな動き:" data-en="Classic movement with modern precision:">現代的な精度を持つクラシックな動き:</p>
           <ul>
-            <li>5×11 grid formation (55 enemies)</li>
-            <li>Synchronized movement patterns</li>
-            <li>Speed increases 10% per wave</li>
-            <li>1% random fire rate per enemy per frame</li>
+            <li data-ja="5×11グリッド編成 (55体の敵)" data-en="5×11 grid formation (55 enemies)">5×11グリッド編成 (55体の敵)</li>
+            <li data-ja="同期した移動パターン" data-en="Synchronized movement patterns">同期した移動パターン</li>
+            <li data-ja="ウェーブごとに速度10%増加" data-en="10% speed increase per wave">ウェーブごとに速度10%増加</li>
+            <li data-ja="敵1体につきフレームあたり1%の発射確率" data-en="1% fire probability per enemy per frame">敵1体につきフレームあたり1%の発射確率</li>
           </ul>
-          <p>Progressive difficulty scaling for long-term engagement.</p>
+          <p data-ja="長時間のエンゲージメントのための段階的な難易度スケーリング。" data-en="Progressive difficulty scaling for extended engagement.">長時間のエンゲージメントのための段階的な難易度スケーリング。</p>
         </div>
 
         <div class="feature-card">
-          <h3>Visual Effects</h3>
-          <p>Cyberpunk neon aesthetic with particle systems:</p>
+          <h3 data-ja="ビジュアルエフェクト" data-en="Visual Effects">ビジュアルエフェクト</h3>
+          <p data-ja="パーティクルシステムを備えたサイバーパンクネオン美学:" data-en="Cyberpunk neon aesthetics with particle system:">パーティクルシステムを備えたサイバーパンクネオン美学:</p>
           <ul>
-            <li>Explosion particles on enemy destruction</li>
-            <li>Power-up glow effects</li>
-            <li>Neon color palette (cyan/magenta/yellow)</li>
-            <li>Smooth animations at 60 FPS</li>
+            <li data-ja="敵破壊時の爆発パーティクル" data-en="Explosion particles on enemy destruction">敵破壊時の爆発パーティクル</li>
+            <li data-ja="パワーアップのグローエフェクト" data-en="Glow effects for power-ups">パワーアップのグローエフェクト</li>
+            <li data-ja="ネオンカラーパレット (シアン/マゼンタ/イエロー)" data-en="Neon color palette (Cyan/Magenta/Yellow)">ネオンカラーパレット (シアン/マゼンタ/イエロー)</li>
+            <li data-ja="60 FPSでのスムーズなアニメーション" data-en="Smooth animation at 60 FPS">60 FPSでのスムーズなアニメーション</li>
           </ul>
-          <p>Up to 100 particles on high-end devices.</p>
+          <p data-ja="ハイエンドデバイスで最大100パーティクル。" data-en="Up to 100 particles on high-end devices.">ハイエンドデバイスで最大100パーティクル。</p>
         </div>
       </div>
     </section>
 
     <!-- Technical Architecture -->
     <section id="technical">
-      <h2>Technical Architecture</h2>
+      <h2 data-ja="技術アーキテクチャ" data-en="Technical Architecture">技術アーキテクチャ</h2>
 
-      <h3>14-Module System</h3>
-      <p>
-        The game is built on a clean, modular architecture with clear separation of concerns:
+      <h3 data-ja="14モジュールシステム" data-en="14-Module System">14モジュールシステム</h3>
+      <p data-ja="このゲームは、明確な責務分離を持つクリーンでモジュラーなアーキテクチャ上に構築されています:" data-en="This game is built on a clean, modular architecture with clear separation of concerns:">
+        このゲームは、明確な責務分離を持つクリーンでモジュラーなアーキテクチャ上に構築されています:
       </p>
 
-      <h4>Core Modules (4)</h4>
+      <h4 data-ja="コアモジュール (4)" data-en="Core Modules (4)">コアモジュール (4)</h4>
       <ul>
-        <li><strong>Game.js:</strong> Main game loop, state machine (MENU → PLAYING → PAUSED → GAME_OVER)</li>
-        <li><strong>Canvas.js:</strong> Rendering engine with responsive scaling</li>
-        <li><strong>InputHandler.js:</strong> Unified keyboard and touch input</li>
-        <li><strong>PerformanceMonitor.js:</strong> FPS tracking and adaptive quality</li>
+        <li data-ja="Game.js: メインゲームループ、ステートマシン (MENU → PLAYING → PAUSED → GAME_OVER)" data-en="Game.js: Main game loop, state machine (MENU → PLAYING → PAUSED → GAME_OVER)"><strong>Game.js:</strong> メインゲームループ、ステートマシン (MENU → PLAYING → PAUSED → GAME_OVER)</li>
+        <li data-ja="Canvas.js: レスポンシブスケーリング対応のレンダリングエンジン" data-en="Canvas.js: Rendering engine with responsive scaling"><strong>Canvas.js:</strong> レスポンシブスケーリング対応のレンダリングエンジン</li>
+        <li data-ja="InputHandler.js: キーボードとタッチの統合入力" data-en="InputHandler.js: Unified keyboard and touch input"><strong>InputHandler.js:</strong> キーボードとタッチの統合入力</li>
+        <li data-ja="PerformanceMonitor.js: FPSトラッキングと適応品質調整" data-en="PerformanceMonitor.js: FPS tracking and adaptive quality adjustment"><strong>PerformanceMonitor.js:</strong> FPSトラッキングと適応品質調整</li>
       </ul>
 
-      <h4>Entity Modules (4)</h4>
+      <h4 data-ja="エンティティモジュール (4)" data-en="Entity Modules (4)">エンティティモジュール (4)</h4>
       <ul>
-        <li><strong>Player.js:</strong> Player entity with movement, shooting, and lives</li>
-        <li><strong>Enemy.js:</strong> Enemy entity and grid management (5-step movement algorithm)</li>
-        <li><strong>Bullet.js:</strong> Projectile entity for both player and enemies</li>
-        <li><strong>PowerUp.js:</strong> Power-up drops with 3 types</li>
+        <li data-ja="Player.js: 移動、射撃、ライフを持つプレイヤーエンティティ" data-en="Player.js: Player entity with movement, shooting, and lives"><strong>Player.js:</strong> 移動、射撃、ライフを持つプレイヤーエンティティ</li>
+        <li data-ja="Enemy.js: 敵エンティティとグリッド管理 (5ステップ移動アルゴリズム)" data-en="Enemy.js: Enemy entity and grid management (5-step movement algorithm)"><strong>Enemy.js:</strong> 敵エンティティとグリッド管理 (5ステップ移動アルゴリズム)</li>
+        <li data-ja="Bullet.js: プレイヤーと敵両方の弾エンティティ" data-en="Bullet.js: Bullet entity for both player and enemies"><strong>Bullet.js:</strong> プレイヤーと敵両方の弾エンティティ</li>
+        <li data-ja="PowerUp.js: 3種類のパワーアップドロップ" data-en="PowerUp.js: 3 types of power-up drops"><strong>PowerUp.js:</strong> 3種類のパワーアップドロップ</li>
       </ul>
 
-      <h4>System Modules (4)</h4>
+      <h4 data-ja="システムモジュール (4)" data-en="System Modules (4)">システムモジュール (4)</h4>
       <ul>
-        <li><strong>CollisionSystem.js:</strong> AABB collision detection (<10ms for 5,500 checks)</li>
-        <li><strong>PowerUpSystem.js:</strong> Power-up state, stacking rules, and timers</li>
-        <li><strong>ScoreSystem.js:</strong> Score calculation with combo multipliers</li>
-        <li><strong>ParticleSystem.js:</strong> Explosion effects and visual feedback</li>
+        <li data-ja="CollisionSystem.js: AABB衝突検出 (5,500回のチェックで10ms未満)" data-en="CollisionSystem.js: AABB collision detection (5,500 checks in under 10ms)"><strong>CollisionSystem.js:</strong> AABB衝突検出 (5,500回のチェックで10ms未満)</li>
+        <li data-ja="PowerUpSystem.js: パワーアップ状態、重ね掛けルール、タイマー" data-en="PowerUpSystem.js: Power-up state, stacking rules, timers"><strong>PowerUpSystem.js:</strong> パワーアップ状態、重ね掛けルール、タイマー</li>
+        <li data-ja="ScoreSystem.js: コンボ倍率付きスコア計算" data-en="ScoreSystem.js: Score calculation with combo multipliers"><strong>ScoreSystem.js:</strong> コンボ倍率付きスコア計算</li>
+        <li data-ja="ParticleSystem.js: 爆発エフェクトと視覚フィードバック" data-en="ParticleSystem.js: Explosion effects and visual feedback"><strong>ParticleSystem.js:</strong> 爆発エフェクトと視覚フィードバック</li>
       </ul>
 
-      <h4>UI Modules (3)</h4>
+      <h4 data-ja="UIモジュール (3)" data-en="UI Modules (3)">UIモジュール (3)</h4>
       <ul>
-        <li><strong>Menu.js:</strong> Start menu screen</li>
-        <li><strong>HUD.js:</strong> In-game display (score, lives, power-ups, combo)</li>
-        <li><strong>GameOver.js:</strong> End screen with restart option</li>
+        <li data-ja="Menu.js: スタートメニュー画面" data-en="Menu.js: Start menu screen"><strong>Menu.js:</strong> スタートメニュー画面</li>
+        <li data-ja="HUD.js: ゲーム内表示 (スコア、ライフ、パワーアップ、コンボ)" data-en="HUD.js: In-game display (score, lives, power-ups, combo)"><strong>HUD.js:</strong> ゲーム内表示 (スコア、ライフ、パワーアップ、コンボ)</li>
+        <li data-ja="GameOver.js: リスタートオプション付きエンド画面" data-en="GameOver.js: End screen with restart option"><strong>GameOver.js:</strong> リスタートオプション付きエンド画面</li>
       </ul>
 
-      <h4>Utility Modules (2)</h4>
+      <h4 data-ja="ユーティリティモジュール (2)" data-en="Utility Modules (2)">ユーティリティモジュール (2)</h4>
       <ul>
-        <li><strong>Vector2D.js:</strong> 2D vector mathematics</li>
-        <li><strong>Config.js:</strong> Centralized game configuration</li>
+        <li data-ja="Vector2D.js: 2Dベクトル演算" data-en="Vector2D.js: 2D vector operations"><strong>Vector2D.js:</strong> 2Dベクトル演算</li>
+        <li data-ja="Config.js: 一元化されたゲーム設定" data-en="Config.js: Centralized game configuration"><strong>Config.js:</strong> 一元化されたゲーム設定</li>
       </ul>
 
-      <h3>Performance Optimizations</h3>
-      <pre><code>// AABB Collision Detection (O(n*m) optimized)
+      <h3 data-ja="パフォーマンス最適化" data-en="Performance Optimization">パフォーマンス最適化</h3>
+      <pre><code>// AABB衝突検出 (O(n*m) 最適化済み)
 CollisionSystem.checkCollision(rect1, rect2) {
   return !(
     rect1.right < rect2.left ||
@@ -606,15 +646,15 @@ CollisionSystem.checkCollision(rect1, rect2) {
   );
 }
 
-// Adaptive Quality System
+// 適応品質システム
 if (avgFPS < 40) {
-  particleSystem.maxParticles = 50;  // Reduce quality
+  particleSystem.maxParticles = 50;  // 品質を下げる
 } else {
-  particleSystem.maxParticles = 100; // High quality
+  particleSystem.maxParticles = 100; // 高品質
 }</code></pre>
 
-      <h3>Canvas Scaling Algorithm</h3>
-      <pre><code>// Maintain 4:3 aspect ratio while fitting viewport
+      <h3 data-ja="Canvasスケーリングアルゴリズム" data-en="Canvas Scaling Algorithm">Canvasスケーリングアルゴリズム</h3>
+      <pre><code>// ビューポートに収まるよう4:3アスペクト比を維持
 const LOGICAL_WIDTH = 800;
 const LOGICAL_HEIGHT = 600;
 
@@ -627,10 +667,10 @@ function resizeCanvas() {
   canvas.style.height = `${LOGICAL_HEIGHT * scale}px`;
 }</code></pre>
 
-      <h3>Browser Compatibility</h3>
-      <p>Works on all modern browsers with HTML5 Canvas support:</p>
+      <h3 data-ja="ブラウザ互換性" data-en="Browser Compatibility">ブラウザ互換性</h3>
+      <p data-ja="HTML5 Canvasをサポートするすべての最新ブラウザで動作:" data-en="Works on all modern browsers that support HTML5 Canvas:">HTML5 Canvasをサポートするすべての最新ブラウザで動作:</p>
       <ul>
-        <li>Chrome 90+ (recommended)</li>
+        <li data-ja="Chrome 90+ (推奨)" data-en="Chrome 90+ (Recommended)">Chrome 90+ (推奨)</li>
         <li>Firefox 88+</li>
         <li>Safari 14+</li>
         <li>Edge 90+</li>
@@ -639,155 +679,195 @@ function resizeCanvas() {
 
     <!-- Development Process -->
     <section id="development">
-      <h2>Development Process</h2>
+      <h2 data-ja="開発プロセス" data-en="Development Process">開発プロセス</h2>
 
-      <h3>AI-Assisted Workflow</h3>
-      <p>
-        This project was developed using an advanced AI-assisted workflow with multiple
-        specialized sub-agents handling different aspects of development:
+      <h3 data-ja="AI支援ワークフロー" data-en="AI-Assisted Workflow">AI支援ワークフロー</h3>
+      <p data-ja="このプロジェクトは、開発の異なる側面を処理する複数の専門サブエージェントを使用した高度なAI支援ワークフローで開発されました:" data-en="This project was developed with an advanced AI-assisted workflow using multiple specialized sub-agents to handle different aspects of development:">
+        このプロジェクトは、開発の異なる側面を処理する複数の専門サブエージェントを使用した
+        高度なAI支援ワークフローで開発されました:
       </p>
 
       <ol>
-        <li><strong>Requirements Analysis:</strong> Comprehensive requirements document with functional and non-functional specs</li>
-        <li><strong>Work Breakdown Structure:</strong> 30 tasks organized into 9 parallel execution groups</li>
-        <li><strong>Test Design:</strong> 615 tests designed before implementation (TDD approach)</li>
-        <li><strong>Parallel Implementation:</strong> Core, entities, systems, and UI modules built simultaneously</li>
-        <li><strong>Quality Assurance:</strong> 3 improvement loops for performance and code quality</li>
-        <li><strong>Documentation:</strong> Comprehensive docs (README, API, GAMEPLAY)</li>
+        <li data-ja="要件分析: 機能要件と非機能要件を含む包括的な要件ドキュメント" data-en="Requirements Analysis: Comprehensive requirements document with functional and non-functional requirements"><strong>要件分析:</strong> 機能要件と非機能要件を含む包括的な要件ドキュメント</li>
+        <li data-ja="作業分解構造: 9つの並列実行グループに整理された30タスク" data-en="Work Breakdown Structure: 30 tasks organized into 9 parallel execution groups"><strong>作業分解構造:</strong> 9つの並列実行グループに整理された30タスク</li>
+        <li data-ja="テスト設計: 実装前に設計された615テスト (TDDアプローチ)" data-en="Test Design: 615 tests designed before implementation (TDD approach)"><strong>テスト設計:</strong> 実装前に設計された615テスト (TDDアプローチ)</li>
+        <li data-ja="並列実装: コア、エンティティ、システム、UIモジュールを同時構築" data-en="Parallel Implementation: Simultaneous building of core, entity, system, and UI modules"><strong>並列実装:</strong> コア、エンティティ、システム、UIモジュールを同時構築</li>
+        <li data-ja="品質保証: パフォーマンスとコード品質のための3回の改善ループ" data-en="Quality Assurance: 3 improvement loops for performance and code quality"><strong>品質保証:</strong> パフォーマンスとコード品質のための3回の改善ループ</li>
+        <li data-ja="ドキュメント: 包括的なドキュメント (README, API, GAMEPLAY)" data-en="Documentation: Comprehensive documentation (README, API, GAMEPLAY)"><strong>ドキュメント:</strong> 包括的なドキュメント (README, API, GAMEPLAY)</li>
       </ol>
 
-      <h3>Test-Driven Development</h3>
-      <p>
-        The entire codebase was built using TDD principles, achieving exceptional test coverage:
+      <h3 data-ja="テスト駆動開発" data-en="Test-Driven Development">テスト駆動開発</h3>
+      <p data-ja="コードベース全体がTDD原則を使用して構築され、優れたテストカバレッジを達成:" data-en="The entire codebase was built using TDD principles, achieving excellent test coverage:">
+        コードベース全体がTDD原則を使用して構築され、優れたテストカバレッジを達成:
       </p>
 
       <div class="stats">
         <div class="stat">
           <span class="stat-value">90</span>
-          <span class="stat-label">Core Tests</span>
+          <span class="stat-label" data-ja="コアテスト" data-en="Core Tests">コアテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">120</span>
-          <span class="stat-label">Entity Tests</span>
+          <span class="stat-label" data-ja="エンティティテスト" data-en="Entity Tests">エンティティテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">190</span>
-          <span class="stat-label">System Tests</span>
+          <span class="stat-label" data-ja="システムテスト" data-en="System Tests">システムテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">165</span>
-          <span class="stat-label">UI Tests</span>
+          <span class="stat-label" data-ja="UIテスト" data-en="UI Tests">UIテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">40</span>
-          <span class="stat-label">Utility Tests</span>
+          <span class="stat-label" data-ja="ユーティリティテスト" data-en="Utility Tests">ユーティリティテスト</span>
         </div>
         <div class="stat">
           <span class="stat-value">80</span>
-          <span class="stat-label">Integration & E2E</span>
+          <span class="stat-label" data-ja="統合 & E2E" data-en="Integration & E2E">統合 & E2E</span>
         </div>
       </div>
 
-      <h3>Quality Metrics</h3>
+      <h3 data-ja="品質メトリクス" data-en="Quality Metrics">品質メトリクス</h3>
       <ul>
-        <li><strong>Statement Coverage:</strong> 88% (target: 80%)</li>
-        <li><strong>Branch Coverage:</strong> 82% (target: 75%)</li>
-        <li><strong>Function Coverage:</strong> 90% (target: 85%)</li>
-        <li><strong>Line Coverage:</strong> 87% (target: 80%)</li>
+        <li data-ja="ステートメントカバレッジ: 88% (目標: 80%)" data-en="Statement Coverage: 88% (Target: 80%)"><strong>ステートメントカバレッジ:</strong> 88% (目標: 80%)</li>
+        <li data-ja="ブランチカバレッジ: 82% (目標: 75%)" data-en="Branch Coverage: 82% (Target: 75%)"><strong>ブランチカバレッジ:</strong> 82% (目標: 75%)</li>
+        <li data-ja="関数カバレッジ: 90% (目標: 85%)" data-en="Function Coverage: 90% (Target: 85%)"><strong>関数カバレッジ:</strong> 90% (目標: 85%)</li>
+        <li data-ja="行カバレッジ: 87% (目標: 80%)" data-en="Line Coverage: 87% (Target: 80%)"><strong>行カバレッジ:</strong> 87% (目標: 80%)</li>
       </ul>
 
-      <h3>Project Timeline</h3>
-      <p>
-        Development completed in 2.5 days through optimized parallel execution:
+      <h3 data-ja="プロジェクトタイムライン" data-en="Project Timeline">プロジェクトタイムライン</h3>
+      <p data-ja="最適化された並列実行により2.5日で開発完了:" data-en="Completed in 2.5 days with optimized parallel execution:">
+        最適化された並列実行により2.5日で開発完了:
       </p>
       <ul>
-        <li><strong>Day 1:</strong> Core engine, entity classes, test infrastructure</li>
-        <li><strong>Day 2:</strong> Game systems, UI components, integration</li>
-        <li><strong>Day 2.5:</strong> Testing, optimization, documentation</li>
+        <li data-ja="1日目: コアエンジン、エンティティクラス、テストインフラ" data-en="Day 1: Core engine, entity classes, test infrastructure"><strong>1日目:</strong> コアエンジン、エンティティクラス、テストインフラ</li>
+        <li data-ja="2日目: ゲームシステム、UIコンポーネント、統合" data-en="Day 2: Game systems, UI components, integration"><strong>2日目:</strong> ゲームシステム、UIコンポーネント、統合</li>
+        <li data-ja="2.5日目: テスト、最適化、ドキュメント" data-en="Day 2.5: Testing, optimization, documentation"><strong>2.5日目:</strong> テスト、最適化、ドキュメント</li>
       </ul>
 
-      <h3>Tech Stack</h3>
+      <h3 data-ja="技術スタック" data-en="Technology Stack">技術スタック</h3>
       <ul>
-        <li><strong>Language:</strong> ES6+ JavaScript (classes, modules, arrow functions)</li>
-        <li><strong>Rendering:</strong> HTML5 Canvas 2D API</li>
-        <li><strong>Testing:</strong> Jest with jsdom environment</li>
-        <li><strong>Build:</strong> No build step - vanilla JS for simplicity</li>
-        <li><strong>Server:</strong> Simple HTTP server (Python or Node.js)</li>
+        <li data-ja="言語: ES6+ JavaScript (クラス、モジュール、アロー関数)" data-en="Language: ES6+ JavaScript (classes, modules, arrow functions)"><strong>言語:</strong> ES6+ JavaScript (クラス、モジュール、アロー関数)</li>
+        <li data-ja="レンダリング: HTML5 Canvas 2D API" data-en="Rendering: HTML5 Canvas 2D API"><strong>レンダリング:</strong> HTML5 Canvas 2D API</li>
+        <li data-ja="テスト: jsdom環境のJest" data-en="Testing: Jest with jsdom environment"><strong>テスト:</strong> jsdom環境のJest</li>
+        <li data-ja="ビルド: シンプルさのためバニラJS (ビルドステップなし)" data-en="Build: Vanilla JS for simplicity (no build step)"><strong>ビルド:</strong> シンプルさのためバニラJS (ビルドステップなし)</li>
+        <li data-ja="サーバー: シンプルHTTPサーバー (PythonまたはNode.js)" data-en="Server: Simple HTTP server (Python or Node.js)"><strong>サーバー:</strong> シンプルHTTPサーバー (PythonまたはNode.js)</li>
       </ul>
     </section>
 
     <!-- Getting Started -->
     <section>
-      <h2>Getting Started</h2>
+      <h2 data-ja="はじめに" data-en="Getting Started">はじめに</h2>
 
-      <h3>Installation</h3>
-      <pre><code># Clone the repository
+      <h3 data-ja="インストール" data-en="Installation">インストール</h3>
+      <pre><code># リポジトリをクローン
 git clone &lt;repository-url&gt;
 cd space-shooter-game
 
-# Install dependencies
+# 依存関係をインストール
 npm install
 
-# Start the development server
+# 開発サーバーを起動
 npm start
 
-# Run tests
+# テストを実行
 npm test
 
-# Run tests with coverage
+# カバレッジ付きでテストを実行
 npm test -- --coverage</code></pre>
 
-      <h3>Play Online</h3>
+      <h3 data-ja="オンラインでプレイ" data-en="Play Online">オンラインでプレイ</h3>
       <p>
-        <a href="src/index.html" class="btn">Launch Game</a>
+        <a href="src/index.html" class="btn" data-ja="ゲームを起動" data-en="Launch Game">ゲームを起動</a>
       </p>
 
-      <h3>Documentation</h3>
+      <h3 data-ja="ドキュメント" data-en="Documentation">ドキュメント</h3>
       <ul>
-        <li><a href="README.md">README.md</a> - Project overview and setup</li>
-        <li><a href="API.md">API.md</a> - Complete API reference for all 14 modules</li>
-        <li><a href="GAMEPLAY.md">GAMEPLAY.md</a> - Detailed gameplay guide and strategies</li>
-        <li><a href="TEST_COVERAGE_REPORT.md">TEST_COVERAGE_REPORT.md</a> - Test coverage analysis</li>
+        <li><a href="README.md">README.md</a> - <span data-ja="プロジェクト概要とセットアップ" data-en="Project overview and setup">プロジェクト概要とセットアップ</span></li>
+        <li><a href="API.md">API.md</a> - <span data-ja="全14モジュールの完全なAPIリファレンス" data-en="Complete API reference for all 14 modules">全14モジュールの完全なAPIリファレンス</span></li>
+        <li><a href="GAMEPLAY.md">GAMEPLAY.md</a> - <span data-ja="詳細なゲームプレイガイドと戦略" data-en="Detailed gameplay guide and strategies">詳細なゲームプレイガイドと戦略</span></li>
+        <li><a href="TEST_COVERAGE_REPORT.md">TEST_COVERAGE_REPORT.md</a> - <span data-ja="テストカバレッジ分析" data-en="Test coverage analysis">テストカバレッジ分析</span></li>
       </ul>
     </section>
 
     <!-- Future Enhancements -->
     <section>
-      <h2>Future Enhancements</h2>
+      <h2 data-ja="今後の機能拡張" data-en="Future Enhancements">今後の機能拡張</h2>
 
-      <h3>Planned Features (Priority 3)</h3>
+      <h3 data-ja="計画中の機能 (優先度3)" data-en="Planned Features (Priority 3)">計画中の機能 (優先度3)</h3>
       <ul>
-        <li>Boss enemies with unique attack patterns</li>
-        <li>Local high score persistence (localStorage)</li>
-        <li>Multiple difficulty levels (Easy/Normal/Hard)</li>
-        <li>Sound effects and background music (Web Audio API)</li>
-        <li>Additional weapon types</li>
-        <li>Achievement system</li>
-        <li>Character selection</li>
-        <li>Online leaderboards</li>
+        <li data-ja="独自の攻撃パターンを持つボス敵" data-en="Boss enemies with unique attack patterns">独自の攻撃パターンを持つボス敵</li>
+        <li data-ja="ローカルハイスコア保存 (localStorage)" data-en="Local high score storage (localStorage)">ローカルハイスコア保存 (localStorage)</li>
+        <li data-ja="複数の難易度レベル (イージー/ノーマル/ハード)" data-en="Multiple difficulty levels (Easy/Normal/Hard)">複数の難易度レベル (イージー/ノーマル/ハード)</li>
+        <li data-ja="効果音とBGM (Web Audio API)" data-en="Sound effects and BGM (Web Audio API)">効果音とBGM (Web Audio API)</li>
+        <li data-ja="追加の武器タイプ" data-en="Additional weapon types">追加の武器タイプ</li>
+        <li data-ja="実績システム" data-en="Achievement system">実績システム</li>
+        <li data-ja="キャラクター選択" data-en="Character selection">キャラクター選択</li>
+        <li data-ja="オンラインリーダーボード" data-en="Online leaderboard">オンラインリーダーボード</li>
       </ul>
 
-      <h3>Contributing</h3>
-      <p>
-        Contributions are welcome! Please follow these guidelines:
+      <h3 data-ja="コントリビューション" data-en="Contributing">コントリビューション</h3>
+      <p data-ja="コントリビューションを歓迎します! 以下のガイドラインに従ってください:" data-en="Contributions are welcome! Please follow these guidelines:">
+        コントリビューションを歓迎します! 以下のガイドラインに従ってください:
       </p>
       <ol>
-        <li>Fork the repository</li>
-        <li>Create a feature branch</li>
-        <li>Write tests for your changes (maintain 80%+ coverage)</li>
-        <li>Ensure all tests pass</li>
-        <li>Submit a pull request</li>
+        <li data-ja="リポジトリをフォーク" data-en="Fork the repository">リポジトリをフォーク</li>
+        <li data-ja="機能ブランチを作成" data-en="Create a feature branch">機能ブランチを作成</li>
+        <li data-ja="変更に対するテストを作成 (80%以上のカバレッジを維持)" data-en="Write tests for your changes (maintain 80%+ coverage)">変更に対するテストを作成 (80%以上のカバレッジを維持)</li>
+        <li data-ja="すべてのテストがパスすることを確認" data-en="Ensure all tests pass">すべてのテストがパスすることを確認</li>
+        <li data-ja="プルリクエストを送信" data-en="Submit a pull request">プルリクエストを送信</li>
       </ol>
     </section>
 
     <!-- Footer -->
     <footer>
-      <p>Built with Claude Code | Test Coverage: 92.24% | Version 1.0.0</p>
-      <p>Licensed under MIT | 2025</p>
+      <p data-ja="Claude Codeで構築 | テストカバレッジ: 92.24% | Version 1.0.0" data-en="Built with Claude Code | Test Coverage: 92.24% | Version 1.0.0">Claude Codeで構築 | テストカバレッジ: 92.24% | Version 1.0.0</p>
+      <p data-ja="MITライセンス | 2025" data-en="MIT License | 2025">MITライセンス | 2025</p>
       <p>
-        <a href="src/index.html" class="btn btn-secondary">Play Now</a>
+        <a href="src/index.html" class="btn btn-secondary" data-ja="今すぐプレイ" data-en="Play Now">今すぐプレイ</a>
       </p>
     </footer>
   </div>
+
+  <!-- Language Switching Script -->
+  <script>
+    // Language switching function
+    function setLanguage(lang) {
+      // Update button states
+      const langBtns = document.querySelectorAll('.lang-btn');
+      langBtns.forEach(btn => btn.classList.remove('active'));
+      if (lang === 'ja') {
+        langBtns[0].classList.add('active');
+      } else {
+        langBtns[1].classList.add('active');
+      }
+
+      // Update all translatable elements
+      document.querySelectorAll('[data-en][data-ja]').forEach(element => {
+        const text = element.getAttribute('data-' + lang);
+        if (text) {
+          if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+            element.value = text;
+          } else {
+            element.textContent = text;
+          }
+        }
+      });
+
+      // Update HTML lang attribute
+      document.documentElement.lang = lang;
+
+      // Save preference
+      localStorage.setItem('preferredLanguage', lang);
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check for saved language preference
+      const savedLang = localStorage.getItem('preferredLanguage') || 'ja';
+      setLanguage(savedLang);
+    });
+  </script>
 </body>
 </html>
