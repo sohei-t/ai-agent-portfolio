@@ -9037,7 +9037,8 @@ class Game {
             // Count enabled items
             const enabledCount = Object.values(this.settings.enabledItems).filter(v => v).length;
             const totalCount = Object.keys(this.settings.enabledItems).length;
-            ctx.fillText(`⚙ ITEM CONFIG (${enabledCount}/${totalCount})`, configBtnX + configBtnWidth / 2, configBtnY + 29);
+            // DEBUG: Timestamp to verify code deployment
+            ctx.fillText(`⚙ CONFIG (${enabledCount}/${totalCount}) [v0109-1100]`, configBtnX + configBtnWidth / 2, configBtnY + 29);
 
             // V4.3: Show hint for online mode guests
             if (this.isOnlineMode && !this.isHost) {
