@@ -576,6 +576,28 @@
       color: var(--text-primary);
     }
 
+    .new-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #ff6b6b, #ffa500);
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 600;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      margin-left: 0.5rem;
+      animation: pulse-badge 2s infinite;
+    }
+
+    @keyframes pulse-badge {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+
+    .app-card.featured {
+      border: 1px solid var(--accent-cyan);
+      box-shadow: var(--glow-cyan);
+    }
+
     .app-description {
       font-size: 0.85rem;
       color: var(--text-secondary);
@@ -981,13 +1003,25 @@
 
       <div class="portfolio-grid">
         <!-- Robo Battle シリーズ -->
+        <div class="app-card fade-in featured">
+          <div class="app-preview">🏆</div>
+          <div class="app-info">
+            <div class="app-name">robo-battle-v5 <span class="new-badge">NEW!</span></div>
+            <p class="app-description" data-i18n="app_robo_v5">MATCH FORMAT EDITION - 2本/3本先取制、エンディング演出</p>
+            <div class="app-links">
+              <a href="https://robo-battle-v5-game.web.app/" class="app-link" target="_blank">Demo →</a>
+              <a href="./robo-battle-v5/about.html" class="app-link">About →</a>
+            </div>
+          </div>
+        </div>
+
         <div class="app-card fade-in">
           <div class="app-preview">🐉</div>
           <div class="app-info">
             <div class="app-name">robo-battle-v4</div>
             <p class="app-description" data-i18n="app_robo_v4">魔獣召喚システム + 強化CPU AI搭載</p>
             <div class="app-links">
-              <a href="./robo-battle-v4/" class="app-link">Demo →</a>
+              <a href="https://robo-battle-v4-game.web.app/" class="app-link" target="_blank">Demo →</a>
               <a href="./robo-battle-v4/about.html" class="app-link">About →</a>
             </div>
           </div>
@@ -1270,6 +1304,7 @@
         arch3_desc: 'UX重視（35%）の評価基準で、複数の実装から最良を自動選択。人間の介入なしで品質を担保。',
         section_portfolio: 'ポートフォリオ',
         section_portfolio_title: '公開アプリケーション',
+        app_robo_v5: 'MATCH FORMAT EDITION - 2本/3本先取制、エンディング演出',
         app_robo_v4: '魔獣召喚システム + 強化CPU AI搭載',
         app_robo_v3: 'WebRTC P2Pオンライン対戦対応',
         app_robo_v2: 'フォトリアル3Dグラフィックス（AI生成）',
@@ -1350,6 +1385,7 @@
         arch3_desc: 'UX-weighted (35%) evaluation criteria automatically select the best from multiple implementations. Quality assured without human intervention.',
         section_portfolio: 'Portfolio',
         section_portfolio_title: 'Published Applications',
+        app_robo_v5: 'MATCH FORMAT EDITION - Best of 3/5 matches, Ending scenes',
         app_robo_v4: 'Beast Summon system + Enhanced CPU AI',
         app_robo_v3: 'WebRTC P2P online multiplayer',
         app_robo_v2: 'Photorealistic 3D graphics (AI-generated)',
