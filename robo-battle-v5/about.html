@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROBO BATTLE V4 - BEAST SUMMON EDITION</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0d0221;
+            --bg-mid: #1a0a30;
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+            --neon-yellow: #ffff00;
+            --neon-red: #ff3333;
+            --neon-blue: #3366ff;
+            --neon-green: #00ff66;
+            --text-primary: #e0e0e0;
+            --text-dim: #808080;
+            --grid-color: rgba(0, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Share Tech Mono', 'Noto Sans JP', monospace;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* CRT Screen Effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 0, 0, 0.15) 0px,
+                    rgba(0, 0, 0, 0.15) 1px,
+                    transparent 1px,
+                    transparent 2px
+                );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Vignette Effect */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Animated Grid Background */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            position: relative;
+        }
+
+        .main-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 8vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            background: linear-gradient(180deg, var(--neon-cyan) 0%, var(--neon-magenta) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            animation: titleGlow 2s ease-in-out infinite alternate;
+            position: relative;
+        }
+
+        .main-title::before {
+            content: 'ROBO BATTLE V4';
+            position: absolute;
+            left: 2px;
+            top: 0;
+            background: linear-gradient(180deg, var(--neon-red) 0%, var(--neon-magenta) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0.8;
+            animation: glitch1 3s infinite;
+        }
+
+        @keyframes titleGlow {
+            0% { filter: brightness(1) drop-shadow(0 0 20px rgba(0, 255, 255, 0.5)); }
+            100% { filter: brightness(1.2) drop-shadow(0 0 40px rgba(255, 0, 255, 0.8)); }
+        }
+
+        @keyframes glitch1 {
+            0%, 90%, 100% { transform: translate(0); opacity: 0; }
+            91% { transform: translate(-2px, 1px); opacity: 0.8; }
+            92% { transform: translate(2px, -1px); opacity: 0.8; }
+            93% { transform: translate(0); opacity: 0; }
+        }
+
+        .subtitle {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.8rem);
+            color: var(--neon-yellow);
+            letter-spacing: 0.3em;
+            margin-top: 15px;
+            text-shadow: 0 0 20px var(--neon-yellow);
+            animation: subtitleFlicker 4s infinite;
+        }
+
+        @keyframes subtitleFlicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+            52% { opacity: 1; }
+            54% { opacity: 0.9; }
+        }
+
+        /* Back to Game Link */
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-cyan);
+            text-decoration: none;
+            border: 2px solid var(--neon-cyan);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .back-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .back-link:hover::before {
+            left: 100%;
+        }
+
+        .back-link:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* Audio Player Section */
+        .audio-section {
+            background: linear-gradient(135deg, rgba(26, 10, 48, 0.9) 0%, rgba(13, 2, 33, 0.9) 100%);
+            border: 1px solid var(--neon-magenta);
+            border-radius: 10px;
+            padding: 30px;
+            margin: 40px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .audio-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, var(--neon-magenta), transparent);
+            animation: rotateBorder 4s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes rotateBorder {
+            100% { transform: rotate(360deg); }
+        }
+
+        .audio-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--neon-magenta);
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .audio-player {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .play-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid var(--neon-cyan);
+            background: rgba(0, 255, 255, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .play-btn::after {
+            content: '';
+            border-style: solid;
+            border-width: 12px 0 12px 20px;
+            border-color: transparent transparent transparent var(--neon-cyan);
+            margin-left: 5px;
+        }
+
+        .play-btn.playing::after {
+            border: none;
+            width: 20px;
+            height: 24px;
+            background: linear-gradient(90deg, var(--neon-cyan) 0%, var(--neon-cyan) 35%, transparent 35%, transparent 65%, var(--neon-cyan) 65%);
+            margin-left: 0;
+        }
+
+        .play-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
+            transform: scale(1.1);
+        }
+
+        .audio-info {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        /* Section Styles */
+        section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26, 10, 48, 0.6) 0%, rgba(13, 2, 33, 0.8) 100%);
+            border-left: 4px solid var(--neon-cyan);
+            position: relative;
+            animation: sectionFadeIn 0.6s ease-out;
+        }
+
+        @keyframes sectionFadeIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, var(--neon-cyan), transparent);
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            color: var(--neon-cyan);
+            margin-bottom: 25px;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title::before {
+            content: '>';
+            color: var(--neon-magenta);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* V4 Features - Special Beast Section */
+        .beast-section {
+            border-left-color: var(--neon-red);
+            background: linear-gradient(135deg, rgba(50, 10, 30, 0.6) 0%, rgba(30, 5, 20, 0.8) 100%);
+        }
+
+        .beast-section .section-title {
+            color: var(--neon-red);
+            text-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 10px 40px rgba(0, 255, 255, 0.2);
+        }
+
+        .feature-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--neon-yellow);
+            margin-bottom: 15px;
+        }
+
+        .feature-card p {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        /* Beast Animation */
+        .beast-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 15px;
+            animation: beastPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes beastPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--neon-red)); }
+            50% { transform: scale(1.1); filter: drop-shadow(0 0 30px var(--neon-red)); }
+        }
+
+        /* Weapon Table */
+        .weapon-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .weapon-table th,
+        .weapon-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .weapon-table th {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-cyan);
+            background: rgba(0, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+
+        .weapon-table tr:hover {
+            background: rgba(0, 255, 255, 0.05);
+        }
+
+        .weapon-table td:first-child {
+            font-weight: bold;
+            color: var(--neon-yellow);
+        }
+
+        .power-bar {
+            display: flex;
+            gap: 3px;
+        }
+
+        .power-segment {
+            width: 20px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .power-segment.active {
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .power-segment.active.high {
+            background: var(--neon-red);
+            box-shadow: 0 0 10px var(--neon-red);
+        }
+
+        /* Stage List */
+        .stage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stage-item {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stage-item:hover {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .stage-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-cyan);
+            margin-bottom: 8px;
+        }
+
+        .stage-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        /* Controls Section */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .control-group h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--neon-magenta);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 0, 255, 0.3);
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .key {
+            font-family: 'Orbitron', sans-serif;
+            padding: 5px 12px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-size: 0.85rem;
+        }
+
+        /* Tech Stack */
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .tech-item {
+            padding: 12px 25px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .tech-item:hover {
+            background: rgba(51, 102, 255, 0.2);
+            box-shadow: 0 0 20px rgba(51, 102, 255, 0.4);
+        }
+
+        /* Version History */
+        .version-timeline {
+            position: relative;
+            padding-left: 30px;
+            margin-top: 20px;
+        }
+
+        .version-timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: linear-gradient(180deg, var(--neon-cyan), var(--neon-magenta), var(--neon-yellow), var(--neon-red));
+        }
+
+        .version-item {
+            position: relative;
+            padding: 20px 0;
+            padding-left: 30px;
+        }
+
+        .version-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 25px;
+            width: 14px;
+            height: 14px;
+            background: var(--bg-deep);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 50%;
+        }
+
+        .version-item:last-child::before {
+            border-color: var(--neon-red);
+            box-shadow: 0 0 15px var(--neon-red);
+        }
+
+        .version-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--neon-yellow);
+        }
+
+        .version-desc {
+            margin-top: 8px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 50px 20px;
+            border-top: 1px solid rgba(0, 255, 255, 0.2);
+            margin-top: 60px;
+        }
+
+        .footer-text {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .footer-text a {
+            color: var(--neon-cyan);
+            text-decoration: none;
+        }
+
+        .footer-text a:hover {
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            section {
+                padding: 25px;
+                margin: 40px 0;
+            }
+
+            .weapon-table {
+                font-size: 0.85rem;
+            }
+
+            .weapon-table th,
+            .weapon-table td {
+                padding: 10px 8px;
+            }
+
+            header {
+                padding: 40px 15px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-magenta);
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+
+    <div class="container">
+        <header>
+            <h1 class="main-title">ROBO BATTLE V4</h1>
+            <p class="subtitle">BEAST SUMMON EDITION</p>
+            <a href="index.html" class="back-link">PLAY GAME</a>
+        </header>
+
+        <!-- Audio Player -->
+        <div class="audio-section">
+            <h2 class="audio-title">AUDIO GUIDE / 音声解説</h2>
+            <div class="audio-player">
+                <button class="play-btn" id="playBtn" aria-label="Play audio"></button>
+                <div class="audio-info">
+                    <div>explanation.mp3</div>
+                    <div id="audioTime">0:00 / 0:00</div>
+                </div>
+            </div>
+            <audio id="audioElement" src="explanation.mp3"></audio>
+        </div>
+
+        <!-- Game Overview -->
+        <section>
+            <h2 class="section-title">GAME OVERVIEW / ゲーム概要</h2>
+            <p style="line-height: 1.8; font-size: 1.05rem;">
+                赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。
+                ビームライフル、ジャンプ、キック、そして<span style="color: var(--neon-red);">魔獣召喚</span>を駆使して敵を倒せ！
+            </p>
+            <div class="feature-grid" style="margin-top: 30px;">
+                <div class="feature-card">
+                    <h3>ONLINE BATTLE</h3>
+                    <p>WebRTC P2Pによるリアルタイム対戦。6桁のルームコードで友達と対戦可能。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>SETTINGS SYNC</h3>
+                    <p>ホストの設定（ステージ・難易度・アイテム）がクライアントに自動反映。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>ITEM MODE</h3>
+                    <p>ワープゾーン、デスゾーン、11種類のパワーアップ武器アイテム。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- V4 New Features - Beast Section -->
+        <section class="beast-section">
+            <h2 class="section-title">V4 NEW FEATURES / V4新機能</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="beast-icon">🐉</span>
+                    <h3>BEAST SUMMON / 魔獣召喚</h3>
+                    <p>AI制御の魔獣を召喚！自動で敵を追跡し火炎攻撃。HP45（通常弾3発で撃破）、プレイヤー1人につき1体まで。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>ENHANCED CPU AI</h3>
+                    <p>CPU AIが大幅強化。アイテムを積極的に取得し、武器を即座に使用。敵の魔獣も優先的に攻撃。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>KNOCKDOWN SYSTEM</h3>
+                    <p>強力な攻撃でダウン状態に。ダウン中は無敵だが行動不能。起き上がりモーション追加。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>GUARD SYSTEM / ガード</h3>
+                    <p>シールドで攻撃をブロック。ガード中はダメージ軽減。強攻撃でガードブレイク可能。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>GREEN DRAGON / グリーンドラゴン</h3>
+                    <p>強力なドラゴンの火炎攻撃。広範囲に高ダメージを与える必殺技。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>METEOR STRIKE / メテオ</h3>
+                    <p>空から降り注ぐ流星群。画面全体を攻撃する究極の大技。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Game Modes -->
+        <section>
+            <h2 class="section-title">GAME MODES / ゲームモード</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>VS CPU</h3>
+                    <p>コンピューターとの対戦。難易度はEASY / NORMAL / HARDから選択可能。強化されたAIで白熱のバトル！</p>
+                </div>
+                <div class="feature-card">
+                    <h3>ONLINE BATTLE</h3>
+                    <p>インターネット経由でリアルタイム対戦。CREATE ROOMで部屋を作成、JOIN ROOMで参加。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <section>
+            <h2 class="section-title">CONTROLS / 操作方法</h2>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <h3>PC (KEYBOARD)</h3>
+                    <div class="control-item">
+                        <span>移動</span>
+                        <span><span class="key">←</span> <span class="key">→</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span>ジャンプ</span>
+                        <span><span class="key">↑</span> / <span class="key">SPACE</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span>ビーム</span>
+                        <span><span class="key">Z</span> (長押しでチャージ)</span>
+                    </div>
+                    <div class="control-item">
+                        <span>キック</span>
+                        <span><span class="key">X</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span>ガード</span>
+                        <span><span class="key">C</span></span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <h3>MOBILE (TOUCH / GYRO)</h3>
+                    <div class="control-item">
+                        <span>移動</span>
+                        <span>傾きセンサー / ジョイスティック</span>
+                    </div>
+                    <div class="control-item">
+                        <span>ジャンプ</span>
+                        <span>画面左下タップ</span>
+                    </div>
+                    <div class="control-item">
+                        <span>ビーム</span>
+                        <span>画面右側タップ</span>
+                    </div>
+                    <div class="control-item">
+                        <span>ガード</span>
+                        <span>画面左上タップ</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Weapons -->
+        <section>
+            <h2 class="section-title">WEAPONS / 武器一覧</h2>
+            <table class="weapon-table">
+                <thead>
+                    <tr>
+                        <th>WEAPON</th>
+                        <th>DESCRIPTION</th>
+                        <th>POWER</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>BAZOOKA</td>
+                        <td>爆発する弾丸</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>MACHINEGUN</td>
+                        <td>高速連射</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment"></div>
+                                <div class="power-segment"></div>
+                                <div class="power-segment"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>SPREAD</td>
+                        <td>広角攻撃</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment"></div>
+                                <div class="power-segment"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>SWORD</td>
+                        <td>近距離斬撃</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>HOMING</td>
+                        <td>自動追尾（1発）</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment active high"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>CLONE</td>
+                        <td>分身生成</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment"></div>
+                                <div class="power-segment"></div>
+                                <div class="power-segment"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>TIGER</td>
+                        <td>突進攻撃</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>AERIAL</td>
+                        <td>空中攻撃</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--neon-green);">DRAGON</td>
+                        <td>ドラゴン火炎</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment active high"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--neon-yellow);">METEOR</td>
+                        <td>流星群</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment active high"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--neon-red);">BEAST</td>
+                        <td>魔獣召喚</td>
+                        <td>
+                            <div class="power-bar">
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active"></div>
+                                <div class="power-segment active high"></div>
+                                <div class="power-segment active high"></div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Customization -->
+        <section>
+            <h2 class="section-title">CUSTOMIZE / カスタマイズ</h2>
+            <p style="margin-bottom: 20px;">合計20ポイントを4つのパラメータに振り分け：</p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>JUMP</h3>
+                    <p>ジャンプ力。高いほど高くジャンプ可能。空中戦に有利。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>WALK</h3>
+                    <p>移動速度。高いほど素早く移動。回避や接近に有利。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>BEAM</h3>
+                    <p>ビーム攻撃力。高いほど高ダメージ。遠距離戦に有利。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>KICK</h3>
+                    <p>キック攻撃力。高いほど高ダメージ。近距離戦に有利。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stages -->
+        <section>
+            <h2 class="section-title">STAGES / ステージ</h2>
+            <div class="stage-grid">
+                <div class="stage-item">
+                    <div class="stage-name">NEO CITY</div>
+                    <div class="stage-desc">サイバーパンク都市</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-name">PYRAMID</div>
+                    <div class="stage-desc">古代エジプト遺跡</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-name">PARTHENON</div>
+                    <div class="stage-desc">ギリシャ神殿</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-name">FACTORY</div>
+                    <div class="stage-desc">巨大ロボット工場</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-name">CAVE</div>
+                    <div class="stage-desc">クリスタル洞窟</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-name">FINAL ARENA</div>
+                    <div class="stage-desc">宇宙アリーナ</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tech Stack -->
+        <section>
+            <h2 class="section-title">TECH STACK / 技術スタック</h2>
+            <div class="tech-list">
+                <span class="tech-item">Vanilla JS (ES6+)</span>
+                <span class="tech-item">HTML5 Canvas</span>
+                <span class="tech-item">60 FPS</span>
+                <span class="tech-item">WebRTC P2P</span>
+                <span class="tech-item">Firebase</span>
+                <span class="tech-item">Vertex AI Imagen 3.0</span>
+                <span class="tech-item">GitHub Pages</span>
+            </div>
+        </section>
+
+        <!-- Version History -->
+        <section>
+            <h2 class="section-title">VERSION HISTORY / バージョン履歴</h2>
+            <div class="version-timeline">
+                <div class="version-item">
+                    <div class="version-number">V1</div>
+                    <div class="version-desc">基本対戦システム、SVGスプライト</div>
+                </div>
+                <div class="version-item">
+                    <div class="version-number">V2</div>
+                    <div class="version-desc">AI生成フォトリアルスプライト＆背景</div>
+                </div>
+                <div class="version-item">
+                    <div class="version-number">V3</div>
+                    <div class="version-desc">オンライン対戦、アイテムモード、設定同期</div>
+                </div>
+                <div class="version-item">
+                    <div class="version-number">V4</div>
+                    <div class="version-desc">魔獣召喚、ガードシステム、ノックダウン、強化AI、新武器（ドラゴン＆メテオ）</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p class="footer-text">
+                &copy; 2026 ROBO BATTLE V4 | Generated with <a href="https://claude.com/claude-code" target="_blank">Claude Code</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Audio Player
+        const playBtn = document.getElementById('playBtn');
+        const audio = document.getElementById('audioElement');
+        const audioTime = document.getElementById('audioTime');
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+                playBtn.classList.add('playing');
+            } else {
+                audio.pause();
+                playBtn.classList.remove('playing');
+            }
+        });
+
+        audio.addEventListener('timeupdate', () => {
+            audioTime.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
+        });
+
+        audio.addEventListener('ended', () => {
+            playBtn.classList.remove('playing');
+        });
+
+        // Intersection Observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>

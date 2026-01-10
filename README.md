@@ -3,7 +3,7 @@
 > **AIエージェントによる一気通貫の高速アプリ開発** を実証するポートフォリオ
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-success)](https://sohei-t.github.io/ai-agent-portfolio/)
-[![Apps](https://img.shields.io/badge/Apps-13+-blue)](#-portfolio-applications)
+[![Apps](https://img.shields.io/badge/Apps-14+-blue)](#-portfolio-applications)
 [![Workflow](https://img.shields.io/badge/Workflow-7%20Phases-purple)](#-development-workflow)
 
 [English](#english) | [日本語](#日本語)
@@ -148,7 +148,8 @@ evaluation_criteria:
 
 | バージョン | 説明 | デモ |
 |-----------|------|------|
-| [Robo Battle v4](./robo-battle-v4/) | 魔獣召喚システム + 強化CPU AI搭載 | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/) |
+| [Robo Battle v5](./robo-battle-v5/) | **NEW!** MATCH FORMAT EDITION - 2本/3本先取制、エンディング演出 | [Live](https://robo-battle-v5-game.web.app/) |
+| [Robo Battle v4](./robo-battle-v4/) | 魔獣召喚システム + 強化CPU AI搭載 | [Live](https://robo-battle-v4-game.web.app/) |
 | [Robo Battle v3](./robo-battle-v3/) | WebRTC P2Pオンライン対戦対応 | [Live](https://robo-battle-v3-game.web.app/) |
 | [Robo Battle v2](./robo-battle-v2/) | フォトリアル3Dグラフィックス（AI生成スプライト） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v2/) |
 | [Robo Battle](./robo-battle/) | 初期版ロボット対戦ゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/) |
