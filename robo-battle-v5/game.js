@@ -6220,10 +6220,13 @@ class Game {
     }
 
     handleSetupClick(x, y) {
+        // V5: Updated Y positions to match renderSetup (reduced spacing)
+        const startY = 115;
+        const paramSpacing = 50;
+
         // Parameter sliders (JUMP, WALK, BEAM, KICK)
-        const startY = 130;
         for (let i = 0; i < 4; i++) {
-            const sliderY = startY + i * 60 - 15;
+            const sliderY = startY + i * paramSpacing - 15;
             // Left arrow area (decrease)
             if (x >= 200 && x <= 280 && y >= sliderY && y <= sliderY + 30) {
                 this.setupSelection = i;
@@ -6243,8 +6246,8 @@ class Game {
             }
         }
 
-        // Stage selection
-        const stageY = startY + 4 * 60 + 20 - 15;
+        // Stage selection (V5: Updated position)
+        const stageY = startY + 4 * paramSpacing + 15 - 15;
         if (y >= stageY && y <= stageY + 30) {
             this.setupSelection = 4;
             if (x >= 200 && x <= 350) this.adjustSetup(-1);
@@ -6252,8 +6255,8 @@ class Game {
             return;
         }
 
-        // Difficulty selection
-        const diffY = stageY + 50;
+        // Difficulty selection (V5: Updated position)
+        const diffY = stageY + 38;
         if (y >= diffY && y <= diffY + 30) {
             this.setupSelection = 5;
             if (x >= 200 && x <= 350) this.adjustSetup(-1);
@@ -6267,8 +6270,8 @@ class Game {
         const startButtonSelectionIdx = this.settings.itemsMode ? 9 : 8;
         const backButtonSelectionIdx = this.settings.itemsMode ? 10 : 9;
 
-        // Items Mode toggle Y position
-        const itemsY = diffY + 50;
+        // Items Mode toggle Y position (V5: Updated position)
+        const itemsY = diffY + 38;
 
         // Items Mode toggle (normal range - CONFIG button is now far away)
         if (y >= itemsY - 15 && y <= itemsY + 25) {
@@ -6277,12 +6280,18 @@ class Game {
             return;
         }
 
-        // V5: Match Format selection
-        const matchY = itemsY + 50;
-        if (y >= matchY - 15 && y <= matchY + 25) {
+        // V5: Match Format large button (like ITEM CONFIG)
+        const matchBtnWidth = 350;
+        const matchBtnHeight = 45;
+        const matchBtnX = GAME_WIDTH / 2 - matchBtnWidth / 2;
+        const matchBtnY = itemsY + 30;  // Below ITEMS MODE
+
+        if (x >= matchBtnX && x <= matchBtnX + matchBtnWidth &&
+            y >= matchBtnY && y <= matchBtnY + matchBtnHeight) {
+            console.log('[DEBUG] MATCH FORMAT button clicked!');
+            SoundManager.playMenuSelect();
             this.setupSelection = 7;
-            if (x >= 200 && x <= 350) this.adjustSetup(-1);
-            if (x >= 400 && x <= 600) this.adjustSetup(1);
+            this.adjustSetup(1);  // Cycle through formats
             return;
         }
 
@@ -9322,28 +9331,30 @@ class Game {
             ctx.fillText('ワープゾーン・デスゾーン・回復アイテム・特殊武器が出現！', GAME_WIDTH / 2, itemsY + 22);
         }
 
-        // V5: Match Format selection (Reduced spacing)
-        const matchY = itemsY + 38;
+        // V5: Match Format as large button (like ITEM CONFIG)
+        const matchBtnWidth = 350;
+        const matchBtnHeight = 45;
+        const matchBtnX = GAME_WIDTH / 2 - matchBtnWidth / 2;
+        const matchBtnY = itemsY + 30;  // Below ITEMS MODE
         const isMatchSelected = this.setupSelection === 7;
-        ctx.font = isMatchSelected ? 'bold 18px Courier New' : '16px Courier New';
-        ctx.fillStyle = isMatchSelected ? '#ffff00' : '#ffffff';
-        ctx.textAlign = 'left';
-        ctx.fillText('MATCH FORMAT', 200, matchY);
-        ctx.textAlign = 'right';
-        const matchLabels = ['1本先取', '2本先取', '3本先取'];
-        ctx.fillText(matchLabels[this.settings.matchFormat - 1], 550, matchY);
-        if (isMatchSelected) ctx.fillText('< >', 590, matchY);
 
-        // V5: Match Format description (when selected)
-        if (isMatchSelected) {
-            ctx.font = '12px Courier New';
-            ctx.fillStyle = '#ff6600';
-            ctx.textAlign = 'center';
-            const desc = this.settings.matchFormat === 1 ? '1回の勝負で決着！' :
-                         this.settings.matchFormat === 2 ? '先に2勝した方が勝ち！' :
-                         '先に3勝した方が勝ち！';
-            ctx.fillText(desc, GAME_WIDTH / 2, matchY + 22);
-        }
+        // Button background
+        ctx.fillStyle = isMatchSelected ? '#663300' : '#442200';
+        ctx.fillRect(matchBtnX, matchBtnY, matchBtnWidth, matchBtnHeight);
+        ctx.strokeStyle = isMatchSelected ? '#ff9900' : '#ff6600';
+        ctx.lineWidth = isMatchSelected ? 3 : 2;
+        ctx.strokeRect(matchBtnX, matchBtnY, matchBtnWidth, matchBtnHeight);
+
+        // Button text
+        ctx.font = 'bold 16px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        const matchLabels = ['1本先取', '2本先取', '3本先取'];
+        const matchDesc = this.settings.matchFormat === 1 ? '（1回勝負）' :
+                         this.settings.matchFormat === 2 ? '（先に2勝）' :
+                         '（先に3勝）';
+        ctx.fillText(`◀ MATCH FORMAT: ${matchLabels[this.settings.matchFormat - 1]} ${matchDesc} ▶`,
+                     matchBtnX + matchBtnWidth / 2, matchBtnY + 28);
 
         // Buttons row position (used for both CONFIG and BACK/START)
         const btnY = GAME_HEIGHT - 50;

@@ -1,32 +1,47 @@
-# ROBO BATTLE V4 - Beast Summon Edition
+# ROBO BATTLE V5 - Match Format Edition
 
-魔獣召喚システムと強化されたCPU AIを搭載した、究極のロボット対戦アクションゲーム。
+マッチフォーマット選択と特別エンディング演出を搭載した、究極のロボット対戦アクションゲーム。
 
 ## Play Now
 
-**[Live Demo](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/about.html)** | **[Audio Guide](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v4/explanation.mp3)**
+**[Live Demo](https://robo-battle-v5-game.web.app/)** | **[About](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v5/about.html)** | **[Audio Guide](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v5/explanation.mp3)**
 
-## V4 New Features
+## V5 New Features
 
-### V4.4: Beast Summon System
-- **Beast Summon Item**: Summons an AI-controlled beast that attacks your opponent
-- **Beast AI**: Maintains optimal distance, breathes fire, and auto-targets
-- **Beast Sprites**: Blue/Red variants with 5 animations (idle, walk, jump, flame, down)
-- **Balance**: HP 45 (3 normal shots), Flame damage 15, 1 beast per player
+### V5.0: Match Format System
+- **Match Format Selection**: Choose from 1本先取 (single match), 2本先取 (best of 3), or 3本先取 (best of 5)
+- **Multi-Round Battles**: Track wins across multiple rounds until final victory
+- **Round Display**: Shows "ROUND X" and match progress during countdown
+- **Auto-Continue**: 4-second countdown between rounds with progress bar
+- **Skip Option**: Press Enter or tap to skip to next round immediately
 
-### V4.4: Enhanced CPU AI
-- **Active Item Pursuit**: CPU actively chases nearby items (400px range)
-- **Immediate Weapon Use**: Fires equipped weapon immediately after pickup
-- **Beast Targeting**: Prioritizes attacking enemy beasts when threatened
+### V5.0: Special Ending Screens
+- **CHAMPION! Screen**: Spectacular victory animation with particle effects when winning the match
+- **GAME OVER Screen**: Dramatic defeat screen when losing the match
+- **Victory BGM**: Triumphant major-key chiptune for winners
+- **Defeat BGM**: Melancholic minor-key chiptune for losers
+- **Animated Background**: Dynamic gradient animation during endings
 
-### V4.3: Knockdown System & New Weapons
-- **Knockdown Mechanic**: Heavy attacks cause knockdown state with recovery animation
-- **Green Dragon**: Powerful dragon flame attack
-- **Meteor Strike**: Devastating meteor shower from above
+### V5.0: Online Match Format Sync
+- **Host Controls Format**: Host's match format setting is automatically synced to client
+- **Consistent Rules**: Both players play with the same match format
 
-### V4.2: Guard System
-- **Shield/Guard**: Block incoming attacks (replaces crouch)
+## Previous Features (V1-V4)
+
+### Beast Summon System (V4)
+- **Beast Summon Item**: Summons an AI-controlled beast
+- **Beast AI**: Maintains optimal distance, breathes fire, auto-targets
+- **Balance**: HP 45, Flame damage 15, 1 beast per player
+
+### Guard & Knockdown Systems (V4)
+- **Shield/Guard**: Block incoming attacks
 - **Guard Break**: Heavy attacks break through guards
+- **Knockdown**: Heavy attacks cause knockdown with recovery animation
+
+### Enhanced CPU AI (V4)
+- **Active Item Pursuit**: CPU chases nearby items
+- **Immediate Weapon Use**: Fires weapons immediately after pickup
+- **Beast Targeting**: Prioritizes attacking enemy beasts
 
 ## Game Overview
 
@@ -53,7 +68,7 @@ Master beam rifles, jumps, kicks, and special weapons to defeat your enemy!
 - Right side: Beam
 - Virtual joystick / Tilt sensor: Move
 
-## Weapon Items
+## Weapon Items (11 Types)
 
 | Weapon | Description | Power |
 |--------|-------------|-------|
@@ -69,20 +84,6 @@ Master beam rifles, jumps, kicks, and special weapons to defeat your enemy!
 | Meteor Strike | Meteor shower | Very High |
 | Beast Summon | AI beast companion | Special |
 
-## Online Battle
-
-### Host (Create Room)
-1. Select ONLINE BATTLE
-2. Click CREATE ROOM
-3. Share the 6-digit room code
-4. Press START BATTLE when opponent joins
-
-### Client (Join Room)
-1. Select ONLINE BATTLE
-2. Click JOIN ROOM
-3. Enter the room code
-4. Wait for host to start
-
 ## Customization System
 
 Allocate 20 points across JUMP, WALK, BEAM, KICK:
@@ -91,7 +92,7 @@ Allocate 20 points across JUMP, WALK, BEAM, KICK:
 - **BEAM**: Beam attack power
 - **KICK**: Kick attack power
 
-## Stages
+## Stages (6 Types)
 
 | Stage | Theme |
 |-------|-------|
@@ -107,25 +108,20 @@ Allocate 20 points across JUMP, WALK, BEAM, KICK:
 - **Frontend**: Vanilla JavaScript (ES6+)
 - **Graphics**: HTML5 Canvas (60FPS)
 - **Online**: WebRTC (P2P), Firebase Realtime Database
-- **Hosting**: GitHub Pages
+- **Hosting**: Firebase Hosting
 - **AI Image Generation**: Vertex AI Imagen 3.0
-- **Sprites**: Photorealistic 3D-style PNG
-- **Beast Sprites**: AI-generated demon beast animations
+- **Audio**: Procedural Chiptune BGM (Title/Battle/Victory/Defeat)
 
 ## File Structure
 
 ```
-robo-battle-v4/
+robo-battle-v5/
 ├── index.html           # Game entry point
-├── game.js              # Game logic (10000+ lines)
+├── game.js              # Game logic (11000+ lines)
 ├── online-mode.js       # Online battle module
 ├── firebase-config.js   # Firebase config
 ├── assets/
 │   ├── sprites/         # Robot & Beast sprites
-│   │   ├── player_*.png # Player robot (8 poses)
-│   │   ├── enemy_*.png  # Enemy robot (8 poses)
-│   │   ├── beast_blue_*.png # Blue beast (5 animations)
-│   │   └── beast_red_*.png  # Red beast (5 animations)
 │   └── backgrounds/     # AI-generated backgrounds
 ├── about.html           # Technical documentation
 └── README.md            # This file
@@ -139,6 +135,7 @@ robo-battle-v4/
 | V2 | AI-generated photorealistic sprites & backgrounds |
 | V3 | Online battles, item mode, settings sync |
 | V4 | Beast summon, guard system, knockdown, enhanced AI |
+| V5 | **Match format selection, multi-round battles, ending screens, victory/defeat BGM** |
 
 ---
 
