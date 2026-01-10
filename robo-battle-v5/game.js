@@ -9226,14 +9226,15 @@ class Game {
         ctx.fillStyle = total <= 20 ? '#00ff00' : '#ff0000';
         ctx.fillText(`Points: ${total}/20`, GAME_WIDTH / 2, 80);
 
-        // Parameters
+        // Parameters (V5: Reduced spacing to fit all options)
         const paramNames = ['JUMP', 'WALK', 'BEAM', 'KICK'];
         const paramValues = [params.jump, params.walk, params.beam, params.kick];
-        const startY = 130;
+        const startY = 115;
+        const paramSpacing = 50;  // V5: Reduced from 60 to 50
 
         for (let i = 0; i < 4; i++) {
             const isSelected = i === this.setupSelection;
-            const y = startY + i * 60;
+            const y = startY + i * paramSpacing;
 
             // Label
             ctx.font = isSelected ? 'bold 18px Courier New' : '16px Courier New';
@@ -9268,8 +9269,8 @@ class Game {
             }
         }
 
-        // Stage selection
-        const stageY = startY + 4 * 60 + 20;
+        // Stage selection (V5: Adjusted spacing)
+        const stageY = startY + 4 * paramSpacing + 15;
         const isStageSelected = this.setupSelection === 4;
         ctx.font = isStageSelected ? 'bold 18px Courier New' : '16px Courier New';
         ctx.fillStyle = isStageSelected ? '#ffff00' : '#ffffff';
@@ -9280,8 +9281,8 @@ class Game {
         ctx.fillText(stageName, 550, stageY);
         if (isStageSelected) ctx.fillText('< >', 590, stageY);
 
-        // Difficulty
-        const diffY = stageY + 50;
+        // Difficulty (V5: Reduced spacing)
+        const diffY = stageY + 38;
         const isDiffSelected = this.setupSelection === 5;
         ctx.font = isDiffSelected ? 'bold 18px Courier New' : '16px Courier New';
         ctx.fillStyle = isDiffSelected ? '#ffff00' : '#ffffff';
@@ -9291,8 +9292,8 @@ class Game {
         ctx.fillText(this.settings.difficulty.toUpperCase(), 550, diffY);
         if (isDiffSelected) ctx.fillText('< >', 590, diffY);
 
-        // Items Mode toggle
-        const itemsY = diffY + 50;
+        // Items Mode toggle (V5: Reduced spacing)
+        const itemsY = diffY + 38;
         const isItemsSelected = this.setupSelection === 6;
         ctx.font = isItemsSelected ? 'bold 18px Courier New' : '16px Courier New';
         ctx.fillStyle = isItemsSelected ? '#ffff00' : '#ffffff';
@@ -9321,8 +9322,8 @@ class Game {
             ctx.fillText('ワープゾーン・デスゾーン・回復アイテム・特殊武器が出現！', GAME_WIDTH / 2, itemsY + 22);
         }
 
-        // V5: Match Format selection
-        const matchY = itemsY + 50;
+        // V5: Match Format selection (Reduced spacing)
+        const matchY = itemsY + 38;
         const isMatchSelected = this.setupSelection === 7;
         ctx.font = isMatchSelected ? 'bold 18px Courier New' : '16px Courier New';
         ctx.fillStyle = isMatchSelected ? '#ffff00' : '#ffffff';
