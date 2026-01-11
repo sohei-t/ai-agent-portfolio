@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROBO BATTLE V4 - BEAST SUMMON EDITION</title>
+    <title>ROBO BATTLE V5 - MATCH FORMAT EDITION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
@@ -126,7 +126,7 @@
         }
 
         .main-title::before {
-            content: 'ROBO BATTLE V4';
+            content: 'ROBO BATTLE V5';
             position: absolute;
             left: 2px;
             top: 0;
@@ -337,7 +337,7 @@
             51%, 100% { opacity: 0; }
         }
 
-        /* V4 Features - Special Beast Section */
+        /* V5 Features - Match Format Section */
         .beast-section {
             border-left-color: var(--neon-red);
             background: linear-gradient(135deg, rgba(50, 10, 30, 0.6) 0%, rgba(30, 5, 20, 0.8) 100%);
@@ -669,8 +669,8 @@
 
     <div class="container">
         <header>
-            <h1 class="main-title">ROBO BATTLE V4</h1>
-            <p class="subtitle">BEAST SUMMON EDITION</p>
+            <h1 class="main-title">ROBO BATTLE V5</h1>
+            <p class="subtitle">MATCH FORMAT EDITION</p>
             <a href="index.html" class="back-link">PLAY GAME</a>
         </header>
 
@@ -692,7 +692,7 @@
             <h2 class="section-title">GAME OVERVIEW / ゲーム概要</h2>
             <p style="line-height: 1.8; font-size: 1.05rem;">
                 赤いロボット（プレイヤー）と青いロボット（CPU/対戦相手）が1対1で戦うアクションゲーム。
-                ビームライフル、ジャンプ、キック、そして<span style="color: var(--neon-red);">魔獣召喚</span>を駆使して敵を倒せ！
+                ビームライフル、ジャンプ、キック、特殊武器を駆使して敵を倒せ！<span style="color: var(--neon-red);">マッチフォーマット制</span>で本格対戦！
             </p>
             <div class="feature-grid" style="margin-top: 30px;">
                 <div class="feature-card">
@@ -710,35 +710,36 @@
             </div>
         </section>
 
-        <!-- V4 New Features - Beast Section -->
+        <!-- V5 New Features - Match Format Section -->
         <section class="beast-section">
-            <h2 class="section-title">V4 NEW FEATURES / V4新機能</h2>
+            <h2 class="section-title">V5 NEW FEATURES / V5新機能</h2>
 
             <div class="feature-grid">
                 <div class="feature-card">
-                    <span class="beast-icon">🐉</span>
-                    <h3>BEAST SUMMON / 魔獣召喚</h3>
-                    <p>AI制御の魔獣を召喚！自動で敵を追跡し火炎攻撃。HP45（通常弾3発で撃破）、プレイヤー1人につき1体まで。</p>
+                    <span class="beast-icon">🏆</span>
+                    <h3>MATCH FORMAT / マッチフォーマット</h3>
+                    <p>1本先取（シングルマッチ）、2本先取（BO3）、3本先取（BO5）から選択可能。本格的な対戦形式！</p>
                 </div>
                 <div class="feature-card">
-                    <h3>ENHANCED CPU AI</h3>
-                    <p>CPU AIが大幅強化。アイテムを積極的に取得し、武器を即座に使用。敵の魔獣も優先的に攻撃。</p>
+                    <h3>MULTI-ROUND BATTLES</h3>
+                    <p>複数ラウンドにわたる勝利トラッキング。「ROUND X」表示とマッチ進行状況をリアルタイム表示。</p>
                 </div>
                 <div class="feature-card">
-                    <h3>KNOCKDOWN SYSTEM</h3>
-                    <p>強力な攻撃でダウン状態に。ダウン中は無敵だが行動不能。起き上がりモーション追加。</p>
+                    <h3>AUTO-CONTINUE</h3>
+                    <p>ラウンド間4秒カウントダウンで自動継続。プログレスバーで待機時間を可視化。</p>
                 </div>
                 <div class="feature-card">
-                    <h3>GUARD SYSTEM / ガード</h3>
-                    <p>シールドで攻撃をブロック。ガード中はダメージ軽減。強攻撃でガードブレイク可能。</p>
+                    <h3>SKIP OPTION</h3>
+                    <p>Enterキーまたはタップで次ラウンドへ即座にスキップ可能。テンポよく連戦！</p>
                 </div>
                 <div class="feature-card">
-                    <h3>GREEN DRAGON / グリーンドラゴン</h3>
-                    <p>強力なドラゴンの火炎攻撃。広範囲に高ダメージを与える必殺技。</p>
+                    <span class="beast-icon">🎉</span>
+                    <h3>CHAMPION! SCREEN</h3>
+                    <p>マッチ勝利時の華やかな演出！パーティクルエフェクトと勝利BGM（メジャーキーのチップチューン）。</p>
                 </div>
                 <div class="feature-card">
-                    <h3>METEOR STRIKE / メテオ</h3>
-                    <p>空から降り注ぐ流星群。画面全体を攻撃する究極の大技。</p>
+                    <h3>GAME OVER SCREEN</h3>
+                    <p>マッチ敗北時のドラマチックな演出。敗北BGM（マイナーキーのチップチューン）と動的背景アニメーション。</p>
                 </div>
             </div>
         </section>
@@ -1055,13 +1056,17 @@
                     <div class="version-number">V4</div>
                     <div class="version-desc">魔獣召喚、ガードシステム、ノックダウン、強化AI、新武器（ドラゴン＆メテオ）</div>
                 </div>
+                <div class="version-item">
+                    <div class="version-number">V5</div>
+                    <div class="version-desc">マッチフォーマット選択、マルチラウンド戦、特別エンディング演出、勝利/敗北BGM</div>
+                </div>
             </div>
         </section>
 
         <!-- Footer -->
         <footer>
             <p class="footer-text">
-                &copy; 2026 ROBO BATTLE V4 | Generated with <a href="https://claude.com/claude-code" target="_blank">Claude Code</a>
+                &copy; 2026 ROBO BATTLE V5 | Generated with <a href="https://claude.com/claude-code" target="_blank">Claude Code</a>
             </p>
         </footer>
     </div>
