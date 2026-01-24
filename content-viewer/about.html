@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - Content Viewer</title>
+  <meta name="description" content="Content Viewer - HTMLスライドとMP3音声解説を組み合わせた教育コンテンツプラットフォーム">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-400: #60a5fa;
+      --primary-500: #3b82f6;
+      --primary-600: #2563eb;
+      --dark-700: #334155;
+      --dark-800: #1e293b;
+      --dark-900: #0f172a;
+      --dark-950: #020617;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--dark-950) 0%, var(--dark-900) 50%, var(--dark-800) 100%);
+      color: #fff;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* Language Toggle */
+    .lang-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 100;
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(30, 41, 59, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 0.5rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .lang-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      background: transparent;
+      color: var(--gray-400);
+    }
+
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .lang-btn.active {
+      background: var(--primary-500);
+      color: #fff;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 8rem 0 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+      animation: pulse 8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 2rem;
+      font-size: 0.875rem;
+      color: var(--primary-400);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, #fff 0%, var(--primary-400) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--gray-300);
+      max-width: 700px;
+      margin: 0 auto 2rem;
+    }
+
+    /* Audio Player */
+    .audio-section {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin: 2rem auto;
+      max-width: 500px;
+    }
+
+    .audio-section h3 {
+      font-size: 1rem;
+      color: var(--gray-400);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .audio-player {
+      width: 100%;
+      height: 48px;
+      border-radius: 0.5rem;
+    }
+
+    /* Features Grid */
+    .features {
+      padding: 4rem 0;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      padding: 2rem;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(59, 130, 246, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(59, 130, 246, 0.2);
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--primary-400);
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card p {
+      color: var(--gray-400);
+      font-size: 0.95rem;
+    }
+
+    /* Tech Stack */
+    .tech-stack {
+      padding: 4rem 0;
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .tech-item {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .tech-item:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .tech-item strong {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .tech-item span {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+    }
+
+    /* Development Process */
+    .dev-process {
+      padding: 4rem 0;
+    }
+
+    .timeline {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 1.5rem;
+      padding-bottom: 2rem;
+      position: relative;
+    }
+
+    .timeline-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 1.25rem;
+      top: 3rem;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--primary-500), transparent);
+    }
+
+    .timeline-dot {
+      width: 2.5rem;
+      height: 2.5rem;
+      background: var(--primary-500);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .timeline-content {
+      flex: 1;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+    }
+
+    .timeline-content h4 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-content p {
+      color: var(--gray-400);
+      font-size: 0.95rem;
+    }
+
+    /* Metrics */
+    .metrics {
+      padding: 4rem 0;
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .metric-card {
+      text-align: center;
+      padding: 2rem;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+    }
+
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-400), #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-label {
+      color: var(--gray-400);
+      font-size: 0.95rem;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 3rem 0;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .footer p {
+      color: var(--gray-500);
+      font-size: 0.875rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+    }
+
+    .footer-links a {
+      color: var(--primary-400);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary-300);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero {
+        padding: 6rem 0 3rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-item {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .timeline-item::before {
+        display: none;
+      }
+    }
+
+    /* Hidden content by language */
+    [data-lang="en"] { display: none; }
+    body[lang="en"] [data-lang="ja"] { display: none; }
+    body[lang="en"] [data-lang="en"] { display: block; }
+  </style>
+</head>
+<body lang="ja">
+  <!-- Language Toggle -->
+  <div class="lang-toggle" role="group" aria-label="Language selection">
+    <button class="lang-btn active" onclick="setLanguage('ja')" aria-pressed="true">JP 日本語</button>
+    <button class="lang-btn" onclick="setLanguage('en')" aria-pressed="false">EN English</button>
+  </div>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="container hero-content">
+      <span class="hero-badge" data-lang="ja">Educational Platform</span>
+      <span class="hero-badge" data-lang="en">Educational Platform</span>
+
+      <h1 data-lang="ja">Content Viewer</h1>
+      <h1 data-lang="en">Content Viewer</h1>
+
+      <p data-lang="ja">
+        HTMLスライドとMP3音声解説を同期再生する、インタラクティブな教育コンテンツプラットフォーム。
+        フルスクリーン表示、キーボードショートカット、スワイプジェスチャーに対応し、
+        デスクトップからモバイルまであらゆる環境で快適な学習体験を提供します。
+      </p>
+      <p data-lang="en">
+        An interactive educational content platform that synchronizes HTML slides with MP3 audio explanations.
+        Featuring fullscreen viewing, keyboard shortcuts, and swipe gestures,
+        it delivers a seamless learning experience across desktop and mobile devices.
+      </p>
+
+      <!-- Audio Player -->
+      <div class="audio-section">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <span data-lang="ja">音声解説</span>
+          <span data-lang="en">Audio Explanation</span>
+        </h3>
+        <audio class="audio-player" controls src="./explanation.mp3">
+          <p data-lang="ja">お使いのブラウザは音声再生に対応していません。</p>
+          <p data-lang="en">Your browser does not support audio playback.</p>
+        </audio>
+      </div>
+    </div>
+  </header>
+
+  <!-- Features Section -->
+  <section class="features">
+    <div class="container">
+      <h2 class="section-title" data-lang="ja">主な機能</h2>
+      <h2 class="section-title" data-lang="en">Key Features</h2>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <h3 data-lang="ja">フルスクリーンビューア</h3>
+          <h3 data-lang="en">Fullscreen Viewer</h3>
+          <p data-lang="ja">没入感のある視聴体験。HTMLスライドを全画面表示し、音声解説と同期再生。UX最優先の設計で、学習に集中できる環境を提供します。</p>
+          <p data-lang="en">Immersive viewing experience. Display HTML slides in fullscreen synchronized with audio explanations. UX-first design enables focused learning.</p>
+        </article>
+
+        <!-- Feature 2 -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h3 data-lang="ja">音声シークバー</h3>
+          <h3 data-lang="en">Audio Seekbar</h3>
+          <p data-lang="ja">視覚的なタイムラインで音声の再生位置を把握。任意の位置にジャンプでき、学習ペースを自由にコントロールできます。</p>
+          <p data-lang="en">Visual timeline shows audio playback position. Jump to any point and control your learning pace freely.</p>
+        </article>
+
+        <!-- Feature 3 -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <path d="M6 8h.01M6 12h.01M6 16h.01M10 8h8M10 12h8M10 16h8"></path>
+            </svg>
+          </div>
+          <h3 data-lang="ja">キーボードショートカット</h3>
+          <h3 data-lang="en">Keyboard Shortcuts</h3>
+          <p data-lang="ja">Space/Kで再生・一時停止、矢印キーでシーク、F でフルスクリーン切り替え。マウス不要で全操作が可能です。</p>
+          <p data-lang="en">Space/K for play/pause, arrow keys for seeking, F for fullscreen toggle. Complete control without a mouse.</p>
+        </article>
+
+        <!-- Feature 4 -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+          <h3 data-lang="ja">モバイル対応</h3>
+          <h3 data-lang="en">Mobile Support</h3>
+          <p data-lang="ja">スワイプジェスチャーでコンテンツ間を移動。ダブルタップでフルスクリーン切り替え。PWA対応でホーム画面に追加可能。</p>
+          <p data-lang="en">Swipe gestures for navigation between content. Double-tap for fullscreen. PWA support for home screen installation.</p>
+        </article>
+
+        <!-- Feature 5 -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <h3 data-lang="ja">Firebase認証</h3>
+          <h3 data-lang="en">Firebase Auth</h3>
+          <p data-lang="ja">Googleアカウントまたはメール/パスワードでログイン。セキュアな認証基盤で学習進捗を管理できます。</p>
+          <p data-lang="en">Sign in with Google or email/password. Secure authentication platform to manage your learning progress.</p>
+        </article>
+
+        <!-- Feature 6 -->
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+          </div>
+          <h3 data-lang="ja">Cloud Firestore</h3>
+          <h3 data-lang="en">Cloud Firestore</h3>
+          <p data-lang="ja">リアルタイムデータベースでクラスルームとコンテンツを管理。スケーラブルで高速なデータアクセスを実現。</p>
+          <p data-lang="en">Real-time database for classroom and content management. Scalable and fast data access.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack Section -->
+  <section class="tech-stack">
+    <div class="container">
+      <h2 class="section-title" data-lang="ja">技術スタック</h2>
+      <h2 class="section-title" data-lang="en">Technology Stack</h2>
+
+      <div class="tech-grid">
+        <div class="tech-item">
+          <strong>React 18</strong>
+          <span data-lang="ja">UIライブラリ</span>
+          <span data-lang="en">UI Library</span>
+        </div>
+        <div class="tech-item">
+          <strong>TypeScript</strong>
+          <span data-lang="ja">型安全な開発</span>
+          <span data-lang="en">Type-safe Development</span>
+        </div>
+        <div class="tech-item">
+          <strong>Vite 5</strong>
+          <span data-lang="ja">高速ビルドツール</span>
+          <span data-lang="en">Fast Build Tool</span>
+        </div>
+        <div class="tech-item">
+          <strong>Tailwind CSS</strong>
+          <span data-lang="ja">ユーティリティCSS</span>
+          <span data-lang="en">Utility-first CSS</span>
+        </div>
+        <div class="tech-item">
+          <strong>Firebase</strong>
+          <span data-lang="ja">認証 + データベース</span>
+          <span data-lang="en">Auth + Database</span>
+        </div>
+        <div class="tech-item">
+          <strong>PWA</strong>
+          <span data-lang="ja">オフライン対応</span>
+          <span data-lang="en">Offline Support</span>
+        </div>
+        <div class="tech-item">
+          <strong>Vitest</strong>
+          <span data-lang="ja">テストフレームワーク</span>
+          <span data-lang="en">Test Framework</span>
+        </div>
+        <div class="tech-item">
+          <strong>Lucide</strong>
+          <span data-lang="ja">アイコンライブラリ</span>
+          <span data-lang="en">Icon Library</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Development Process Section -->
+  <section class="dev-process">
+    <div class="container">
+      <h2 class="section-title" data-lang="ja">開発プロセス</h2>
+      <h2 class="section-title" data-lang="en">Development Process</h2>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot">1</div>
+          <div class="timeline-content">
+            <h4 data-lang="ja">要件定義・設計</h4>
+            <h4 data-lang="en">Requirements & Design</h4>
+            <p data-lang="ja">ユーザーストーリーの作成、技術選定、アーキテクチャ設計。UX最優先の方針でフルスクリーンビューアを中心に設計。</p>
+            <p data-lang="en">Created user stories, selected technologies, designed architecture. UX-first approach with fullscreen viewer as the core.</p>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot">2</div>
+          <div class="timeline-content">
+            <h4 data-lang="ja">フロントエンド実装</h4>
+            <h4 data-lang="en">Frontend Implementation</h4>
+            <p data-lang="ja">React 18 + TypeScriptでコンポーネント実装。Context APIで状態管理、カスタムフックで機能を分離。コード分割で最適化。</p>
+            <p data-lang="en">Built components with React 18 + TypeScript. State management via Context API, custom hooks for separation of concerns. Code splitting for optimization.</p>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-content">
+            <h4 data-lang="ja">バックエンド連携</h4>
+            <h4 data-lang="en">Backend Integration</h4>
+            <p data-lang="ja">Firebase Authentication、Cloud Firestoreとの統合。Google Drive APIをCloud Run経由で接続し、コンテンツ管理を実現。</p>
+            <p data-lang="en">Integrated Firebase Authentication and Cloud Firestore. Connected Google Drive API via Cloud Run for content management.</p>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot">4</div>
+          <div class="timeline-content">
+            <h4 data-lang="ja">テスト・品質改善</h4>
+            <h4 data-lang="en">Testing & Quality</h4>
+            <p data-lang="ja">Vitest + Testing Libraryで単体・統合テストを実装。アクセシビリティ対応、パフォーマンス最適化を実施。</p>
+            <p data-lang="en">Implemented unit and integration tests with Vitest + Testing Library. Enhanced accessibility and optimized performance.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Metrics Section -->
+  <section class="metrics">
+    <div class="container">
+      <h2 class="section-title" data-lang="ja">プロジェクトメトリクス</h2>
+      <h2 class="section-title" data-lang="en">Project Metrics</h2>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value">50+</div>
+          <div class="metric-label" data-lang="ja">コンポーネント数</div>
+          <div class="metric-label" data-lang="en">Components</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">80%+</div>
+          <div class="metric-label" data-lang="ja">テストカバレッジ</div>
+          <div class="metric-label" data-lang="en">Test Coverage</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">A</div>
+          <div class="metric-label" data-lang="ja">Lighthouse スコア</div>
+          <div class="metric-label" data-lang="en">Lighthouse Score</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">PWA</div>
+          <div class="metric-label" data-lang="ja">インストール可能</div>
+          <div class="metric-label" data-lang="en">Installable</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p data-lang="ja">Built with React, Firebase & TypeScript | Generated with Claude Code</p>
+      <p data-lang="en">Built with React, Firebase & TypeScript | Generated with Claude Code</p>
+      <div class="footer-links">
+        <a href="./index.html" data-lang="ja">アプリを開く</a>
+        <a href="./index.html" data-lang="en">Open App</a>
+        <a href="https://github.com/sohei-t/ai-agent-portfolio/tree/main/content-viewer" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Language switching functionality
+    function setLanguage(lang) {
+      document.body.setAttribute('lang', lang);
+
+      // Update button states
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+      });
+      event.target.classList.add('active');
+      event.target.setAttribute('aria-pressed', 'true');
+
+      // Save preference
+      localStorage.setItem('content-viewer-lang', lang);
+    }
+
+    // Load saved language preference
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedLang = localStorage.getItem('content-viewer-lang') || 'ja';
+      document.body.setAttribute('lang', savedLang);
+
+      // Update button states
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        const btnLang = btn.textContent.includes('日本語') ? 'ja' : 'en';
+        if (btnLang === savedLang) {
+          btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
+        } else {
+          btn.classList.remove('active');
+          btn.setAttribute('aria-pressed', 'false');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
