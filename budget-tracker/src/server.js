@@ -47,11 +47,11 @@ app.use(compression());
 
 // Response time tracking (set header before response is sent)
 app.use((req, res, next) => {
-  req._startTime = process.hrtime.bigint();
+  const startMs = Date.now();
   const originalJson = res.json.bind(res);
   res.json = function(body) {
-    const elapsed = Number(process.hrtime.bigint() - req._startTime) / 1e6;
-    res.set('X-Response-Time', `${elapsed.toFixed(2)}ms`);
+    const elapsed = Date.now() - startMs;
+    res.set('X-Response-Time', `${elapsed}ms`);
     return originalJson(body);
   };
   next();
