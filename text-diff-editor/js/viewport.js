@@ -48,6 +48,50 @@ class ZoomController {
 
     this._handleWheel = this._handleWheel.bind(this);
     container.addEventListener('wheel', this._handleWheel, { passive: false });
+
+    // Safari gesture events for Magic Mouse / Trackpad pinch
+    this._gestureStartScale = 1.0;
+    this._handleGestureStart = this._handleGestureStart.bind(this);
+    this._handleGestureChange = this._handleGestureChange.bind(this);
+    this._handleGestureEnd = this._handleGestureEnd.bind(this);
+    container.addEventListener('gesturestart', this._handleGestureStart);
+    container.addEventListener('gesturechange', this._handleGestureChange);
+    container.addEventListener('gestureend', this._handleGestureEnd);
+  }
+
+  /** @private Handle Safari gesturestart (pinch begin). */
+  _handleGestureStart(e) {
+    e.preventDefault();
+    if (!this.enabled) return;
+    this._gestureStartScale = this.level;
+  }
+
+  /** @private Handle Safari gesturechange (pinch move). */
+  _handleGestureChange(e) {
+    e.preventDefault();
+    if (!this.enabled) return;
+
+    const newLevel = Utils.clamp(this._gestureStartScale * e.scale, this.minZoom, this.maxZoom);
+    if (Math.abs(newLevel - this.level) < 0.001) return;
+    this.level = newLevel;
+
+    requestAnimationFrame(() => {
+      this.container.style.transform = `scale(${this.level})`;
+      this.container.style.willChange = 'transform';
+    });
+
+    clearTimeout(this.zoomTimer);
+    this.zoomTimer = setTimeout(() => this.commitZoom(), 200);
+
+    this._throttledEmit({ level: this.level });
+  }
+
+  /** @private Handle Safari gestureend (pinch end). */
+  _handleGestureEnd(e) {
+    e.preventDefault();
+    if (!this.enabled) return;
+    clearTimeout(this.zoomTimer);
+    this.commitZoom();
   }
 
   /** @private */
@@ -210,6 +254,9 @@ class ZoomController {
   destroy() {
     clearTimeout(this.zoomTimer);
     this.container.removeEventListener('wheel', this._handleWheel);
+    this.container.removeEventListener('gesturestart', this._handleGestureStart);
+    this.container.removeEventListener('gesturechange', this._handleGestureChange);
+    this.container.removeEventListener('gestureend', this._handleGestureEnd);
     document.removeEventListener('keydown', this._onKeyDown);
     document.removeEventListener('keyup', this._onKeyUp);
     window.removeEventListener('blur', this._onBlur);

@@ -1729,14 +1729,17 @@
       });
 
       // ============================================================
-      // Prevent browser zoom (Cmd+scroll), allow our custom zoom
+      // Prevent browser zoom (Cmd+scroll and pinch), allow our custom zoom
       // ============================================================
-      // Prevent browser zoom on Cmd+scroll and pinch, let normal scroll through
       document.addEventListener('wheel', (e) => {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
         }
       }, { passive: false });
+
+      // Prevent Safari native pinch zoom (Magic Mouse / Trackpad)
+      document.addEventListener('gesturestart', (e) => e.preventDefault());
+      document.addEventListener('gesturechange', (e) => e.preventDefault());
 
       // ============================================================
       // Initial State: Trigger diff if split mode was remembered
