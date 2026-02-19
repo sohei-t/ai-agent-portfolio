@@ -27,6 +27,10 @@ class ZoomController {
     this.animating = false;
     this.zoomTimer = null;
     this.enabled = true;
+    /** When false, Cmd+scroll zooms only the panel under the cursor. */
+    this.syncZoom = true;
+    /** Per-panel zoom levels keyed by panel id. */
+    this._panelLevels = { left: 1.0, center: 1.0, right: 1.0 };
 
     // Track Cmd key state independently (browser may not set metaKey on wheel events)
     this._cmdPressed = false;
@@ -57,10 +61,25 @@ class ZoomController {
     e.preventDefault();
 
     const delta = -e.deltaY * this.zoomStep;
+
+    // Independent zoom: only zoom the panel under the cursor
+    if (!this.syncZoom) {
+      const panel = e.target.closest?.('.editor-panel');
+      if (!panel) return;
+      const panelId = panel.id === 'panel-right' ? 'right'
+        : panel.id === 'panel-center' ? 'center' : 'left';
+      const current = this._panelLevels[panelId] || 1.0;
+      const newLevel = Utils.clamp(current + delta, this.minZoom, this.maxZoom);
+      if (Math.abs(newLevel - current) < 0.001) return;
+      this._panelLevels[panelId] = newLevel;
+      this._commitPanelZoom(panelId, newLevel);
+      this._throttledEmit({ level: newLevel, panelId });
+      return;
+    }
+
+    // Synced zoom: zoom all panels together
     const newLevel = Utils.clamp(this.level + delta, this.minZoom, this.maxZoom);
-
     if (Math.abs(newLevel - this.level) < 0.001) return;
-
     this.level = newLevel;
 
     // Real-time: CSS transform for smooth zoom via requestAnimationFrame
@@ -79,6 +98,35 @@ class ZoomController {
     this.zoomTimer = setTimeout(() => this.commitZoom(), 200);
 
     this._throttledEmit({ level: this.level, originX: ox, originY: oy });
+  }
+
+  /**
+   * Apply zoom to a single panel by adjusting font size directly.
+   * @param {string} panelId - 'left', 'center', or 'right'
+   * @param {number} level - Zoom level
+   */
+  _commitPanelZoom(panelId, level) {
+    const panel = document.getElementById(`panel-${panelId}`);
+    if (!panel) return;
+    const newSize = Math.round(this.baseFontSize * level);
+    const lineH = Math.round(newSize * 1.5);
+    panel.querySelectorAll('.editor-textarea, .line-numbers').forEach(el => {
+      el.style.fontSize = `${newSize}px`;
+      el.style.lineHeight = `${lineH}px`;
+    });
+  }
+
+  /**
+   * Enable or disable synced zoom across all panels.
+   * @param {boolean} enabled
+   */
+  setSyncZoom(enabled) {
+    this.syncZoom = enabled;
+    if (enabled) {
+      // Re-sync all panels to the global level
+      this._panelLevels = { left: this.level, center: this.level, right: this.level };
+      this.commitZoom();
+    }
   }
 
   /** Commit the current zoom level to font-size for crisp text rendering. */
