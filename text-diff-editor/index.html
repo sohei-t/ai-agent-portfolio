@@ -319,6 +319,99 @@
       letter-spacing: 0.02em;
     }
 
+    /* Open + Recent group */
+    .toolbar-open-group {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .toolbar-recent-arrow {
+      min-width: 24px !important;
+      padding: 0 2px !important;
+    }
+
+    .toolbar-chevron {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .recent-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: var(--space-xs);
+      min-width: 260px;
+      max-height: 360px;
+      overflow-y: auto;
+      background: var(--bg-toast);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-xs);
+      z-index: 200;
+    }
+
+    .recent-dropdown[hidden] {
+      display: none;
+    }
+
+    .recent-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: var(--font-size-sm);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: left;
+      gap: var(--space-sm);
+      transition: background var(--transition-fast);
+    }
+
+    .recent-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .recent-item-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xs);
+    }
+
+    .recent-item-time {
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .recent-clear {
+      color: var(--text-tertiary) !important;
+      font-size: var(--font-size-xs) !important;
+      justify-content: center !important;
+    }
+
+    .recent-divider {
+      height: 1px;
+      background: var(--border-primary);
+      margin: var(--space-xs) 0;
+    }
+
+    .recent-empty {
+      padding: var(--space-md);
+      text-align: center;
+      color: var(--text-tertiary);
+      font-size: var(--font-size-xs);
+    }
+
     /* Zoom Group */
     .toolbar-zoom-group {
       display: flex;
@@ -585,7 +678,7 @@
     .panel-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: var(--space-sm);
       padding: var(--space-xs) var(--space-md);
       background: var(--bg-panel-header);
       border-bottom: 1px solid var(--border-subtle);
@@ -599,6 +692,41 @@
       color: var(--text-tertiary);
       text-transform: uppercase;
       letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+
+    .panel-filename {
+      flex: 1;
+      font-size: var(--font-size-xs);
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .panel-close-btn {
+      flex-shrink: 0;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-size: 14px;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+      opacity: 0.5;
+    }
+
+    .panel-close-btn:hover {
+      background: var(--bg-active);
+      color: var(--text-primary);
+      opacity: 1;
     }
 
     /* Editor Inner: line numbers + textarea */
@@ -1123,6 +1251,8 @@
     <div id="panel-left" class="editor-panel">
       <div class="panel-header">
         <span class="panel-title">Original</span>
+        <span class="panel-filename" id="panel-left-filename">Untitled</span>
+        <button class="panel-close-btn" data-panel="left" title="Close file" aria-label="Close file">&times;</button>
       </div>
       <div class="editor-inner">
         <div id="line-numbers-left" class="line-numbers" aria-hidden="true"></div>
@@ -1146,6 +1276,8 @@
     <div id="panel-center" class="editor-panel" hidden>
       <div class="panel-header">
         <span class="panel-title">Center</span>
+        <span class="panel-filename" id="panel-center-filename">Untitled</span>
+        <button class="panel-close-btn" data-panel="center" title="Close file" aria-label="Close file">&times;</button>
       </div>
       <div class="editor-inner">
         <div id="line-numbers-center" class="line-numbers" aria-hidden="true"></div>
@@ -1169,6 +1301,8 @@
     <div id="panel-right" class="editor-panel" hidden>
       <div class="panel-header">
         <span class="panel-title">Modified</span>
+        <span class="panel-filename" id="panel-right-filename">Untitled</span>
+        <button class="panel-close-btn" data-panel="right" title="Close file" aria-label="Close file">&times;</button>
       </div>
       <div class="editor-inner">
         <div id="line-numbers-right" class="line-numbers" aria-hidden="true"></div>
@@ -1292,12 +1426,32 @@
             break;
           }
 
+          case 'close': {
+            // Close the focused panel's file (or left by default)
+            const closePanel = document.activeElement?.closest('.editor-panel');
+            const closePanelId = closePanel?.id === 'panel-right' ? 'right'
+              : closePanel?.id === 'panel-center' ? 'center' : 'left';
+            const editor = closePanelId === 'right' ? editorRight
+              : closePanelId === 'center' ? editorCenter : editorLeft;
+
+            if (editor.modified) {
+              if (!confirm('Unsaved changes will be lost. Close without saving?')) break;
+            }
+            fileManager.closeFile(closePanelId);
+            editor.setText('');
+            editor.clearModified();
+            editor.fileName = 'Untitled';
+            editor.fileHandle = null;
+            break;
+          }
+
           case 'split':
             splitView.toggle();
             break;
 
           case 'sync-scroll':
             splitView.setSyncScroll(data.params.enabled);
+            zoomController.setSyncZoom(data.params.enabled);
             break;
 
           case 'theme-toggle':
@@ -1336,22 +1490,60 @@
       // EventBus Wiring: File Operations
       // ============================================================
       EventBus.on('file:open', (data) => {
+        const editor = data.panelId === 'right' ? editorRight
+          : data.panelId === 'center' ? editorCenter : editorLeft;
+        editor.setText(data.content);
+        editor.clearModified();
+        editor.fileName = data.name;
+        editor.fileHandle = data.handle;
+
+        // Update panel header filename
+        const fnEl = document.getElementById(`panel-${data.panelId}-filename`);
+        if (fnEl) fnEl.textContent = data.name;
+      });
+
+      EventBus.on('file:close', (data) => {
+        const fnEl = document.getElementById(`panel-${data.panelId}-filename`);
+        if (fnEl) fnEl.textContent = 'Untitled';
         if (data.panelId === 'left') {
-          editorLeft.setText(data.content);
-          editorLeft.clearModified();
-          editorLeft.fileName = data.name;
-          editorLeft.fileHandle = data.handle;
-        } else if (data.panelId === 'center') {
-          editorCenter.setText(data.content);
-          editorCenter.clearModified();
-          editorCenter.fileName = data.name;
-          editorCenter.fileHandle = data.handle;
-        } else {
-          editorRight.setText(data.content);
-          editorRight.clearModified();
-          editorRight.fileName = data.name;
-          editorRight.fileHandle = data.handle;
+          statusBar.updateFileName('Untitled');
+          statusBar.updateModifiedIndicator(false);
         }
+      });
+
+      // ============================================================
+      // Per-panel close buttons (in panel headers)
+      // ============================================================
+      document.querySelectorAll('.panel-close-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const panelId = btn.dataset.panel;
+          const editor = panelId === 'right' ? editorRight
+            : panelId === 'center' ? editorCenter : editorLeft;
+
+          if (editor.modified) {
+            if (!confirm('Unsaved changes will be lost. Close without saving?')) return;
+          }
+          fileManager.closeFile(panelId);
+          editor.setText('');
+          editor.clearModified();
+          editor.fileName = 'Untitled';
+          editor.fileHandle = null;
+        });
+      });
+
+      // ============================================================
+      // EventBus Wiring: Recent Files
+      // ============================================================
+      EventBus.on('recent:open', (data) => {
+        const focusedPanel = document.activeElement?.closest('.editor-panel');
+        const panelId = focusedPanel?.id === 'panel-right' ? 'right'
+          : focusedPanel?.id === 'panel-center' ? 'center' : 'left';
+        fileManager.reopenRecent(data.name, panelId);
+      });
+
+      EventBus.on('recent:clear', () => {
+        fileManager.clearRecentFiles();
+        EventBus.emit('toast:show', { message: 'History cleared', type: 'info', duration: 2000 });
       });
 
       EventBus.on('file:new', (data) => {
@@ -1365,6 +1557,11 @@
         if (data.panelId === 'left') {
           fileManager.saveFile('left', editorLeft.getText());
         }
+      });
+
+      EventBus.on('file:saved', (data) => {
+        const fnEl = document.getElementById(`panel-${data.panelId}-filename`);
+        if (fnEl) fnEl.textContent = data.name;
       });
 
       // ============================================================
@@ -1476,6 +1673,12 @@
         if (mod && e.key === 's') {
           e.preventDefault();
           EventBus.emit('toolbar:action', { action: 'save' });
+        }
+
+        // Cmd+W: Close file
+        if (mod && e.key === 'w') {
+          e.preventDefault();
+          EventBus.emit('toolbar:action', { action: 'close' });
         }
 
         // Cmd+F: Search
