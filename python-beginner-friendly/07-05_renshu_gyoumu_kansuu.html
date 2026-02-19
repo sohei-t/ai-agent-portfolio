@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【練習】業務計算を関数にまとめよう | Python入門（初心者特化版）</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-primary: #2C3E7B; --color-primary-light: #4A5FA8; --color-primary-lighter: #7B8EC6;
+            --color-primary-dark: #1A2654; --color-primary-bg: #E8EAF2;
+            --color-secondary: #E8A830; --color-secondary-light: #F5C862; --color-secondary-lighter: #FFF3D4; --color-secondary-dark: #C08820;
+            --color-background: #F8F6F0; --color-background-warm: #FBF9F3;
+            --color-surface: #FFFFFF; --color-surface-raised: #FFFFFF; --color-surface-muted: #F2F0EA;
+            --color-text: #1E1E2E; --color-text-secondary: #5A5A72; --color-text-tertiary: #8E8EA0;
+            --color-text-inverse: #FAFAF5; --color-text-on-primary: #FFFFFF;
+            --color-success: #2D9F64; --color-success-bg: #E6F7ED;
+            --color-warning: #D4870E; --color-warning-bg: #FFF6E0;
+            --color-error: #CC3D3D; --color-error-bg: #FDECEC;
+            --color-info: #3D8BC9; --color-info-bg: #E6F0F9;
+            --color-code-bg: #F0EDE4; --color-code-border: #DDD8CC; --color-code-text: #2C3E7B;
+            --color-code-keyword: #8B3FAE; --color-code-string: #2D9F64; --color-code-comment: #8E8EA0;
+            --color-code-number: #CC3D3D; --color-code-function: #3D8BC9;
+            --font-heading: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Meiryo', sans-serif;
+            --font-body: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-code: 'JetBrains Mono', 'Source Code Pro', 'Menlo', monospace;
+            --font-size-xs: 0.75rem; --font-size-sm: 0.875rem; --font-size-base: 1rem;
+            --font-size-md: 1.125rem; --font-size-lg: 1.375rem; --font-size-xl: 1.75rem;
+            --font-size-2xl: 2.25rem; --font-size-3xl: 3rem; --font-size-4xl: 3.75rem;
+            --font-weight-normal: 400; --font-weight-medium: 500; --font-weight-bold: 700; --font-weight-black: 900;
+            --line-height-tight: 1.3; --line-height-normal: 1.7; --line-height-relaxed: 1.9;
+            --spacing-xs: 0.25rem; --spacing-sm: 0.5rem; --spacing-md: 1rem; --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem; --spacing-2xl: 3rem; --spacing-3xl: 4rem; --spacing-4xl: 6rem;
+            --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-pill: 100px; --radius-circle: 50%;
+            --shadow-xs: 0 1px 2px rgba(30,30,46,0.05); --shadow-sm: 0 2px 4px rgba(30,30,46,0.06), 0 1px 2px rgba(30,30,46,0.04);
+            --shadow-md: 0 4px 12px rgba(30,30,46,0.08), 0 2px 4px rgba(30,30,46,0.04);
+            --transition-fast: 150ms ease; --transition-normal: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1); --transition-slide: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            --z-navigation: 500; --z-texture: 2000;
+            --slide-max-width: 960px; --slide-padding-x: 80px; --slide-padding-y: 40px; --slide-padding-bottom: 120px; --nav-height: 80px;
+        }
+        @media (max-width: 1024px) { :root { --slide-padding-x: 48px; --font-size-3xl: 2.25rem; --font-size-4xl: 3rem; } }
+        @media (max-width: 768px) { :root { --slide-padding-x: 28px; --slide-padding-y: 24px; --slide-padding-bottom: 140px; --font-size-2xl: 1.75rem; --font-size-3xl: 2rem; --font-size-4xl: 2.5rem; --font-size-xl: 1.5rem; } }
+        @media (max-width: 480px) { :root { --slide-padding-x: 20px; --slide-padding-y: 20px; --font-size-2xl: 1.5rem; --font-size-3xl: 1.75rem; --font-size-4xl: 2rem; } }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; } html { width: 100%; }
+        body { font-family: var(--font-body); background: var(--color-background); color: var(--color-text); min-height: 100vh; overflow: hidden; position: relative; width: 100%; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"); pointer-events: none; z-index: var(--z-texture); }
+        .accent-bar { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary), var(--color-primary-light), var(--color-secondary)); z-index: var(--z-navigation); }
+        .slides-container { position: relative; width: 100%; height: 100vh; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transform: translateX(30px); transition: all var(--transition-slide); overflow-y: auto; }
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); } .slide.prev { opacity: 0; transform: translateX(-30px); }
+        .content-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); background: var(--color-surface); border-top: 1px solid #E4E1D8; box-shadow: 0 -2px 12px rgba(30,30,46,0.06); z-index: var(--z-navigation); padding: 0 var(--slide-padding-x); }
+        .nav-inner { max-width: var(--slide-max-width); margin: 0 auto; height: 100%; display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md); }
+        .content-nav-btn { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); padding: var(--spacing-sm) var(--spacing-xl); border: 2px solid var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; transition: all var(--transition-fast); min-width: 100px; text-align: center; }
+        .content-nav-btn.btn-prev, .content-nav-btn.btn-first { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-prev:hover, .content-nav-btn.btn-first:hover { background: var(--color-primary-bg); }
+        .content-nav-btn.btn-next { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .content-nav-btn.btn-next:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+        .content-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .content-nav-btn:disabled:hover { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-next:disabled:hover { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .slide-counter { font-family: var(--font-code); font-size: var(--font-size-sm); color: var(--color-text-tertiary); min-width: 80px; text-align: center; }
+        body.platform-controlled .content-nav { display: none !important; }
+        @media (max-width: 768px) { .content-nav { padding: 0 var(--spacing-md); } .content-nav-btn { font-size: var(--font-size-xs); padding: var(--spacing-sm) var(--spacing-md); min-width: 70px; } }
+
+        .slide.active.slide-title { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(160deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%); color: var(--color-text-inverse); }
+        .slide-title .chapter-label { font-family: var(--font-code); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-secondary-light); margin-bottom: var(--spacing-md); padding: var(--spacing-xs) var(--spacing-lg); border: 1px solid rgba(245,200,98,0.3); border-radius: var(--radius-pill); }
+        .slide-title .topic-title { font-family: var(--font-heading); font-size: var(--font-size-4xl); font-weight: var(--font-weight-black); line-height: var(--line-height-tight); margin-bottom: var(--spacing-lg); max-width: 800px; }
+        .slide-title .topic-subtitle { font-family: var(--font-body); font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); color: rgba(250,250,245,0.75); max-width: 600px; line-height: var(--line-height-normal); }
+        .slide-title .decorative-line { width: 80px; height: 3px; background: var(--color-secondary); margin: var(--spacing-lg) 0; border-radius: var(--radius-pill); }
+        .slide.active.slide-content { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); }
+        .slide-content .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-content .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-content .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+        .slide.active.slide-summary { display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--color-surface-muted); }
+        .slide-summary .summary-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .slide-summary .summary-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .slide-summary .summary-item { padding: var(--spacing-md) var(--spacing-lg); margin-bottom: var(--spacing-md); background: var(--color-surface); border-left: 4px solid var(--color-secondary); border-radius: 0 var(--radius-md) var(--radius-md) 0; box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); }
+        .slide-summary .summary-item strong { color: var(--color-primary); }
+        .slide.active.slide-practice { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); background: linear-gradient(180deg, var(--color-background-warm) 0%, var(--color-secondary-lighter) 100%); }
+        .slide-practice .practice-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); background: rgba(232,168,48,0.15); border: 2px solid var(--color-secondary); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-lg); letter-spacing: 0.1em; }
+        .slide-practice .practice-badge::before { content: '\270F\FE0F '; }
+        .slide-practice .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-practice .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-practice .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+        .slide-practice .practice-instruction { background: var(--color-surface); border: 2px dashed var(--color-secondary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin: var(--spacing-lg) 0; box-shadow: var(--shadow-sm); }
+        .slide-practice .practice-instruction .instruction-title { font-family: var(--font-heading); font-size: var(--font-size-md); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-md); }
+        .slide.active.slide-checkpoint { display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(180deg, var(--color-background) 0%, var(--color-info-bg) 100%); }
+        .slide-checkpoint .checkpoint-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-info); background: rgba(61,139,201,0.1); border: 2px solid var(--color-info); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-xl); letter-spacing: 0.1em; }
+        .slide-checkpoint .checkpoint-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-info); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .checkpoint-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .checkpoint-item { padding: var(--spacing-md) var(--spacing-lg); padding-left: calc(var(--spacing-lg) + 36px); margin-bottom: var(--spacing-md); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); position: relative; }
+        .checkpoint-item::before { content: '\2713'; position: absolute; left: var(--spacing-lg); top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--color-success); color: white; border-radius: var(--radius-circle); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); line-height: 24px; text-align: center; }
+        .code-block { background: var(--color-code-bg); border: 1px solid var(--color-code-border); border-radius: var(--radius-md); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; overflow-x: auto; position: relative; }
+        .code-block::before { content: 'Python'; position: absolute; top: 0; right: 0; font-family: var(--font-code); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--color-text-tertiary); background: var(--color-surface-muted); padding: var(--spacing-xs) var(--spacing-md); border-radius: 0 var(--radius-md) 0 var(--radius-md); border-left: 1px solid var(--color-code-border); border-bottom: 1px solid var(--color-code-border); }
+        .code-block pre { margin: 0; padding: 0; overflow-x: auto; }
+        .code-block code { font-family: var(--font-code); font-size: var(--font-size-sm); line-height: 1.8; color: var(--color-code-text); white-space: pre; }
+        .code-block .keyword { color: var(--color-code-keyword); font-weight: var(--font-weight-bold); }
+        .code-block .string { color: var(--color-code-string); }
+        .code-block .comment { color: var(--color-code-comment); font-style: italic; }
+        .code-block .number { color: var(--color-code-number); }
+        .code-block .function { color: var(--color-code-function); }
+        .code-block.terminal { background: #1E1E2E; border-color: #3A3A4E; }
+        .code-block.terminal::before { content: 'Result'; background: #2A2A3E; border-color: #3A3A4E; color: #8E8EA0; }
+        .code-block.terminal code { color: #E0E0E8; }
+        .code-block.terminal .output { color: #B0B0C0; }
+        code.inline { font-family: var(--font-code); font-size: 0.9em; background: var(--color-code-bg); border: 1px solid var(--color-code-border); padding: 1px 6px; border-radius: var(--radius-sm); color: var(--color-code-text); }
+        .callout-box { max-width: var(--slide-max-width); width: 100%; padding: var(--spacing-lg) var(--spacing-xl); margin: var(--spacing-lg) 0; border-radius: var(--radius-md); font-family: var(--font-body); font-size: var(--font-size-base); line-height: var(--line-height-normal); position: relative; padding-left: calc(var(--spacing-xl) + 8px); border-left: 4px solid; }
+        .callout-box .callout-title { font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-sm); font-size: var(--font-size-md); }
+        .callout-box.info { background: var(--color-info-bg); border-color: var(--color-info); } .callout-box.info .callout-title { color: var(--color-info); }
+        .callout-box.tip { background: var(--color-success-bg); border-color: var(--color-success); } .callout-box.tip .callout-title { color: var(--color-success); }
+        .callout-box.warning { background: var(--color-warning-bg); border-color: var(--color-warning); } .callout-box.warning .callout-title { color: var(--color-warning); }
+        .callout-box.business { background: var(--color-secondary-lighter); border-color: var(--color-secondary-dark); } .callout-box.business .callout-title { color: var(--color-secondary-dark); }
+        .callout-box.encouragement { background: linear-gradient(135deg, var(--color-success-bg) 0%, #F0FBF4 100%); border-color: var(--color-success); } .callout-box.encouragement .callout-title { color: var(--color-success); }
+        .diagram-container { max-width: var(--slide-max-width); width: 100%; margin: var(--spacing-lg) auto; padding: var(--spacing-xl); background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid #E4E1D8; text-align: center; }
+        .diagram-container svg { max-width: 100%; height: auto; }
+        .diagram-caption { font-family: var(--font-body); font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin-top: var(--spacing-md); text-align: center; font-style: italic; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide.active .animate-in { animation: fadeInUp 0.6s ease forwards; }
+        .text-center { text-align: center; } .mb-md { margin-bottom: var(--spacing-md); } .mb-lg { margin-bottom: var(--spacing-lg); }
+
+        .slide.active.slide-exercise { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); background: linear-gradient(180deg, var(--color-background) 0%, var(--color-secondary-lighter) 100%); }
+        .slide-exercise .exercise-badge { font-family: var(--font-code); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-text-on-primary); background: var(--color-secondary-dark); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-lg); letter-spacing: 0.1em; }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+    <div class="slides-container" id="slidesContainer">
+
+        <!-- Slide 1: Title -->
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 7 - Exercise</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">業務計算を<br>関数にまとめよう</h1>
+            <p class="topic-subtitle">税込計算・割引計算・合計計算を関数で整理する総合演習</p>
+        </div>
+
+        <!-- Slide 2: Mission -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">今回のミッション</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">見積書の計算ロジックを関数で整理しましょう！</p>
+                <div class="callout-box business">
+                    <div class="callout-title">シナリオ</div>
+                    あなたは営業部のアシスタントです。お客様への見積書を作成するため、<br>
+                    税込計算、割引計算、合計計算を行うプログラムを作ります。<br>
+                    関数を使って、再利用しやすいコードにしましょう！
+                </div>
+                <div class="callout-box info">
+                    <div class="callout-title">使う技術</div>
+                    def文（関数の定義）、引数（データを渡す）、return（結果を返す）、<br>
+                    デフォルト引数、for文（リストの繰り返し）
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Step 1 - calc_tax -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">ステップ 1</span>
+            <h2 class="slide-heading">税込計算関数を作ろう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">動画を止めて、Google Colabで作りましょう</div>
+                    <p>価格を受け取って、税込価格を返す関数を作ってください。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">calc_tax</span>(price, rate=<span class="number">1.1</span>):
+    <span class="keyword">return</span> <span class="function">int</span>(price * rate)
+
+<span class="comment"># テスト</span>
+<span class="function">print</span>(<span class="function">calc_tax</span>(<span class="number">1000</span>))
+<span class="function">print</span>(<span class="function">calc_tax</span>(<span class="number">500</span>, <span class="number">1.08</span>))</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">1100
+540</span></code></pre>
+                </div>
+                <div class="callout-box tip">
+                    <div class="callout-title">ポイント</div>
+                    デフォルト税率は10%。食品など8%の場合は第2引数で指定できます。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Step 2 - discount -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">ステップ 2</span>
+            <h2 class="slide-heading">割引計算関数を作ろう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">動画を止めて、続きを作りましょう</div>
+                    <p>割引率を受け取って、割引後の価格を返す関数を追加してください。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">discount</span>(price, rate=<span class="number">0.1</span>):
+    <span class="keyword">return</span> <span class="function">int</span>(price * (<span class="number">1</span> - rate))
+
+<span class="comment"># テスト</span>
+<span class="function">print</span>(<span class="function">discount</span>(<span class="number">3000</span>))
+<span class="function">print</span>(<span class="function">discount</span>(<span class="number">3000</span>, <span class="number">0.2</span>))</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">2700
+2400</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Step 3 - calc_total -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">ステップ 3</span>
+            <h2 class="slide-heading">合計計算関数を作ろう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">リストの合計を計算する関数です</div>
+                    <p>価格のリストを受け取って、合計を返す関数を作りましょう。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">calc_total</span>(prices):
+    total = <span class="number">0</span>
+    <span class="keyword">for</span> p <span class="keyword">in</span> prices:
+        total = total + p
+    <span class="keyword">return</span> total
+
+<span class="comment"># テスト</span>
+<span class="function">print</span>(<span class="function">calc_total</span>([<span class="number">1100</span>, <span class="number">2200</span>, <span class="number">550</span>]))</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">3850</span></code></pre>
+                </div>
+                <div class="callout-box tip">
+                    <div class="callout-title">for文を復習！</div>
+                    第5章で学んだfor文を使って、リストの各要素を合計しています。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Step 4 - combine -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">ステップ 4</span>
+            <h2 class="slide-heading">関数を組み合わせよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">動画を止めて、全部を組み合わせましょう</div>
+                    <p>3つの関数を使って、見積書の計算をしてみましょう。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code><span class="comment"># 商品リスト（税抜価格）</span>
+items = [<span class="number">1500</span>, <span class="number">3000</span>, <span class="number">800</span>]
+
+<span class="comment"># 各商品の税込価格を計算</span>
+tax_prices = []
+<span class="keyword">for</span> item <span class="keyword">in</span> items:
+    tax_prices.append(<span class="function">calc_tax</span>(item))
+
+<span class="comment"># 合計を計算</span>
+total = <span class="function">calc_total</span>(tax_prices)
+<span class="function">print</span>(<span class="string">"税込合計: "</span> + <span class="function">str</span>(total) + <span class="string">"円"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">税込合計: 5830円</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Step 5 - full estimate -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">ステップ 5（最終）</span>
+            <h2 class="slide-heading">見積書を完成させよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">全関数を使った見積書プログラム</div>
+                    <p>税込 → 割引 → 合計の流れで見積書を作ります。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code>items = [<span class="number">1500</span>, <span class="number">3000</span>, <span class="number">800</span>]
+
+<span class="function">print</span>(<span class="string">"=== 見積書 ==="</span>)
+tax_prices = []
+<span class="keyword">for</span> item <span class="keyword">in</span> items:
+    tp = <span class="function">calc_tax</span>(item)
+    tax_prices.append(tp)
+    <span class="function">print</span>(<span class="function">str</span>(item) + <span class="string">"円 → 税込 "</span> + <span class="function">str</span>(tp) + <span class="string">"円"</span>)
+
+total = <span class="function">calc_total</span>(tax_prices)
+final = <span class="function">discount</span>(total, <span class="number">0.05</span>)
+<span class="function">print</span>(<span class="string">"----------"</span>)
+<span class="function">print</span>(<span class="string">"小計: "</span> + <span class="function">str</span>(total) + <span class="string">"円"</span>)
+<span class="function">print</span>(<span class="string">"5%割引後: "</span> + <span class="function">str</span>(final) + <span class="string">"円"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">=== 見積書 ===
+1500円 → 税込 1650円
+3000円 → 税込 3300円
+800円 → 税込 880円
+----------
+小計: 5830円
+5%割引後: 5538円</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: What you achieved -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">完成！何を作ったか振り返ろう</h2>
+            <div class="slide-body">
+                <div class="diagram-container">
+                    <svg width="600" height="200" viewBox="0 0 600 200">
+                        <rect x="20" y="50" width="150" height="100" rx="10" fill="#E8A830" opacity="0.15" stroke="#C08820" stroke-width="2"/>
+                        <text x="95" y="85" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="13" fill="#C08820" font-weight="bold">calc_tax</text>
+                        <text x="95" y="110" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="11" fill="#5A5A72">税込計算</text>
+                        <text x="95" y="135" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10" fill="#1E1E2E">price * rate</text>
+
+                        <path d="M180 100 L210 100" stroke="#2C3E7B" stroke-width="2" fill="none" marker-end="url(#a5)"/>
+
+                        <rect x="220" y="50" width="150" height="100" rx="10" fill="#2D9F64" opacity="0.15" stroke="#2D9F64" stroke-width="2"/>
+                        <text x="295" y="85" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="13" fill="#2D9F64" font-weight="bold">calc_total</text>
+                        <text x="295" y="110" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="11" fill="#5A5A72">合計計算</text>
+                        <text x="295" y="135" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10" fill="#1E1E2E">for + total</text>
+
+                        <path d="M380 100 L410 100" stroke="#2C3E7B" stroke-width="2" fill="none" marker-end="url(#a5)"/>
+
+                        <rect x="420" y="50" width="150" height="100" rx="10" fill="#3D8BC9" opacity="0.15" stroke="#3D8BC9" stroke-width="2"/>
+                        <text x="495" y="85" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="13" fill="#3D8BC9" font-weight="bold">discount</text>
+                        <text x="495" y="110" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="11" fill="#5A5A72">割引計算</text>
+                        <text x="495" y="135" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10" fill="#1E1E2E">price * (1-rate)</text>
+
+                        <defs><marker id="a5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2C3E7B"/></marker></defs>
+                    </svg>
+                    <p class="diagram-caption">3つの関数を組み合わせて見積書の計算ロジックを実現しました</p>
+                </div>
+                <div class="callout-box encouragement">
+                    <div class="callout-title">おめでとうございます！</div>
+                    関数の定義方法を活用し、引数でデータを渡して、戻り値で結果を受け取る。<br>
+                    第7章の全技術を使って業務計算を関数化できました！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Checkpoint -->
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">第7章 完了</span>
+            <h2 class="checkpoint-title">第7章で学んだこと</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item">関数は「入力 → 処理 → 出力」（自動販売機のたとえ）</li>
+                <li class="checkpoint-item">def文で関数を定義し、関数名()で呼び出す</li>
+                <li class="checkpoint-item">引数でデータを渡し、デフォルト引数で省略可能に</li>
+                <li class="checkpoint-item">returnで結果を返し、変数に保存して再利用</li>
+                <li class="checkpoint-item">複数の関数を組み合わせて複雑な処理を実現</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: Summary -->
+        <div class="slide slide-summary">
+            <h2 class="summary-title">第7章のまとめ</h2>
+            <ul class="summary-list">
+                <li class="summary-item"><strong>関数の3要素</strong> def（定義）、引数（入力）、return（出力）</li>
+                <li class="summary-item"><strong>再利用の力</strong> 一度作った関数は何度でも使える。修正も1か所でOK</li>
+                <li class="summary-item"><strong>組み合わせ</strong> 関数同士を組み合わせて、複雑な業務ロジックを構築できる</li>
+                <li class="summary-item"><strong>次の章</strong> エラーへの対処やライブラリの紹介、そして総まとめです！</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <nav class="navigation content-nav">
+        <div class="nav-inner">
+            <button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button>
+            <button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button>
+            <span class="slide-counter" id="slideNumber">1 / 1</span>
+            <button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button>
+        </div>
+    </nav>
+
+    <script>
+        let currentSlide = 1; let totalSlides = 0;
+        function updateSlideInfo() { const slides = document.querySelectorAll('.slide'); totalSlides = slides.length; slides.forEach((slide, index) => { slide.classList.remove('active', 'prev'); if (index + 1 === currentSlide) slide.classList.add('active'); else if (index + 1 < currentSlide) slide.classList.add('prev'); }); const prevBtn = document.getElementById('prevBtn'); const nextBtn = document.getElementById('nextBtn'); if (prevBtn) prevBtn.disabled = (currentSlide === 1); if (nextBtn) nextBtn.disabled = (currentSlide === totalSlides); const slideNum = document.getElementById('slideNumber'); if (slideNum) slideNum.textContent = currentSlide + ' / ' + totalSlides; if (window.slideAPI && window.slideAPI.onSlideChange) window.slideAPI.onSlideChange(currentSlide, totalSlides); }
+        function showSlide(n) { if (n >= 1 && n <= totalSlides) { currentSlide = n; updateSlideInfo(); } }
+        function goToPrevious() { if (currentSlide > 1) { currentSlide--; updateSlideInfo(); } }
+        function goToNext() { if (currentSlide < totalSlides) { currentSlide++; updateSlideInfo(); } }
+        function goToFirst() { currentSlide = 1; updateSlideInfo(); }
+        function goToLast() { currentSlide = totalSlides; updateSlideInfo(); }
+        document.addEventListener('keydown', (e) => { if (document.body.classList.contains('platform-controlled')) return; if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); } if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevious(); } if (e.key === 'Home') { e.preventDefault(); goToFirst(); } if (e.key === 'End') { e.preventDefault(); goToLast(); } });
+        window.slideAPI = { version: "1.0", getTotalSlides: function() { return totalSlides; }, getCurrentSlide: function() { return currentSlide; }, showSlide: showSlide, nextSlide: goToNext, prevSlide: goToPrevious, firstSlide: goToFirst, lastSlide: goToLast, hideContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = 'none'; }, showContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = ''; }, setPlatformControlled: function(enabled) { if (enabled) document.body.classList.add('platform-controlled'); else document.body.classList.remove('platform-controlled'); }, onSlideChange: null };
+        window.onload = updateSlideInfo;
+    </script>
+</body>
+</html>

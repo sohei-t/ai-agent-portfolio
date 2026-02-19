@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辞書の基本 - 名前でデータを管理 | Python入門（初心者特化版）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--color-primary:#2C3E7B;--color-primary-light:#4A5FA8;--color-primary-lighter:#7B8EC6;--color-primary-dark:#1A2654;--color-primary-bg:#E8EAF2;--color-secondary:#E8A830;--color-secondary-light:#F5C862;--color-secondary-lighter:#FFF3D4;--color-secondary-dark:#C08820;--color-background:#F8F6F0;--color-background-warm:#FBF9F3;--color-surface:#FFFFFF;--color-surface-raised:#FFFFFF;--color-surface-muted:#F2F0EA;--color-text:#1E1E2E;--color-text-secondary:#5A5A72;--color-text-tertiary:#8E8EA0;--color-text-inverse:#FAFAF5;--color-text-on-primary:#FFFFFF;--color-success:#2D9F64;--color-success-bg:#E6F7ED;--color-warning:#D4870E;--color-warning-bg:#FFF6E0;--color-error:#CC3D3D;--color-error-bg:#FDECEC;--color-info:#3D8BC9;--color-info-bg:#E6F0F9;--color-code-bg:#F0EDE4;--color-code-border:#DDD8CC;--color-code-text:#2C3E7B;--color-code-keyword:#8B3FAE;--color-code-string:#2D9F64;--color-code-comment:#8E8EA0;--color-code-number:#CC3D3D;--color-code-function:#3D8BC9;--font-heading:'Zen Kaku Gothic New','Hiragino Sans','Meiryo',sans-serif;--font-body:'M PLUS 1p','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;--font-code:'JetBrains Mono','Source Code Pro','Menlo',monospace;--font-size-xs:0.75rem;--font-size-sm:0.875rem;--font-size-base:1rem;--font-size-md:1.125rem;--font-size-lg:1.375rem;--font-size-xl:1.75rem;--font-size-2xl:2.25rem;--font-size-3xl:3rem;--font-size-4xl:3.75rem;--font-weight-normal:400;--font-weight-medium:500;--font-weight-bold:700;--font-weight-black:900;--line-height-tight:1.3;--line-height-normal:1.7;--line-height-relaxed:1.9;--spacing-xs:0.25rem;--spacing-sm:0.5rem;--spacing-md:1rem;--spacing-lg:1.5rem;--spacing-xl:2rem;--spacing-2xl:3rem;--spacing-3xl:4rem;--spacing-4xl:6rem;--radius-sm:4px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;--radius-pill:100px;--radius-circle:50%;--shadow-xs:0 1px 2px rgba(30,30,46,0.05);--shadow-sm:0 2px 4px rgba(30,30,46,0.06),0 1px 2px rgba(30,30,46,0.04);--shadow-md:0 4px 12px rgba(30,30,46,0.08),0 2px 4px rgba(30,30,46,0.04);--shadow-lg:0 8px 24px rgba(30,30,46,0.10),0 4px 8px rgba(30,30,46,0.05);--transition-fast:150ms ease;--transition-normal:300ms ease;--transition-slow:500ms cubic-bezier(0.4,0,0.2,1);--transition-slide:600ms cubic-bezier(0.16,1,0.3,1);--z-navigation:500;--z-texture:2000;--slide-max-width:960px;--slide-padding-x:80px;--slide-padding-y:40px;--slide-padding-bottom:120px;--nav-height:80px}
+        @media(max-width:1024px){:root{--slide-padding-x:48px;--font-size-3xl:2.25rem;--font-size-4xl:3rem}}@media(max-width:768px){:root{--slide-padding-x:28px;--slide-padding-y:24px;--slide-padding-bottom:140px;--font-size-2xl:1.75rem;--font-size-3xl:2rem;--font-size-4xl:2.5rem;--font-size-xl:1.5rem}}@media(max-width:480px){:root{--slide-padding-x:20px;--slide-padding-y:20px;--font-size-2xl:1.5rem;--font-size-3xl:1.75rem;--font-size-4xl:2rem}}
+        *{margin:0;padding:0;box-sizing:border-box}html{width:100%}body{font-family:var(--font-body);background:var(--color-background);color:var(--color-text);min-height:100vh;overflow:hidden;position:relative;width:100%}body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:var(--z-texture)}.accent-bar{position:fixed;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--color-primary-dark),var(--color-primary),var(--color-primary-light),var(--color-secondary));z-index:var(--z-navigation)}.slides-container{position:relative;width:100%;height:100vh}.slide{position:absolute;top:0;left:0;width:100%;height:100%;padding:var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom);display:flex;flex-direction:column;justify-content:center;align-items:center;opacity:0;visibility:hidden;transform:translateX(30px);transition:all var(--transition-slide);overflow-y:auto}.slide.active{opacity:1;visibility:visible;transform:translateX(0)}.slide.prev{opacity:0;transform:translateX(-30px)}.content-nav{position:fixed;bottom:0;left:0;width:100%;height:var(--nav-height);background:var(--color-surface);border-top:1px solid #E4E1D8;box-shadow:0 -2px 12px rgba(30,30,46,0.06);z-index:var(--z-navigation);padding:0 var(--slide-padding-x)}.nav-inner{max-width:var(--slide-max-width);margin:0 auto;height:100%;display:flex;justify-content:space-between;align-items:center;gap:var(--spacing-md)}.content-nav-btn{font-family:var(--font-heading);font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);padding:var(--spacing-sm) var(--spacing-xl);border:2px solid var(--color-primary);border-radius:var(--radius-pill);cursor:pointer;transition:all var(--transition-fast);min-width:100px;text-align:center}.content-nav-btn.btn-prev,.content-nav-btn.btn-first{background:transparent;color:var(--color-primary)}.content-nav-btn.btn-prev:hover,.content-nav-btn.btn-first:hover{background:var(--color-primary-bg)}.content-nav-btn.btn-next{background:var(--color-primary);color:var(--color-text-on-primary)}.content-nav-btn.btn-next:hover{background:var(--color-primary-dark);border-color:var(--color-primary-dark)}.content-nav-btn:disabled{opacity:0.35;cursor:not-allowed}.content-nav-btn:disabled:hover{background:transparent;color:var(--color-primary)}.content-nav-btn.btn-next:disabled:hover{background:var(--color-primary);color:var(--color-text-on-primary)}.slide-counter{font-family:var(--font-code);font-size:var(--font-size-sm);color:var(--color-text-tertiary);min-width:80px;text-align:center}body.platform-controlled .content-nav{display:none!important}@media(max-width:768px){.content-nav{padding:0 var(--spacing-md)}.content-nav-btn{font-size:var(--font-size-xs);padding:var(--spacing-sm) var(--spacing-md);min-width:70px}}
+        .slide.active.slide-title{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:linear-gradient(160deg,var(--color-primary-dark) 0%,var(--color-primary) 50%,var(--color-primary-light) 100%);color:var(--color-text-inverse)}.slide-title .chapter-label{font-family:var(--font-code);font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);letter-spacing:0.2em;text-transform:uppercase;color:var(--color-secondary-light);margin-bottom:var(--spacing-md);padding:var(--spacing-xs) var(--spacing-lg);border:1px solid rgba(245,200,98,0.3);border-radius:var(--radius-pill)}.slide-title .topic-title{font-family:var(--font-heading);font-size:var(--font-size-4xl);font-weight:var(--font-weight-black);line-height:var(--line-height-tight);margin-bottom:var(--spacing-lg);max-width:800px}.slide-title .topic-subtitle{font-family:var(--font-body);font-size:var(--font-size-lg);font-weight:var(--font-weight-normal);color:rgba(250,250,245,0.75);max-width:600px;line-height:var(--line-height-normal)}.slide-title .decorative-line{width:80px;height:3px;background:var(--color-secondary);margin:var(--spacing-lg) 0;border-radius:var(--radius-pill)}
+        .slide.active.slide-content{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;padding-top:var(--spacing-2xl)}.slide-content .slide-heading{font-family:var(--font-heading);font-size:var(--font-size-2xl);font-weight:var(--font-weight-bold);color:var(--color-primary);margin-bottom:var(--spacing-xl);text-align:center;position:relative;padding-bottom:var(--spacing-md)}.slide-content .slide-heading::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:3px;background:var(--color-secondary);border-radius:var(--radius-pill)}.slide-content .slide-body{max-width:var(--slide-max-width);width:100%;font-family:var(--font-body);font-size:var(--font-size-md);line-height:var(--line-height-relaxed);color:var(--color-text)}
+        .slide.active.slide-summary{display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--color-surface-muted)}.slide-summary .summary-title{font-family:var(--font-heading);font-size:var(--font-size-2xl);font-weight:var(--font-weight-bold);color:var(--color-primary);margin-bottom:var(--spacing-2xl);text-align:center}.slide-summary .summary-list{list-style:none;max-width:700px;width:100%;padding:0;margin:0}.slide-summary .summary-item{padding:var(--spacing-md) var(--spacing-lg);margin-bottom:var(--spacing-md);background:var(--color-surface);border-left:4px solid var(--color-secondary);border-radius:0 var(--radius-md) var(--radius-md) 0;box-shadow:var(--shadow-sm);font-family:var(--font-body);font-size:var(--font-size-md);color:var(--color-text);line-height:var(--line-height-normal)}.slide-summary .summary-item strong{color:var(--color-primary)}
+        .slide.active.slide-practice{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;padding-top:var(--spacing-2xl);background:linear-gradient(180deg,var(--color-background-warm) 0%,var(--color-secondary-lighter) 100%)}.slide-practice .practice-badge{font-family:var(--font-heading);font-size:var(--font-size-sm);font-weight:var(--font-weight-bold);color:var(--color-secondary-dark);background:rgba(232,168,48,0.15);border:2px solid var(--color-secondary);padding:var(--spacing-xs) var(--spacing-lg);border-radius:var(--radius-pill);margin-bottom:var(--spacing-lg);letter-spacing:0.1em}.slide-practice .practice-badge::before{content:'\270F\FE0F '}.slide-practice .slide-heading{font-family:var(--font-heading);font-size:var(--font-size-2xl);font-weight:var(--font-weight-bold);color:var(--color-secondary-dark);margin-bottom:var(--spacing-xl);text-align:center;position:relative;padding-bottom:var(--spacing-md)}.slide-practice .slide-heading::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:3px;background:var(--color-secondary);border-radius:var(--radius-pill)}.slide-practice .slide-body{max-width:var(--slide-max-width);width:100%;font-family:var(--font-body);font-size:var(--font-size-md);line-height:var(--line-height-relaxed);color:var(--color-text)}.slide-practice .practice-instruction{background:var(--color-surface);border:2px dashed var(--color-secondary);border-radius:var(--radius-lg);padding:var(--spacing-xl);margin:var(--spacing-lg) 0;box-shadow:var(--shadow-sm)}.slide-practice .practice-instruction .instruction-title{font-family:var(--font-heading);font-size:var(--font-size-md);font-weight:var(--font-weight-bold);color:var(--color-secondary-dark);margin-bottom:var(--spacing-md)}
+        .slide.active.slide-checkpoint{display:flex;flex-direction:column;justify-content:center;align-items:center;background:linear-gradient(180deg,var(--color-background) 0%,var(--color-info-bg) 100%)}.slide-checkpoint .checkpoint-badge{font-family:var(--font-heading);font-size:var(--font-size-sm);font-weight:var(--font-weight-bold);color:var(--color-info);background:rgba(61,139,201,0.1);border:2px solid var(--color-info);padding:var(--spacing-xs) var(--spacing-lg);border-radius:var(--radius-pill);margin-bottom:var(--spacing-xl);letter-spacing:0.1em}.slide-checkpoint .checkpoint-title{font-family:var(--font-heading);font-size:var(--font-size-2xl);font-weight:var(--font-weight-bold);color:var(--color-info);margin-bottom:var(--spacing-2xl);text-align:center}.checkpoint-list{list-style:none;max-width:700px;width:100%;padding:0;margin:0}.checkpoint-item{padding:var(--spacing-md) var(--spacing-lg);padding-left:calc(var(--spacing-lg) + 36px);margin-bottom:var(--spacing-md);background:var(--color-surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);font-family:var(--font-body);font-size:var(--font-size-md);color:var(--color-text);line-height:var(--line-height-normal);position:relative}.checkpoint-item::before{content:'\2713';position:absolute;left:var(--spacing-lg);top:50%;transform:translateY(-50%);width:24px;height:24px;background:var(--color-success);color:white;border-radius:var(--radius-circle);font-size:var(--font-size-sm);font-weight:var(--font-weight-bold);line-height:24px;text-align:center}.checkpoint-item:last-child{margin-bottom:0}
+        .callout-box{max-width:var(--slide-max-width);width:100%;padding:var(--spacing-lg) var(--spacing-xl);margin:var(--spacing-lg) 0;border-radius:var(--radius-md);font-family:var(--font-body);font-size:var(--font-size-base);line-height:var(--line-height-normal);position:relative;padding-left:calc(var(--spacing-xl) + 8px);border-left:4px solid}.callout-box .callout-title{font-weight:var(--font-weight-bold);margin-bottom:var(--spacing-sm);font-size:var(--font-size-md)}.callout-box.encouragement{background:linear-gradient(135deg,var(--color-success-bg) 0%,#F0FBF4 100%);border-color:var(--color-success)}.callout-box.encouragement .callout-title{color:var(--color-success)}.callout-box.info{background:var(--color-info-bg);border-color:var(--color-info)}.callout-box.info .callout-title{color:var(--color-info)}.callout-box.warning{background:var(--color-warning-bg);border-color:var(--color-warning)}.callout-box.warning .callout-title{color:var(--color-warning)}.callout-box.business{background:var(--color-secondary-lighter);border-color:var(--color-secondary-dark)}.callout-box.business .callout-title{color:var(--color-secondary-dark)}
+        .code-block{background:var(--color-code-bg);border:1px solid var(--color-code-border);border-radius:var(--radius-md);padding:var(--spacing-lg);margin:var(--spacing-lg) 0;overflow-x:auto;position:relative}.code-block::before{content:'Python';position:absolute;top:0;right:0;font-family:var(--font-code);font-size:var(--font-size-xs);font-weight:var(--font-weight-medium);color:var(--color-text-tertiary);background:var(--color-surface-muted);padding:var(--spacing-xs) var(--spacing-md);border-radius:0 var(--radius-md) 0 var(--radius-md);border-left:1px solid var(--color-code-border);border-bottom:1px solid var(--color-code-border)}.code-block pre{margin:0;padding:0;overflow-x:auto}.code-block code{font-family:var(--font-code);font-size:var(--font-size-sm);line-height:1.8;color:var(--color-code-text);white-space:pre}.code-block .keyword{color:var(--color-code-keyword);font-weight:var(--font-weight-bold)}.code-block .string{color:var(--color-code-string)}.code-block .comment{color:var(--color-code-comment);font-style:italic}.code-block .number{color:var(--color-code-number)}.code-block .function{color:var(--color-code-function)}code.inline{font-family:var(--font-code);font-size:0.9em;background:var(--color-code-bg);border:1px solid var(--color-code-border);padding:1px 6px;border-radius:var(--radius-sm);color:var(--color-code-text)}.code-block.terminal{background:#1E1E2E;border-color:#3A3A4E}.code-block.terminal::before{content:'Result';background:#2A2A3E;border-color:#3A3A4E;color:#8E8EA0}.code-block.terminal code{color:#E0E0E8}.code-block.terminal .output{color:#B0B0C0}
+        .diagram-container{max-width:var(--slide-max-width);width:100%;margin:var(--spacing-lg) auto;padding:var(--spacing-xl);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);border:1px solid #E4E1D8;text-align:center}.diagram-container svg{max-width:100%;height:auto}.diagram-caption{font-family:var(--font-body);font-size:var(--font-size-sm);color:var(--color-text-tertiary);margin-top:var(--spacing-md);text-align:center;font-style:italic}
+        .comparison-table{width:100%;max-width:var(--slide-max-width);border-collapse:collapse;font-family:var(--font-body);font-size:var(--font-size-base);margin:var(--spacing-lg) 0}.comparison-table th{background:var(--color-primary);color:var(--color-text-on-primary);font-weight:var(--font-weight-bold);padding:var(--spacing-md) var(--spacing-lg);text-align:left;font-size:var(--font-size-sm);letter-spacing:0.05em}.comparison-table th:first-child{border-radius:var(--radius-md) 0 0 0}.comparison-table th:last-child{border-radius:0 var(--radius-md) 0 0}.comparison-table td{padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid #E4E1D8;color:var(--color-text);vertical-align:top}.comparison-table tr:nth-child(even) td{background:var(--color-surface-muted)}
+        @keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}.slide.active .animate-in{animation:fadeInUp 0.6s ease forwards}.slide.active .animate-in-delay-1{animation:fadeInUp 0.6s ease 0.1s forwards;opacity:0}.slide.active .animate-in-delay-2{animation:fadeInUp 0.6s ease 0.2s forwards;opacity:0}.slide.active .animate-in-delay-3{animation:fadeInUp 0.6s ease 0.3s forwards;opacity:0}
+        .text-center{text-align:center}.mt-md{margin-top:var(--spacing-md)}.mt-lg{margin-top:var(--spacing-lg)}.mb-md{margin-bottom:var(--spacing-md)}.mb-lg{margin-bottom:var(--spacing-lg)}
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+    <div class="slides-container" id="slidesContainer">
+
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 6</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">辞書の基本<br>名前でデータを管理</h1>
+            <p class="topic-subtitle">ExcelのVLOOKUPのように<br>「名前で検索してデータを取り出す」</p>
+        </div>
+
+        <div class="slide slide-content">
+            <h2 class="slide-heading">リストの不便な点</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">リストは番号でアクセスしました。<br>でも「3番目の人」ではなく「田中さんのデータ」と指定したくないですか？</p>
+                <div class="code-block animate-in">
+                    <pre><code><span class="comment"># リストだと...</span>
+scores = [<span class="number">85</span>, <span class="number">92</span>, <span class="number">78</span>]
+<span class="comment"># scores[0] が誰の点数？ わからない！</span></code></pre>
+                </div>
+                <div class="callout-box business animate-in-delay-1">
+                    <div class="callout-title">Excelで言うと</div>
+                    <p>A列に名前、B列に点数が入っている表を想像してください。<br>VLOOKUP関数で「田中」を検索して点数を取り出す。辞書はそれと同じです。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide slide-content">
+            <h2 class="slide-heading">辞書 = キーと値のペア</h2>
+            <div class="slide-body">
+                <div class="diagram-container animate-in">
+                    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+                        <text x="350" y="30" font-family="JetBrains Mono, monospace" font-size="14" fill="#5A5A72" text-anchor="middle">scores = {"田中": 85, "鈴木": 92, "佐藤": 78}</text>
+                        <!-- Key-Value pairs -->
+                        <g transform="translate(60,60)">
+                            <rect width="160" height="50" rx="8" fill="#2C3E7B"/>
+                            <text x="80" y="32" font-family="M PLUS 1p, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="bold">"田中"</text>
+                            <text x="80" y="70" font-family="M PLUS 1p, sans-serif" font-size="11" fill="#7B8EC6" text-anchor="middle">キー (key)</text>
+                            <line x1="160" y1="25" x2="200" y2="25" stroke="#E8A830" stroke-width="3"/>
+                            <polygon points="195,18 210,25 195,32" fill="#E8A830"/>
+                            <rect x="210" y="0" width="100" height="50" rx="8" fill="#FFF3D4" stroke="#E8A830" stroke-width="2"/>
+                            <text x="260" y="32" font-family="JetBrains Mono, monospace" font-size="20" fill="#C08820" text-anchor="middle" font-weight="bold">85</text>
+                            <text x="260" y="70" font-family="M PLUS 1p, sans-serif" font-size="11" fill="#C08820" text-anchor="middle">値 (value)</text>
+                        </g>
+                        <g transform="translate(60,150)">
+                            <rect width="160" height="50" rx="8" fill="#2C3E7B"/>
+                            <text x="80" y="32" font-family="M PLUS 1p, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="bold">"鈴木"</text>
+                            <line x1="160" y1="25" x2="200" y2="25" stroke="#E8A830" stroke-width="3"/>
+                            <polygon points="195,18 210,25 195,32" fill="#E8A830"/>
+                            <rect x="210" y="0" width="100" height="50" rx="8" fill="#FFF3D4" stroke="#E8A830" stroke-width="2"/>
+                            <text x="260" y="32" font-family="JetBrains Mono, monospace" font-size="20" fill="#C08820" text-anchor="middle" font-weight="bold">92</text>
+                        </g>
+                        <g transform="translate(380,60)">
+                            <rect width="160" height="50" rx="8" fill="#2C3E7B"/>
+                            <text x="80" y="32" font-family="M PLUS 1p, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="bold">"佐藤"</text>
+                            <line x1="160" y1="25" x2="200" y2="25" stroke="#E8A830" stroke-width="3"/>
+                            <polygon points="195,18 210,25 195,32" fill="#E8A830"/>
+                            <rect x="210" y="0" width="100" height="50" rx="8" fill="#FFF3D4" stroke="#E8A830" stroke-width="2"/>
+                            <text x="260" y="32" font-family="JetBrains Mono, monospace" font-size="20" fill="#C08820" text-anchor="middle" font-weight="bold">78</text>
+                        </g>
+                        <text x="350" y="260" font-family="M PLUS 1p, sans-serif" font-size="14" fill="#5A5A72" text-anchor="middle">波かっこ { } で囲み、キー: 値 のペアをカンマで区切る</text>
+                    </svg>
+                    <p class="diagram-caption">辞書はキーで値を引く「電話帳」のようなもの</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide slide-content">
+            <h2 class="slide-heading">辞書の作り方</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">波かっこ <code class="inline">{ }</code> で囲み、<code class="inline">キー: 値</code> のペアをカンマで区切ります。</p>
+                <div class="code-block animate-in">
+                    <pre><code>scores = {
+    <span class="string">"田中"</span>: <span class="number">85</span>,
+    <span class="string">"鈴木"</span>: <span class="number">92</span>,
+    <span class="string">"佐藤"</span>: <span class="number">78</span>
+}</code></pre>
+                </div>
+                <div class="callout-box info animate-in-delay-1">
+                    <div class="callout-title">リストとの違い</div>
+                    <p>リストは <code class="inline">[ ]</code> 角かっこ、辞書は <code class="inline">{ }</code> 波かっこ。<br>リストは番号でアクセス、辞書は名前（キー）でアクセスします。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide slide-content">
+            <h2 class="slide-heading">キーで値を取り出す</h2>
+            <div class="slide-body">
+                <div class="code-block animate-in">
+                    <pre><code>scores = {<span class="string">"田中"</span>: <span class="number">85</span>, <span class="string">"鈴木"</span>: <span class="number">92</span>}
+<span class="function">print</span>(scores[<span class="string">"田中"</span>])
+<span class="function">print</span>(scores[<span class="string">"鈴木"</span>])</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-1">
+                    <pre><code><span class="output">85
+92</span></code></pre>
+                </div>
+                <p class="mt-lg text-center" style="color:var(--color-text-secondary);">「田中さんの点数は？」→ <code class="inline">scores["田中"]</code> で85が返る。<br>番号ではなく名前で取り出せるので直感的ですね。</p>
+            </div>
+        </div>
+
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">辞書を作ってみよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">チャレンジ：社員の部署情報を辞書で管理</div>
+                    <div class="code-block">
+                        <pre><code>department = {
+    <span class="string">"田中"</span>: <span class="string">"営業部"</span>,
+    <span class="string">"鈴木"</span>: <span class="string">"開発部"</span>,
+    <span class="string">"佐藤"</span>: <span class="string">"総務部"</span>
+}
+<span class="function">print</span>(department[<span class="string">"鈴木"</span>])</code></pre>
+                    </div>
+                </div>
+                <div class="code-block terminal mt-lg">
+                    <pre><code><span class="output">開発部</span></code></pre>
+                </div>
+                <div class="callout-box encouragement mt-lg">
+                    <div class="callout-title">できましたか？</div>
+                    <p>名前を指定するだけで部署がわかります。<br>自分の会社のメンバーに変えて試してみましょう！</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide slide-content">
+            <h2 class="slide-heading">新しいキーの追加</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">辞書にはいつでも新しいデータを追加できます。</p>
+                <div class="code-block animate-in">
+                    <pre><code>scores = {<span class="string">"田中"</span>: <span class="number">85</span>, <span class="string">"鈴木"</span>: <span class="number">92</span>}
+scores[<span class="string">"佐藤"</span>] = <span class="number">78</span>
+<span class="function">print</span>(scores)</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-1">
+                    <pre><code><span class="output">{'田中': 85, '鈴木': 92, '佐藤': 78}</span></code></pre>
+                </div>
+                <div class="callout-box info animate-in-delay-2">
+                    <div class="callout-title">値の更新も同じ書き方</div>
+                    <p>既に存在するキーに代入すると値が更新されます。<br><code class="inline">scores["田中"] = 90</code> で田中さんの点数が90に変わります。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">辞書にデータを追加しよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">チャレンジ：辞書を更新してみよう</div>
+                    <div class="code-block">
+                        <pre><code>prices = {<span class="string">"りんご"</span>: <span class="number">150</span>}
+prices[<span class="string">"バナナ"</span>] = <span class="number">100</span>
+prices[<span class="string">"みかん"</span>] = <span class="number">80</span>
+<span class="function">print</span>(prices)</code></pre>
+                    </div>
+                </div>
+                <div class="code-block terminal mt-lg">
+                    <pre><code><span class="output">{'りんご': 150, 'バナナ': 100, 'みかん': 80}</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide slide-content">
+            <h2 class="slide-heading">リストと辞書の比較</h2>
+            <div class="slide-body">
+                <table class="comparison-table animate-in">
+                    <tr><th></th><th>リスト</th><th>辞書</th></tr>
+                    <tr><td><strong>記号</strong></td><td>[ ] 角かっこ</td><td>{ } 波かっこ</td></tr>
+                    <tr><td><strong>アクセス方法</strong></td><td>番号（インデックス）</td><td>名前（キー）</td></tr>
+                    <tr><td><strong>順番</strong></td><td>あり（順序が大事）</td><td>あり（Python 3.7以降）</td></tr>
+                    <tr><td><strong>使い所</strong></td><td>同じ種類のデータの一覧</td><td>属性・プロフィール情報</td></tr>
+                    <tr><td><strong>Excel例</strong></td><td>1列のデータ</td><td>VLOOKUPの表</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">ここまでのポイント</span>
+            <h2 class="checkpoint-title">辞書の基本を確認</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item animate-in">辞書は <code class="inline">{ }</code> で作り、<code class="inline">キー: 値</code> のペアを入れる</li>
+                <li class="checkpoint-item animate-in-delay-1"><code class="inline">辞書["キー"]</code> で値を取り出す</li>
+                <li class="checkpoint-item animate-in-delay-2"><code class="inline">辞書["新キー"] = 値</code> で追加、既存キーなら更新</li>
+                <li class="checkpoint-item animate-in-delay-3">リストは「番号」、辞書は「名前」でアクセス</li>
+            </ul>
+        </div>
+
+        <div class="slide slide-summary">
+            <h2 class="summary-title">まとめ：辞書の基本</h2>
+            <ul class="summary-list">
+                <li class="summary-item"><strong>辞書 = キーと値のペア</strong> 波かっこで囲み、コロンでキーと値をつなぐ。VLOOKUPのようなもの。</li>
+                <li class="summary-item"><strong>名前でアクセスできる</strong> 「田中さんの点数」のように直感的に取り出せる。</li>
+                <li class="summary-item"><strong>追加も更新も簡単</strong> 辞書["キー"] = 値 で、新規追加も値の更新もできる。</li>
+            </ul>
+            <div class="callout-box encouragement" style="max-width:700px;margin-top:var(--spacing-xl);">
+                <div class="callout-title">次のトピックへ</div>
+                <p>次は辞書とfor文を組み合わせます。全員のデータを一気に処理できるようになります！</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navigation content-nav"><div class="nav-inner"><button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button><button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button><span class="slide-counter" id="slideNumber">1 / 1</span><button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button></div></nav>
+    <script>let currentSlide=1;let totalSlides=0;function updateSlideInfo(){const slides=document.querySelectorAll('.slide');totalSlides=slides.length;slides.forEach((s,i)=>{s.classList.remove('active','prev');if(i+1===currentSlide)s.classList.add('active');else if(i+1<currentSlide)s.classList.add('prev')});const p=document.getElementById('prevBtn'),n=document.getElementById('nextBtn');if(p)p.disabled=(currentSlide===1);if(n)n.disabled=(currentSlide===totalSlides);const c=document.getElementById('slideNumber');if(c)c.textContent=currentSlide+' / '+totalSlides;if(window.slideAPI&&window.slideAPI.onSlideChange)window.slideAPI.onSlideChange(currentSlide,totalSlides)}function showSlide(n){if(n>=1&&n<=totalSlides){currentSlide=n;updateSlideInfo()}}function goToPrevious(){if(currentSlide>1){currentSlide--;updateSlideInfo()}}function goToNext(){if(currentSlide<totalSlides){currentSlide++;updateSlideInfo()}}function goToFirst(){currentSlide=1;updateSlideInfo()}function goToLast(){currentSlide=totalSlides;updateSlideInfo()}document.addEventListener('keydown',(e)=>{if(document.body.classList.contains('platform-controlled'))return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();goToNext()}if(e.key==='ArrowLeft'){e.preventDefault();goToPrevious()}if(e.key==='Home'){e.preventDefault();goToFirst()}if(e.key==='End'){e.preventDefault();goToLast()}});window.slideAPI={version:"1.0",getTotalSlides:function(){return totalSlides},getCurrentSlide:function(){return currentSlide},showSlide:showSlide,nextSlide:goToNext,prevSlide:goToPrevious,firstSlide:goToFirst,lastSlide:goToLast,hideContentNav:function(){var n=document.querySelector('.content-nav');if(n)n.style.display='none'},showContentNav:function(){var n=document.querySelector('.content-nav');if(n)n.style.display=''},setPlatformControlled:function(e){if(e)document.body.classList.add('platform-controlled');else document.body.classList.remove('platform-controlled')},onSlideChange:null};window.onload=updateSlideInfo;</script>
+</body>
+</html>

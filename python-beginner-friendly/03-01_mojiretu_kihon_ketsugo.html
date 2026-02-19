@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字列の作り方と結合 | Python入門（初心者特化版）</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================================
+           Design System: variables.css (inline for standalone)
+           ============================================================ */
+        :root {
+            --color-primary: #2C3E7B;
+            --color-primary-light: #4A5FA8;
+            --color-primary-lighter: #7B8EC6;
+            --color-primary-dark: #1A2654;
+            --color-primary-bg: #E8EAF2;
+            --color-secondary: #E8A830;
+            --color-secondary-light: #F5C862;
+            --color-secondary-lighter: #FFF3D4;
+            --color-secondary-dark: #C08820;
+            --color-background: #F8F6F0;
+            --color-background-warm: #FBF9F3;
+            --color-surface: #FFFFFF;
+            --color-surface-raised: #FFFFFF;
+            --color-surface-muted: #F2F0EA;
+            --color-text: #1E1E2E;
+            --color-text-secondary: #5A5A72;
+            --color-text-tertiary: #8E8EA0;
+            --color-text-inverse: #FAFAF5;
+            --color-text-on-primary: #FFFFFF;
+            --color-success: #2D9F64;
+            --color-success-bg: #E6F7ED;
+            --color-warning: #D4870E;
+            --color-warning-bg: #FFF6E0;
+            --color-error: #CC3D3D;
+            --color-error-bg: #FDECEC;
+            --color-info: #3D8BC9;
+            --color-info-bg: #E6F0F9;
+            --color-code-bg: #F0EDE4;
+            --color-code-border: #DDD8CC;
+            --color-code-text: #2C3E7B;
+            --color-code-keyword: #8B3FAE;
+            --color-code-string: #2D9F64;
+            --color-code-comment: #8E8EA0;
+            --color-code-number: #CC3D3D;
+            --color-code-function: #3D8BC9;
+            --font-heading: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Meiryo', sans-serif;
+            --font-body: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-code: 'JetBrains Mono', 'Source Code Pro', 'Menlo', monospace;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-md: 1.125rem;
+            --font-size-lg: 1.375rem;
+            --font-size-xl: 1.75rem;
+            --font-size-2xl: 2.25rem;
+            --font-size-3xl: 3rem;
+            --font-size-4xl: 3.75rem;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-bold: 700;
+            --font-weight-black: 900;
+            --line-height-tight: 1.3;
+            --line-height-normal: 1.7;
+            --line-height-relaxed: 1.9;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+            --spacing-3xl: 4rem;
+            --spacing-4xl: 6rem;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-pill: 100px;
+            --radius-circle: 50%;
+            --shadow-xs: 0 1px 2px rgba(30,30,46,0.05);
+            --shadow-sm: 0 2px 4px rgba(30,30,46,0.06), 0 1px 2px rgba(30,30,46,0.04);
+            --shadow-md: 0 4px 12px rgba(30,30,46,0.08), 0 2px 4px rgba(30,30,46,0.04);
+            --shadow-lg: 0 8px 24px rgba(30,30,46,0.10), 0 4px 8px rgba(30,30,46,0.05);
+            --shadow-xl: 0 16px 48px rgba(30,30,46,0.12), 0 8px 16px rgba(30,30,46,0.06);
+            --transition-fast: 150ms ease;
+            --transition-normal: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slide: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            --z-navigation: 500;
+            --z-texture: 2000;
+            --slide-max-width: 960px;
+            --slide-padding-x: 80px;
+            --slide-padding-y: 40px;
+            --slide-padding-bottom: 120px;
+            --nav-height: 80px;
+        }
+
+        @media (max-width: 1024px) {
+            :root {
+                --slide-padding-x: 48px;
+                --font-size-3xl: 2.25rem;
+                --font-size-4xl: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --slide-padding-x: 28px;
+                --slide-padding-y: 24px;
+                --slide-padding-bottom: 140px;
+                --font-size-2xl: 1.75rem;
+                --font-size-3xl: 2rem;
+                --font-size-4xl: 2.5rem;
+                --font-size-xl: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --slide-padding-x: 20px;
+                --slide-padding-y: 20px;
+                --font-size-2xl: 1.5rem;
+                --font-size-3xl: 1.75rem;
+                --font-size-4xl: 2rem;
+            }
+        }
+
+        /* ============================================================
+           Base Styles
+           ============================================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { width: 100%; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--color-background);
+            color: var(--color-text);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: var(--z-texture);
+        }
+
+        .accent-bar {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary), var(--color-primary-light), var(--color-secondary));
+            z-index: var(--z-navigation);
+        }
+
+        /* ============================================================
+           Slide Container & Transitions
+           ============================================================ */
+        .slides-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            padding: var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(30px);
+            transition: all var(--transition-slide);
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .slide.prev {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+
+        /* ============================================================
+           Navigation
+           ============================================================ */
+        .content-nav {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            height: var(--nav-height);
+            background: var(--color-surface);
+            border-top: 1px solid #E4E1D8;
+            box-shadow: 0 -2px 12px rgba(30, 30, 46, 0.06);
+            z-index: var(--z-navigation);
+            padding: 0 var(--slide-padding-x);
+        }
+
+        .nav-inner {
+            max-width: var(--slide-max-width);
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .content-nav-btn {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            padding: var(--spacing-sm) var(--spacing-xl);
+            border: 2px solid var(--color-primary);
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .content-nav-btn.btn-prev,
+        .content-nav-btn.btn-first {
+            background: transparent;
+            color: var(--color-primary);
+        }
+
+        .content-nav-btn.btn-prev:hover,
+        .content-nav-btn.btn-first:hover {
+            background: var(--color-primary-bg);
+        }
+
+        .content-nav-btn.btn-next {
+            background: var(--color-primary);
+            color: var(--color-text-on-primary);
+        }
+
+        .content-nav-btn.btn-next:hover {
+            background: var(--color-primary-dark);
+            border-color: var(--color-primary-dark);
+        }
+
+        .content-nav-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .content-nav-btn:disabled:hover {
+            background: transparent;
+            color: var(--color-primary);
+        }
+
+        .content-nav-btn.btn-next:disabled:hover {
+            background: var(--color-primary);
+            color: var(--color-text-on-primary);
+        }
+
+        .slide-counter {
+            font-family: var(--font-code);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-tertiary);
+            min-width: 80px;
+            text-align: center;
+        }
+
+        body.platform-controlled .content-nav {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .content-nav { padding: 0 var(--spacing-md); }
+            .content-nav-btn {
+                font-size: var(--font-size-xs);
+                padding: var(--spacing-sm) var(--spacing-md);
+                min-width: 70px;
+            }
+        }
+
+        /* ============================================================
+           Component Styles (from components.css)
+           ============================================================ */
+
+        /* Title Slide */
+        .slide.active.slide-title {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(160deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%);
+            color: var(--color-text-inverse);
+        }
+
+        .slide-title .chapter-label {
+            font-family: var(--font-code);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--color-secondary-light);
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-xs) var(--spacing-lg);
+            border: 1px solid rgba(245, 200, 98, 0.3);
+            border-radius: var(--radius-pill);
+        }
+
+        .slide-title .topic-title {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-4xl);
+            font-weight: var(--font-weight-black);
+            line-height: var(--line-height-tight);
+            margin-bottom: var(--spacing-lg);
+            max-width: 800px;
+        }
+
+        .slide-title .topic-subtitle {
+            font-family: var(--font-body);
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-normal);
+            color: rgba(250, 250, 245, 0.75);
+            max-width: 600px;
+            line-height: var(--line-height-normal);
+        }
+
+        .slide-title .decorative-line {
+            width: 80px;
+            height: 3px;
+            background: var(--color-secondary);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--radius-pill);
+        }
+
+        /* Content Slide */
+        .slide.active.slide-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: var(--spacing-2xl);
+        }
+
+        .slide-content .slide-heading {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-xl);
+            text-align: center;
+            position: relative;
+            padding-bottom: var(--spacing-md);
+        }
+
+        .slide-content .slide-heading::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--color-secondary);
+            border-radius: var(--radius-pill);
+        }
+
+        .slide-content .slide-body {
+            max-width: var(--slide-max-width);
+            width: 100%;
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            line-height: var(--line-height-relaxed);
+            color: var(--color-text);
+        }
+
+        /* Summary Slide */
+        .slide.active.slide-summary {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--color-surface-muted);
+        }
+
+        .slide-summary .summary-title {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-2xl);
+            text-align: center;
+        }
+
+        .slide-summary .summary-list {
+            list-style: none;
+            max-width: 700px;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .slide-summary .summary-item {
+            padding: var(--spacing-md) var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+            background: var(--color-surface);
+            border-left: 4px solid var(--color-secondary);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            box-shadow: var(--shadow-sm);
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            color: var(--color-text);
+            line-height: var(--line-height-normal);
+        }
+
+        .slide-summary .summary-item strong {
+            color: var(--color-primary);
+        }
+
+        /* Practice Slide */
+        .slide.active.slide-practice {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: var(--spacing-2xl);
+            background: linear-gradient(180deg, var(--color-background-warm) 0%, var(--color-secondary-lighter) 100%);
+        }
+
+        .slide-practice .practice-badge {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-secondary-dark);
+            background: rgba(232, 168, 48, 0.15);
+            border: 2px solid var(--color-secondary);
+            padding: var(--spacing-xs) var(--spacing-lg);
+            border-radius: var(--radius-pill);
+            margin-bottom: var(--spacing-lg);
+            letter-spacing: 0.1em;
+        }
+
+        .slide-practice .practice-badge::before {
+            content: '\270F\FE0F ';
+        }
+
+        .slide-practice .slide-heading {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-secondary-dark);
+            margin-bottom: var(--spacing-xl);
+            text-align: center;
+            position: relative;
+            padding-bottom: var(--spacing-md);
+        }
+
+        .slide-practice .slide-heading::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--color-secondary);
+            border-radius: var(--radius-pill);
+        }
+
+        .slide-practice .slide-body {
+            max-width: var(--slide-max-width);
+            width: 100%;
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            line-height: var(--line-height-relaxed);
+            color: var(--color-text);
+        }
+
+        .slide-practice .practice-instruction {
+            background: var(--color-surface);
+            border: 2px dashed var(--color-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin: var(--spacing-lg) 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .slide-practice .practice-instruction .instruction-title {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-secondary-dark);
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Checkpoint Slide */
+        .slide.active.slide-checkpoint {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, var(--color-background) 0%, var(--color-info-bg) 100%);
+        }
+
+        .slide-checkpoint .checkpoint-badge {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-info);
+            background: rgba(61, 139, 201, 0.1);
+            border: 2px solid var(--color-info);
+            padding: var(--spacing-xs) var(--spacing-lg);
+            border-radius: var(--radius-pill);
+            margin-bottom: var(--spacing-xl);
+            letter-spacing: 0.1em;
+        }
+
+        .slide-checkpoint .checkpoint-title {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-info);
+            margin-bottom: var(--spacing-2xl);
+            text-align: center;
+        }
+
+        .checkpoint-list {
+            list-style: none;
+            max-width: 700px;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .checkpoint-item {
+            padding: var(--spacing-md) var(--spacing-lg);
+            padding-left: calc(var(--spacing-lg) + 36px);
+            margin-bottom: var(--spacing-md);
+            background: var(--color-surface);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            color: var(--color-text);
+            line-height: var(--line-height-normal);
+            position: relative;
+        }
+
+        .checkpoint-item::before {
+            content: '\2713';
+            position: absolute;
+            left: var(--spacing-lg);
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            background: var(--color-success);
+            color: white;
+            border-radius: var(--radius-circle);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-bold);
+            line-height: 24px;
+            text-align: center;
+        }
+
+        .checkpoint-item:last-child { margin-bottom: 0; }
+
+        /* Encouragement Callout */
+        .callout-box {
+            max-width: var(--slide-max-width);
+            width: 100%;
+            padding: var(--spacing-lg) var(--spacing-xl);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: var(--font-size-base);
+            line-height: var(--line-height-normal);
+            position: relative;
+            padding-left: calc(var(--spacing-xl) + 8px);
+            border-left: 4px solid;
+        }
+
+        .callout-box .callout-title {
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--spacing-sm);
+            font-size: var(--font-size-md);
+        }
+
+        .callout-box.encouragement {
+            background: linear-gradient(135deg, var(--color-success-bg) 0%, #F0FBF4 100%);
+            border-color: var(--color-success);
+        }
+        .callout-box.encouragement .callout-title { color: var(--color-success); }
+
+        .callout-box.info {
+            background: var(--color-info-bg);
+            border-color: var(--color-info);
+        }
+        .callout-box.info .callout-title { color: var(--color-info); }
+
+        .callout-box.warning {
+            background: var(--color-warning-bg);
+            border-color: var(--color-warning);
+        }
+        .callout-box.warning .callout-title { color: var(--color-warning); }
+
+        .callout-box.danger {
+            background: var(--color-error-bg);
+            border-color: var(--color-error);
+        }
+        .callout-box.danger .callout-title { color: var(--color-error); }
+
+        .callout-box.business {
+            background: var(--color-secondary-lighter);
+            border-color: var(--color-secondary-dark);
+        }
+        .callout-box.business .callout-title { color: var(--color-secondary-dark); }
+
+        .callout-box.tip {
+            background: var(--color-success-bg);
+            border-color: var(--color-success);
+        }
+        .callout-box.tip .callout-title { color: var(--color-success); }
+
+        /* Code Block */
+        .code-block {
+            background: var(--color-code-bg);
+            border: 1px solid var(--color-code-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: 'Python';
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-family: var(--font-code);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-tertiary);
+            background: var(--color-surface-muted);
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: 0 var(--radius-md) 0 var(--radius-md);
+            border-left: 1px solid var(--color-code-border);
+            border-bottom: 1px solid var(--color-code-border);
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: var(--font-code);
+            font-size: var(--font-size-sm);
+            line-height: 1.8;
+            color: var(--color-code-text);
+            white-space: pre;
+        }
+
+        .code-block .keyword { color: var(--color-code-keyword); font-weight: var(--font-weight-bold); }
+        .code-block .string { color: var(--color-code-string); }
+        .code-block .comment { color: var(--color-code-comment); font-style: italic; }
+        .code-block .number { color: var(--color-code-number); }
+        .code-block .function { color: var(--color-code-function); }
+        .code-block .builtin { color: var(--color-secondary-dark); }
+
+        code.inline {
+            font-family: var(--font-code);
+            font-size: 0.9em;
+            background: var(--color-code-bg);
+            border: 1px solid var(--color-code-border);
+            padding: 1px 6px;
+            border-radius: var(--radius-sm);
+            color: var(--color-code-text);
+        }
+
+        .code-block.terminal {
+            background: #1E1E2E;
+            border-color: #3A3A4E;
+        }
+        .code-block.terminal::before {
+            content: 'Result';
+            background: #2A2A3E;
+            border-color: #3A3A4E;
+            color: #8E8EA0;
+        }
+        .code-block.terminal code {
+            color: #E0E0E8;
+        }
+
+        /* Diagram Container */
+        .diagram-container {
+            max-width: var(--slide-max-width);
+            width: 100%;
+            margin: var(--spacing-lg) auto;
+            padding: var(--spacing-xl);
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #E4E1D8;
+            text-align: center;
+        }
+
+        .diagram-container svg { max-width: 100%; height: auto; }
+
+        .diagram-caption {
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-tertiary);
+            margin-top: var(--spacing-md);
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Feature Grid */
+        .slide.active .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: var(--spacing-lg);
+            max-width: var(--slide-max-width);
+            width: 100%;
+        }
+
+        .feature-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #E4E1D8;
+            transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+        }
+
+        .feature-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .feature-card .card-icon { font-size: var(--font-size-2xl); margin-bottom: var(--spacing-md); }
+        .feature-card .card-title {
+            font-family: var(--font-heading);
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+        .feature-card .card-text {
+            font-family: var(--font-body);
+            font-size: var(--font-size-base);
+            color: var(--color-text-secondary);
+            line-height: var(--line-height-normal);
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            max-width: var(--slide-max-width);
+            border-collapse: collapse;
+            font-family: var(--font-body);
+            font-size: var(--font-size-base);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .comparison-table th {
+            background: var(--color-primary);
+            color: var(--color-text-on-primary);
+            font-weight: var(--font-weight-bold);
+            padding: var(--spacing-md) var(--spacing-lg);
+            text-align: left;
+            font-size: var(--font-size-sm);
+        }
+
+        .comparison-table th:first-child { border-radius: var(--radius-md) 0 0 0; }
+        .comparison-table th:last-child { border-radius: 0 var(--radius-md) 0 0; }
+
+        .comparison-table td {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid #E4E1D8;
+            color: var(--color-text);
+            vertical-align: top;
+        }
+
+        .comparison-table tr:nth-child(even) td { background: var(--color-surface-muted); }
+
+        /* Keyword Tag */
+        .keyword-tag {
+            font-family: var(--font-code);
+            font-size: var(--font-size-sm);
+            background: var(--color-primary-bg);
+            color: var(--color-primary);
+            padding: 2px 10px;
+            border-radius: var(--radius-pill);
+            font-weight: var(--font-weight-medium);
+            white-space: nowrap;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide.active .animate-in { animation: fadeInUp 0.6s ease forwards; }
+        .slide.active .animate-in-delay-1 { animation: fadeInUp 0.6s ease 0.1s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-2 { animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-3 { animation: fadeInUp 0.6s ease 0.3s forwards; opacity: 0; }
+
+        /* Utility */
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-primary { color: var(--color-primary); }
+        .text-muted { color: var(--color-text-tertiary); }
+        .text-sm { font-size: var(--font-size-sm); }
+        .mt-md { margin-top: var(--spacing-md); }
+        .mt-lg { margin-top: var(--spacing-lg); }
+        .mb-md { margin-bottom: var(--spacing-md); }
+        .mb-lg { margin-bottom: var(--spacing-lg); }
+
+        /* Topic-specific styles */
+        .string-visual {
+            background: var(--color-surface);
+            border: 2px solid var(--color-primary-lighter);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin: var(--spacing-md) 0;
+            text-align: center;
+        }
+
+        .string-visual .quote-mark {
+            font-family: var(--font-code);
+            font-size: var(--font-size-2xl);
+            color: var(--color-code-string);
+            font-weight: var(--font-weight-bold);
+        }
+
+        .string-visual .string-content {
+            font-family: var(--font-code);
+            font-size: var(--font-size-xl);
+            color: var(--color-primary);
+            margin: 0 var(--spacing-sm);
+        }
+
+        .error-display {
+            background: var(--color-error-bg);
+            border: 2px solid var(--color-error);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-md) 0;
+            font-family: var(--font-code);
+            font-size: var(--font-size-sm);
+            color: var(--color-error);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+
+    <div class="slides-container" id="slidesContainer">
+
+        <!-- Slide 1: Title -->
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 3</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">文字列の作り方と結合</h1>
+            <p class="topic-subtitle">文字をプログラムで扱う第一歩。クォーテーションと+を覚えよう</p>
+        </div>
+
+        <!-- Slide 2: Pain point -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">こんな場面、ありませんか？</h2>
+            <div class="slide-body">
+                <div class="diagram-container animate-in">
+                    <svg width="700" height="200" viewBox="0 0 700 200">
+                        <rect x="30" y="30" width="200" height="60" rx="12" fill="#E8EAF2" stroke="#2C3E7B" stroke-width="2"/>
+                        <text x="130" y="67" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="16" fill="#1E1E2E">name = "田中"</text>
+                        <rect x="270" y="30" width="40" height="60" rx="8" fill="#FFF3D4" stroke="#C08820" stroke-width="2"/>
+                        <text x="290" y="67" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="24" fill="#C08820" font-weight="bold">+</text>
+                        <rect x="350" y="30" width="250" height="60" rx="12" fill="#E8EAF2" stroke="#2C3E7B" stroke-width="2"/>
+                        <text x="475" y="67" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="16" fill="#1E1E2E">"さん、こんにちは！"</text>
+                        <text x="350" y="140" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="18" fill="#2C3E7B" font-weight="bold">名前と挨拶を組み合わせたい！</text>
+                        <text x="350" y="170" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="14" fill="#5A5A72">でも、どうやって文字をプログラムで扱うの？</text>
+                    </svg>
+                </div>
+                <p class="text-center animate-in-delay-1" style="margin-top: var(--spacing-lg); font-size: var(--font-size-lg);">
+                    Excelでセルに文字を入力するように、Pythonでも文字を扱えます。<br>
+                    今日はその<strong class="text-primary">基本中の基本</strong>を学びましょう。
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 3: What is a string -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">文字列とは？</h2>
+            <div class="slide-body">
+                <p class="text-center mb-lg" style="font-size: var(--font-size-lg);">
+                    Pythonで文字を扱うときは、<strong class="text-primary">クォーテーション</strong>で囲みます。<br>
+                    囲まれた文字のかたまりを<span class="keyword-tag">文字列</span>と呼びます。
+                </p>
+                <div class="string-visual animate-in">
+                    <span class="quote-mark">"</span>
+                    <span class="string-content">こんにちは</span>
+                    <span class="quote-mark">"</span>
+                </div>
+                <div class="callout-box info animate-in-delay-1">
+                    <div class="callout-title">Excelで言うと</div>
+                    セルに直接文字を入力するのと似ています。ただしPythonでは、文字をクォーテーションで囲むルールがあります。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Single vs Double quotes -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">シングルとダブル、どちらでもOK</h2>
+            <div class="slide-body">
+                <div class="code-block animate-in">
+                    <pre><code><span class="comment"># どちらも同じ結果になります</span>
+<span class="function">print</span>(<span class="string">"こんにちは"</span>)
+<span class="function">print</span>(<span class="string">'こんにちは'</span>)</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-1">
+                    <pre><code>こんにちは
+こんにちは</code></pre>
+                </div>
+                <div class="callout-box tip animate-in-delay-2">
+                    <div class="callout-title">どちらを使うべき？</div>
+                    どちらでもOKですが、チームで統一するのがおすすめです。この研修では<code class="inline">"ダブルクォーテーション"</code>を使います。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Practice 1 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">文字列を表示してみよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">Google Colabで試してみましょう</div>
+                    <p>次のコードを入力して実行してください。</p>
+                    <div class="code-block">
+                        <pre><code><span class="function">print</span>(<span class="string">"私の名前はPythonです"</span>)
+<span class="function">print</span>(<span class="string">'よろしくお願いします'</span>)</code></pre>
+                    </div>
+                    <p>好きな文字に変えても試してみてください。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: String concatenation with + -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">+で文字列を結合する</h2>
+            <div class="slide-body">
+                <p class="mb-lg">文字列どうしは <code class="inline">+</code> で繋げることができます。</p>
+                <div class="code-block animate-in">
+                    <pre><code>greeting = <span class="string">"こんにちは、"</span> + <span class="string">"田中さん！"</span>
+<span class="function">print</span>(greeting)</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-1">
+                    <pre><code>こんにちは、田中さん！</code></pre>
+                </div>
+                <div class="diagram-container animate-in-delay-2">
+                    <svg width="600" height="100" viewBox="0 0 600 100">
+                        <rect x="10" y="20" width="170" height="50" rx="8" fill="#E6F7ED" stroke="#2D9F64" stroke-width="2"/>
+                        <text x="95" y="52" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">"こんにちは、"</text>
+                        <text x="210" y="52" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="22" fill="#C08820" font-weight="bold">+</text>
+                        <rect x="240" y="20" width="150" height="50" rx="8" fill="#E6F7ED" stroke="#2D9F64" stroke-width="2"/>
+                        <text x="315" y="52" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">"田中さん！"</text>
+                        <text x="420" y="52" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="22" fill="#2C3E7B" font-weight="bold">=</text>
+                        <rect x="440" y="20" width="150" height="50" rx="8" fill="#E8EAF2" stroke="#2C3E7B" stroke-width="2"/>
+                        <text x="515" y="52" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="12" fill="#1E1E2E">"こんにちは、田中さん！"</text>
+                    </svg>
+                    <div class="diagram-caption">文字列の + は「つなげる」という意味</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Variable + string -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">変数を使って結合する</h2>
+            <div class="slide-body">
+                <p class="mb-lg">第2章で学んだ変数に文字列を入れて、+で繋げることもできます。</p>
+                <div class="code-block animate-in">
+                    <pre><code>name = <span class="string">"田中"</span>
+<span class="function">print</span>(<span class="string">"おはようございます、"</span> + name + <span class="string">"さん！"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-1">
+                    <pre><code>おはようございます、田中さん！</code></pre>
+                </div>
+                <div class="callout-box info animate-in-delay-2">
+                    <div class="callout-title">ポイント</div>
+                    変数nameの中身が「田中」なので、それが文字列の間に挟み込まれます。名前を変えれば結果も変わります。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Practice 2 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">名前と挨拶を組み合わせよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">コードを入力して実行してみましょう</div>
+                    <div class="code-block">
+                        <pre><code>name = <span class="string">"自分の名前"</span>
+<span class="function">print</span>(<span class="string">"ようこそ、"</span> + name + <span class="string">"さん！"</span>)</code></pre>
+                    </div>
+                    <p>「自分の名前」の部分をあなたの名前に変えて実行してください。上司や同僚の名前にしても面白いですよ。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Type Error -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">数字 + 文字列 = エラー！</h2>
+            <div class="slide-body">
+                <p class="mb-lg">ここで一つ、大事な落とし穴を体験しましょう。</p>
+                <div class="code-block animate-in">
+                    <pre><code>age = <span class="number">25</span>
+<span class="function">print</span>(<span class="string">"年齢は"</span> + age + <span class="string">"歳です"</span>)</code></pre>
+                </div>
+                <div class="error-display animate-in-delay-1">
+                    TypeError: can only concatenate str (not "int") to str
+                </div>
+                <div class="callout-box danger animate-in-delay-2">
+                    <div class="callout-title">なぜエラー？</div>
+                    Pythonでは<strong>文字列と数値は別の種類のデータ</strong>です。「文字列」と「数値」を + で繋げることはできません。Excelとの大きな違いです。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: How to fix -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">str()で数値を文字列に変換</h2>
+            <div class="slide-body">
+                <p class="mb-lg"><code class="inline">str()</code>を使えば、数値を文字列に変換できます。</p>
+                <div class="code-block animate-in">
+                    <pre><code>age = <span class="number">25</span>
+<span class="function">print</span>(<span class="string">"年齢は"</span> + <span class="function">str</span>(age) + <span class="string">"歳です"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-1">
+                    <pre><code>年齢は25歳です</code></pre>
+                </div>
+                <div class="callout-box tip animate-in-delay-2">
+                    <div class="callout-title">覚えておこう</div>
+                    型変換についてはこの章の後のトピックで詳しく学びます。今は「str()で数字を文字にできる」とだけ覚えておけばOKです。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Practice 3 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">エラーを体験してみよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">まずエラーを出して、次に直してみましょう</div>
+                    <p>ステップ1: わざとエラーを出す</p>
+                    <div class="code-block">
+                        <pre><code>age = <span class="number">25</span>
+<span class="function">print</span>(<span class="string">"年齢は"</span> + age + <span class="string">"歳です"</span>)</code></pre>
+                    </div>
+                    <p>ステップ2: str()を使って直す</p>
+                    <div class="code-block">
+                        <pre><code>age = <span class="number">25</span>
+<span class="function">print</span>(<span class="string">"年齢は"</span> + <span class="function">str</span>(age) + <span class="string">"歳です"</span>)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Checkpoint -->
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">ここまでのポイント</span>
+            <h2 class="checkpoint-title">第3章 トピック1 チェックポイント</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item">文字列はクォーテーションで囲む（シングルでもダブルでもOK）</li>
+                <li class="checkpoint-item">文字列どうしは + で結合できる</li>
+                <li class="checkpoint-item">数値と文字列を + で繋げるとTypeError</li>
+                <li class="checkpoint-item">str()で数値を文字列に変換すれば解決</li>
+            </ul>
+        </div>
+
+        <!-- Slide 13: Summary -->
+        <div class="slide slide-summary">
+            <h2 class="summary-title">まとめ</h2>
+            <ul class="summary-list">
+                <li class="summary-item"><strong>文字列の作り方 :</strong> ダブルクォーテーション " " またはシングルクォーテーション ' ' で囲む</li>
+                <li class="summary-item"><strong>文字列の結合 :</strong> + を使って複数の文字列を1つに繋げる</li>
+                <li class="summary-item"><strong>型に注意 :</strong> 数値と文字列は + で繋げられない。str()で変換が必要</li>
+            </ul>
+            <div class="callout-box encouragement" style="margin-top: var(--spacing-xl); max-width: 700px;">
+                <div class="callout-title">次のトピックへ</div>
+                +で結合するのは少し面倒ですよね。次のトピックでは、もっと簡単に変数を文字列に埋め込めるf文字列を学びます！
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navigation content-nav">
+        <div class="nav-inner">
+            <button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button>
+            <button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button>
+            <span class="slide-counter" id="slideNumber">1 / 1</span>
+            <button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button>
+        </div>
+    </nav>
+
+    <script>
+        let currentSlide = 1;
+        let totalSlides = 0;
+
+        function updateSlideInfo() {
+            const slides = document.querySelectorAll('.slide');
+            totalSlides = slides.length;
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index + 1 === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index + 1 < currentSlide) {
+                    slide.classList.add('prev');
+                }
+            });
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = (currentSlide === 1);
+            if (nextBtn) nextBtn.disabled = (currentSlide === totalSlides);
+            const slideNum = document.getElementById('slideNumber');
+            if (slideNum) slideNum.textContent = currentSlide + ' / ' + totalSlides;
+            if (window.slideAPI && window.slideAPI.onSlideChange) {
+                window.slideAPI.onSlideChange(currentSlide, totalSlides);
+            }
+        }
+
+        function showSlide(n) { if (n >= 1 && n <= totalSlides) { currentSlide = n; updateSlideInfo(); } }
+        function goToPrevious() { if (currentSlide > 1) { currentSlide--; updateSlideInfo(); } }
+        function goToNext() { if (currentSlide < totalSlides) { currentSlide++; updateSlideInfo(); } }
+        function goToFirst() { currentSlide = 1; updateSlideInfo(); }
+        function goToLast() { currentSlide = totalSlides; updateSlideInfo(); }
+
+        document.addEventListener('keydown', (e) => {
+            if (document.body.classList.contains('platform-controlled')) return;
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevious(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirst(); }
+            if (e.key === 'End') { e.preventDefault(); goToLast(); }
+        });
+
+        window.slideAPI = {
+            version: "1.0",
+            getTotalSlides: function() { return totalSlides; },
+            getCurrentSlide: function() { return currentSlide; },
+            showSlide: showSlide,
+            nextSlide: goToNext,
+            prevSlide: goToPrevious,
+            firstSlide: goToFirst,
+            lastSlide: goToLast,
+            hideContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = 'none'; },
+            showContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = ''; },
+            setPlatformControlled: function(enabled) {
+                if (enabled) { document.body.classList.add('platform-controlled'); }
+                else { document.body.classList.remove('platform-controlled'); }
+            },
+            onSlideChange: null
+        };
+
+        window.onload = updateSlideInfo;
+    </script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>関数を作ってみよう - def文 | Python入門（初心者特化版）</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-primary: #2C3E7B;
+            --color-primary-light: #4A5FA8;
+            --color-primary-lighter: #7B8EC6;
+            --color-primary-dark: #1A2654;
+            --color-primary-bg: #E8EAF2;
+            --color-secondary: #E8A830;
+            --color-secondary-light: #F5C862;
+            --color-secondary-lighter: #FFF3D4;
+            --color-secondary-dark: #C08820;
+            --color-background: #F8F6F0;
+            --color-background-warm: #FBF9F3;
+            --color-surface: #FFFFFF;
+            --color-surface-raised: #FFFFFF;
+            --color-surface-muted: #F2F0EA;
+            --color-text: #1E1E2E;
+            --color-text-secondary: #5A5A72;
+            --color-text-tertiary: #8E8EA0;
+            --color-text-inverse: #FAFAF5;
+            --color-text-on-primary: #FFFFFF;
+            --color-success: #2D9F64;
+            --color-success-bg: #E6F7ED;
+            --color-warning: #D4870E;
+            --color-warning-bg: #FFF6E0;
+            --color-error: #CC3D3D;
+            --color-error-bg: #FDECEC;
+            --color-info: #3D8BC9;
+            --color-info-bg: #E6F0F9;
+            --color-code-bg: #F0EDE4;
+            --color-code-border: #DDD8CC;
+            --color-code-text: #2C3E7B;
+            --color-code-keyword: #8B3FAE;
+            --color-code-string: #2D9F64;
+            --color-code-comment: #8E8EA0;
+            --color-code-number: #CC3D3D;
+            --color-code-function: #3D8BC9;
+            --font-heading: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Meiryo', sans-serif;
+            --font-body: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-code: 'JetBrains Mono', 'Source Code Pro', 'Menlo', monospace;
+            --font-size-xs: 0.75rem; --font-size-sm: 0.875rem; --font-size-base: 1rem;
+            --font-size-md: 1.125rem; --font-size-lg: 1.375rem; --font-size-xl: 1.75rem;
+            --font-size-2xl: 2.25rem; --font-size-3xl: 3rem; --font-size-4xl: 3.75rem;
+            --font-weight-normal: 400; --font-weight-medium: 500; --font-weight-bold: 700; --font-weight-black: 900;
+            --line-height-tight: 1.3; --line-height-normal: 1.7; --line-height-relaxed: 1.9;
+            --spacing-xs: 0.25rem; --spacing-sm: 0.5rem; --spacing-md: 1rem; --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem; --spacing-2xl: 3rem; --spacing-3xl: 4rem; --spacing-4xl: 6rem;
+            --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+            --radius-pill: 100px; --radius-circle: 50%;
+            --shadow-xs: 0 1px 2px rgba(30,30,46,0.05);
+            --shadow-sm: 0 2px 4px rgba(30,30,46,0.06), 0 1px 2px rgba(30,30,46,0.04);
+            --shadow-md: 0 4px 12px rgba(30,30,46,0.08), 0 2px 4px rgba(30,30,46,0.04);
+            --shadow-lg: 0 8px 24px rgba(30,30,46,0.10), 0 4px 8px rgba(30,30,46,0.05);
+            --transition-fast: 150ms ease; --transition-normal: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slide: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            --z-navigation: 500; --z-texture: 2000;
+            --slide-max-width: 960px; --slide-padding-x: 80px; --slide-padding-y: 40px;
+            --slide-padding-bottom: 120px; --nav-height: 80px;
+        }
+        @media (max-width: 1024px) { :root { --slide-padding-x: 48px; --font-size-3xl: 2.25rem; --font-size-4xl: 3rem; } }
+        @media (max-width: 768px) { :root { --slide-padding-x: 28px; --slide-padding-y: 24px; --slide-padding-bottom: 140px; --font-size-2xl: 1.75rem; --font-size-3xl: 2rem; --font-size-4xl: 2.5rem; --font-size-xl: 1.5rem; } }
+        @media (max-width: 480px) { :root { --slide-padding-x: 20px; --slide-padding-y: 20px; --font-size-2xl: 1.5rem; --font-size-3xl: 1.75rem; --font-size-4xl: 2rem; } }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { width: 100%; }
+        body { font-family: var(--font-body); background: var(--color-background); color: var(--color-text); min-height: 100vh; overflow: hidden; position: relative; width: 100%; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"); pointer-events: none; z-index: var(--z-texture); }
+        .accent-bar { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary), var(--color-primary-light), var(--color-secondary)); z-index: var(--z-navigation); }
+
+        .slides-container { position: relative; width: 100%; height: 100vh; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transform: translateX(30px); transition: all var(--transition-slide); overflow-y: auto; }
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+        .slide.prev { opacity: 0; transform: translateX(-30px); }
+
+        .content-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); background: var(--color-surface); border-top: 1px solid #E4E1D8; box-shadow: 0 -2px 12px rgba(30,30,46,0.06); z-index: var(--z-navigation); padding: 0 var(--slide-padding-x); }
+        .nav-inner { max-width: var(--slide-max-width); margin: 0 auto; height: 100%; display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md); }
+        .content-nav-btn { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); padding: var(--spacing-sm) var(--spacing-xl); border: 2px solid var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; transition: all var(--transition-fast); min-width: 100px; text-align: center; }
+        .content-nav-btn.btn-prev, .content-nav-btn.btn-first { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-prev:hover, .content-nav-btn.btn-first:hover { background: var(--color-primary-bg); }
+        .content-nav-btn.btn-next { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .content-nav-btn.btn-next:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+        .content-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .content-nav-btn:disabled:hover { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-next:disabled:hover { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .slide-counter { font-family: var(--font-code); font-size: var(--font-size-sm); color: var(--color-text-tertiary); min-width: 80px; text-align: center; }
+        body.platform-controlled .content-nav { display: none !important; }
+        @media (max-width: 768px) { .content-nav { padding: 0 var(--spacing-md); } .content-nav-btn { font-size: var(--font-size-xs); padding: var(--spacing-sm) var(--spacing-md); min-width: 70px; } }
+
+        /* Components */
+        .slide.active.slide-title { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(160deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%); color: var(--color-text-inverse); }
+        .slide-title .chapter-label { font-family: var(--font-code); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-secondary-light); margin-bottom: var(--spacing-md); padding: var(--spacing-xs) var(--spacing-lg); border: 1px solid rgba(245,200,98,0.3); border-radius: var(--radius-pill); }
+        .slide-title .topic-title { font-family: var(--font-heading); font-size: var(--font-size-4xl); font-weight: var(--font-weight-black); line-height: var(--line-height-tight); margin-bottom: var(--spacing-lg); max-width: 800px; }
+        .slide-title .topic-subtitle { font-family: var(--font-body); font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); color: rgba(250,250,245,0.75); max-width: 600px; line-height: var(--line-height-normal); }
+        .slide-title .decorative-line { width: 80px; height: 3px; background: var(--color-secondary); margin: var(--spacing-lg) 0; border-radius: var(--radius-pill); }
+
+        .slide.active.slide-content { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); }
+        .slide-content .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-content .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-content .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+
+        .slide.active.slide-summary { display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--color-surface-muted); }
+        .slide-summary .summary-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .slide-summary .summary-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .slide-summary .summary-item { padding: var(--spacing-md) var(--spacing-lg); margin-bottom: var(--spacing-md); background: var(--color-surface); border-left: 4px solid var(--color-secondary); border-radius: 0 var(--radius-md) var(--radius-md) 0; box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); }
+        .slide-summary .summary-item strong { color: var(--color-primary); }
+
+        .slide.active.slide-practice { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); background: linear-gradient(180deg, var(--color-background-warm) 0%, var(--color-secondary-lighter) 100%); }
+        .slide-practice .practice-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); background: rgba(232,168,48,0.15); border: 2px solid var(--color-secondary); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-lg); letter-spacing: 0.1em; }
+        .slide-practice .practice-badge::before { content: '\270F\FE0F '; }
+        .slide-practice .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-practice .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-practice .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+        .slide-practice .practice-instruction { background: var(--color-surface); border: 2px dashed var(--color-secondary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin: var(--spacing-lg) 0; box-shadow: var(--shadow-sm); }
+        .slide-practice .practice-instruction .instruction-title { font-family: var(--font-heading); font-size: var(--font-size-md); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-md); }
+
+        .slide.active.slide-checkpoint { display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(180deg, var(--color-background) 0%, var(--color-info-bg) 100%); }
+        .slide-checkpoint .checkpoint-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-info); background: rgba(61,139,201,0.1); border: 2px solid var(--color-info); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-xl); letter-spacing: 0.1em; }
+        .slide-checkpoint .checkpoint-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-info); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .checkpoint-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .checkpoint-item { padding: var(--spacing-md) var(--spacing-lg); padding-left: calc(var(--spacing-lg) + 36px); margin-bottom: var(--spacing-md); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); position: relative; }
+        .checkpoint-item::before { content: '\2713'; position: absolute; left: var(--spacing-lg); top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--color-success); color: white; border-radius: var(--radius-circle); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); line-height: 24px; text-align: center; }
+
+        .code-block { background: var(--color-code-bg); border: 1px solid var(--color-code-border); border-radius: var(--radius-md); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; overflow-x: auto; position: relative; }
+        .code-block::before { content: 'Python'; position: absolute; top: 0; right: 0; font-family: var(--font-code); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--color-text-tertiary); background: var(--color-surface-muted); padding: var(--spacing-xs) var(--spacing-md); border-radius: 0 var(--radius-md) 0 var(--radius-md); border-left: 1px solid var(--color-code-border); border-bottom: 1px solid var(--color-code-border); }
+        .code-block pre { margin: 0; padding: 0; overflow-x: auto; }
+        .code-block code { font-family: var(--font-code); font-size: var(--font-size-sm); line-height: 1.8; color: var(--color-code-text); white-space: pre; }
+        .code-block .keyword { color: var(--color-code-keyword); font-weight: var(--font-weight-bold); }
+        .code-block .string { color: var(--color-code-string); }
+        .code-block .comment { color: var(--color-code-comment); font-style: italic; }
+        .code-block .number { color: var(--color-code-number); }
+        .code-block .function { color: var(--color-code-function); }
+        .code-block .builtin { color: var(--color-secondary-dark); }
+        .code-block.terminal { background: #1E1E2E; border-color: #3A3A4E; }
+        .code-block.terminal::before { content: 'Result'; background: #2A2A3E; border-color: #3A3A4E; color: #8E8EA0; }
+        .code-block.terminal code { color: #E0E0E8; }
+        .code-block.terminal .output { color: #B0B0C0; }
+        code.inline { font-family: var(--font-code); font-size: 0.9em; background: var(--color-code-bg); border: 1px solid var(--color-code-border); padding: 1px 6px; border-radius: var(--radius-sm); color: var(--color-code-text); }
+
+        .callout-box { max-width: var(--slide-max-width); width: 100%; padding: var(--spacing-lg) var(--spacing-xl); margin: var(--spacing-lg) 0; border-radius: var(--radius-md); font-family: var(--font-body); font-size: var(--font-size-base); line-height: var(--line-height-normal); position: relative; padding-left: calc(var(--spacing-xl) + 8px); border-left: 4px solid; }
+        .callout-box .callout-title { font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-sm); font-size: var(--font-size-md); }
+        .callout-box.info { background: var(--color-info-bg); border-color: var(--color-info); }
+        .callout-box.info .callout-title { color: var(--color-info); }
+        .callout-box.tip { background: var(--color-success-bg); border-color: var(--color-success); }
+        .callout-box.tip .callout-title { color: var(--color-success); }
+        .callout-box.warning { background: var(--color-warning-bg); border-color: var(--color-warning); }
+        .callout-box.warning .callout-title { color: var(--color-warning); }
+        .callout-box.business { background: var(--color-secondary-lighter); border-color: var(--color-secondary-dark); }
+        .callout-box.business .callout-title { color: var(--color-secondary-dark); }
+        .callout-box.encouragement { background: linear-gradient(135deg, var(--color-success-bg) 0%, #F0FBF4 100%); border-color: var(--color-success); }
+        .callout-box.encouragement .callout-title { color: var(--color-success); }
+
+        .diagram-container { max-width: var(--slide-max-width); width: 100%; margin: var(--spacing-lg) auto; padding: var(--spacing-xl); background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid #E4E1D8; text-align: center; }
+        .diagram-container svg { max-width: 100%; height: auto; }
+        .diagram-caption { font-family: var(--font-body); font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin-top: var(--spacing-md); text-align: center; font-style: italic; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide.active .animate-in { animation: fadeInUp 0.6s ease forwards; }
+        .slide.active .animate-in-delay-1 { animation: fadeInUp 0.6s ease 0.1s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-2 { animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-3 { animation: fadeInUp 0.6s ease 0.3s forwards; opacity: 0; }
+
+        .text-center { text-align: center; }
+        .text-primary { color: var(--color-primary); }
+        .mb-md { margin-bottom: var(--spacing-md); }
+        .mb-lg { margin-bottom: var(--spacing-lg); }
+        .mt-md { margin-top: var(--spacing-md); }
+        .mt-lg { margin-top: var(--spacing-lg); }
+
+        /* def anatomy highlight */
+        .def-anatomy { max-width: var(--slide-max-width); width: 100%; margin: var(--spacing-lg) 0; }
+        .def-anatomy .anatomy-line {
+            font-family: var(--font-code); font-size: var(--font-size-xl); line-height: 2.5;
+            text-align: center; letter-spacing: 0.05em;
+        }
+        .def-anatomy .part-def { color: var(--color-code-keyword); font-weight: var(--font-weight-bold); }
+        .def-anatomy .part-name { color: var(--color-code-function); font-weight: var(--font-weight-bold); }
+        .def-anatomy .part-paren { color: var(--color-text); }
+        .def-anatomy .part-colon { color: var(--color-error); font-weight: var(--font-weight-bold); }
+        .def-anatomy .label-row { text-align: center; margin-top: var(--spacing-sm); }
+        .def-anatomy .label-row span {
+            display: inline-block; font-family: var(--font-body); font-size: var(--font-size-sm);
+            padding: var(--spacing-xs) var(--spacing-md); border-radius: var(--radius-pill);
+            margin: 0 var(--spacing-sm);
+        }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+    <div class="slides-container" id="slidesContainer">
+
+        <!-- Slide 1: Title -->
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 7</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">関数を作ってみよう<br>def文</h1>
+            <p class="topic-subtitle">自分だけの「自動販売機」を作る魔法の言葉</p>
+        </div>
+
+        <!-- Slide 2: Recap & motivation -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">前回の復習</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">前回、関数の仕組みを学びました。今度は自分で関数を定義してみましょう。</p>
+                <div class="callout-box info">
+                    <div class="callout-title">前回のポイント</div>
+                    関数は「入力 → 処理 → 出力」の仕組み（自動販売機と同じ）。<br>
+                    print, len, int は Pythonが用意した「組み込み関数」でした。<br>
+                    今回は <strong>自分だけのオリジナル関数</strong> を作ります！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: def anatomy -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">def文の書き方</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">関数を作るには <code class="inline">def</code> というキーワードを使います</p>
+                <div class="diagram-container">
+                    <svg width="650" height="180" viewBox="0 0 650 180">
+                        <!-- The code line -->
+                        <text x="40" y="60" font-family="'JetBrains Mono', monospace" font-size="28" fill="#8B3FAE" font-weight="bold">def</text>
+                        <text x="110" y="60" font-family="'JetBrains Mono', monospace" font-size="28" fill="#3D8BC9" font-weight="bold">greet</text>
+                        <text x="205" y="60" font-family="'JetBrains Mono', monospace" font-size="28" fill="#1E1E2E">()</text>
+                        <text x="245" y="60" font-family="'JetBrains Mono', monospace" font-size="28" fill="#CC3D3D" font-weight="bold">:</text>
+                        <!-- Arrows -->
+                        <line x1="55" y1="72" x2="55" y2="100" stroke="#8B3FAE" stroke-width="2"/>
+                        <line x1="155" y1="72" x2="155" y2="100" stroke="#3D8BC9" stroke-width="2"/>
+                        <line x1="250" y1="72" x2="250" y2="100" stroke="#CC3D3D" stroke-width="2"/>
+                        <!-- Labels -->
+                        <rect x="10" y="105" width="90" height="30" rx="15" fill="#8B3FAE" opacity="0.12"/>
+                        <text x="55" y="125" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="13" fill="#8B3FAE" font-weight="bold">定義の合図</text>
+                        <rect x="110" y="105" width="90" height="30" rx="15" fill="#3D8BC9" opacity="0.12"/>
+                        <text x="155" y="125" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="13" fill="#3D8BC9" font-weight="bold">関数の名前</text>
+                        <rect x="215" y="105" width="70" height="30" rx="15" fill="#CC3D3D" opacity="0.12"/>
+                        <text x="250" y="125" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="13" fill="#CC3D3D" font-weight="bold">コロン</text>
+                        <!-- Second line (indented body) -->
+                        <text x="80" y="170" font-family="'JetBrains Mono', monospace" font-size="22" fill="#1E1E2E">    <tspan fill="#3D8BC9">print</tspan>(<tspan fill="#2D9F64">"こんにちは"</tspan>)</text>
+                        <path d="M40 155 L40 165 L70 165" stroke="#E8A830" stroke-width="2" fill="none" stroke-dasharray="4,3"/>
+                        <text x="310" y="170" font-family="'M PLUS 1p', sans-serif" font-size="13" fill="#C08820" font-weight="bold">インデント（半角4つ）</text>
+                    </svg>
+                    <p class="diagram-caption">def 関数名(): のあとにインデントして処理を書きます</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: First function -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">最初の関数を作ろう</h2>
+            <div class="slide-body">
+                <p class="mb-lg">あいさつをする関数を作ってみましょう。</p>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">greet</span>():
+    <span class="function">print</span>(<span class="string">"こんにちは！"</span>)</code></pre>
+                </div>
+                <p class="mb-lg">これだけで関数の完成です！次に、この関数を使います。</p>
+                <div class="code-block">
+                    <pre><code><span class="function">greet</span>()</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">こんにちは！</span></code></pre>
+                </div>
+                <div class="callout-box tip">
+                    <div class="callout-title">大事なポイント</div>
+                    defで関数を「作る」のと、関数名()で「使う」のは別です。<br>
+                    defだけでは何も起きません。呼び出して初めて動きます！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Define vs Call -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">定義と呼び出しは別もの</h2>
+            <div class="slide-body">
+                <div class="diagram-container">
+                    <svg width="600" height="200" viewBox="0 0 600 200">
+                        <!-- Define box -->
+                        <rect x="20" y="20" width="250" height="160" rx="12" fill="#E8EAF2" stroke="#2C3E7B" stroke-width="2"/>
+                        <text x="145" y="50" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="16" fill="#2C3E7B" font-weight="bold">定義（レシピを書く）</text>
+                        <text x="40" y="85" font-family="'JetBrains Mono', monospace" font-size="14" fill="#8B3FAE" font-weight="bold">def</text>
+                        <text x="80" y="85" font-family="'JetBrains Mono', monospace" font-size="14" fill="#3D8BC9">greet</text>
+                        <text x="128" y="85" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">():</text>
+                        <text x="60" y="110" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">print(...)</text>
+                        <text x="145" y="155" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="12" fill="#5A5A72">まだ何も実行されない</text>
+                        <!-- Arrow -->
+                        <path d="M280 100 L320 100" stroke="#E8A830" stroke-width="3" fill="none" marker-end="url(#arrow2)"/>
+                        <!-- Call box -->
+                        <rect x="330" y="20" width="250" height="160" rx="12" fill="#FFF3D4" stroke="#C08820" stroke-width="2"/>
+                        <text x="455" y="50" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="16" fill="#C08820" font-weight="bold">呼び出し（料理する）</text>
+                        <text x="350" y="90" font-family="'JetBrains Mono', monospace" font-size="18" fill="#3D8BC9" font-weight="bold">greet()</text>
+                        <text x="455" y="130" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="14" fill="#2D9F64" font-weight="bold">ここで初めて動く！</text>
+                        <text x="455" y="155" text-anchor="middle" font-family="'M PLUS 1p', sans-serif" font-size="12" fill="#5A5A72">何度でも呼び出せる</text>
+                        <defs><marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#E8A830"/></marker></defs>
+                    </svg>
+                </div>
+                <div class="callout-box info">
+                    <div class="callout-title">レシピと料理の関係</div>
+                    defで関数を作るのは「レシピを書く」こと。呼び出すのは「実際に料理する」こと。<br>
+                    レシピは1回書けば、何度でも料理できます！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Practice 1 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">関数を作って呼び出そう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">動画を止めて、Google Colabで試しましょう</div>
+                    <p>以下のコードを入力して実行してください。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">greet</span>():
+    <span class="function">print</span>(<span class="string">"こんにちは！"</span>)
+
+<span class="function">greet</span>()
+<span class="function">greet</span>()
+<span class="function">greet</span>()</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">こんにちは！
+こんにちは！
+こんにちは！</span></code></pre>
+                </div>
+                <div class="callout-box encouragement">
+                    <div class="callout-title">3回表示されましたか？</div>
+                    1回定義するだけで、何回でも呼び出せます。これが関数の「再利用」です！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Indent rule -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">インデントが大事！</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">if文やfor文と同じく、関数の中身はインデント（半角スペース4つ）で書きます</p>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">morning_greeting</span>():
+    <span class="function">print</span>(<span class="string">"おはようございます"</span>)
+    <span class="function">print</span>(<span class="string">"今日もよろしくお願いします"</span>)</code></pre>
+                </div>
+                <div class="callout-box warning">
+                    <div class="callout-title">よくあるミス</div>
+                    インデントを忘れるとエラーになります。<br>
+                    <code class="inline">IndentationError</code> が出たら、defの次の行がスペース4つで始まっているか確認しましょう。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Multiple lines -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">複数の処理をまとめる</h2>
+            <div class="slide-body">
+                <p class="mb-lg">関数の中には何行でも処理を書けます。</p>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">show_menu</span>():
+    <span class="function">print</span>(<span class="string">"=== メニュー ==="</span>)
+    <span class="function">print</span>(<span class="string">"1. 売上確認"</span>)
+    <span class="function">print</span>(<span class="string">"2. 在庫確認"</span>)
+    <span class="function">print</span>(<span class="string">"==============="</span>)</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">=== メニュー ===
+1. 売上確認
+2. 在庫確認
+===============</span></code></pre>
+                </div>
+                <div class="callout-box business">
+                    <div class="callout-title">業務での活用</div>
+                    メニュー表示やレポートのヘッダーなど、「毎回同じ表示をする部分」は関数にまとめると便利です。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Naming -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">関数名のつけ方</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">良い名前をつけると、コードがグッと読みやすくなります</p>
+                <div class="diagram-container">
+                    <svg width="550" height="200" viewBox="0 0 550 200">
+                        <!-- Good names -->
+                        <text x="20" y="30" font-family="'Zen Kaku Gothic New', sans-serif" font-size="16" fill="#2D9F64" font-weight="bold">良い例</text>
+                        <rect x="20" y="45" width="230" height="140" rx="10" fill="#E6F7ED" stroke="#2D9F64" stroke-width="1.5"/>
+                        <text x="40" y="75" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">show_menu()</text>
+                        <text x="40" y="105" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">calc_tax()</text>
+                        <text x="40" y="135" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">greet()</text>
+                        <text x="40" y="170" font-family="'M PLUS 1p', sans-serif" font-size="12" fill="#2D9F64">何をする関数かわかる！</text>
+                        <!-- Bad names -->
+                        <text x="300" y="30" font-family="'Zen Kaku Gothic New', sans-serif" font-size="16" fill="#CC3D3D" font-weight="bold">悪い例</text>
+                        <rect x="300" y="45" width="230" height="140" rx="10" fill="#FDECEC" stroke="#CC3D3D" stroke-width="1.5"/>
+                        <text x="320" y="75" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">func1()</text>
+                        <text x="320" y="105" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">a()</text>
+                        <text x="320" y="135" font-family="'JetBrains Mono', monospace" font-size="14" fill="#1E1E2E">test()</text>
+                        <text x="320" y="170" font-family="'M PLUS 1p', sans-serif" font-size="12" fill="#CC3D3D">何をする関数かわからない...</text>
+                    </svg>
+                </div>
+                <div class="callout-box tip">
+                    <div class="callout-title">命名のコツ</div>
+                    「動詞 + 名詞」で名前をつけましょう。show_menu, calc_tax, check_stockなど。<br>
+                    変数名と同じく、英語の小文字とアンダースコアで書きます。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Practice 2 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">オリジナル関数を作ろう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">動画を止めて、自分の関数を作ってみましょう</div>
+                    <p>以下のコードを入力して、自分だけの関数を作りましょう。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code><span class="keyword">def</span> <span class="function">show_header</span>():
+    <span class="function">print</span>(<span class="string">"========================"</span>)
+    <span class="function">print</span>(<span class="string">"  株式会社サンプル"</span>)
+    <span class="function">print</span>(<span class="string">"  日次売上レポート"</span>)
+    <span class="function">print</span>(<span class="string">"========================"</span>)
+
+<span class="function">show_header</span>()</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">========================
+  株式会社サンプル
+  日次売上レポート
+========================</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Checkpoint -->
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">ここまでのポイント</span>
+            <h2 class="checkpoint-title">def文の基本</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item">def 関数名(): で関数を定義する</li>
+                <li class="checkpoint-item">関数の中身はインデント（半角スペース4つ）で書く</li>
+                <li class="checkpoint-item">定義しただけでは動かない。関数名()で呼び出す</li>
+                <li class="checkpoint-item">関数名は「何をするか」がわかる名前にする</li>
+            </ul>
+        </div>
+
+        <!-- Slide 12: Summary -->
+        <div class="slide slide-summary">
+            <h2 class="summary-title">まとめ</h2>
+            <ul class="summary-list">
+                <li class="summary-item"><strong>def文</strong> 関数を作る魔法の言葉。def 関数名(): と書く</li>
+                <li class="summary-item"><strong>インデント</strong> if文やfor文と同じく、中身はスペース4つ</li>
+                <li class="summary-item"><strong>定義と呼び出し</strong> レシピを書く（def）と料理する（呼び出し）は別</li>
+                <li class="summary-item"><strong>次のトピック</strong> 関数にデータを渡す「引数」を学びます！</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <nav class="navigation content-nav">
+        <div class="nav-inner">
+            <button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button>
+            <button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button>
+            <span class="slide-counter" id="slideNumber">1 / 1</span>
+            <button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button>
+        </div>
+    </nav>
+
+    <script>
+        let currentSlide = 1; let totalSlides = 0;
+        function updateSlideInfo() {
+            const slides = document.querySelectorAll('.slide'); totalSlides = slides.length;
+            slides.forEach((slide, index) => { slide.classList.remove('active', 'prev'); if (index + 1 === currentSlide) slide.classList.add('active'); else if (index + 1 < currentSlide) slide.classList.add('prev'); });
+            const prevBtn = document.getElementById('prevBtn'); const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = (currentSlide === 1); if (nextBtn) nextBtn.disabled = (currentSlide === totalSlides);
+            const slideNum = document.getElementById('slideNumber'); if (slideNum) slideNum.textContent = currentSlide + ' / ' + totalSlides;
+            if (window.slideAPI && window.slideAPI.onSlideChange) window.slideAPI.onSlideChange(currentSlide, totalSlides);
+        }
+        function showSlide(n) { if (n >= 1 && n <= totalSlides) { currentSlide = n; updateSlideInfo(); } }
+        function goToPrevious() { if (currentSlide > 1) { currentSlide--; updateSlideInfo(); } }
+        function goToNext() { if (currentSlide < totalSlides) { currentSlide++; updateSlideInfo(); } }
+        function goToFirst() { currentSlide = 1; updateSlideInfo(); }
+        function goToLast() { currentSlide = totalSlides; updateSlideInfo(); }
+        document.addEventListener('keydown', (e) => {
+            if (document.body.classList.contains('platform-controlled')) return;
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevious(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirst(); }
+            if (e.key === 'End') { e.preventDefault(); goToLast(); }
+        });
+        window.slideAPI = { version: "1.0", getTotalSlides: function() { return totalSlides; }, getCurrentSlide: function() { return currentSlide; }, showSlide: showSlide, nextSlide: goToNext, prevSlide: goToPrevious, firstSlide: goToFirst, lastSlide: goToLast, hideContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = 'none'; }, showContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = ''; }, setPlatformControlled: function(enabled) { if (enabled) document.body.classList.add('platform-controlled'); else document.body.classList.remove('platform-controlled'); }, onSlideChange: null };
+        window.onload = updateSlideInfo;
+    </script>
+</body>
+</html>

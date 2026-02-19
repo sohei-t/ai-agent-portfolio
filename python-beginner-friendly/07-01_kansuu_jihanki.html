@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>関数って何？自動販売機のたとえ | Python入門（初心者特化版）</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================================
+           Design System: variables.css (inline for standalone)
+           ============================================================ */
+        :root {
+            --color-primary: #2C3E7B;
+            --color-primary-light: #4A5FA8;
+            --color-primary-lighter: #7B8EC6;
+            --color-primary-dark: #1A2654;
+            --color-primary-bg: #E8EAF2;
+            --color-secondary: #E8A830;
+            --color-secondary-light: #F5C862;
+            --color-secondary-lighter: #FFF3D4;
+            --color-secondary-dark: #C08820;
+            --color-background: #F8F6F0;
+            --color-background-warm: #FBF9F3;
+            --color-surface: #FFFFFF;
+            --color-surface-raised: #FFFFFF;
+            --color-surface-muted: #F2F0EA;
+            --color-text: #1E1E2E;
+            --color-text-secondary: #5A5A72;
+            --color-text-tertiary: #8E8EA0;
+            --color-text-inverse: #FAFAF5;
+            --color-text-on-primary: #FFFFFF;
+            --color-success: #2D9F64;
+            --color-success-bg: #E6F7ED;
+            --color-warning: #D4870E;
+            --color-warning-bg: #FFF6E0;
+            --color-error: #CC3D3D;
+            --color-error-bg: #FDECEC;
+            --color-info: #3D8BC9;
+            --color-info-bg: #E6F0F9;
+            --color-code-bg: #F0EDE4;
+            --color-code-border: #DDD8CC;
+            --color-code-text: #2C3E7B;
+            --color-code-keyword: #8B3FAE;
+            --color-code-string: #2D9F64;
+            --color-code-comment: #8E8EA0;
+            --color-code-number: #CC3D3D;
+            --color-code-function: #3D8BC9;
+            --font-heading: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Meiryo', sans-serif;
+            --font-body: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-code: 'JetBrains Mono', 'Source Code Pro', 'Menlo', monospace;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-md: 1.125rem;
+            --font-size-lg: 1.375rem;
+            --font-size-xl: 1.75rem;
+            --font-size-2xl: 2.25rem;
+            --font-size-3xl: 3rem;
+            --font-size-4xl: 3.75rem;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-bold: 700;
+            --font-weight-black: 900;
+            --line-height-tight: 1.3;
+            --line-height-normal: 1.7;
+            --line-height-relaxed: 1.9;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+            --spacing-3xl: 4rem;
+            --spacing-4xl: 6rem;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-pill: 100px;
+            --radius-circle: 50%;
+            --shadow-xs: 0 1px 2px rgba(30,30,46,0.05);
+            --shadow-sm: 0 2px 4px rgba(30,30,46,0.06), 0 1px 2px rgba(30,30,46,0.04);
+            --shadow-md: 0 4px 12px rgba(30,30,46,0.08), 0 2px 4px rgba(30,30,46,0.04);
+            --shadow-lg: 0 8px 24px rgba(30,30,46,0.10), 0 4px 8px rgba(30,30,46,0.05);
+            --shadow-xl: 0 16px 48px rgba(30,30,46,0.12), 0 8px 16px rgba(30,30,46,0.06);
+            --transition-fast: 150ms ease;
+            --transition-normal: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slide: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            --z-navigation: 500;
+            --z-texture: 2000;
+            --slide-max-width: 960px;
+            --slide-padding-x: 80px;
+            --slide-padding-y: 40px;
+            --slide-padding-bottom: 120px;
+            --nav-height: 80px;
+        }
+
+        @media (max-width: 1024px) {
+            :root {
+                --slide-padding-x: 48px;
+                --font-size-3xl: 2.25rem;
+                --font-size-4xl: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --slide-padding-x: 28px;
+                --slide-padding-y: 24px;
+                --slide-padding-bottom: 140px;
+                --font-size-2xl: 1.75rem;
+                --font-size-3xl: 2rem;
+                --font-size-4xl: 2.5rem;
+                --font-size-xl: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --slide-padding-x: 20px;
+                --slide-padding-y: 20px;
+                --font-size-2xl: 1.5rem;
+                --font-size-3xl: 1.75rem;
+                --font-size-4xl: 2rem;
+            }
+        }
+
+        /* ============================================================
+           Base Styles
+           ============================================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { width: 100%; }
+        body {
+            font-family: var(--font-body);
+            background: var(--color-background);
+            color: var(--color-text);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: var(--z-texture);
+        }
+
+        .accent-bar {
+            position: fixed; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary), var(--color-primary-light), var(--color-secondary));
+            z-index: var(--z-navigation);
+        }
+
+        /* ============================================================
+           Slide Container & Transitions
+           ============================================================ */
+        .slides-container { position: relative; width: 100%; height: 100vh; }
+
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transform: translateX(30px);
+            transition: all var(--transition-slide);
+            overflow-y: auto;
+        }
+
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+        .slide.prev { opacity: 0; transform: translateX(-30px); }
+
+        /* ============================================================
+           Navigation
+           ============================================================ */
+        .content-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
+            background: var(--color-surface);
+            border-top: 1px solid #E4E1D8;
+            box-shadow: 0 -2px 12px rgba(30, 30, 46, 0.06);
+            z-index: var(--z-navigation);
+            padding: 0 var(--slide-padding-x);
+        }
+
+        .nav-inner {
+            max-width: var(--slide-max-width); margin: 0 auto; height: 100%;
+            display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md);
+        }
+
+        .content-nav-btn {
+            font-family: var(--font-heading); font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            padding: var(--spacing-sm) var(--spacing-xl);
+            border: 2px solid var(--color-primary); border-radius: var(--radius-pill);
+            cursor: pointer; transition: all var(--transition-fast);
+            min-width: 100px; text-align: center;
+        }
+
+        .content-nav-btn.btn-prev, .content-nav-btn.btn-first {
+            background: transparent; color: var(--color-primary);
+        }
+        .content-nav-btn.btn-prev:hover, .content-nav-btn.btn-first:hover {
+            background: var(--color-primary-bg);
+        }
+        .content-nav-btn.btn-next {
+            background: var(--color-primary); color: var(--color-text-on-primary);
+        }
+        .content-nav-btn.btn-next:hover {
+            background: var(--color-primary-dark); border-color: var(--color-primary-dark);
+        }
+        .content-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .content-nav-btn:disabled:hover { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-next:disabled:hover { background: var(--color-primary); color: var(--color-text-on-primary); }
+
+        .slide-counter {
+            font-family: var(--font-code); font-size: var(--font-size-sm);
+            color: var(--color-text-tertiary); min-width: 80px; text-align: center;
+        }
+
+        body.platform-controlled .content-nav { display: none !important; }
+
+        @media (max-width: 768px) {
+            .content-nav { padding: 0 var(--spacing-md); }
+            .content-nav-btn { font-size: var(--font-size-xs); padding: var(--spacing-sm) var(--spacing-md); min-width: 70px; }
+        }
+
+        /* ============================================================
+           Component Styles (from components.css)
+           ============================================================ */
+
+        /* Title Slide */
+        .slide.active.slide-title {
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+            background: linear-gradient(160deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%);
+            color: var(--color-text-inverse);
+        }
+        .slide-title .chapter-label {
+            font-family: var(--font-code); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
+            letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-secondary-light);
+            margin-bottom: var(--spacing-md); padding: var(--spacing-xs) var(--spacing-lg);
+            border: 1px solid rgba(245, 200, 98, 0.3); border-radius: var(--radius-pill);
+        }
+        .slide-title .topic-title {
+            font-family: var(--font-heading); font-size: var(--font-size-4xl);
+            font-weight: var(--font-weight-black); line-height: var(--line-height-tight);
+            margin-bottom: var(--spacing-lg); max-width: 800px;
+        }
+        .slide-title .topic-subtitle {
+            font-family: var(--font-body); font-size: var(--font-size-lg); font-weight: var(--font-weight-normal);
+            color: rgba(250, 250, 245, 0.75); max-width: 600px; line-height: var(--line-height-normal);
+        }
+        .slide-title .decorative-line {
+            width: 80px; height: 3px; background: var(--color-secondary);
+            margin: var(--spacing-lg) 0; border-radius: var(--radius-pill);
+        }
+
+        /* Content Slide */
+        .slide.active.slide-content {
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
+            padding-top: var(--spacing-2xl);
+        }
+        .slide-content .slide-heading {
+            font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold);
+            color: var(--color-primary); margin-bottom: var(--spacing-xl); text-align: center;
+            position: relative; padding-bottom: var(--spacing-md);
+        }
+        .slide-content .slide-heading::after {
+            content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill);
+        }
+        .slide-content .slide-body {
+            max-width: var(--slide-max-width); width: 100%;
+            font-family: var(--font-body); font-size: var(--font-size-md);
+            line-height: var(--line-height-relaxed); color: var(--color-text);
+        }
+
+        /* Summary Slide */
+        .slide.active.slide-summary {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: var(--color-surface-muted);
+        }
+        .slide-summary .summary-title {
+            font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold);
+            color: var(--color-primary); margin-bottom: var(--spacing-2xl); text-align: center;
+        }
+        .slide-summary .summary-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .slide-summary .summary-item {
+            padding: var(--spacing-md) var(--spacing-lg); margin-bottom: var(--spacing-md);
+            background: var(--color-surface); border-left: 4px solid var(--color-secondary);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0; box-shadow: var(--shadow-sm);
+            font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text);
+            line-height: var(--line-height-normal);
+        }
+        .slide-summary .summary-item strong { color: var(--color-primary); }
+
+        /* Practice Slide */
+        .slide.active.slide-practice {
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
+            padding-top: var(--spacing-2xl);
+            background: linear-gradient(180deg, var(--color-background-warm) 0%, var(--color-secondary-lighter) 100%);
+        }
+        .slide-practice .practice-badge {
+            font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);
+            color: var(--color-secondary-dark); background: rgba(232, 168, 48, 0.15);
+            border: 2px solid var(--color-secondary); padding: var(--spacing-xs) var(--spacing-lg);
+            border-radius: var(--radius-pill); margin-bottom: var(--spacing-lg); letter-spacing: 0.1em;
+        }
+        .slide-practice .practice-badge::before { content: '\270F\FE0F '; }
+        .slide-practice .slide-heading {
+            font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold);
+            color: var(--color-secondary-dark); margin-bottom: var(--spacing-xl); text-align: center;
+            position: relative; padding-bottom: var(--spacing-md);
+        }
+        .slide-practice .slide-heading::after {
+            content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill);
+        }
+        .slide-practice .slide-body {
+            max-width: var(--slide-max-width); width: 100%;
+            font-family: var(--font-body); font-size: var(--font-size-md);
+            line-height: var(--line-height-relaxed); color: var(--color-text);
+        }
+        .slide-practice .practice-instruction {
+            background: var(--color-surface); border: 2px dashed var(--color-secondary);
+            border-radius: var(--radius-lg); padding: var(--spacing-xl); margin: var(--spacing-lg) 0;
+            box-shadow: var(--shadow-sm);
+        }
+        .slide-practice .practice-instruction .instruction-title {
+            font-family: var(--font-heading); font-size: var(--font-size-md); font-weight: var(--font-weight-bold);
+            color: var(--color-secondary-dark); margin-bottom: var(--spacing-md);
+        }
+
+        /* Checkpoint Slide */
+        .slide.active.slide-checkpoint {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: linear-gradient(180deg, var(--color-background) 0%, var(--color-info-bg) 100%);
+        }
+        .slide-checkpoint .checkpoint-badge {
+            font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);
+            color: var(--color-info); background: rgba(61, 139, 201, 0.1);
+            border: 2px solid var(--color-info); padding: var(--spacing-xs) var(--spacing-lg);
+            border-radius: var(--radius-pill); margin-bottom: var(--spacing-xl); letter-spacing: 0.1em;
+        }
+        .slide-checkpoint .checkpoint-title {
+            font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold);
+            color: var(--color-info); margin-bottom: var(--spacing-2xl); text-align: center;
+        }
+        .checkpoint-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .checkpoint-item {
+            padding: var(--spacing-md) var(--spacing-lg); padding-left: calc(var(--spacing-lg) + 36px);
+            margin-bottom: var(--spacing-md); background: var(--color-surface);
+            border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+            font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text);
+            line-height: var(--line-height-normal); position: relative;
+        }
+        .checkpoint-item::before {
+            content: '\2713'; position: absolute; left: var(--spacing-lg); top: 50%; transform: translateY(-50%);
+            width: 24px; height: 24px; background: var(--color-success); color: white;
+            border-radius: var(--radius-circle); font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-bold); line-height: 24px; text-align: center;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: var(--color-code-bg); border: 1px solid var(--color-code-border);
+            border-radius: var(--radius-md); padding: var(--spacing-lg); margin: var(--spacing-lg) 0;
+            overflow-x: auto; position: relative;
+        }
+        .code-block::before {
+            content: 'Python'; position: absolute; top: 0; right: 0;
+            font-family: var(--font-code); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium);
+            color: var(--color-text-tertiary); background: var(--color-surface-muted);
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: 0 var(--radius-md) 0 var(--radius-md);
+            border-left: 1px solid var(--color-code-border); border-bottom: 1px solid var(--color-code-border);
+        }
+        .code-block pre { margin: 0; padding: 0; overflow-x: auto; }
+        .code-block code {
+            font-family: var(--font-code); font-size: var(--font-size-sm);
+            line-height: 1.8; color: var(--color-code-text); white-space: pre;
+        }
+        .code-block .keyword { color: var(--color-code-keyword); font-weight: var(--font-weight-bold); }
+        .code-block .string { color: var(--color-code-string); }
+        .code-block .comment { color: var(--color-code-comment); font-style: italic; }
+        .code-block .number { color: var(--color-code-number); }
+        .code-block .function { color: var(--color-code-function); }
+        .code-block .builtin { color: var(--color-secondary-dark); }
+
+        .code-block.terminal { background: #1E1E2E; border-color: #3A3A4E; }
+        .code-block.terminal::before { content: 'Result'; background: #2A2A3E; border-color: #3A3A4E; color: #8E8EA0; }
+        .code-block.terminal code { color: #E0E0E8; }
+        .code-block.terminal .output { color: #B0B0C0; }
+
+        code.inline {
+            font-family: var(--font-code); font-size: 0.9em; background: var(--color-code-bg);
+            border: 1px solid var(--color-code-border); padding: 1px 6px; border-radius: var(--radius-sm);
+            color: var(--color-code-text);
+        }
+
+        /* Callout Boxes */
+        .callout-box {
+            max-width: var(--slide-max-width); width: 100%;
+            padding: var(--spacing-lg) var(--spacing-xl); margin: var(--spacing-lg) 0;
+            border-radius: var(--radius-md); font-family: var(--font-body);
+            font-size: var(--font-size-base); line-height: var(--line-height-normal);
+            position: relative; padding-left: calc(var(--spacing-xl) + 8px); border-left: 4px solid;
+        }
+        .callout-box .callout-title { font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-sm); font-size: var(--font-size-md); }
+        .callout-box.info { background: var(--color-info-bg); border-color: var(--color-info); }
+        .callout-box.info .callout-title { color: var(--color-info); }
+        .callout-box.tip { background: var(--color-success-bg); border-color: var(--color-success); }
+        .callout-box.tip .callout-title { color: var(--color-success); }
+        .callout-box.warning { background: var(--color-warning-bg); border-color: var(--color-warning); }
+        .callout-box.warning .callout-title { color: var(--color-warning); }
+        .callout-box.business { background: var(--color-secondary-lighter); border-color: var(--color-secondary-dark); }
+        .callout-box.business .callout-title { color: var(--color-secondary-dark); }
+        .callout-box.encouragement {
+            background: linear-gradient(135deg, var(--color-success-bg) 0%, #F0FBF4 100%);
+            border-color: var(--color-success);
+        }
+        .callout-box.encouragement .callout-title { color: var(--color-success); }
+
+        /* Diagram Container */
+        .diagram-container {
+            max-width: var(--slide-max-width); width: 100%; margin: var(--spacing-lg) auto;
+            padding: var(--spacing-xl); background: var(--color-surface);
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid #E4E1D8;
+            text-align: center;
+        }
+        .diagram-container svg { max-width: 100%; height: auto; }
+        .diagram-caption {
+            font-family: var(--font-body); font-size: var(--font-size-sm); color: var(--color-text-tertiary);
+            margin-top: var(--spacing-md); text-align: center; font-style: italic;
+        }
+
+        /* Feature Grid */
+        .slide.active .feature-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: var(--spacing-lg); max-width: var(--slide-max-width); width: 100%;
+        }
+        .feature-card {
+            background: var(--color-surface); border-radius: var(--radius-lg);
+            padding: var(--spacing-xl); box-shadow: var(--shadow-sm); border: 1px solid #E4E1D8;
+            transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+        }
+        .feature-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .feature-card .card-icon { font-size: var(--font-size-2xl); margin-bottom: var(--spacing-md); }
+        .feature-card .card-title {
+            font-family: var(--font-heading); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold);
+            color: var(--color-primary); margin-bottom: var(--spacing-sm);
+        }
+        .feature-card .card-text {
+            font-family: var(--font-body); font-size: var(--font-size-base);
+            color: var(--color-text-secondary); line-height: var(--line-height-normal);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .slide.active .animate-in { animation: fadeInUp 0.6s ease forwards; }
+        .slide.active .animate-in-delay-1 { animation: fadeInUp 0.6s ease 0.1s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-2 { animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-3 { animation: fadeInUp 0.6s ease 0.3s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-4 { animation: fadeInUp 0.6s ease 0.4s forwards; opacity: 0; }
+
+        /* Utility */
+        .text-center { text-align: center; }
+        .text-primary { color: var(--color-primary); }
+        .text-muted { color: var(--color-text-tertiary); }
+        .mt-md { margin-top: var(--spacing-md); }
+        .mt-lg { margin-top: var(--spacing-lg); }
+        .mb-md { margin-bottom: var(--spacing-md); }
+        .mb-lg { margin-bottom: var(--spacing-lg); }
+        .w-full { width: 100%; }
+        .max-w-content { max-width: var(--slide-max-width); }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+
+    <div class="slides-container" id="slidesContainer">
+
+        <!-- Slide 1: Title -->
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 7</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">関数って何？<br>自動販売機のたとえ</h1>
+            <p class="topic-subtitle">実はもう使っている！処理をまとめる便利な仕組み</p>
+        </div>
+
+        <!-- Slide 2: Pain point -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">こんな経験はありませんか？</h2>
+            <div class="slide-body">
+                <p class="mb-lg" style="font-size: var(--font-size-lg); text-align: center;">同じ計算を何度も書いている...</p>
+                <div class="code-block">
+                    <pre><code><span class="comment"># 商品Aの税込価格</span>
+price_a = <span class="number">1000</span> * <span class="number">1.1</span>
+<span class="comment"># 商品Bの税込価格</span>
+price_b = <span class="number">2500</span> * <span class="number">1.1</span></code></pre>
+                </div>
+                <div class="callout-box warning">
+                    <div class="callout-title">もったいない！</div>
+                    同じ計算を何度もコピペしていませんか？もし税率が変わったら、全部書き直しです。<br>
+                    この悩みを解決するのが「関数」です！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Vending Machine SVG -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">関数 = 自動販売機</h2>
+            <div class="slide-body">
+                <div class="diagram-container">
+                    <svg width="700" height="300" viewBox="0 0 700 300">
+                        <!-- Input arrow -->
+                        <rect x="20" y="100" width="140" height="80" rx="12" fill="#E8A830" opacity="0.15" stroke="#C08820" stroke-width="2"/>
+                        <text x="90" y="130" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="14" fill="#C08820" font-weight="bold">入力（引数）</text>
+                        <text x="90" y="155" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="16" fill="#1E1E2E">100円</text>
+                        <!-- Arrow -->
+                        <path d="M170 140 L230 140" stroke="#2C3E7B" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+                        <!-- Vending Machine -->
+                        <rect x="240" y="40" width="200" height="220" rx="16" fill="#2C3E7B" opacity="0.1" stroke="#2C3E7B" stroke-width="3"/>
+                        <text x="340" y="80" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="16" fill="#2C3E7B" font-weight="bold">自動販売機</text>
+                        <text x="340" y="105" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="13" fill="#5A5A72">（関数）</text>
+                        <rect x="280" y="120" width="120" height="40" rx="8" fill="#4A5FA8" opacity="0.2" stroke="#4A5FA8" stroke-width="1.5"/>
+                        <text x="340" y="145" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="12" fill="#2C3E7B">処理の中身</text>
+                        <rect x="280" y="175" width="120" height="40" rx="8" fill="#4A5FA8" opacity="0.2" stroke="#4A5FA8" stroke-width="1.5"/>
+                        <text x="340" y="200" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="12" fill="#2C3E7B">見えなくてOK</text>
+                        <!-- Arrow -->
+                        <path d="M450 140 L510 140" stroke="#2C3E7B" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+                        <!-- Output -->
+                        <rect x="520" y="100" width="160" height="80" rx="12" fill="#2D9F64" opacity="0.15" stroke="#2D9F64" stroke-width="2"/>
+                        <text x="600" y="130" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="14" fill="#2D9F64" font-weight="bold">出力（戻り値）</text>
+                        <text x="600" y="155" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="16" fill="#1E1E2E">ジュース</text>
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-auto">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2C3E7B"/>
+                            </marker>
+                        </defs>
+                    </svg>
+                    <p class="diagram-caption">関数は「入力を受け取り、処理して、結果を返す」仕組みです</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Already using functions -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">実はもう使っています！</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">これまでの研修で使った関数を振り返りましょう</p>
+                <div class="feature-grid">
+                    <div class="feature-card animate-in-delay-1">
+                        <div class="card-icon">print</div>
+                        <div class="card-title">print関数</div>
+                        <div class="card-text">画面に文字を表示する関数。第0章から使ってきました。</div>
+                    </div>
+                    <div class="feature-card animate-in-delay-2">
+                        <div class="card-icon">len</div>
+                        <div class="card-title">len関数</div>
+                        <div class="card-text">リストの長さを数える関数。第6章で使いました。</div>
+                    </div>
+                    <div class="feature-card animate-in-delay-3">
+                        <div class="card-icon">int</div>
+                        <div class="card-title">int関数</div>
+                        <div class="card-text">文字を数値に変換する関数。第3章で使いました。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Function pattern -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">関数の共通パターン</h2>
+            <div class="slide-body">
+                <p class="mb-lg text-center">どの関数も同じパターンで使います</p>
+                <div class="code-block">
+                    <pre><code><span class="comment"># 関数名(入力)</span>
+<span class="function">print</span>(<span class="string">"こんにちは"</span>)
+<span class="function">len</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])
+<span class="function">int</span>(<span class="string">"100"</span>)</code></pre>
+                </div>
+                <div class="callout-box info">
+                    <div class="callout-title">パターンは同じ！</div>
+                    <strong>関数名(入力データ)</strong> という形で呼び出します。<br>
+                    関数名のあとに丸かっこを書いて、中にデータを入れるだけ！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Practice 1 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">関数を使ってみよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">Google Colabで試してみましょう</div>
+                    <p>以下のコードを入力して実行してください。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code>name = <span class="string">"田中"</span>
+<span class="function">print</span>(name)
+<span class="function">print</span>(<span class="function">len</span>(name))</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">田中
+2</span></code></pre>
+                </div>
+                <div class="callout-box tip">
+                    <div class="callout-title">できましたか？</div>
+                    print関数が文字を表示し、len関数が文字数を返しました。<br>
+                    関数の中身を知らなくても使えるのがポイントです！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Why functions matter -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">なぜ関数を作るの？</h2>
+            <div class="slide-body">
+                <div class="diagram-container">
+                    <svg width="600" height="220" viewBox="0 0 600 220">
+                        <!-- Without function -->
+                        <text x="150" y="25" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="15" fill="#CC3D3D" font-weight="bold">関数なし</text>
+                        <rect x="20" y="40" width="260" height="160" rx="10" fill="#FDECEC" stroke="#CC3D3D" stroke-width="1.5"/>
+                        <text x="40" y="65" font-family="'JetBrains Mono', monospace" font-size="11" fill="#1E1E2E">price_a = 1000 * 1.1</text>
+                        <text x="40" y="85" font-family="'JetBrains Mono', monospace" font-size="11" fill="#1E1E2E">price_b = 2500 * 1.1</text>
+                        <text x="40" y="105" font-family="'JetBrains Mono', monospace" font-size="11" fill="#1E1E2E">price_c = 800 * 1.1</text>
+                        <text x="40" y="135" font-family="'Zen Kaku Gothic New', sans-serif" font-size="12" fill="#CC3D3D">税率が変わったら</text>
+                        <text x="40" y="155" font-family="'Zen Kaku Gothic New', sans-serif" font-size="12" fill="#CC3D3D">全部書き直し...</text>
+                        <text x="40" y="185" font-family="'Zen Kaku Gothic New', sans-serif" font-size="12" fill="#CC3D3D">コピペだらけ...</text>
+                        <!-- With function -->
+                        <text x="450" y="25" text-anchor="middle" font-family="'Zen Kaku Gothic New', sans-serif" font-size="15" fill="#2D9F64" font-weight="bold">関数あり</text>
+                        <rect x="320" y="40" width="260" height="160" rx="10" fill="#E6F7ED" stroke="#2D9F64" stroke-width="1.5"/>
+                        <text x="340" y="65" font-family="'JetBrains Mono', monospace" font-size="11" fill="#1E1E2E">tax(1000)</text>
+                        <text x="340" y="85" font-family="'JetBrains Mono', monospace" font-size="11" fill="#1E1E2E">tax(2500)</text>
+                        <text x="340" y="105" font-family="'JetBrains Mono', monospace" font-size="11" fill="#1E1E2E">tax(800)</text>
+                        <text x="340" y="135" font-family="'Zen Kaku Gothic New', sans-serif" font-size="12" fill="#2D9F64">税率変更は</text>
+                        <text x="340" y="155" font-family="'Zen Kaku Gothic New', sans-serif" font-size="12" fill="#2D9F64">1か所直すだけ！</text>
+                        <text x="340" y="185" font-family="'Zen Kaku Gothic New', sans-serif" font-size="12" fill="#2D9F64">スッキリ！</text>
+                    </svg>
+                </div>
+                <div class="callout-box business">
+                    <div class="callout-title">業務での活用イメージ</div>
+                    消費税計算、割引計算、日付フォーマットなど、繰り返す処理を関数にまとめれば、修正も1か所でOK！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Three merits -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">関数の3つのメリット</h2>
+            <div class="slide-body">
+                <div class="feature-grid">
+                    <div class="feature-card animate-in-delay-1">
+                        <div class="card-icon" style="color: var(--color-primary);">1</div>
+                        <div class="card-title">再利用できる</div>
+                        <div class="card-text">一度作れば何度でも使い回せます。コピペ不要！</div>
+                    </div>
+                    <div class="feature-card animate-in-delay-2">
+                        <div class="card-icon" style="color: var(--color-secondary-dark);">2</div>
+                        <div class="card-title">修正が楽</div>
+                        <div class="card-text">変更は関数の中身だけ。使っている場所は全部自動で変わります。</div>
+                    </div>
+                    <div class="feature-card animate-in-delay-3">
+                        <div class="card-icon" style="color: var(--color-success);">3</div>
+                        <div class="card-title">読みやすい</div>
+                        <div class="card-text">処理に名前がつくので、コードが何をしているか一目でわかります。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Practice 2 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">組み込み関数を確認しよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">4つの関数を使ってみましょう</div>
+                    <p>以下のコードを入力して、それぞれの結果を確認してください。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code>sales = [<span class="number">3000</span>, <span class="number">1500</span>, <span class="number">4200</span>]
+<span class="function">print</span>(<span class="function">len</span>(sales))
+<span class="function">print</span>(<span class="function">sum</span>(sales))
+<span class="function">print</span>(<span class="function">max</span>(sales))</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">3
+8700
+4200</span></code></pre>
+                </div>
+                <div class="callout-box encouragement">
+                    <div class="callout-title">すごい！</div>
+                    len, sum, max。全部「関数名(データ)」の形ですね。<br>
+                    次のトピックでは、いよいよ自分だけの関数を作ります！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Checkpoint -->
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">ここまでのポイント</span>
+            <h2 class="checkpoint-title">関数って何？</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item">関数は「入力 → 処理 → 出力」の仕組み（自動販売機と同じ）</li>
+                <li class="checkpoint-item">print, len, int, sum, max は全部関数</li>
+                <li class="checkpoint-item">関数を使うと再利用・修正が楽・読みやすい</li>
+                <li class="checkpoint-item">使い方は「関数名(データ)」の形</li>
+            </ul>
+        </div>
+
+        <!-- Slide 11: Summary -->
+        <div class="slide slide-summary">
+            <h2 class="summary-title">まとめ</h2>
+            <ul class="summary-list">
+                <li class="summary-item"><strong>関数 = 自動販売機</strong> 入力を受け取り、処理して、結果を返す仕組み</li>
+                <li class="summary-item"><strong>もう使っている</strong> print, len, int, sum, max はすべて「組み込み関数」</li>
+                <li class="summary-item"><strong>3つのメリット</strong> 再利用できる・修正が楽・読みやすい</li>
+                <li class="summary-item"><strong>次のトピック</strong> 自分だけのオリジナル関数を作ってみます！</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navigation content-nav">
+        <div class="nav-inner">
+            <button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button>
+            <button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button>
+            <span class="slide-counter" id="slideNumber">1 / 1</span>
+            <button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button>
+        </div>
+    </nav>
+
+    <script>
+        let currentSlide = 1;
+        let totalSlides = 0;
+
+        function updateSlideInfo() {
+            const slides = document.querySelectorAll('.slide');
+            totalSlides = slides.length;
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index + 1 === currentSlide) slide.classList.add('active');
+                else if (index + 1 < currentSlide) slide.classList.add('prev');
+            });
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = (currentSlide === 1);
+            if (nextBtn) nextBtn.disabled = (currentSlide === totalSlides);
+            const slideNum = document.getElementById('slideNumber');
+            if (slideNum) slideNum.textContent = currentSlide + ' / ' + totalSlides;
+            if (window.slideAPI && window.slideAPI.onSlideChange) window.slideAPI.onSlideChange(currentSlide, totalSlides);
+        }
+
+        function showSlide(n) { if (n >= 1 && n <= totalSlides) { currentSlide = n; updateSlideInfo(); } }
+        function goToPrevious() { if (currentSlide > 1) { currentSlide--; updateSlideInfo(); } }
+        function goToNext() { if (currentSlide < totalSlides) { currentSlide++; updateSlideInfo(); } }
+        function goToFirst() { currentSlide = 1; updateSlideInfo(); }
+        function goToLast() { currentSlide = totalSlides; updateSlideInfo(); }
+
+        document.addEventListener('keydown', (e) => {
+            if (document.body.classList.contains('platform-controlled')) return;
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevious(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirst(); }
+            if (e.key === 'End') { e.preventDefault(); goToLast(); }
+        });
+
+        window.slideAPI = {
+            version: "1.0",
+            getTotalSlides: function() { return totalSlides; },
+            getCurrentSlide: function() { return currentSlide; },
+            showSlide: showSlide, nextSlide: goToNext, prevSlide: goToPrevious,
+            firstSlide: goToFirst, lastSlide: goToLast,
+            hideContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = 'none'; },
+            showContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = ''; },
+            setPlatformControlled: function(enabled) {
+                if (enabled) document.body.classList.add('platform-controlled');
+                else document.body.classList.remove('platform-controlled');
+            },
+            onSlideChange: null
+        };
+
+        window.onload = updateSlideInfo;
+    </script>
+</body>
+</html>

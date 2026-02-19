@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>if文を書いてみよう | Python入門（初心者特化版）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #2C3E7B; --color-primary-light: #4A5FA8; --color-primary-lighter: #7B8EC6;
+            --color-primary-dark: #1A2654; --color-primary-bg: #E8EAF2;
+            --color-secondary: #E8A830; --color-secondary-light: #F5C862; --color-secondary-lighter: #FFF3D4; --color-secondary-dark: #C08820;
+            --color-background: #F8F6F0; --color-background-warm: #FBF9F3;
+            --color-surface: #FFFFFF; --color-surface-raised: #FFFFFF; --color-surface-muted: #F2F0EA;
+            --color-text: #1E1E2E; --color-text-secondary: #5A5A72; --color-text-tertiary: #8E8EA0;
+            --color-text-inverse: #FAFAF5; --color-text-on-primary: #FFFFFF;
+            --color-success: #2D9F64; --color-success-bg: #E6F7ED;
+            --color-warning: #D4870E; --color-warning-bg: #FFF6E0;
+            --color-error: #CC3D3D; --color-error-bg: #FDECEC;
+            --color-info: #3D8BC9; --color-info-bg: #E6F0F9;
+            --color-code-bg: #F0EDE4; --color-code-border: #DDD8CC; --color-code-text: #2C3E7B;
+            --color-code-keyword: #8B3FAE; --color-code-string: #2D9F64; --color-code-comment: #8E8EA0;
+            --color-code-number: #CC3D3D; --color-code-function: #3D8BC9;
+            --font-heading: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Meiryo', sans-serif;
+            --font-body: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-code: 'JetBrains Mono', 'Source Code Pro', 'Menlo', monospace;
+            --font-size-xs: 0.75rem; --font-size-sm: 0.875rem; --font-size-base: 1rem; --font-size-md: 1.125rem;
+            --font-size-lg: 1.375rem; --font-size-xl: 1.75rem; --font-size-2xl: 2.25rem; --font-size-3xl: 3rem; --font-size-4xl: 3.75rem;
+            --font-weight-normal: 400; --font-weight-medium: 500; --font-weight-bold: 700; --font-weight-black: 900;
+            --line-height-tight: 1.3; --line-height-normal: 1.7; --line-height-relaxed: 1.9;
+            --spacing-xs: 0.25rem; --spacing-sm: 0.5rem; --spacing-md: 1rem; --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem; --spacing-2xl: 3rem; --spacing-3xl: 4rem; --spacing-4xl: 6rem;
+            --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-pill: 100px; --radius-circle: 50%;
+            --shadow-xs: 0 1px 2px rgba(30,30,46,0.05); --shadow-sm: 0 2px 4px rgba(30,30,46,0.06), 0 1px 2px rgba(30,30,46,0.04);
+            --shadow-md: 0 4px 12px rgba(30,30,46,0.08), 0 2px 4px rgba(30,30,46,0.04);
+            --transition-fast: 150ms ease; --transition-normal: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1); --transition-slide: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            --z-navigation: 500; --z-texture: 2000;
+            --slide-max-width: 960px; --slide-padding-x: 80px; --slide-padding-y: 40px; --slide-padding-bottom: 120px; --nav-height: 80px;
+        }
+        @media (max-width: 1024px) { :root { --slide-padding-x: 48px; --font-size-3xl: 2.25rem; --font-size-4xl: 3rem; } }
+        @media (max-width: 768px) { :root { --slide-padding-x: 28px; --slide-padding-y: 24px; --slide-padding-bottom: 140px; --font-size-2xl: 1.75rem; --font-size-3xl: 2rem; --font-size-4xl: 2.5rem; --font-size-xl: 1.5rem; } }
+        @media (max-width: 480px) { :root { --slide-padding-x: 20px; --slide-padding-y: 20px; --font-size-2xl: 1.5rem; --font-size-3xl: 1.75rem; --font-size-4xl: 2rem; } }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { width: 100%; }
+        body { font-family: var(--font-body); background: var(--color-background); color: var(--color-text); min-height: 100vh; overflow: hidden; position: relative; width: 100%; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"); pointer-events: none; z-index: var(--z-texture); }
+        .accent-bar { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary), var(--color-primary-light), var(--color-secondary)); z-index: var(--z-navigation); }
+        .slides-container { position: relative; width: 100%; height: 100vh; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transform: translateX(30px); transition: all var(--transition-slide); overflow-y: auto; }
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+        .slide.prev { opacity: 0; transform: translateX(-30px); }
+        .content-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); background: var(--color-surface); border-top: 1px solid #E4E1D8; box-shadow: 0 -2px 12px rgba(30,30,46,0.06); z-index: var(--z-navigation); padding: 0 var(--slide-padding-x); }
+        .nav-inner { max-width: var(--slide-max-width); margin: 0 auto; height: 100%; display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md); }
+        .content-nav-btn { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); padding: var(--spacing-sm) var(--spacing-xl); border: 2px solid var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; transition: all var(--transition-fast); min-width: 100px; text-align: center; }
+        .content-nav-btn.btn-prev, .content-nav-btn.btn-first { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-prev:hover, .content-nav-btn.btn-first:hover { background: var(--color-primary-bg); }
+        .content-nav-btn.btn-next { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .content-nav-btn.btn-next:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+        .content-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .content-nav-btn:disabled:hover { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-next:disabled:hover { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .slide-counter { font-family: var(--font-code); font-size: var(--font-size-sm); color: var(--color-text-tertiary); min-width: 80px; text-align: center; }
+        body.platform-controlled .content-nav { display: none !important; }
+        @media (max-width: 768px) { .content-nav { padding: 0 var(--spacing-md); } .content-nav-btn { font-size: var(--font-size-xs); padding: var(--spacing-sm) var(--spacing-md); min-width: 70px; } }
+
+        .slide.active.slide-title { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(160deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%); color: var(--color-text-inverse); }
+        .slide-title .chapter-label { font-family: var(--font-code); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-secondary-light); margin-bottom: var(--spacing-md); padding: var(--spacing-xs) var(--spacing-lg); border: 1px solid rgba(245,200,98,0.3); border-radius: var(--radius-pill); }
+        .slide-title .topic-title { font-family: var(--font-heading); font-size: var(--font-size-4xl); font-weight: var(--font-weight-black); line-height: var(--line-height-tight); margin-bottom: var(--spacing-lg); max-width: 800px; }
+        .slide-title .topic-subtitle { font-family: var(--font-body); font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); color: rgba(250,250,245,0.75); max-width: 600px; line-height: var(--line-height-normal); }
+        .slide-title .decorative-line { width: 80px; height: 3px; background: var(--color-secondary); margin: var(--spacing-lg) 0; border-radius: var(--radius-pill); }
+        .slide.active.slide-content { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); }
+        .slide-content .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-content .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-content .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+        .slide.active.slide-summary { display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--color-surface-muted); }
+        .slide-summary .summary-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .slide-summary .summary-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .slide-summary .summary-item { padding: var(--spacing-md) var(--spacing-lg); margin-bottom: var(--spacing-md); background: var(--color-surface); border-left: 4px solid var(--color-secondary); border-radius: 0 var(--radius-md) var(--radius-md) 0; box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); }
+        .slide-summary .summary-item strong { color: var(--color-primary); }
+        .slide.active.slide-practice { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); background: linear-gradient(180deg, var(--color-background-warm) 0%, var(--color-secondary-lighter) 100%); }
+        .slide-practice .practice-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); background: rgba(232,168,48,0.15); border: 2px solid var(--color-secondary); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-lg); letter-spacing: 0.1em; }
+        .slide-practice .practice-badge::before { content: '\270F\FE0F '; }
+        .slide-practice .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-practice .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-practice .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+        .slide-practice .practice-instruction { background: var(--color-surface); border: 2px dashed var(--color-secondary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin: var(--spacing-lg) 0; box-shadow: var(--shadow-sm); }
+        .slide-practice .practice-instruction .instruction-title { font-family: var(--font-heading); font-size: var(--font-size-md); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-md); }
+        .slide.active.slide-checkpoint { display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(180deg, var(--color-background) 0%, var(--color-info-bg) 100%); }
+        .slide-checkpoint .checkpoint-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-info); background: rgba(61,139,201,0.1); border: 2px solid var(--color-info); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-xl); letter-spacing: 0.1em; }
+        .slide-checkpoint .checkpoint-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-info); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .checkpoint-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .checkpoint-item { padding: var(--spacing-md) var(--spacing-lg); padding-left: calc(var(--spacing-lg) + 36px); margin-bottom: var(--spacing-md); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); position: relative; }
+        .checkpoint-item::before { content: '\2713'; position: absolute; left: var(--spacing-lg); top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--color-success); color: white; border-radius: var(--radius-circle); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); line-height: 24px; text-align: center; }
+        .code-block { background: var(--color-code-bg); border: 1px solid var(--color-code-border); border-radius: var(--radius-md); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; overflow-x: auto; position: relative; }
+        .code-block::before { content: 'Python'; position: absolute; top: 0; right: 0; font-family: var(--font-code); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--color-text-tertiary); background: var(--color-surface-muted); padding: var(--spacing-xs) var(--spacing-md); border-radius: 0 var(--radius-md) 0 var(--radius-md); border-left: 1px solid var(--color-code-border); border-bottom: 1px solid var(--color-code-border); }
+        .code-block pre { margin: 0; padding: 0; overflow-x: auto; }
+        .code-block code { font-family: var(--font-code); font-size: var(--font-size-sm); line-height: 1.8; color: var(--color-code-text); white-space: pre; }
+        .code-block .keyword { color: var(--color-code-keyword); font-weight: var(--font-weight-bold); }
+        .code-block .string { color: var(--color-code-string); }
+        .code-block .comment { color: var(--color-code-comment); font-style: italic; }
+        .code-block .number { color: var(--color-code-number); }
+        .code-block .function { color: var(--color-code-function); }
+        code.inline { font-family: var(--font-code); font-size: 0.9em; background: var(--color-code-bg); border: 1px solid var(--color-code-border); padding: 1px 6px; border-radius: var(--radius-sm); color: var(--color-code-text); }
+        .code-block.terminal { background: #1E1E2E; border-color: #3A3A4E; }
+        .code-block.terminal::before { content: 'Result'; background: #2A2A3E; border-color: #3A3A4E; color: #8E8EA0; }
+        .code-block.terminal code { color: #E0E0E8; }
+        .callout-box { max-width: var(--slide-max-width); width: 100%; padding: var(--spacing-lg) var(--spacing-xl); margin: var(--spacing-lg) 0; border-radius: var(--radius-md); font-family: var(--font-body); font-size: var(--font-size-base); line-height: var(--line-height-normal); position: relative; padding-left: calc(var(--spacing-xl) + 8px); border-left: 4px solid; }
+        .callout-box .callout-title { font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-sm); font-size: var(--font-size-md); }
+        .callout-box.info { background: var(--color-info-bg); border-color: var(--color-info); }
+        .callout-box.info .callout-title { color: var(--color-info); }
+        .callout-box.warning { background: var(--color-warning-bg); border-color: var(--color-warning); }
+        .callout-box.warning .callout-title { color: var(--color-warning); }
+        .callout-box.tip { background: var(--color-success-bg); border-color: var(--color-success); }
+        .callout-box.tip .callout-title { color: var(--color-success); }
+        .callout-box.business { background: var(--color-secondary-lighter); border-color: var(--color-secondary-dark); }
+        .callout-box.business .callout-title { color: var(--color-secondary-dark); }
+        .callout-box.encouragement { background: linear-gradient(135deg, var(--color-success-bg) 0%, #F0FBF4 100%); border-color: var(--color-success); }
+        .callout-box.encouragement .callout-title { color: var(--color-success); }
+        .diagram-container { max-width: var(--slide-max-width); width: 100%; margin: var(--spacing-lg) auto; padding: var(--spacing-xl); background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid #E4E1D8; text-align: center; }
+        .diagram-container svg { max-width: 100%; height: auto; }
+        .diagram-caption { font-family: var(--font-body); font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin-top: var(--spacing-md); text-align: center; font-style: italic; }
+        .keyword-tag { font-family: var(--font-code); font-size: var(--font-size-sm); background: var(--color-primary-bg); color: var(--color-primary); padding: 2px 10px; border-radius: var(--radius-pill); font-weight: var(--font-weight-medium); white-space: nowrap; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide.active .animate-in { animation: fadeInUp 0.6s ease forwards; }
+        .slide.active .animate-in-delay-1 { animation: fadeInUp 0.6s ease 0.1s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-2 { animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0; }
+        .text-center { text-align: center; }
+        .mt-md { margin-top: var(--spacing-md); }
+        .mt-lg { margin-top: var(--spacing-lg); }
+        .mb-md { margin-bottom: var(--spacing-md); }
+        .mb-lg { margin-bottom: var(--spacing-lg); }
+
+        /* Indent visual highlight */
+        .indent-highlight { background: rgba(232,168,48,0.2); border-left: 4px solid var(--color-secondary); padding: 2px 8px; }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+    <div class="slides-container" id="slidesContainer">
+
+        <!-- Slide 1: Title -->
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 4</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">if文を書いてみよう</h1>
+            <p class="topic-subtitle">条件によって処理を分ける、プログラムの「判断力」</p>
+        </div>
+
+        <!-- Slide 2: Motivation -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">プログラムが「考える」とは？</h2>
+            <div class="slide-body">
+                <p class="mb-lg">前回学んだ比較演算子を使って、True か False を得ることができました。今度は、その結果を使って<strong>処理を分けて</strong>みましょう。</p>
+                <div class="diagram-container">
+                    <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="220" y="10" width="260" height="50" rx="25" fill="#2C3E7B" stroke="none"/>
+                        <text x="350" y="42" text-anchor="middle" font-family="M PLUS 1p, sans-serif" font-size="16" fill="white" font-weight="bold">売上 >= 目標？</text>
+                        <line x1="280" y1="60" x2="150" y2="120" stroke="#2D9F64" stroke-width="3"/>
+                        <line x1="420" y1="60" x2="550" y2="120" stroke="#CC3D3D" stroke-width="3"/>
+                        <text x="200" y="95" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#2D9F64" font-weight="bold">True</text>
+                        <text x="500" y="95" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#CC3D3D" font-weight="bold">False</text>
+                        <rect x="50" y="120" width="200" height="50" rx="12" fill="#E6F7ED" stroke="#2D9F64" stroke-width="2"/>
+                        <text x="150" y="150" text-anchor="middle" font-family="M PLUS 1p, sans-serif" font-size="14" fill="#1E1E2E">「目標達成！」と表示</text>
+                        <rect x="450" y="120" width="200" height="50" rx="12" fill="#F2F0EA" stroke="#DDD8CC" stroke-width="2"/>
+                        <text x="550" y="150" text-anchor="middle" font-family="M PLUS 1p, sans-serif" font-size="14" fill="#8E8EA0">何もしない</text>
+                    </svg>
+                    <p class="diagram-caption">条件がTrueの場合だけ処理を実行するのが if文</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: if syntax -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">if文の書き方</h2>
+            <div class="slide-body">
+                <div class="code-block">
+                    <pre><code><span class="keyword">if</span> 条件:
+    実行したい処理</code></pre>
+                </div>
+                <p class="mb-lg">たった2行でプログラムに「判断力」を与えられます。大切なポイントは3つです。</p>
+                <div class="callout-box info">
+                    <div class="callout-title">if文の3つのルール</div>
+                    <p><strong>1.</strong> <code class="inline">if</code> のあとに条件を書く<br>
+                    <strong>2.</strong> 条件の最後に <code class="inline">:</code>（コロン）を書く<br>
+                    <strong>3.</strong> 次の行は<strong>半角スペース4つ</strong>で字下げする（インデント）</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Real example -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">実際に書いてみよう</h2>
+            <div class="slide-body">
+                <div class="code-block">
+                    <pre><code>uriage = <span class="number">1200000</span>
+mokuhyou = <span class="number">1000000</span>
+
+<span class="keyword">if</span> uriage >= mokuhyou:
+    <span class="function">print</span>(<span class="string">"目標達成！"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">目標達成！</span></code></pre>
+                </div>
+                <p class="mt-lg">売上120万円は目標100万円以上なので、条件はTrue。<br>だから <code class="inline">print("目標達成！")</code> が実行されます。</p>
+            </div>
+        </div>
+
+        <!-- Slide 5: Indent importance -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">インデントが命！</h2>
+            <div class="slide-body">
+                <p class="mb-lg"><strong>インデント</strong>（字下げ）は、「if文の中身はここですよ」とPythonに教える合図です。</p>
+                <div class="code-block">
+                    <pre><code>score = <span class="number">85</span>
+
+<span class="keyword">if</span> score >= <span class="number">80</span>:
+<span class="indent-highlight">    <span class="function">print</span>(<span class="string">"合格です"</span>)</span>
+<span class="indent-highlight">    <span class="function">print</span>(<span class="string">"おめでとう！"</span>)</span>
+
+<span class="function">print</span>(<span class="string">"判定終了"</span>)  <span class="comment"># これは常に実行</span></code></pre>
+                </div>
+                <div class="callout-box warning">
+                    <div class="callout-title">Pythonではインデントが文法</div>
+                    <p>他の多くのプログラミング言語では波括弧で囲みますが、Pythonは<strong>インデントで範囲を示す</strong>のが特徴です。<br>半角スペース4つを使うのが標準です。タブ文字と混ぜるとエラーになります。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Indent error experience -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">インデントエラーを体験しよう</h2>
+            <div class="slide-body">
+                <p class="mb-lg">わざとインデントを忘れて、エラーを見てみましょう。</p>
+                <div class="code-block">
+                    <pre><code><span class="keyword">if</span> <span class="number">10</span> > <span class="number">5</span>:
+<span class="function">print</span>(<span class="string">"大きい"</span>)  <span class="comment"># インデントなし！</span></code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span style="color:#CC3D3D">IndentationError: expected an indented block</span></code></pre>
+                </div>
+                <div class="callout-box encouragement">
+                    <div class="callout-title">エラーは怖くない！</div>
+                    <p>IndentationError は「インデントが必要ですよ」と教えてくれています。<br>半角スペース4つを入れれば解決します。最初は誰でも忘れます。慣れれば自然に書けるようになりますよ。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Practice 1 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">はじめてのif文</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">Google Colabで試してみましょう</div>
+                    <p>温度で判断するプログラムを書いてみましょう。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code>kion = <span class="number">35</span>
+
+<span class="keyword">if</span> kion >= <span class="number">30</span>:
+    <span class="function">print</span>(<span class="string">"猛暑日です"</span>)</code></pre>
+                </div>
+                <p class="mt-lg">kion の値を 25 に変えると、何も表示されません。<br>条件がFalseのとき、if文の中身はスキップされるからです。</p>
+            </div>
+        </div>
+
+        <!-- Slide 8: Multiple lines in if -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">if文の中に複数行書く</h2>
+            <div class="slide-body">
+                <p class="mb-lg">if文の中には何行でも書けます。インデントが揃っている行が全て実行されます。</p>
+                <div class="code-block">
+                    <pre><code>zaiko = <span class="number">3</span>
+
+<span class="keyword">if</span> zaiko < <span class="number">5</span>:
+    <span class="function">print</span>(<span class="string">"在庫が少なくなっています"</span>)
+    <span class="function">print</span>(<span class="string">f"残り{zaiko}個です"</span>)
+    <span class="function">print</span>(<span class="string">"発注を検討してください"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal">
+                    <pre><code><span class="output">在庫が少なくなっています
+残り3個です
+発注を検討してください</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Checkpoint -->
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">ここまでのポイント</span>
+            <h2 class="checkpoint-title">if文の基本チェック</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item"><code class="inline">if 条件:</code> の形で書く（コロンを忘れずに）</li>
+                <li class="checkpoint-item">条件がTrueのとき、インデントされた処理が実行される</li>
+                <li class="checkpoint-item">インデントは半角スペース4つが標準</li>
+                <li class="checkpoint-item">インデントを忘れるとIndentationError</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: Practice 2 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">業務シナリオでif文を書こう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction">
+                    <div class="instruction-title">経費チェックプログラム</div>
+                    <p>経費の金額が1万円を超えていたら、上長承認が必要と表示するプログラムを書いてみましょう。</p>
+                </div>
+                <div class="code-block">
+                    <pre><code>keihi = <span class="number">15000</span>
+
+<span class="keyword">if</span> keihi > <span class="number">10000</span>:
+    <span class="function">print</span>(<span class="string">"上長の承認が必要です"</span>)
+    <span class="function">print</span>(<span class="string">f"申請額: {keihi}円"</span>)</code></pre>
+                </div>
+                <p class="mt-lg">keihi を 8000 に変えたら、何が起きるか試してみてください。</p>
+            </div>
+        </div>
+
+        <!-- Slide 11: Summary -->
+        <div class="slide slide-summary">
+            <h2 class="summary-title">まとめ：if文の基本</h2>
+            <ul class="summary-list">
+                <li class="summary-item"><strong>if文</strong> は条件がTrueのとき、中の処理を実行する</li>
+                <li class="summary-item"><strong>インデント</strong>（半角スペース4つ）でif文の範囲を示す</li>
+                <li class="summary-item"><strong>条件がFalse</strong>のとき、if文の中身はスキップされる</li>
+                <li class="summary-item">次のトピックでは、条件がFalseの場合の処理も書けるようになります</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <nav class="navigation content-nav">
+        <div class="nav-inner">
+            <button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button>
+            <button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button>
+            <span class="slide-counter" id="slideNumber">1 / 1</span>
+            <button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button>
+        </div>
+    </nav>
+
+    <script>
+        let currentSlide = 1; let totalSlides = 0;
+        function updateSlideInfo() { const slides = document.querySelectorAll('.slide'); totalSlides = slides.length; slides.forEach((slide, index) => { slide.classList.remove('active', 'prev'); if (index + 1 === currentSlide) slide.classList.add('active'); else if (index + 1 < currentSlide) slide.classList.add('prev'); }); const prevBtn = document.getElementById('prevBtn'); const nextBtn = document.getElementById('nextBtn'); if (prevBtn) prevBtn.disabled = (currentSlide === 1); if (nextBtn) nextBtn.disabled = (currentSlide === totalSlides); const slideNum = document.getElementById('slideNumber'); if (slideNum) slideNum.textContent = currentSlide + ' / ' + totalSlides; if (window.slideAPI && window.slideAPI.onSlideChange) window.slideAPI.onSlideChange(currentSlide, totalSlides); }
+        function showSlide(n) { if (n >= 1 && n <= totalSlides) { currentSlide = n; updateSlideInfo(); } }
+        function goToPrevious() { if (currentSlide > 1) { currentSlide--; updateSlideInfo(); } }
+        function goToNext() { if (currentSlide < totalSlides) { currentSlide++; updateSlideInfo(); } }
+        function goToFirst() { currentSlide = 1; updateSlideInfo(); }
+        function goToLast() { currentSlide = totalSlides; updateSlideInfo(); }
+        document.addEventListener('keydown', (e) => { if (document.body.classList.contains('platform-controlled')) return; if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); } if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevious(); } if (e.key === 'Home') { e.preventDefault(); goToFirst(); } if (e.key === 'End') { e.preventDefault(); goToLast(); } });
+        window.slideAPI = { version: "1.0", getTotalSlides: function() { return totalSlides; }, getCurrentSlide: function() { return currentSlide; }, showSlide: showSlide, nextSlide: goToNext, prevSlide: goToPrevious, firstSlide: goToFirst, lastSlide: goToLast, setPlatformControlled: function(enabled) { if (enabled) document.body.classList.add('platform-controlled'); else document.body.classList.remove('platform-controlled'); }, onSlideChange: null };
+        window.onload = updateSlideInfo;
+    </script>
+</body>
+</html>

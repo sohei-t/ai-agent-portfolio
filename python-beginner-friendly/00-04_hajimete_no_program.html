@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>はじめてのプログラムを動かそう | Python入門（初心者特化版）</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-primary: #2C3E7B; --color-primary-light: #4A5FA8; --color-primary-lighter: #7B8EC6;
+            --color-primary-dark: #1A2654; --color-primary-bg: #E8EAF2;
+            --color-secondary: #E8A830; --color-secondary-light: #F5C862; --color-secondary-lighter: #FFF3D4; --color-secondary-dark: #C08820;
+            --color-background: #F8F6F0; --color-background-warm: #FBF9F3;
+            --color-surface: #FFFFFF; --color-surface-raised: #FFFFFF; --color-surface-muted: #F2F0EA;
+            --color-text: #1E1E2E; --color-text-secondary: #5A5A72; --color-text-tertiary: #8E8EA0;
+            --color-text-inverse: #FAFAF5; --color-text-on-primary: #FFFFFF;
+            --color-success: #2D9F64; --color-success-bg: #E6F7ED;
+            --color-warning: #D4870E; --color-warning-bg: #FFF6E0;
+            --color-error: #CC3D3D; --color-error-bg: #FDECEC;
+            --color-info: #3D8BC9; --color-info-bg: #E6F0F9;
+            --color-code-bg: #F0EDE4; --color-code-border: #DDD8CC; --color-code-text: #2C3E7B;
+            --color-code-keyword: #8B3FAE; --color-code-string: #2D9F64; --color-code-comment: #8E8EA0;
+            --color-code-number: #CC3D3D; --color-code-function: #3D8BC9;
+            --font-heading: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Meiryo', sans-serif;
+            --font-body: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-code: 'JetBrains Mono', 'Source Code Pro', 'Menlo', monospace;
+            --font-size-xs: 0.75rem; --font-size-sm: 0.875rem; --font-size-base: 1rem; --font-size-md: 1.125rem;
+            --font-size-lg: 1.375rem; --font-size-xl: 1.75rem; --font-size-2xl: 2.25rem; --font-size-3xl: 3rem; --font-size-4xl: 3.75rem;
+            --font-weight-normal: 400; --font-weight-medium: 500; --font-weight-bold: 700; --font-weight-black: 900;
+            --line-height-tight: 1.3; --line-height-normal: 1.7; --line-height-relaxed: 1.9;
+            --spacing-xs: 0.25rem; --spacing-sm: 0.5rem; --spacing-md: 1rem; --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem; --spacing-2xl: 3rem; --spacing-3xl: 4rem; --spacing-4xl: 6rem;
+            --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-pill: 100px; --radius-circle: 50%;
+            --shadow-xs: 0 1px 2px rgba(30,30,46,0.05); --shadow-sm: 0 2px 4px rgba(30,30,46,0.06), 0 1px 2px rgba(30,30,46,0.04);
+            --shadow-md: 0 4px 12px rgba(30,30,46,0.08), 0 2px 4px rgba(30,30,46,0.04);
+            --shadow-lg: 0 8px 24px rgba(30,30,46,0.10), 0 4px 8px rgba(30,30,46,0.05);
+            --transition-fast: 150ms ease; --transition-normal: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1); --transition-slide: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            --z-navigation: 500; --z-texture: 2000;
+            --slide-max-width: 960px; --slide-padding-x: 80px; --slide-padding-y: 40px; --slide-padding-bottom: 120px; --nav-height: 80px;
+        }
+        @media (max-width: 1024px) { :root { --slide-padding-x: 48px; --font-size-3xl: 2.25rem; --font-size-4xl: 3rem; } }
+        @media (max-width: 768px) { :root { --slide-padding-x: 28px; --slide-padding-y: 24px; --slide-padding-bottom: 140px; --font-size-2xl: 1.75rem; --font-size-3xl: 2rem; --font-size-4xl: 2.5rem; --font-size-xl: 1.5rem; } }
+        @media (max-width: 480px) { :root { --slide-padding-x: 20px; --slide-padding-y: 20px; --font-size-2xl: 1.5rem; --font-size-3xl: 1.75rem; --font-size-4xl: 2rem; } }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { width: 100%; }
+        body { font-family: var(--font-body); background: var(--color-background); color: var(--color-text); min-height: 100vh; overflow: hidden; position: relative; width: 100%; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"); pointer-events: none; z-index: var(--z-texture); }
+        .accent-bar { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary), var(--color-primary-light), var(--color-secondary)); z-index: var(--z-navigation); }
+        .slides-container { position: relative; width: 100%; height: 100vh; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transform: translateX(30px); transition: all var(--transition-slide); overflow-y: auto; }
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+        .slide.prev { opacity: 0; transform: translateX(-30px); }
+
+        .content-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); background: var(--color-surface); border-top: 1px solid #E4E1D8; box-shadow: 0 -2px 12px rgba(30,30,46,0.06); z-index: var(--z-navigation); padding: 0 var(--slide-padding-x); }
+        .nav-inner { max-width: var(--slide-max-width); margin: 0 auto; height: 100%; display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md); }
+        .content-nav-btn { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); padding: var(--spacing-sm) var(--spacing-xl); border: 2px solid var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; transition: all var(--transition-fast); min-width: 100px; text-align: center; }
+        .content-nav-btn.btn-prev, .content-nav-btn.btn-first { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-prev:hover, .content-nav-btn.btn-first:hover { background: var(--color-primary-bg); }
+        .content-nav-btn.btn-next { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .content-nav-btn.btn-next:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+        .content-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .content-nav-btn:disabled:hover { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-next:disabled:hover { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .slide-counter { font-family: var(--font-code); font-size: var(--font-size-sm); color: var(--color-text-tertiary); min-width: 80px; text-align: center; }
+        body.platform-controlled .content-nav { display: none !important; }
+        @media (max-width: 768px) { .content-nav { padding: 0 var(--spacing-md); } .content-nav-btn { font-size: var(--font-size-xs); padding: var(--spacing-sm) var(--spacing-md); min-width: 70px; } }
+
+        /* Components */
+        .slide.active.slide-title { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(160deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%); color: var(--color-text-inverse); }
+        .slide-title .chapter-label { font-family: var(--font-code); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-secondary-light); margin-bottom: var(--spacing-md); padding: var(--spacing-xs) var(--spacing-lg); border: 1px solid rgba(245,200,98,0.3); border-radius: var(--radius-pill); }
+        .slide-title .topic-title { font-family: var(--font-heading); font-size: var(--font-size-4xl); font-weight: var(--font-weight-black); line-height: var(--line-height-tight); margin-bottom: var(--spacing-lg); max-width: 800px; }
+        .slide-title .topic-subtitle { font-family: var(--font-body); font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); color: rgba(250,250,245,0.75); max-width: 600px; line-height: var(--line-height-normal); }
+        .slide-title .decorative-line { width: 80px; height: 3px; background: var(--color-secondary); margin: var(--spacing-lg) 0; border-radius: var(--radius-pill); }
+
+        .slide.active.slide-content { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); }
+        .slide-content .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-content .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-content .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+
+        .slide.active.slide-summary { display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--color-surface-muted); }
+        .slide-summary .summary-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .slide-summary .summary-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .slide-summary .summary-item { padding: var(--spacing-md) var(--spacing-lg); margin-bottom: var(--spacing-md); background: var(--color-surface); border-left: 4px solid var(--color-secondary); border-radius: 0 var(--radius-md) var(--radius-md) 0; box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); }
+        .slide-summary .summary-item strong { color: var(--color-primary); }
+
+        .slide.active.slide-practice { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); background: linear-gradient(180deg, var(--color-background-warm) 0%, var(--color-secondary-lighter) 100%); }
+        .slide-practice .practice-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); background: rgba(232,168,48,0.15); border: 2px solid var(--color-secondary); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-lg); letter-spacing: 0.1em; }
+        .slide-practice .practice-badge::before { content: '\270F\FE0F '; }
+        .slide-practice .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-practice .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-practice .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+        .slide-practice .practice-instruction { background: var(--color-surface); border: 2px dashed var(--color-secondary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin: var(--spacing-lg) 0; box-shadow: var(--shadow-sm); }
+        .slide-practice .practice-instruction .instruction-title { font-family: var(--font-heading); font-size: var(--font-size-md); font-weight: var(--font-weight-bold); color: var(--color-secondary-dark); margin-bottom: var(--spacing-md); }
+
+        .slide.active.slide-checkpoint { display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(180deg, var(--color-background) 0%, var(--color-info-bg) 100%); }
+        .slide-checkpoint .checkpoint-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-info); background: rgba(61,139,201,0.1); border: 2px solid var(--color-info); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-xl); letter-spacing: 0.1em; }
+        .slide-checkpoint .checkpoint-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-info); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .checkpoint-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .checkpoint-item { padding: var(--spacing-md) var(--spacing-lg); padding-left: calc(var(--spacing-lg) + 36px); margin-bottom: var(--spacing-md); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); position: relative; }
+        .checkpoint-item::before { content: '\2713'; position: absolute; left: var(--spacing-lg); top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--color-success); color: white; border-radius: var(--radius-circle); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); line-height: 24px; text-align: center; }
+        .checkpoint-item:last-child { margin-bottom: 0; }
+
+        .callout-box { max-width: var(--slide-max-width); width: 100%; padding: var(--spacing-lg) var(--spacing-xl); margin: var(--spacing-lg) 0; border-radius: var(--radius-md); font-family: var(--font-body); font-size: var(--font-size-base); line-height: var(--line-height-normal); position: relative; padding-left: calc(var(--spacing-xl) + 8px); border-left: 4px solid; }
+        .callout-box .callout-title { font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-sm); font-size: var(--font-size-md); }
+        .callout-box.info { background: var(--color-info-bg); border-color: var(--color-info); }
+        .callout-box.info .callout-title { color: var(--color-info); }
+        .callout-box.warning { background: var(--color-warning-bg); border-color: var(--color-warning); }
+        .callout-box.warning .callout-title { color: var(--color-warning); }
+        .callout-box.tip { background: var(--color-success-bg); border-color: var(--color-success); }
+        .callout-box.tip .callout-title { color: var(--color-success); }
+        .callout-box.danger { background: var(--color-error-bg); border-color: var(--color-error); }
+        .callout-box.danger .callout-title { color: var(--color-error); }
+        .callout-box.business { background: var(--color-secondary-lighter); border-color: var(--color-secondary-dark); }
+        .callout-box.business .callout-title { color: var(--color-secondary-dark); }
+        .callout-box.encouragement { background: linear-gradient(135deg, var(--color-success-bg) 0%, #F0FBF4 100%); border-color: var(--color-success); }
+        .callout-box.encouragement .callout-title { color: var(--color-success); }
+
+        .code-block { background: var(--color-code-bg); border: 1px solid var(--color-code-border); border-radius: var(--radius-md); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; overflow-x: auto; position: relative; }
+        .code-block::before { content: 'Python'; position: absolute; top: 0; right: 0; font-family: var(--font-code); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--color-text-tertiary); background: var(--color-surface-muted); padding: var(--spacing-xs) var(--spacing-md); border-radius: 0 var(--radius-md) 0 var(--radius-md); border-left: 1px solid var(--color-code-border); border-bottom: 1px solid var(--color-code-border); }
+        .code-block pre { margin: 0; padding: 0; overflow-x: auto; }
+        .code-block code { font-family: var(--font-code); font-size: var(--font-size-sm); line-height: 1.8; color: var(--color-code-text); white-space: pre; }
+        .code-block .keyword { color: var(--color-code-keyword); font-weight: var(--font-weight-bold); }
+        .code-block .string { color: var(--color-code-string); }
+        .code-block .comment { color: var(--color-code-comment); font-style: italic; }
+        .code-block .builtin { color: var(--color-secondary-dark); }
+        .code-block .number { color: var(--color-code-number); }
+        code.inline { font-family: var(--font-code); font-size: 0.9em; background: var(--color-code-bg); border: 1px solid var(--color-code-border); padding: 1px 6px; border-radius: var(--radius-sm); color: var(--color-code-text); }
+
+        .code-block.terminal { background: #1E1E2E; border-color: #3A3A4E; }
+        .code-block.terminal::before { content: 'Output'; background: #2A2A3E; border-color: #3A3A4E; color: #8E8EA0; }
+        .code-block.terminal code { color: #E0E0E8; }
+        .code-block.terminal .output { color: #B0B0C0; }
+
+        .diagram-container { max-width: var(--slide-max-width); width: 100%; margin: var(--spacing-lg) auto; padding: var(--spacing-xl); background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid #E4E1D8; text-align: center; }
+        .diagram-container svg { max-width: 100%; height: auto; }
+
+        .numbered-steps { max-width: var(--slide-max-width); width: 100%; counter-reset: step-counter; padding: 0; margin: var(--spacing-lg) 0; list-style: none; }
+        .numbered-steps .step { position: relative; padding-left: 60px; margin-bottom: var(--spacing-xl); min-height: 44px; counter-increment: step-counter; }
+        .numbered-steps .step::before { content: counter(step-counter); position: absolute; left: 0; top: 0; width: 44px; height: 44px; background: var(--color-primary); color: var(--color-text-on-primary); border-radius: var(--radius-circle); font-family: var(--font-heading); font-weight: var(--font-weight-bold); font-size: var(--font-size-lg); line-height: 44px; text-align: center; }
+        .numbered-steps .step-title { font-family: var(--font-heading); font-weight: var(--font-weight-bold); font-size: var(--font-size-md); color: var(--color-text); margin-bottom: var(--spacing-xs); }
+        .numbered-steps .step-desc { font-family: var(--font-body); font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: var(--line-height-normal); }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide.active .animate-in { animation: fadeInUp 0.6s ease forwards; }
+        .slide.active .animate-in-delay-1 { animation: fadeInUp 0.6s ease 0.1s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-2 { animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-3 { animation: fadeInUp 0.6s ease 0.3s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-4 { animation: fadeInUp 0.6s ease 0.4s forwards; opacity: 0; }
+
+        .text-center { text-align: center; }
+        .text-muted { color: var(--color-text-tertiary); }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+    <div class="slides-container" id="slidesContainer">
+
+        <!-- Slide 1: Title -->
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 00</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">はじめてのプログラムを動かそう</h1>
+            <p class="topic-subtitle">print関数を使って、画面にメッセージを表示してみましょう</p>
+        </div>
+
+        <!-- Slide 2: Recap -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading animate-in">いよいよプログラミング！</h2>
+            <div class="slide-body">
+                <p class="animate-in-delay-1">前回までのトピックで、Google Colabの使い方を一通り学びました。コードセルにコードを入力して、<code class="inline">Shift + Enter</code> で実行できましたね。</p>
+                <p class="animate-in-delay-2" style="margin-top: var(--spacing-md);">今回は、いよいよ本格的なプログラムを書いてみます。といっても、最初はとてもシンプルです。たった1行で、画面にメッセージを表示するプログラムです。</p>
+                <div class="callout-box encouragement animate-in-delay-3">
+                    <div class="callout-title">ワクワクしますね！</div>
+                    <p>これまでの準備が、ここで実を結びます。あなたの最初のプログラムを、一緒に作りましょう。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: What is print -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading animate-in">print関数とは</h2>
+            <div class="slide-body">
+                <div class="diagram-container animate-in-delay-1">
+                    <svg viewBox="0 0 650 200" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Input -->
+                        <rect x="30" y="50" width="180" height="100" rx="12" fill="var(--color-secondary-lighter)" stroke="var(--color-secondary)" stroke-width="2"/>
+                        <text x="120" y="85" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-size="13" font-weight="700" fill="var(--color-secondary-dark)">あなたが伝えたいこと</text>
+                        <text x="120" y="115" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="var(--color-code-string)">"こんにちは！"</text>
+
+                        <!-- Arrow to print -->
+                        <line x1="220" y1="100" x2="260" y2="100" stroke="var(--color-primary-lighter)" stroke-width="2" marker-end="url(#arrowP)"/>
+                        <defs><marker id="arrowP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--color-primary-lighter)"/></marker></defs>
+
+                        <!-- print function box -->
+                        <rect x="270" y="40" width="130" height="120" rx="12" fill="var(--color-primary)" stroke="var(--color-primary-dark)" stroke-width="2"/>
+                        <text x="335" y="80" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="16" font-weight="700" fill="white">print()</text>
+                        <text x="335" y="105" text-anchor="middle" font-family="M PLUS 1p, sans-serif" font-size="11" fill="rgba(255,255,255,0.7)">画面に表示する</text>
+                        <text x="335" y="125" text-anchor="middle" font-family="M PLUS 1p, sans-serif" font-size="11" fill="rgba(255,255,255,0.7)">命令</text>
+
+                        <!-- Arrow to output -->
+                        <line x1="410" y1="100" x2="450" y2="100" stroke="var(--color-primary-lighter)" stroke-width="2" marker-end="url(#arrowP)"/>
+
+                        <!-- Output -->
+                        <rect x="460" y="50" width="170" height="100" rx="12" fill="var(--color-success-bg)" stroke="var(--color-success)" stroke-width="2"/>
+                        <text x="545" y="85" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-size="13" font-weight="700" fill="var(--color-success)">画面に表示される</text>
+                        <text x="545" y="115" text-anchor="middle" font-family="M PLUS 1p, sans-serif" font-size="14" fill="var(--color-text)">こんにちは！</text>
+                    </svg>
+                </div>
+                <p class="animate-in-delay-2"><code class="inline">print()</code> は「画面にメッセージを表示する命令」です。丸括弧の中に表示したい内容を書きます。プログラミングの世界では、こうした命令のことを「関数」と呼びます。</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: Hello World -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading animate-in">はじめてのプログラム</h2>
+            <div class="slide-body">
+                <p class="animate-in-delay-1">世界中のプログラマーが最初に書くお約束のプログラムがあります。それがこちらです。</p>
+                <div class="code-block animate-in-delay-2">
+                    <pre><code><span class="builtin">print</span>(<span class="string">"Hello!"</span>)</code></pre>
+                </div>
+                <p class="animate-in-delay-3">実行すると、こう表示されます。</p>
+                <div class="code-block terminal animate-in-delay-4">
+                    <pre><code><span class="output">Hello!</span></code></pre>
+                </div>
+                <div class="callout-box info animate-in-delay-4">
+                    <div class="callout-title">知っておこう</div>
+                    <p>文字を表示するときは、ダブルクォーテーション <code class="inline">"</code> で文字を囲みます。シングルクォーテーション <code class="inline">'</code> でもOKです。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Practice - Hello World -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">PRACTICE</span>
+            <h2 class="slide-heading">やってみよう：Hello!を表示する</h2>
+            <div class="slide-body">
+                <p class="animate-in">動画を止めて、はじめてのプログラムを実行してみましょう。</p>
+                <div class="practice-instruction animate-in-delay-1">
+                    <div class="instruction-title">手順</div>
+                    <p>1. Google Colabでノートブックを開く</p>
+                    <p>2. コードセルに以下を入力：</p>
+                    <div class="code-block" style="margin: var(--spacing-md) 0;">
+                        <pre><code><span class="builtin">print</span>(<span class="string">"Hello!"</span>)</code></pre>
+                    </div>
+                    <p>3. <code class="inline">Shift + Enter</code> で実行</p>
+                    <p>4. 「Hello!」と表示されたら成功！</p>
+                </div>
+                <div class="callout-box encouragement animate-in-delay-2">
+                    <div class="callout-title">おめでとうございます！</div>
+                    <p>「Hello!」が表示されたら、あなたは今、はじめてのプログラムを書いて実行しました。立派なプログラマーの第一歩です。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Japanese message -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading animate-in">日本語も表示できる</h2>
+            <div class="slide-body">
+                <p class="animate-in-delay-1">Pythonでは、日本語もそのまま表示できます。</p>
+                <div class="code-block animate-in-delay-2">
+                    <pre><code><span class="builtin">print</span>(<span class="string">"こんにちは、Python！"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-3">
+                    <pre><code><span class="output">こんにちは、Python！</span></code></pre>
+                </div>
+                <p class="animate-in-delay-4">好きなメッセージを自由に表示してみましょう。自分の名前やチーム名を入れてみるのも面白いですよ。</p>
+            </div>
+        </div>
+
+        <!-- Slide 7: Practice - Custom message -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">PRACTICE</span>
+            <h2 class="slide-heading">やってみよう：好きなメッセージを表示</h2>
+            <div class="slide-body">
+                <p class="animate-in">動画を止めて、自分だけのメッセージを表示してみましょう。</p>
+                <div class="practice-instruction animate-in-delay-1">
+                    <div class="instruction-title">チャレンジ</div>
+                    <p>以下のコードの「ここに好きなメッセージ」の部分を、自分の好きな文章に変えて実行してみてください。</p>
+                    <div class="code-block" style="margin: var(--spacing-md) 0;">
+                        <pre><code><span class="builtin">print</span>(<span class="string">"ここに好きなメッセージ"</span>)</code></pre>
+                    </div>
+                    <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">例：自分の名前、好きな食べ物、チーム名、など何でもOK！</p>
+                </div>
+                <div class="callout-box encouragement animate-in-delay-2">
+                    <div class="callout-title">自由に試してみよう！</div>
+                    <p>何を表示しても大丈夫です。間違いも実験のうち。「これを入れたらどうなるかな？」と好奇心を大切にしてください。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Multiple prints -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading animate-in">複数行の表示</h2>
+            <div class="slide-body">
+                <p class="animate-in-delay-1"><code class="inline">print()</code> を複数回使うと、複数の行を表示できます。</p>
+                <div class="code-block animate-in-delay-2">
+                    <pre><code><span class="builtin">print</span>(<span class="string">"おはようございます"</span>)
+<span class="builtin">print</span>(<span class="string">"今日もがんばりましょう"</span>)
+<span class="builtin">print</span>(<span class="string">"Python研修スタート！"</span>)</code></pre>
+                </div>
+                <div class="code-block terminal animate-in-delay-3">
+                    <pre><code><span class="output">おはようございます
+今日もがんばりましょう
+Python研修スタート！</span></code></pre>
+                </div>
+                <div class="callout-box tip animate-in-delay-4">
+                    <div class="callout-title">ポイント</div>
+                    <p>プログラムは上から順番に1行ずつ実行されます。1行目の <code class="inline">print()</code> が実行された後、2行目、3行目と順番に実行されます。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Common errors -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading animate-in">よくある間違いと対処法</h2>
+            <div class="slide-body">
+                <p class="animate-in-delay-1">エラーが出ても大丈夫。よくある間違いと、その直し方を知っておきましょう。</p>
+                <div class="callout-box danger animate-in-delay-2">
+                    <div class="callout-title">クォーテーションの閉じ忘れ</div>
+                    <p><code class="inline">print("Hello!)</code> のように閉じの <code class="inline">"</code> を忘れるとエラーになります。<br>対処法：<code class="inline">"</code> が開始と終了の両方にあるか確認しましょう。</p>
+                </div>
+                <div class="callout-box danger animate-in-delay-3">
+                    <div class="callout-title">括弧の閉じ忘れ</div>
+                    <p><code class="inline">print("Hello!"</code> のように閉じの <code class="inline">)</code> を忘れるとエラーになります。<br>対処法：<code class="inline">(</code> と <code class="inline">)</code> がペアになっているか確認しましょう。</p>
+                </div>
+                <div class="callout-box encouragement animate-in-delay-4">
+                    <div class="callout-title">エラーは怖くない！</div>
+                    <p>エラーが出たら、入力ミスを探して直せばOK。プロのエンジニアも毎日エラーと向き合っています。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Practice - Fix errors -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">PRACTICE</span>
+            <h2 class="slide-heading">やってみよう：エラーを体験する</h2>
+            <div class="slide-body">
+                <p class="animate-in">わざとエラーを出してみましょう。エラーの体験は大切な学びです。</p>
+                <div class="practice-instruction animate-in-delay-1">
+                    <div class="instruction-title">チャレンジ</div>
+                    <p>1. まず、わざと間違ったコードを実行してみてください：</p>
+                    <div class="code-block" style="margin: var(--spacing-md) 0;">
+                        <pre><code><span class="builtin">print</span>(<span class="string">"Hello!</span>)</code></pre>
+                    </div>
+                    <p>2. エラーメッセージが表示されることを確認</p>
+                    <p>3. 次に、正しいコードに直して実行してみましょう：</p>
+                    <div class="code-block" style="margin: var(--spacing-md) 0;">
+                        <pre><code><span class="builtin">print</span>(<span class="string">"Hello!"</span>)</code></pre>
+                    </div>
+                </div>
+                <div class="callout-box encouragement animate-in-delay-2">
+                    <div class="callout-title">すばらしい！</div>
+                    <p>エラーを出して、直して、正しく動かす。この一連の流れが、プログラミングの基本です。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Business use case -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading animate-in">業務での活用イメージ</h2>
+            <div class="slide-body">
+                <p class="animate-in-delay-1"><code class="inline">print()</code> は単純に見えますが、業務でもとても役立ちます。</p>
+                <div class="code-block animate-in-delay-2">
+                    <pre><code><span class="builtin">print</span>(<span class="string">"売上レポート"</span>)
+<span class="builtin">print</span>(<span class="string">"2026年2月"</span>)
+<span class="builtin">print</span>(<span class="string">"合計: 1,250,000円"</span>)</code></pre>
+                </div>
+                <div class="callout-box business animate-in-delay-3">
+                    <div class="callout-title">業務での活用</div>
+                    <p>今は文字を直接書いていますが、この先の章で変数や計算を学ぶと、「自動的に計算した結果を表示する」ことができるようになります。レポートの自動生成の第一歩です。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Checkpoint -->
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">CHECKPOINT</span>
+            <h2 class="checkpoint-title">ここまでのポイント</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item animate-in">
+                    <code class="inline">print()</code> で画面にメッセージを表示できる
+                </li>
+                <li class="checkpoint-item animate-in-delay-1">
+                    文字列は <code class="inline">"ダブルクォート"</code> で囲む
+                </li>
+                <li class="checkpoint-item animate-in-delay-2">
+                    <code class="inline">print()</code> を複数回使うと、複数行表示できる
+                </li>
+                <li class="checkpoint-item animate-in-delay-3">
+                    エラーが出たら、入力ミスを確認して直せばOK
+                </li>
+            </ul>
+        </div>
+
+        <!-- Slide 13: Summary -->
+        <div class="slide slide-summary">
+            <h2 class="summary-title">このトピックのまとめ</h2>
+            <ul class="summary-list">
+                <li class="summary-item animate-in">
+                    <strong>print関数：</strong><code class="inline">print("メッセージ")</code> で画面に文字を表示する命令
+                </li>
+                <li class="summary-item animate-in-delay-1">
+                    <strong>文字列：</strong>ダブルクォーテーション <code class="inline">"</code> またはシングルクォーテーション <code class="inline">'</code> で囲む
+                </li>
+                <li class="summary-item animate-in-delay-2">
+                    <strong>実行順序：</strong>プログラムは上から順番に1行ずつ実行される
+                </li>
+                <li class="summary-item animate-in-delay-3">
+                    <strong>次の章：</strong>print関数をもっと使いこなしていきます！
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+    <nav class="navigation content-nav">
+        <div class="nav-inner">
+            <button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button>
+            <button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button>
+            <span class="slide-counter" id="slideNumber">1 / 1</span>
+            <button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button>
+        </div>
+    </nav>
+
+    <script>
+        let currentSlide = 1; let totalSlides = 0;
+        function updateSlideInfo() { const slides = document.querySelectorAll('.slide'); totalSlides = slides.length; slides.forEach((slide, index) => { slide.classList.remove('active', 'prev'); if (index + 1 === currentSlide) slide.classList.add('active'); else if (index + 1 < currentSlide) slide.classList.add('prev'); }); const prevBtn = document.getElementById('prevBtn'); const nextBtn = document.getElementById('nextBtn'); if (prevBtn) prevBtn.disabled = (currentSlide === 1); if (nextBtn) nextBtn.disabled = (currentSlide === totalSlides); const slideNum = document.getElementById('slideNumber'); if (slideNum) slideNum.textContent = currentSlide + ' / ' + totalSlides; if (window.slideAPI && window.slideAPI.onSlideChange) window.slideAPI.onSlideChange(currentSlide, totalSlides); }
+        function showSlide(n) { if (n >= 1 && n <= totalSlides) { currentSlide = n; updateSlideInfo(); } }
+        function goToPrevious() { if (currentSlide > 1) { currentSlide--; updateSlideInfo(); } }
+        function goToNext() { if (currentSlide < totalSlides) { currentSlide++; updateSlideInfo(); } }
+        function goToFirst() { currentSlide = 1; updateSlideInfo(); }
+        function goToLast() { currentSlide = totalSlides; updateSlideInfo(); }
+        document.addEventListener('keydown', (e) => { if (document.body.classList.contains('platform-controlled')) return; if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); } if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevious(); } if (e.key === 'Home') { e.preventDefault(); goToFirst(); } if (e.key === 'End') { e.preventDefault(); goToLast(); } });
+        window.slideAPI = { version: "1.0", getTotalSlides: function() { return totalSlides; }, getCurrentSlide: function() { return currentSlide; }, showSlide: showSlide, nextSlide: goToNext, prevSlide: goToPrevious, firstSlide: goToFirst, lastSlide: goToLast, hideContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = 'none'; }, showContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = ''; }, setPlatformControlled: function(enabled) { if (enabled) document.body.classList.add('platform-controlled'); else document.body.classList.remove('platform-controlled'); }, onSlideChange: null };
+        window.onload = updateSlideInfo;
+    </script>
+</body>
+</html>

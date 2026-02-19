@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>計算結果を表示しよう | Python入門（初心者特化版）</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+1p:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-primary: #2C3E7B;
+            --color-primary-light: #4A5FA8;
+            --color-primary-lighter: #7B8EC6;
+            --color-primary-dark: #1A2654;
+            --color-primary-bg: #E8EAF2;
+            --color-secondary: #E8A830;
+            --color-secondary-light: #F5C862;
+            --color-secondary-lighter: #FFF3D4;
+            --color-secondary-dark: #C08820;
+            --color-background: #F8F6F0;
+            --color-background-warm: #FBF9F3;
+            --color-surface: #FFFFFF;
+            --color-surface-raised: #FFFFFF;
+            --color-surface-muted: #F2F0EA;
+            --color-text: #1E1E2E;
+            --color-text-secondary: #5A5A72;
+            --color-text-tertiary: #8E8EA0;
+            --color-text-inverse: #FAFAF5;
+            --color-text-on-primary: #FFFFFF;
+            --color-success: #2D9F64;
+            --color-success-bg: #E6F7ED;
+            --color-warning: #D4870E;
+            --color-warning-bg: #FFF6E0;
+            --color-error: #CC3D3D;
+            --color-error-bg: #FDECEC;
+            --color-info: #3D8BC9;
+            --color-info-bg: #E6F0F9;
+            --color-code-bg: #F0EDE4;
+            --color-code-border: #DDD8CC;
+            --color-code-text: #2C3E7B;
+            --color-code-keyword: #8B3FAE;
+            --color-code-string: #2D9F64;
+            --color-code-comment: #8E8EA0;
+            --color-code-number: #CC3D3D;
+            --color-code-function: #3D8BC9;
+            --font-heading: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Meiryo', sans-serif;
+            --font-body: 'M PLUS 1p', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-code: 'JetBrains Mono', 'Source Code Pro', 'Menlo', monospace;
+            --font-size-xs: 0.75rem; --font-size-sm: 0.875rem; --font-size-base: 1rem;
+            --font-size-md: 1.125rem; --font-size-lg: 1.375rem; --font-size-xl: 1.75rem;
+            --font-size-2xl: 2.25rem; --font-size-3xl: 3rem; --font-size-4xl: 3.75rem;
+            --font-weight-normal: 400; --font-weight-medium: 500; --font-weight-bold: 700; --font-weight-black: 900;
+            --line-height-tight: 1.3; --line-height-normal: 1.7; --line-height-relaxed: 1.9;
+            --spacing-xs: 0.25rem; --spacing-sm: 0.5rem; --spacing-md: 1rem; --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem; --spacing-2xl: 3rem; --spacing-3xl: 4rem; --spacing-4xl: 6rem;
+            --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+            --radius-pill: 100px; --radius-circle: 50%;
+            --shadow-xs: 0 1px 2px rgba(30,30,46,0.05);
+            --shadow-sm: 0 2px 4px rgba(30,30,46,0.06), 0 1px 2px rgba(30,30,46,0.04);
+            --shadow-md: 0 4px 12px rgba(30,30,46,0.08), 0 2px 4px rgba(30,30,46,0.04);
+            --shadow-lg: 0 8px 24px rgba(30,30,46,0.10), 0 4px 8px rgba(30,30,46,0.05);
+            --transition-fast: 150ms ease; --transition-normal: 300ms ease;
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slide: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            --z-navigation: 500; --z-texture: 2000;
+            --slide-max-width: 960px; --slide-padding-x: 80px; --slide-padding-y: 40px;
+            --slide-padding-bottom: 120px; --nav-height: 80px;
+        }
+        @media (max-width: 1024px) { :root { --slide-padding-x: 48px; --font-size-3xl: 2.25rem; --font-size-4xl: 3rem; } }
+        @media (max-width: 768px) { :root { --slide-padding-x: 28px; --slide-padding-y: 24px; --slide-padding-bottom: 140px; --font-size-2xl: 1.75rem; --font-size-3xl: 2rem; --font-size-4xl: 2.5rem; --font-size-xl: 1.5rem; } }
+        @media (max-width: 480px) { :root { --slide-padding-x: 20px; --slide-padding-y: 20px; --font-size-2xl: 1.5rem; --font-size-3xl: 1.75rem; --font-size-4xl: 2rem; } }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { width: 100%; }
+        body { font-family: var(--font-body); background: var(--color-background); color: var(--color-text); min-height: 100vh; overflow: hidden; position: relative; width: 100%; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"); pointer-events: none; z-index: var(--z-texture); }
+        .accent-bar { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary), var(--color-primary-light), var(--color-secondary)); z-index: var(--z-navigation); }
+
+        .slides-container { position: relative; width: 100%; height: 100vh; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: var(--slide-padding-y) var(--slide-padding-x) var(--slide-padding-bottom); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transform: translateX(30px); transition: all var(--transition-slide); overflow-y: auto; }
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+        .slide.prev { opacity: 0; transform: translateX(-30px); }
+
+        .content-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); background: var(--color-surface); border-top: 1px solid #E4E1D8; box-shadow: 0 -2px 12px rgba(30,30,46,0.06); z-index: var(--z-navigation); padding: 0 var(--slide-padding-x); }
+        .nav-inner { max-width: var(--slide-max-width); margin: 0 auto; height: 100%; display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md); }
+        .content-nav-btn { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: 500; padding: var(--spacing-sm) var(--spacing-xl); border: 2px solid var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; transition: all var(--transition-fast); min-width: 100px; text-align: center; }
+        .content-nav-btn.btn-prev, .content-nav-btn.btn-first { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-prev:hover, .content-nav-btn.btn-first:hover { background: var(--color-primary-bg); }
+        .content-nav-btn.btn-next { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .content-nav-btn.btn-next:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+        .content-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .content-nav-btn:disabled:hover { background: transparent; color: var(--color-primary); }
+        .content-nav-btn.btn-next:disabled:hover { background: var(--color-primary); color: var(--color-text-on-primary); }
+        .slide-counter { font-family: var(--font-code); font-size: var(--font-size-sm); color: var(--color-text-tertiary); min-width: 80px; text-align: center; }
+        body.platform-controlled .content-nav { display: none !important; }
+        @media (max-width: 768px) { .content-nav { padding: 0 var(--spacing-md); } .content-nav-btn { font-size: var(--font-size-xs); padding: var(--spacing-sm) var(--spacing-md); min-width: 70px; } }
+
+        /* Components */
+        .slide.active.slide-title { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(160deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%); color: var(--color-text-inverse); }
+        .slide-title .chapter-label { font-family: var(--font-code); font-size: var(--font-size-sm); font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-secondary-light); margin-bottom: var(--spacing-md); padding: var(--spacing-xs) var(--spacing-lg); border: 1px solid rgba(245, 200, 98, 0.3); border-radius: var(--radius-pill); }
+        .slide-title .topic-title { font-family: var(--font-heading); font-size: var(--font-size-4xl); font-weight: 900; line-height: var(--line-height-tight); margin-bottom: var(--spacing-lg); max-width: 800px; }
+        .slide-title .topic-subtitle { font-family: var(--font-body); font-size: var(--font-size-lg); font-weight: 400; color: rgba(250, 250, 245, 0.75); max-width: 600px; line-height: var(--line-height-normal); }
+        .slide-title .decorative-line { width: 80px; height: 3px; background: var(--color-secondary); margin: var(--spacing-lg) 0; border-radius: var(--radius-pill); }
+
+        .slide.active.slide-content { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); }
+        .slide-content .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-primary); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-content .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-content .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+
+        .slide.active.slide-summary { display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--color-surface-muted); }
+        .slide-summary .summary-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-primary); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .slide-summary .summary-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .slide-summary .summary-item { padding: var(--spacing-md) var(--spacing-lg); margin-bottom: var(--spacing-md); background: var(--color-surface); border-left: 4px solid var(--color-secondary); border-radius: 0 var(--radius-md) var(--radius-md) 0; box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); }
+        .slide-summary .summary-item strong { color: var(--color-primary); }
+
+        .slide.active.slide-practice { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: var(--spacing-2xl); background: linear-gradient(180deg, var(--color-background-warm) 0%, var(--color-secondary-lighter) 100%); }
+        .slide-practice .practice-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: 700; color: var(--color-secondary-dark); background: rgba(232, 168, 48, 0.15); border: 2px solid var(--color-secondary); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-lg); letter-spacing: 0.1em; }
+        .slide-practice .practice-badge::before { content: '\270F\FE0F '; }
+        .slide-practice .slide-heading { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-secondary-dark); margin-bottom: var(--spacing-xl); text-align: center; position: relative; padding-bottom: var(--spacing-md); }
+        .slide-practice .slide-heading::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 3px; background: var(--color-secondary); border-radius: var(--radius-pill); }
+        .slide-practice .slide-body { max-width: var(--slide-max-width); width: 100%; font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-relaxed); color: var(--color-text); }
+        .slide-practice .practice-instruction { background: var(--color-surface); border: 2px dashed var(--color-secondary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin: var(--spacing-lg) 0; box-shadow: var(--shadow-sm); }
+        .slide-practice .practice-instruction .instruction-title { font-family: var(--font-heading); font-size: var(--font-size-md); font-weight: 700; color: var(--color-secondary-dark); margin-bottom: var(--spacing-md); }
+
+        .slide.active.slide-checkpoint { display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(180deg, var(--color-background) 0%, var(--color-info-bg) 100%); }
+        .slide-checkpoint .checkpoint-badge { font-family: var(--font-heading); font-size: var(--font-size-sm); font-weight: 700; color: var(--color-info); background: rgba(61, 139, 201, 0.1); border: 2px solid var(--color-info); padding: var(--spacing-xs) var(--spacing-lg); border-radius: var(--radius-pill); margin-bottom: var(--spacing-xl); letter-spacing: 0.1em; }
+        .slide-checkpoint .checkpoint-title { font-family: var(--font-heading); font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-info); margin-bottom: var(--spacing-2xl); text-align: center; }
+        .checkpoint-list { list-style: none; max-width: 700px; width: 100%; padding: 0; margin: 0; }
+        .checkpoint-item { padding: var(--spacing-md) var(--spacing-lg); padding-left: calc(var(--spacing-lg) + 36px); margin-bottom: var(--spacing-md); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); font-family: var(--font-body); font-size: var(--font-size-md); color: var(--color-text); line-height: var(--line-height-normal); position: relative; }
+        .checkpoint-item::before { content: '\2713'; position: absolute; left: var(--spacing-lg); top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--color-success); color: white; border-radius: var(--radius-circle); font-size: var(--font-size-sm); font-weight: 700; line-height: 24px; text-align: center; }
+        .checkpoint-item:last-child { margin-bottom: 0; }
+
+        .code-block { background: var(--color-code-bg); border: 1px solid var(--color-code-border); border-radius: var(--radius-md); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; overflow-x: auto; position: relative; }
+        .code-block::before { content: 'Python'; position: absolute; top: 0; right: 0; font-family: var(--font-code); font-size: var(--font-size-xs); font-weight: 500; color: var(--color-text-tertiary); background: var(--color-surface-muted); padding: var(--spacing-xs) var(--spacing-md); border-radius: 0 var(--radius-md) 0 var(--radius-md); border-left: 1px solid var(--color-code-border); border-bottom: 1px solid var(--color-code-border); }
+        .code-block pre { margin: 0; padding: 0; overflow-x: auto; }
+        .code-block code { font-family: var(--font-code); font-size: var(--font-size-sm); line-height: 1.8; color: var(--color-code-text); white-space: pre; }
+        .code-block .keyword { color: var(--color-code-keyword); font-weight: 700; }
+        .code-block .string { color: var(--color-code-string); }
+        .code-block .comment { color: var(--color-code-comment); font-style: italic; }
+        .code-block .number { color: var(--color-code-number); }
+        .code-block .function { color: var(--color-code-function); }
+        code.inline { font-family: var(--font-code); font-size: 0.9em; background: var(--color-code-bg); border: 1px solid var(--color-code-border); padding: 1px 6px; border-radius: var(--radius-sm); color: var(--color-code-text); }
+
+        .callout-box { max-width: var(--slide-max-width); width: 100%; padding: var(--spacing-lg) var(--spacing-xl); margin: var(--spacing-lg) 0; border-radius: var(--radius-md); font-family: var(--font-body); font-size: var(--font-size-base); line-height: var(--line-height-normal); position: relative; padding-left: calc(var(--spacing-xl) + 8px); border-left: 4px solid; }
+        .callout-box .callout-title { font-weight: 700; margin-bottom: var(--spacing-sm); font-size: var(--font-size-md); }
+        .callout-box.info { background: var(--color-info-bg); border-color: var(--color-info); }
+        .callout-box.info .callout-title { color: var(--color-info); }
+        .callout-box.warning { background: var(--color-warning-bg); border-color: var(--color-warning); }
+        .callout-box.warning .callout-title { color: var(--color-warning); }
+        .callout-box.tip { background: var(--color-success-bg); border-color: var(--color-success); }
+        .callout-box.tip .callout-title { color: var(--color-success); }
+        .callout-box.encouragement { background: linear-gradient(135deg, var(--color-success-bg) 0%, #F0FBF4 100%); border-color: var(--color-success); }
+        .callout-box.encouragement .callout-title { color: var(--color-success); }
+        .callout-box.business { background: var(--color-secondary-lighter); border-color: var(--color-secondary-dark); }
+        .callout-box.business .callout-title { color: var(--color-secondary-dark); }
+
+        .diagram-container { max-width: var(--slide-max-width); width: 100%; margin: var(--spacing-lg) auto; padding: var(--spacing-xl); background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid #E4E1D8; text-align: center; }
+        .diagram-container svg { max-width: 100%; height: auto; }
+        .diagram-caption { font-family: var(--font-body); font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin-top: var(--spacing-md); text-align: center; font-style: italic; }
+
+        .comparison-table { width: 100%; max-width: var(--slide-max-width); border-collapse: collapse; font-family: var(--font-body); font-size: var(--font-size-base); margin: var(--spacing-lg) 0; }
+        .comparison-table th { background: var(--color-primary); color: var(--color-text-on-primary); font-weight: 700; padding: var(--spacing-md) var(--spacing-lg); text-align: left; font-size: var(--font-size-sm); letter-spacing: 0.05em; }
+        .comparison-table th:first-child { border-radius: var(--radius-md) 0 0 0; }
+        .comparison-table th:last-child { border-radius: 0 var(--radius-md) 0 0; }
+        .comparison-table td { padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid #E4E1D8; color: var(--color-text); vertical-align: top; }
+        .comparison-table tr:nth-child(even) td { background: var(--color-surface-muted); }
+
+        .keyword-tag { font-family: var(--font-code); font-size: var(--font-size-sm); background: var(--color-primary-bg); color: var(--color-primary); padding: 2px 10px; border-radius: var(--radius-pill); font-weight: 500; white-space: nowrap; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide.active .animate-in { animation: fadeInUp 0.6s ease forwards; }
+        .slide.active .animate-in-delay-1 { animation: fadeInUp 0.6s ease 0.1s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-2 { animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0; }
+        .slide.active .animate-in-delay-3 { animation: fadeInUp 0.6s ease 0.3s forwards; opacity: 0; }
+
+        .result-box { background: #1E1E2E; border-radius: var(--radius-md); padding: var(--spacing-lg); margin: var(--spacing-md) 0; font-family: var(--font-code); font-size: var(--font-size-sm); color: #E0E0E8; line-height: 1.8; }
+        .result-box::before { content: '実行結果'; display: block; font-size: var(--font-size-xs); color: var(--color-text-tertiary); margin-bottom: var(--spacing-sm); }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+    <div class="slides-container" id="slidesContainer">
+
+        <!-- Slide 1: Title -->
+        <div class="slide slide-title active">
+            <span class="chapter-label">Chapter 1</span>
+            <div class="decorative-line"></div>
+            <h1 class="topic-title">計算結果を<br>表示しよう</h1>
+            <p class="topic-subtitle">Pythonを電卓代わりに使ってみよう</p>
+        </div>
+
+        <!-- Slide 2: 前回の振り返り -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">前回のおさらい</h2>
+            <div class="slide-body">
+                <p class="animate-in">前回はprint関数で文字列を表示する方法を学びましたね。</p>
+                <div class="code-block animate-in-delay-1">
+                    <pre><code><span class="function">print</span>(<span class="string">"おはようございます"</span>)</code></pre>
+                </div>
+                <p class="animate-in-delay-2">今回は、文字だけでなく<strong style="color: var(--color-primary);">計算結果</strong>も表示してみましょう。Pythonは、実は超高機能な電卓としても使えるんです。</p>
+            </div>
+        </div>
+
+        <!-- Slide 3: Pythonで足し算 -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">printで計算結果を表示</h2>
+            <div class="slide-body">
+                <p class="animate-in">printの括弧の中に、計算式をそのまま書くことができます。クォーテーションは不要です。</p>
+                <div class="code-block animate-in-delay-1">
+                    <pre><code><span class="function">print</span>(<span class="number">1</span> + <span class="number">2</span>)</code></pre>
+                </div>
+                <div class="result-box animate-in-delay-2">3</div>
+                <div class="callout-box info animate-in-delay-3">
+                    <div class="callout-title">文字列と数値の違い</div>
+                    <code class="inline">print("1 + 2")</code> と書くと文字列として <code class="inline">1 + 2</code> がそのまま表示されます。<br>
+                    <code class="inline">print(1 + 2)</code> と書くと計算されて <code class="inline">3</code> が表示されます。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 四則演算一覧 -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">Pythonの四則演算</h2>
+            <div class="slide-body">
+                <table class="comparison-table animate-in">
+                    <thead>
+                        <tr>
+                            <th>計算</th>
+                            <th>記号</th>
+                            <th>Pythonの書き方</th>
+                            <th>結果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>足し算</td>
+                            <td><code class="inline">+</code></td>
+                            <td><code class="inline">10 + 3</code></td>
+                            <td>13</td>
+                        </tr>
+                        <tr>
+                            <td>引き算</td>
+                            <td><code class="inline">-</code></td>
+                            <td><code class="inline">10 - 3</code></td>
+                            <td>7</td>
+                        </tr>
+                        <tr>
+                            <td>掛け算</td>
+                            <td><code class="inline">*</code></td>
+                            <td><code class="inline">10 * 3</code></td>
+                            <td>30</td>
+                        </tr>
+                        <tr>
+                            <td>割り算</td>
+                            <td><code class="inline">/</code></td>
+                            <td><code class="inline">10 / 3</code></td>
+                            <td>3.333...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="callout-box warning animate-in-delay-1">
+                    <div class="callout-title">掛け算は「*」（アスタリスク）</div>
+                    数学では掛け算に「x」を使いますが、Pythonでは <code class="inline">*</code> を使います。キーボードのShift + 8で打てます。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Excelとの比較 -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">Excelとの比較</h2>
+            <div class="slide-body">
+                <div class="diagram-container animate-in">
+                    <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Excel side -->
+                        <rect x="20" y="20" width="290" height="160" rx="12" fill="#E6F7ED" stroke="#2D9F64" stroke-width="2"/>
+                        <text x="165" y="55" text-anchor="middle" font-family="Zen Kaku Gothic New" font-size="16" fill="#2D9F64" font-weight="700">Excel</text>
+                        <rect x="50" y="75" width="230" height="40" rx="6" fill="white" stroke="#DDD8CC" stroke-width="1"/>
+                        <text x="165" y="102" text-anchor="middle" font-family="JetBrains Mono" font-size="16" fill="#1E1E2E">=100+200</text>
+                        <text x="165" y="150" text-anchor="middle" font-family="M PLUS 1p" font-size="13" fill="#5A5A72">セルに =100+200 と入力</text>
+                        <!-- Arrow -->
+                        <text x="350" y="110" text-anchor="middle" font-family="M PLUS 1p" font-size="24" fill="#8E8EA0">vs</text>
+                        <!-- Python side -->
+                        <rect x="390" y="20" width="290" height="160" rx="12" fill="#E8EAF2" stroke="#2C3E7B" stroke-width="2"/>
+                        <text x="535" y="55" text-anchor="middle" font-family="Zen Kaku Gothic New" font-size="16" fill="#2C3E7B" font-weight="700">Python</text>
+                        <rect x="420" y="75" width="230" height="40" rx="6" fill="#F0EDE4" stroke="#DDD8CC" stroke-width="1"/>
+                        <text x="535" y="102" text-anchor="middle" font-family="JetBrains Mono" font-size="16" fill="#2C3E7B">print(100+200)</text>
+                        <text x="535" y="150" text-anchor="middle" font-family="M PLUS 1p" font-size="13" fill="#5A5A72">print() に計算式を入れる</text>
+                    </svg>
+                </div>
+                <div class="callout-box business animate-in-delay-1">
+                    <div class="callout-title">Excelで言うと</div>
+                    Excelでセルに <code class="inline">=A1+B1</code> と書くのと同じように、Pythonでは <code class="inline">print(100 + 200)</code> と書きます。考え方はほぼ同じです。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Practice 1 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">色々な計算をしてみよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction animate-in">
+                    <div class="instruction-title">チャレンジ</div>
+                    <p>Google Colabで次の計算を試してみましょう。</p>
+                    <div class="code-block">
+                        <pre><code><span class="function">print</span>(<span class="number">100</span> + <span class="number">200</span>)
+<span class="function">print</span>(<span class="number">500</span> - <span class="number">180</span>)
+<span class="function">print</span>(<span class="number">12</span> * <span class="number">8</span>)
+<span class="function">print</span>(<span class="number">1000</span> / <span class="number">3</span>)</code></pre>
+                    </div>
+                    <p style="color: var(--color-text-secondary); margin-top: var(--spacing-md);">それぞれの結果を予想してから実行してみてください。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 文字と計算を組み合わせる -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">文字と計算を一緒に表示する</h2>
+            <div class="slide-body">
+                <p class="animate-in">printの中で文字列と計算をカンマで区切ると、一緒に表示できます。</p>
+                <div class="code-block animate-in-delay-1">
+                    <pre><code><span class="function">print</span>(<span class="string">"合計:"</span>, <span class="number">100</span> + <span class="number">200</span>)
+<span class="function">print</span>(<span class="string">"残金:"</span>, <span class="number">1000</span> - <span class="number">350</span>)</code></pre>
+                </div>
+                <div class="result-box animate-in-delay-2">合計: 300
+残金: 650</div>
+                <div class="callout-box tip animate-in-delay-3">
+                    <div class="callout-title">カンマ区切りのポイント</div>
+                    カンマ <code class="inline">,</code> で区切ると、自動的にスペースが入って表示されます。見やすくて便利ですね。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Checkpoint -->
+        <div class="slide slide-checkpoint">
+            <span class="checkpoint-badge">ここまでのポイント</span>
+            <h2 class="checkpoint-title">ここまでの確認</h2>
+            <ul class="checkpoint-list">
+                <li class="checkpoint-item animate-in">printの中に計算式を書くと、計算結果が表示される</li>
+                <li class="checkpoint-item animate-in-delay-1">四則演算は <code class="inline">+</code> <code class="inline">-</code> <code class="inline">*</code> <code class="inline">/</code> を使う</li>
+                <li class="checkpoint-item animate-in-delay-2">カンマ <code class="inline">,</code> で文字列と計算を一緒に表示できる</li>
+            </ul>
+        </div>
+
+        <!-- Slide 9: 計算の優先順位 -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">計算の順番と括弧</h2>
+            <div class="slide-body">
+                <p class="animate-in">数学と同じく、掛け算・割り算が足し算・引き算より先に計算されます。順番を変えたいときは括弧を使います。</p>
+                <div class="code-block animate-in-delay-1">
+                    <pre><code><span class="function">print</span>(<span class="number">2</span> + <span class="number">3</span> * <span class="number">4</span>)
+<span class="function">print</span>((<span class="number">2</span> + <span class="number">3</span>) * <span class="number">4</span>)</code></pre>
+                </div>
+                <div class="result-box animate-in-delay-2">14
+20</div>
+                <p class="animate-in-delay-3">最初の式は 3*4=12 を先に計算してから 2+12=14 になります。括弧をつけると 2+3=5 を先に計算してから 5*4=20 になります。</p>
+            </div>
+        </div>
+
+        <!-- Slide 10: Practice 2 - 業務での計算 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">消費税込みの金額を計算しよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction animate-in">
+                    <div class="instruction-title">チャレンジ</div>
+                    <p>商品の税込価格を計算してみましょう。消費税は10%です。</p>
+                    <div class="code-block">
+                        <pre><code><span class="function">print</span>(<span class="string">"税抜価格:"</span>, <span class="number">980</span>)
+<span class="function">print</span>(<span class="string">"税込価格:"</span>, <span class="number">980</span> * <span class="number">1.1</span>)</code></pre>
+                    </div>
+                    <p style="color: var(--color-text-secondary); margin-top: var(--spacing-md);">金額を変えて色々試してみてください。800円のランチ、1500円の書籍など。</p>
+                </div>
+                <div class="callout-box encouragement animate-in-delay-1">
+                    <div class="callout-title">業務で使える計算ができました！</div>
+                    Pythonで消費税計算ができるようになりました。これだけでも業務の手助けになりますね。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 練習問題 - 複数計算 -->
+        <div class="slide slide-practice">
+            <span class="practice-badge">やってみよう</span>
+            <h2 class="slide-heading">お買い物の合計を計算しよう</h2>
+            <div class="slide-body">
+                <div class="practice-instruction animate-in">
+                    <div class="instruction-title">チャレンジ</div>
+                    <p>3つの商品を買ったときの合計金額を計算してみましょう。</p>
+                    <div class="code-block">
+                        <pre><code><span class="function">print</span>(<span class="string">"ノート:"</span>, <span class="number">250</span>)
+<span class="function">print</span>(<span class="string">"ペン:"</span>, <span class="number">180</span>)
+<span class="function">print</span>(<span class="string">"消しゴム:"</span>, <span class="number">120</span>)
+<span class="function">print</span>(<span class="string">"合計:"</span>, <span class="number">250</span> + <span class="number">180</span> + <span class="number">120</span>)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 次のトピック予告 -->
+        <div class="slide slide-content">
+            <h2 class="slide-heading">次のトピックの予告</h2>
+            <div class="slide-body">
+                <p class="animate-in" style="text-align: center; font-size: var(--font-size-lg);">
+                    今回は計算結果をprintで表示する方法を学びました。
+                </p>
+                <p class="animate-in-delay-1" style="text-align: center; margin-top: var(--spacing-lg); color: var(--color-text-secondary);">
+                    次のトピックでは、プログラムにメモを残す<strong style="color: var(--color-primary);">「コメント」</strong>の書き方を学びます。<br>
+                    未来の自分や、チームメンバーのためのメモです。
+                </p>
+                <p class="animate-in-delay-2" style="text-align: center; margin-top: var(--spacing-lg); color: var(--color-text-tertiary);">
+                    計算結果を後で使えるように名前をつける方法は、次の章で学びます。お楽しみに。
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 13: Summary -->
+        <div class="slide slide-summary">
+            <h2 class="summary-title">まとめ</h2>
+            <ul class="summary-list">
+                <li class="summary-item animate-in"><strong>printで計算：</strong>括弧の中に計算式を書くと結果が表示される</li>
+                <li class="summary-item animate-in-delay-1"><strong>四則演算：</strong><code class="inline">+</code>（足す）<code class="inline">-</code>（引く）<code class="inline">*</code>（掛ける）<code class="inline">/</code>（割る）</li>
+                <li class="summary-item animate-in-delay-2"><strong>カンマで結合：</strong>文字列と計算結果をカンマで一緒に表示</li>
+                <li class="summary-item animate-in-delay-3"><strong>括弧で順番制御：</strong>計算の順番を変えたいときは括弧を使う</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <nav class="navigation content-nav">
+        <div class="nav-inner">
+            <button class="content-nav-btn btn-prev" id="prevBtn" onclick="goToPrevious()">前へ</button>
+            <button class="content-nav-btn btn-first" onclick="goToFirst()">最初へ</button>
+            <span class="slide-counter" id="slideNumber">1 / 1</span>
+            <button class="content-nav-btn btn-next" id="nextBtn" onclick="goToNext()">次へ</button>
+        </div>
+    </nav>
+
+    <script>
+        let currentSlide = 1;
+        let totalSlides = 0;
+        function updateSlideInfo() {
+            const slides = document.querySelectorAll('.slide');
+            totalSlides = slides.length;
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index + 1 === currentSlide) slide.classList.add('active');
+                else if (index + 1 < currentSlide) slide.classList.add('prev');
+            });
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = (currentSlide === 1);
+            if (nextBtn) nextBtn.disabled = (currentSlide === totalSlides);
+            const slideNum = document.getElementById('slideNumber');
+            if (slideNum) slideNum.textContent = currentSlide + ' / ' + totalSlides;
+            if (window.slideAPI && window.slideAPI.onSlideChange) window.slideAPI.onSlideChange(currentSlide, totalSlides);
+        }
+        function showSlide(n) { if (n >= 1 && n <= totalSlides) { currentSlide = n; updateSlideInfo(); } }
+        function goToPrevious() { if (currentSlide > 1) { currentSlide--; updateSlideInfo(); } }
+        function goToNext() { if (currentSlide < totalSlides) { currentSlide++; updateSlideInfo(); } }
+        function goToFirst() { currentSlide = 1; updateSlideInfo(); }
+        function goToLast() { currentSlide = totalSlides; updateSlideInfo(); }
+        document.addEventListener('keydown', (e) => {
+            if (document.body.classList.contains('platform-controlled')) return;
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevious(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirst(); }
+            if (e.key === 'End') { e.preventDefault(); goToLast(); }
+        });
+        window.slideAPI = {
+            version: "1.0",
+            getTotalSlides: function() { return totalSlides; },
+            getCurrentSlide: function() { return currentSlide; },
+            showSlide: showSlide, nextSlide: goToNext, prevSlide: goToPrevious,
+            firstSlide: goToFirst, lastSlide: goToLast,
+            hideContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = 'none'; },
+            showContentNav: function() { var nav = document.querySelector('.content-nav'); if (nav) nav.style.display = ''; },
+            setPlatformControlled: function(enabled) { if (enabled) document.body.classList.add('platform-controlled'); else document.body.classList.remove('platform-controlled'); },
+            onSlideChange: null
+        };
+        window.onload = updateSlideInfo;
+    </script>
+</body>
+</html>
