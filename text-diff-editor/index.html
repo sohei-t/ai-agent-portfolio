@@ -701,6 +701,49 @@
       opacity: 0.8;
     }
 
+    /* Splitter 2 (for 3-panel mode) */
+    #splitter-2 {
+      width: 8px;
+      background: var(--bg-splitter);
+      cursor: col-resize;
+      flex-shrink: 0;
+      position: relative;
+      transition: background var(--transition-fast);
+    }
+    #splitter-2:hover,
+    #splitter-2:active {
+      background: var(--accent);
+    }
+    #splitter-2::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 32px;
+      background: var(--text-tertiary);
+      border-radius: 1px;
+      opacity: 0.5;
+    }
+    #splitter-2:hover::after {
+      opacity: 1;
+    }
+    #splitter-2[hidden] {
+      display: none;
+    }
+
+    /* 3-panel mode */
+    .triple-mode #panel-left,
+    .triple-mode #panel-center,
+    .triple-mode #panel-right {
+      flex: none;
+    }
+
+    #panel-center[hidden] {
+      display: none;
+    }
+
     #splitter[hidden] {
       display: none;
     }
@@ -1096,8 +1139,31 @@
       </div>
     </div>
 
-    <!-- Splitter (hidden when not in split mode) -->
+    <!-- Splitter 1 (hidden when not in split mode) -->
     <div id="splitter" hidden role="separator" aria-label="Resize panels" tabindex="0"></div>
+
+    <!-- Center Panel (hidden, shown in 3-panel mode) -->
+    <div id="panel-center" class="editor-panel" hidden>
+      <div class="panel-header">
+        <span class="panel-title">Center</span>
+      </div>
+      <div class="editor-inner">
+        <div id="line-numbers-center" class="line-numbers" aria-hidden="true"></div>
+        <textarea
+          id="editor-center"
+          class="editor-textarea"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="Open a file..."
+          aria-label="Center editor panel"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Splitter 2 (hidden, shown in 3-panel mode) -->
+    <div id="splitter-2" class="splitter-el" hidden role="separator" aria-label="Resize panels" tabindex="0"></div>
 
     <!-- Right Panel (hidden when not in split mode) -->
     <div id="panel-right" class="editor-panel" hidden>
@@ -1162,6 +1228,12 @@
         'left'
       );
 
+      const editorCenter = new EditorManager(
+        document.getElementById('editor-center'),
+        document.getElementById('line-numbers-center'),
+        'center'
+      );
+
       const editorRight = new EditorManager(
         document.getElementById('editor-right'),
         document.getElementById('line-numbers-right'),
@@ -1184,6 +1256,7 @@
       // Apply initial settings
       const initFontSize = Settings.get('fontSize');
       editorLeft.setFontSize(initFontSize);
+      editorCenter.setFontSize(initFontSize);
       editorRight.setFontSize(initFontSize);
       toolbar.updateThemeIcon(themeManager.getTheme());
 
@@ -1198,13 +1271,26 @@
             editorLeft.clearModified();
             break;
 
-          case 'open':
-            fileManager.openFile('left');
+          case 'open': {
+            // Open in the focused panel, or left by default
+            const focusedPanel = document.activeElement?.closest('.editor-panel');
+            const targetId = focusedPanel?.id === 'panel-right' ? 'right'
+              : focusedPanel?.id === 'panel-center' ? 'center' : 'left';
+            fileManager.openFile(targetId);
             break;
+          }
 
-          case 'save':
-            fileManager.saveFile('left', editorLeft.getText());
+          case 'save': {
+            const savePanel = document.activeElement?.closest('.editor-panel');
+            if (savePanel?.id === 'panel-center') {
+              fileManager.saveFile('center', editorCenter.getText());
+            } else if (savePanel?.id === 'panel-right') {
+              fileManager.saveFile('right', editorRight.getText());
+            } else {
+              fileManager.saveFile('left', editorLeft.getText());
+            }
             break;
+          }
 
           case 'split':
             splitView.toggle();
@@ -1221,6 +1307,7 @@
           case 'font-decrease': {
             const size = Math.max(12, (parseFloat(editorLeft.textarea.style.fontSize) || initFontSize) - 2);
             editorLeft.setFontSize(size);
+            editorCenter.setFontSize(size);
             editorRight.setFontSize(size);
             Settings.set('fontSize', size);
             break;
@@ -1229,6 +1316,7 @@
           case 'font-increase': {
             const size = Math.min(48, (parseFloat(editorLeft.textarea.style.fontSize) || initFontSize) + 2);
             editorLeft.setFontSize(size);
+            editorCenter.setFontSize(size);
             editorRight.setFontSize(size);
             Settings.set('fontSize', size);
             break;
@@ -1253,6 +1341,11 @@
           editorLeft.clearModified();
           editorLeft.fileName = data.name;
           editorLeft.fileHandle = data.handle;
+        } else if (data.panelId === 'center') {
+          editorCenter.setText(data.content);
+          editorCenter.clearModified();
+          editorCenter.fileName = data.name;
+          editorCenter.fileHandle = data.handle;
         } else {
           editorRight.setText(data.content);
           editorRight.clearModified();
@@ -1435,8 +1528,9 @@
       // ============================================================
       // Prevent browser zoom (Cmd+scroll), allow our custom zoom
       // ============================================================
+      // Prevent browser zoom on Cmd+scroll and pinch, let normal scroll through
       document.addEventListener('wheel', (e) => {
-        if (e.ctrlKey) {
+        if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
         }
       }, { passive: false });
@@ -1464,6 +1558,7 @@
       // ============================================================
       window.App = {
         editorLeft,
+        editorCenter,
         editorRight,
         zoomController,
         panController,
@@ -1481,7 +1576,7 @@
       // Unsaved Changes Warning (beforeunload)
       // ============================================================
       window.addEventListener('beforeunload', (e) => {
-        if (editorLeft.modified || editorRight.modified) {
+        if (editorLeft.modified || editorCenter.modified || editorRight.modified) {
           e.preventDefault();
           e.returnValue = '';
         }
@@ -1493,7 +1588,7 @@
       if (!Settings.get('welcomeShown')) {
         setTimeout(() => {
           toast.show(
-            'Welcome! Open a file (Cmd+O) or start typing. Use Cmd+\\ to compare files.',
+            'Welcome! Open a file (Cmd+O) or start typing. Cmd+Scroll to zoom. Cmd+\\ to split.',
             'info',
             6000
           );
@@ -1507,7 +1602,7 @@
       if (!Settings.get('panHintShown')) {
         const panHint = document.createElement('div');
         panHint.className = 'pan-hint';
-        panHint.textContent = 'Tip: Hold Alt and drag to pan the editor';
+        panHint.textContent = 'Tip: Cmd + Scroll to zoom. Alt + Drag to pan.';
         document.body.appendChild(panHint);
         setTimeout(() => { panHint.classList.add('visible'); }, 1000);
         setTimeout(() => {

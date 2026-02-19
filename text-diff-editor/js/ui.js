@@ -496,7 +496,18 @@ class Toolbar {
 
     EventBus.on('split:toggle', (data) => {
       const splitBtn = document.getElementById('btn-split');
+      const splitLabel = splitBtn?.querySelector('.toolbar-label');
+      const splitIcon = splitBtn?.querySelector('.toolbar-icon');
       if (splitBtn) splitBtn.classList.toggle('active', data.enabled);
+
+      // Update button label to show pane count
+      const count = data.paneCount || (data.enabled ? 2 : 0);
+      if (splitLabel) {
+        splitLabel.textContent = count === 3 ? '3-Split' : count === 2 ? '2-Split' : 'Split';
+      }
+      if (splitIcon) {
+        splitIcon.innerHTML = count === 3 ? '&#x2B1C;&#x2B1C;&#x2B1C;' : '&#x2B1C;';
+      }
 
       const prevBtn = document.getElementById('btn-diff-prev');
       const nextBtn = document.getElementById('btn-diff-next');
