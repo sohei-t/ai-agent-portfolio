@@ -598,6 +598,7 @@ class SplitView {
    */
   setSyncScroll(enabled) {
     this.syncScroll = enabled;
+    EventBus.emit('sync:change', { enabled });
   }
 
   _navigateDiff(direction) {
