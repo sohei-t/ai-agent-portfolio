@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'text-diff-editor-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package text-diff-editor
+        run: |
+          cd text-diff-editor
+          zip -r ../text-diff-editor-${{ github.ref_name }}.zip \
+            index.html \
+            about.html \
+            explanation.mp3 \
+            README.md \
+            js/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Text Diff Editor ${{ github.ref_name }}"
+          body: |
+            ## Text Diff Editor
+
+            老眼に優しいテキストエディター - Magic Mouse ピンチズーム対応
+
+            ### ダウンロード・使い方
+            1. 下の `text-diff-editor-${{ github.ref_name }}.zip` をダウンロード
+            2. zipを解凍
+            3. `index.html` をブラウザで開く
+
+            ### オンラインで試す
+            - [Live Demo](https://sohei-t.github.io/ai-agent-portfolio/text-diff-editor/)
+            - [About / 解説ページ](https://sohei-t.github.io/ai-agent-portfolio/text-diff-editor/about.html)
+            - [音声解説](https://sohei-t.github.io/ai-agent-portfolio/text-diff-editor/explanation.mp3)
+          files: text-diff-editor-${{ github.ref_name }}.zip
