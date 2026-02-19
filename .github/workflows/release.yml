@@ -14,10 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          # text-diff-editor-v1.0.0 → v1.0.0
+          VERSION="${GITHUB_REF_NAME#text-diff-editor-}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zipname=text-diff-editor-${VERSION}.zip" >> "$GITHUB_OUTPUT"
+
       - name: Package text-diff-editor
         run: |
           cd text-diff-editor
-          zip -r ../text-diff-editor-${{ github.ref_name }}.zip \
+          zip -r ../${{ steps.version.outputs.zipname }} \
             index.html \
             about.html \
             explanation.mp3 \
@@ -27,19 +35,19 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Text Diff Editor ${{ github.ref_name }}"
+          name: "Text Diff Editor ${{ steps.version.outputs.version }}"
           body: |
-            ## Text Diff Editor
+            ## Text Diff Editor ${{ steps.version.outputs.version }}
 
             老眼に優しいテキストエディター - Magic Mouse ピンチズーム対応
 
             ### ダウンロード・使い方
-            1. 下の `text-diff-editor-${{ github.ref_name }}.zip` をダウンロード
-            2. zipを解凍
+            1. 下の **${{ steps.version.outputs.zipname }}** をダウンロード
+            2. zip を解凍
             3. `index.html` をブラウザで開く
 
             ### オンラインで試す
             - [Live Demo](https://sohei-t.github.io/ai-agent-portfolio/text-diff-editor/)
             - [About / 解説ページ](https://sohei-t.github.io/ai-agent-portfolio/text-diff-editor/about.html)
             - [音声解説](https://sohei-t.github.io/ai-agent-portfolio/text-diff-editor/explanation.mp3)
-          files: text-diff-editor-${{ github.ref_name }}.zip
+          files: ${{ steps.version.outputs.zipname }}
