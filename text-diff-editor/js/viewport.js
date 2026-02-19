@@ -28,6 +28,15 @@ class ZoomController {
     this.zoomTimer = null;
     this.enabled = true;
 
+    // Track Cmd key state independently (browser may not set metaKey on wheel events)
+    this._cmdPressed = false;
+    this._onKeyDown = (e) => { if (e.key === 'Meta') this._cmdPressed = true; };
+    this._onKeyUp = (e) => { if (e.key === 'Meta') this._cmdPressed = false; };
+    this._onBlur = () => { this._cmdPressed = false; };
+    document.addEventListener('keydown', this._onKeyDown);
+    document.addEventListener('keyup', this._onKeyUp);
+    window.addEventListener('blur', this._onBlur);
+
     // Throttled zoom change emission for performance
     this._throttledEmit = Utils.throttle((data) => {
       EventBus.emit('zoom:change', data);
@@ -40,7 +49,11 @@ class ZoomController {
   /** @private */
   _handleWheel(e) {
     if (!this.enabled) return;
-    if (!e.ctrlKey) return;
+
+    // Zoom triggers: Pinch (ctrlKey), Cmd+scroll (_cmdPressed or metaKey)
+    const isZoom = e.ctrlKey || e.metaKey || this._cmdPressed;
+    if (!isZoom) return; // Regular scroll = normal textarea scrolling
+
     e.preventDefault();
 
     const delta = -e.deltaY * this.zoomStep;
@@ -149,6 +162,9 @@ class ZoomController {
   destroy() {
     clearTimeout(this.zoomTimer);
     this.container.removeEventListener('wheel', this._handleWheel);
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
+    window.removeEventListener('blur', this._onBlur);
   }
 }
 
