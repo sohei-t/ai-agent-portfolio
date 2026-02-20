@@ -1728,18 +1728,8 @@
         }
       });
 
-      // ============================================================
-      // Prevent browser zoom (Cmd+scroll and pinch), allow our custom zoom
-      // ============================================================
-      document.addEventListener('wheel', (e) => {
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-        }
-      }, { passive: false });
-
-      // Prevent Safari native pinch zoom (Magic Mouse / Trackpad)
-      document.addEventListener('gesturestart', (e) => e.preventDefault());
-      document.addEventListener('gesturechange', (e) => e.preventDefault());
+      // Browser zoom prevention (Cmd+scroll, pinch) is handled by
+      // ZoomController in viewport.js (all listeners on document level)
 
       // ============================================================
       // Initial State: Trigger diff if split mode was remembered
