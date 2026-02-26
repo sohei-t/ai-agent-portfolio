@@ -91,8 +91,8 @@ class Dashboard {
     // Announce tab change to screen readers
     const announcer = document.getElementById('sr-announcer');
     if (announcer) {
-      const tabLabel = tab === 'all' ? 'All projects' : tab;
-      announcer.textContent = `Showing ${tabLabel}`;
+      const tabLabel = tab === 'all' ? I18n.t('a11y.all') : (I18n.t(`agent.${tab}`) || tab);
+      announcer.textContent = I18n.t('a11y.showing', { tab: tabLabel });
     }
   }
 

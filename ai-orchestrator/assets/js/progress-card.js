@@ -11,12 +11,18 @@ class ProgressCard {
   }
 
   static AGENT_COLORS = {
-    'git-worktree-agent': { bg: '#3B82F6', label: 'Web Dev' },
-    'learning-content-agent': { bg: '#10B981', label: 'Learn' },
-    'learning-content-agent-gcp': { bg: '#F59E0B', label: 'GCP' },
-    'skill-publish-agent': { bg: '#8B5CF6', label: 'Skill' },
-    'video-generator-agent': { bg: '#EF4444', label: 'Video' },
+    'git-worktree-agent': { bg: '#3B82F6', labelKey: 'agent.git-worktree-agent' },
+    'learning-content-agent': { bg: '#10B981', labelKey: 'agent.learning-content-agent' },
+    'learning-content-agent-gcp': { bg: '#F59E0B', labelKey: 'agent.learning-content-agent-gcp' },
+    'skill-publish-agent': { bg: '#8B5CF6', labelKey: 'agent.skill-publish-agent' },
+    'video-generator-agent': { bg: '#EF4444', labelKey: 'agent.video-generator-agent' },
   };
+
+  static _agentLabel(agentType) {
+    const agent = ProgressCard.AGENT_COLORS[agentType];
+    if (!agent) return 'Unknown';
+    return I18n.t(agent.labelKey);
+  }
 
   static STATUS_ICONS = {
     pending: '\u2B1C',
@@ -27,13 +33,9 @@ class ProgressCard {
     paused: '\u23F8\uFE0F',
   };
 
-  static STATUS_LABELS = {
-    idle: 'Idle',
-    in_progress: 'In Progress',
-    completed: 'Completed',
-    failed: 'Failed',
-    paused: 'Paused',
-  };
+  static _statusLabel(status) {
+    return I18n.t(`status.${status}`) || status;
+  }
 
   /**
    * Render or update a project card
@@ -51,13 +53,13 @@ class ProgressCard {
    */
   create(project) {
     const card = document.createElement('article');
-    const agent = ProgressCard.AGENT_COLORS[project.agent_type] || { bg: '#64748b', label: 'Unknown' };
+    const agent = ProgressCard.AGENT_COLORS[project.agent_type] || { bg: '#64748b', labelKey: null };
 
     card.className = 'progress-card bg-slate-800 rounded-xl border border-slate-700 overflow-hidden';
     card.dataset.projectId = project.id;
     card.dataset.agentType = project.agent_type;
     card.style.setProperty('--card-accent-color', agent.bg);
-    card.setAttribute('aria-label', `Project: ${this._escape(project.name)} - ${ProgressCard.STATUS_LABELS[project.status] || project.status}`);
+    card.setAttribute('aria-label', `Project: ${this._escape(project.name)} - ${ProgressCard._statusLabel(project.status)}`);
     card.innerHTML = this._template(project);
 
     // Header click to expand/collapse
@@ -113,7 +115,7 @@ class ProgressCard {
     const card = this.cards.get(project.id);
     if (!card) return;
 
-    const agent = ProgressCard.AGENT_COLORS[project.agent_type] || { bg: '#64748b', label: 'Unknown' };
+    const agent = ProgressCard.AGENT_COLORS[project.agent_type] || { bg: '#64748b', labelKey: null };
     const percent = project.progress_percent || 0;
     const status = project.status || 'idle';
 
@@ -148,7 +150,7 @@ class ProgressCard {
     // Update status text
     const statusText = card.querySelector('.status-text');
     if (statusText) {
-      const label = ProgressCard.STATUS_LABELS[status] || status;
+      const label = ProgressCard._statusLabel(status);
       if (statusText.textContent !== label) {
         statusText.textContent = label;
       }
@@ -176,7 +178,7 @@ class ProgressCard {
     }
 
     // Update ARIA label
-    card.setAttribute('aria-label', `Project: ${this._escape(project.name)} - ${ProgressCard.STATUS_LABELS[status] || status}`);
+    card.setAttribute('aria-label', `Project: ${this._escape(project.name)} - ${ProgressCard._statusLabel(status)}`);
 
     // Pulse animation (avoid re-triggering if already pulsing)
     if (!card.classList.contains('card-pulse')) {
@@ -216,22 +218,22 @@ class ProgressCard {
     try {
       await navigator.clipboard.writeText(text);
       button.classList.add('copied');
-      button.setAttribute('aria-label', 'Copied!');
+      button.setAttribute('aria-label', I18n.t('card.copied'));
 
       // Announce to screen readers
       const announcer = document.getElementById('sr-announcer');
       if (announcer) {
-        announcer.textContent = 'Path copied to clipboard';
+        announcer.textContent = I18n.t('a11y.path_copied');
       }
 
       setTimeout(() => {
         button.classList.remove('copied');
-        button.setAttribute('aria-label', 'Copy project path');
+        button.setAttribute('aria-label', I18n.t('card.copy'));
       }, 2000);
     } catch {
       // Fallback
       if (typeof window.showToast === 'function') {
-        window.showToast('Failed to copy', 'error');
+        window.showToast(I18n.t('toast.copy.fail'), 'error');
       }
     }
   }
@@ -240,10 +242,11 @@ class ProgressCard {
    * Card HTML template with semantic elements
    */
   _template(project) {
-    const agent = ProgressCard.AGENT_COLORS[project.agent_type] || { bg: '#64748b', label: 'Unknown' };
+    const agent = ProgressCard.AGENT_COLORS[project.agent_type] || { bg: '#64748b', labelKey: null };
+    const agentLabel = ProgressCard._agentLabel(project.agent_type);
     const percent = project.progress_percent || 0;
     const status = project.status || 'idle';
-    const statusLabel = ProgressCard.STATUS_LABELS[status] || status;
+    const statusLabel = ProgressCard._statusLabel(status);
     const phase = project.current_phase || '--';
     const time = this._relativeTime(project.updated_at);
     const shimmerClass = status === 'in_progress' ? 'shimmer' : '';
@@ -252,20 +255,20 @@ class ProgressCard {
       <div class="card-header cursor-pointer p-4 hover:bg-slate-750 transition-colors"
            role="button" tabindex="0"
            aria-expanded="false"
-           aria-label="Toggle details for ${this._escape(project.name)}">
+           aria-label="${I18n.t('card.toggle')} ${this._escape(project.name)}">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2 min-w-0">
             <span class="status-dot ${status}" aria-hidden="true"></span>
             <h3 class="font-semibold text-sm truncate">${this._escape(project.name)}</h3>
-            <span class="agent-badge ${project.agent_type}" aria-label="Agent type: ${agent.label}">${agent.label}</span>
+            <span class="agent-badge ${project.agent_type}" aria-label="${agentLabel}">${agentLabel}</span>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <span class="percent-text text-sm font-mono font-bold" style="color: ${agent.bg}" aria-label="${percent} percent complete">${percent}%</span>
+            <span class="percent-text text-sm font-mono font-bold" style="color: ${agent.bg}" aria-label="${percent}%">${percent}%</span>
             <i data-lucide="chevron-down" class="card-chevron w-4 h-4 text-slate-500" aria-hidden="true"></i>
           </div>
         </div>
 
-        <div class="progress-bar mb-2" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress: ${percent}%">
+        <div class="progress-bar mb-2" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" aria-label="${percent}%">
           <div class="progress-bar-fill ${shimmerClass}" style="width: ${percent}%; background-color: ${agent.bg}"></div>
         </div>
 
@@ -277,10 +280,10 @@ class ProgressCard {
           <div class="flex items-center gap-1">
             <span class="time-text" title="${project.updated_at || ''}">${time}</span>
             ${project.path ? `
-            <button class="btn-copy p-1 rounded hover:bg-slate-700 transition-colors" title="Copy path" aria-label="Copy project path">
+            <button class="btn-copy p-1 rounded hover:bg-slate-700 transition-colors" title="${I18n.t('card.copy')}" aria-label="${I18n.t('card.copy')}">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
             </button>` : ''}
-            <button class="btn-delete p-1 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors" title="Remove" aria-label="Remove project ${this._escape(project.name)}">
+            <button class="btn-delete p-1 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors" title="${I18n.t('card.remove')}" aria-label="${I18n.t('card.remove')} ${this._escape(project.name)}">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
@@ -289,7 +292,7 @@ class ProgressCard {
 
       <div class="card-details" aria-hidden="true">
         <div class="card-details-content border-t border-slate-700 p-4">
-          ${project.progress_data ? this._detailsTemplate(project.progress_data) : '<p class="text-xs text-slate-500">No progress data yet</p>'}
+          ${project.progress_data ? this._detailsTemplate(project.progress_data) : `<p class="text-xs text-slate-500">${I18n.t('card.nodata')}</p>`}
         </div>
       </div>
     `;
@@ -300,7 +303,7 @@ class ProgressCard {
    */
   _detailsTemplate(data) {
     if (!data || !data.phases) {
-      return '<p class="text-xs text-slate-500">No phase data available</p>';
+      return `<p class="text-xs text-slate-500">${I18n.t('card.nophase')}</p>`;
     }
 
     return data.phases.map((phase) => {
@@ -341,10 +344,10 @@ class ProgressCard {
     const diffHr = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHr / 24);
 
-    if (diffSec < 60) return 'just now';
-    if (diffMin < 60) return `${diffMin}m ago`;
-    if (diffHr < 24) return `${diffHr}h ago`;
-    return `${diffDay}d ago`;
+    if (diffSec < 60) return I18n.t('time.now');
+    if (diffMin < 60) return `${diffMin}${I18n.t('time.min')}`;
+    if (diffHr < 24) return `${diffHr}${I18n.t('time.hour')}`;
+    return `${diffDay}${I18n.t('time.day')}`;
   }
 
   /**

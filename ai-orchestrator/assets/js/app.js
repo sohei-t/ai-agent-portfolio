@@ -24,13 +24,8 @@
         icon.className = `w-2 h-2 rounded-full ${status}`;
       }
       if (text) {
-        const labels = {
-          connected: 'Connected',
-          connecting: 'Connecting...',
-          disconnected: 'Disconnected',
-          failed: 'Failed',
-        };
-        text.textContent = labels[status] || status;
+        const key = `sse.${status}`;
+        text.textContent = I18n.t(key);
       }
     });
 
@@ -44,7 +39,7 @@
     sseClient.on('project_added', (project) => {
       if (project && project.id) {
         dashboard.setProject(project);
-        showToast(`Project added: ${project.name}`, 'success');
+        showToast(I18n.t('toast.added', { name: project.name }), 'success');
       }
     });
 
@@ -59,7 +54,7 @@
     });
 
     sseClient.on('error', (data) => {
-      showToast(`Error: ${data.error ? data.error.message : 'Unknown'}`, 'error');
+      showToast(I18n.t('toast.error', { message: data.error ? data.error.message : 'Unknown' }), 'error');
     });
 
     // Initialize dashboard
@@ -71,18 +66,18 @@
 
     // Delete handler
     progressCard.onDelete = async (projectId) => {
-      if (!confirm('Remove this project from monitoring?')) return;
+      if (!confirm(I18n.t('confirm.remove'))) return;
       try {
         const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
         if (res.ok) {
           dashboard.removeProject(projectId);
-          showToast('Project removed', 'success');
+          showToast(I18n.t('toast.removed'), 'success');
         } else {
           const err = await res.json();
-          showToast(err.error || 'Failed to remove', 'error');
+          showToast(err.error || I18n.t('toast.remove.fail'), 'error');
         }
       } catch (err) {
-        showToast('Network error', 'error');
+        showToast(I18n.t('toast.network'), 'error');
       }
     };
 
@@ -174,12 +169,12 @@
         let hasError = false;
 
         if (!body.name || body.name.trim().length < 2) {
-          showFieldError('field-name', 'Name must be at least 2 characters');
+          showFieldError('field-name', I18n.t('validate.name'));
           hasError = true;
         }
 
         if (!body.path || !body.path.startsWith('/')) {
-          showFieldError('field-path', 'Please enter an absolute path starting with /');
+          showFieldError('field-path', I18n.t('validate.path'));
           hasError = true;
         }
 
@@ -188,7 +183,7 @@
         const submitBtn = registerForm.querySelector('button[type="submit"]');
         if (submitBtn) {
           submitBtn.disabled = true;
-          submitBtn.textContent = 'Registering...';
+          submitBtn.textContent = I18n.t('modal.submitting');
         }
 
         try {
@@ -203,17 +198,17 @@
             dashboard.setProject(project);
             closeModal();
             registerForm.reset();
-            showToast(`Registered: ${project.name}`, 'success');
+            showToast(I18n.t('toast.register.ok', { name: project.name }), 'success');
           } else {
             const err = await res.json();
-            showToast(err.error || 'Registration failed', 'error');
+            showToast(err.error || I18n.t('toast.register.fail'), 'error');
           }
         } catch (err) {
-          showToast('Network error', 'error');
+          showToast(I18n.t('toast.network'), 'error');
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Register';
+            submitBtn.textContent = I18n.t('modal.submit');
           }
         }
       });
@@ -243,7 +238,7 @@
 
     const doScan = async () => {
       try {
-        showToast('Scanning directories...', 'info');
+        showToast(I18n.t('toast.scan'), 'info');
         const res = await fetch('/api/projects/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -252,13 +247,13 @@
 
         if (res.ok) {
           const data = await res.json();
-          showToast(`Found ${data.added.length} new, ${data.existing.length} existing`, 'success');
+          showToast(I18n.t('toast.scan.result', { new: data.added.length, existing: data.existing.length }), 'success');
           dashboard.loadProjects();
         } else {
-          showToast('Scan failed', 'error');
+          showToast(I18n.t('toast.scan.fail'), 'error');
         }
       } catch (err) {
-        showToast('Network error', 'error');
+        showToast(I18n.t('toast.network'), 'error');
       }
     };
 
@@ -269,7 +264,7 @@
     const btnSettings = document.getElementById('btn-settings');
     if (btnSettings) {
       btnSettings.addEventListener('click', () => {
-        showToast('Settings panel coming soon', 'info');
+        showToast(I18n.t('toast.settings'), 'info');
       });
     }
 
@@ -340,7 +335,7 @@
         case 'r':
         case 'R':
           e.preventDefault();
-          showToast('Reloading projects...', 'info');
+          showToast(I18n.t('toast.reload'), 'info');
           dashboard.loadProjects();
           break;
         case '/':
@@ -360,6 +355,39 @@
           break;
       }
     });
+
+    // ===== Language Toggle =====
+    const langToggle = document.getElementById('lang-toggle');
+    if (langToggle) {
+      const updateLangButtons = () => {
+        const lang = I18n.getLang();
+        langToggle.querySelectorAll('.lang-btn').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+      };
+
+      langToggle.addEventListener('click', (e) => {
+        const btn = e.target.closest('.lang-btn');
+        if (btn && btn.dataset.lang) {
+          I18n.setLang(btn.dataset.lang);
+          updateLangButtons();
+          // Re-render cards with new language
+          dashboard.filterAndRender();
+        }
+      });
+
+      // Listen for language change events (e.g. from other components)
+      window.addEventListener('langchange', () => {
+        updateLangButtons();
+        dashboard.filterAndRender();
+      });
+
+      // Set initial active state
+      updateLangButtons();
+    }
+
+    // ===== Init i18n =====
+    I18n.applyTranslations();
 
     // ===== Init Lucide Icons =====
     if (typeof lucide !== 'undefined') {
