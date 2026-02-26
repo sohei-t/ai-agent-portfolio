@@ -1,0 +1,55 @@
+project:
+  name: ""
+  agent_type: "video-generator-agent"
+  status: "idle"
+  started_at: ""
+  updated_at: ""
+
+progress:
+  overall_percent: 0
+  current_phase: "phase0-init"
+
+phases:
+  - name: "Phase 0: Initialization"
+    status: "pending"
+    steps:
+      - name: "Environment setup"
+        done: false
+      - name: "Asset preparation"
+        done: false
+
+  - name: "Phase 1: Script & Storyboard"
+    status: "pending"
+    steps:
+      - name: "Script generation"
+        done: false
+      - name: "Storyboard creation"
+        done: false
+
+  - name: "Phase 2: Production"
+    status: "pending"
+    steps:
+      - name: "Visual generation"
+        done: false
+      - name: "Audio generation"
+        done: false
+      - name: "Assembly"
+        done: false
+
+  - name: "Phase 3: Post-production"
+    status: "pending"
+    steps:
+      - name: "Editing"
+        done: false
+      - name: "Quality review"
+        done: false
+
+  - name: "Phase 4: Delivery"
+    status: "pending"
+    steps:
+      - name: "Export"
+        done: false
+      - name: "Publishing"
+        done: false
+
+errors: []

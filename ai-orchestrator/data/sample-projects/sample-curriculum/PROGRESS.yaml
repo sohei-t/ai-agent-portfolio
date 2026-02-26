@@ -1,0 +1,77 @@
+project:
+  name: "Python Basics Curriculum"
+  agent_type: "learning-content-agent"
+  status: "in_progress"
+  started_at: "2026-02-25T10:00:00+09:00"
+  updated_at: "2026-02-26T11:20:00+09:00"
+
+progress:
+  overall_percent: 38
+  current_phase: "phase2-content-generation"
+
+phases:
+  - name: "Phase 0: Initialization"
+    status: "completed"
+    steps:
+      - name: "Environment setup"
+        done: true
+      - name: "Curriculum structure"
+        done: true
+
+  - name: "Phase 1: Analysis"
+    status: "completed"
+    steps:
+      - name: "Topic analysis"
+        done: true
+      - name: "Learning objectives"
+        done: true
+
+  - name: "Phase 1.5: Prompt Design"
+    status: "completed"
+    steps:
+      - name: "Prompt engineering"
+        done: true
+      - name: "Quality criteria"
+        done: true
+
+  - name: "Phase 2: Content Generation"
+    status: "in_progress"
+    steps:
+      - name: "Module generation"
+        done: true
+      - name: "Exercise creation"
+        done: false
+
+  - name: "Phase 2.5: Review"
+    status: "pending"
+    steps:
+      - name: "Content review"
+        done: false
+      - name: "Accuracy check"
+        done: false
+
+  - name: "Phase 3: Enhancement"
+    status: "pending"
+    steps:
+      - name: "Visual elements"
+        done: false
+      - name: "Interactive components"
+        done: false
+
+  - name: "Phase 4: Testing"
+    status: "pending"
+    steps:
+      - name: "Content validation"
+        done: false
+      - name: "User flow testing"
+        done: false
+
+  - name: "Phase 5: Delivery"
+    status: "pending"
+    steps:
+      - name: "Final packaging"
+        done: false
+      - name: "Documentation"
+        done: false
+
+errors: []

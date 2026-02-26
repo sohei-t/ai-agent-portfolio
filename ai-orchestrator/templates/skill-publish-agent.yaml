@@ -1,0 +1,61 @@
+project:
+  name: ""
+  agent_type: "skill-publish-agent"
+  status: "idle"
+  started_at: ""
+  updated_at: ""
+
+progress:
+  overall_percent: 0
+  current_phase: "phase0-init"
+
+phases:
+  - name: "Phase 0: Initialization"
+    status: "pending"
+    steps:
+      - name: "Environment setup"
+        done: false
+      - name: "Skill template"
+        done: false
+
+  - name: "Phase 1: Development"
+    status: "pending"
+    steps:
+      - name: "Skill implementation"
+        done: false
+      - name: "Documentation"
+        done: false
+
+  - name: "Phase 2: Testing"
+    status: "pending"
+    steps:
+      - name: "Unit tests"
+        done: false
+      - name: "Integration tests"
+        done: false
+
+  - name: "Phase 3: Packaging"
+    status: "pending"
+    steps:
+      - name: "Package creation"
+        done: false
+      - name: "Version management"
+        done: false
+
+  - name: "Phase 4: Publishing"
+    status: "pending"
+    steps:
+      - name: "Registry publish"
+        done: false
+      - name: "Verification"
+        done: false
+
+  - name: "Phase 5: Release"
+    status: "pending"
+    steps:
+      - name: "Release notes"
+        done: false
+      - name: "Announcement"
+        done: false
+
+errors: []
