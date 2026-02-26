@@ -1,0 +1,83 @@
+project:
+  name: ""
+  agent_type: "learning-content-agent-gcp"
+  status: "idle"
+  started_at: ""
+  updated_at: ""
+
+progress:
+  overall_percent: 0
+  current_phase: "phase0-init"
+
+phases:
+  - name: "Phase 0: Initialization"
+    status: "pending"
+    steps:
+      - name: "Environment setup"
+        done: false
+      - name: "GCP authentication"
+        done: false
+
+  - name: "Phase 1: Analysis"
+    status: "pending"
+    steps:
+      - name: "Topic analysis"
+        done: false
+      - name: "Learning objectives"
+        done: false
+
+  - name: "Phase 1.5: Prompt Design"
+    status: "pending"
+    steps:
+      - name: "GCP Vertex AI prompt"
+        done: false
+      - name: "Quality criteria"
+        done: false
+
+  - name: "Phase 2: Content Generation"
+    status: "pending"
+    steps:
+      - name: "Module generation (GCP)"
+        done: false
+      - name: "Exercise creation"
+        done: false
+
+  - name: "Phase 2.5: Review"
+    status: "pending"
+    steps:
+      - name: "Content review"
+        done: false
+      - name: "Accuracy check"
+        done: false
+
+  - name: "Phase 3: Enhancement"
+    status: "pending"
+    steps:
+      - name: "Visual elements"
+        done: false
+      - name: "Interactive components"
+        done: false
+
+  - name: "Phase 4: Testing"
+    status: "pending"
+    steps:
+      - name: "Content validation"
+        done: false
+      - name: "User flow testing"
+        done: false
+
+  - name: "Phase 5: Delivery"
+    status: "pending"
+    steps:
+      - name: "Final packaging"
+        done: false
+      - name: "Documentation"
+        done: false
+
+  - name: "Phase 7: Publishing"
+    status: "pending"
+    steps:
+      - name: "GitHub push"
+        done: false
+
+errors: []
