@@ -1,0 +1,55 @@
+project:
+  name: "AI Demo Video"
+  agent_type: "video-generator-agent"
+  status: "in_progress"
+  started_at: "2026-02-26T08:00:00+09:00"
+  updated_at: "2026-02-26T10:15:00+09:00"
+
+progress:
+  overall_percent: 25
+  current_phase: "phase1-script"
+
+phases:
+  - name: "Phase 0: Initialization"
+    status: "completed"
+    steps:
+      - name: "Environment setup"
+        done: true
+      - name: "Asset preparation"
+        done: true
+
+  - name: "Phase 1: Script & Storyboard"
+    status: "in_progress"
+    steps:
+      - name: "Script generation"
+        done: true
+      - name: "Storyboard creation"
+        done: false
+
+  - name: "Phase 2: Production"
+    status: "pending"
+    steps:
+      - name: "Visual generation"
+        done: false
+      - name: "Audio generation"
+        done: false
+      - name: "Assembly"
+        done: false
+
+  - name: "Phase 3: Post-production"
+    status: "pending"
+    steps:
+      - name: "Editing"
+        done: false
+      - name: "Quality review"
+        done: false
+
+  - name: "Phase 4: Delivery"
+    status: "pending"
+    steps:
+      - name: "Export"
+        done: false
+      - name: "Publishing"
+        done: false
+
+errors: []

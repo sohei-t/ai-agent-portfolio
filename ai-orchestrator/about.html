@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI Orchestrator Dashboard - About page. Real-time monitoring for AI agent workflows.">
+  <title>About - AI Orchestrator Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            agent: {
+              git: '#3B82F6',
+              learn: '#10B981',
+              gcp: '#F59E0B',
+              skill: '#8B5CF6',
+              video: '#EF4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Base */
+    html { scroll-behavior: smooth; }
+    body { font-feature-settings: 'kern' 1; -webkit-font-smoothing: antialiased; }
+
+    /* Glassmorphism card */
+    .glass-card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(71, 85, 105, 0.4);
+      border-radius: 1rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border-color: rgba(96, 165, 250, 0.3);
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Shimmer line */
+    .shimmer-line {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.6), transparent);
+      animation: shimmer-move 3s ease-in-out infinite;
+      border-radius: 2px;
+    }
+    @keyframes shimmer-move {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Section reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Glow dot */
+    .glow-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px currentColor; }
+      50% { opacity: 0.5; box-shadow: 0 0 12px currentColor; }
+    }
+
+    /* Feature icon container */
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Architecture diagram */
+    .arch-diagram {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.75rem;
+      line-height: 1.4;
+      overflow-x: auto;
+      white-space: pre;
+      color: #94a3b8;
+    }
+
+    /* Phase timeline */
+    .phase-step {
+      position: relative;
+      padding-left: 2.5rem;
+    }
+    .phase-step::before {
+      content: '';
+      position: absolute;
+      left: 0.75rem;
+      top: 1.75rem;
+      bottom: -0.5rem;
+      width: 2px;
+      background: linear-gradient(to bottom, rgba(96, 165, 250, 0.4), rgba(139, 92, 246, 0.2));
+    }
+    .phase-step:last-child::before { display: none; }
+    .phase-dot {
+      position: absolute;
+      left: 0.375rem;
+      top: 0.375rem;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      border: 2px solid;
+      background: #0f172a;
+    }
+
+    /* Audio player */
+    .audio-progress {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1e293b;
+      outline: none;
+      cursor: pointer;
+    }
+    .audio-progress::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #60a5fa;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+    }
+    .audio-progress::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #60a5fa;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+    }
+    .audio-progress::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+    }
+
+    /* Language switch button */
+    .lang-btn {
+      transition: all 0.2s ease;
+    }
+    .lang-btn.active {
+      background-color: rgba(96, 165, 250, 0.2);
+      color: #60a5fa;
+      border-color: rgba(96, 165, 250, 0.4);
+    }
+
+    /* Metric counter */
+    .metric-value {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Table */
+    .tech-table th { text-align: left; }
+    .tech-table tr { border-bottom: 1px solid rgba(71, 85, 105, 0.3); }
+    .tech-table tr:last-child { border-bottom: none; }
+
+    /* Focus visible */
+    button:focus-visible, a:focus-visible, input:focus-visible {
+      outline: 2px solid #60a5fa;
+      outline-offset: 2px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      html { scroll-behavior: auto; }
+    }
+
+    /* Print */
+    @media print {
+      body { background: white; color: black; }
+      .glass-card { border: 1px solid #ccc; background: white; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+  <!-- Skip link -->
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-br-lg">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md no-print" role="banner">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <a href="./index.html" class="flex items-center gap-3 group" aria-label="Back to dashboard">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center" aria-hidden="true">
+          <i data-lucide="activity" class="w-5 h-5 text-white"></i>
+        </div>
+        <span class="text-lg font-bold gradient-text group-hover:opacity-80 transition-opacity">AI Orchestrator</span>
+      </a>
+
+      <!-- Language Switcher -->
+      <div class="flex items-center gap-1 bg-slate-800/60 rounded-lg p-0.5 border border-slate-700" role="group" aria-label="Language selection">
+        <button id="btn-ja" class="lang-btn active flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-transparent" onclick="setLang('ja')" aria-pressed="true">
+          <span aria-hidden="true">&#x1F1EF;&#x1F1F5;</span> <span class="hidden sm:inline">日本語</span>
+        </button>
+        <button id="btn-en" class="lang-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 border border-transparent" onclick="setLang('en')" aria-pressed="false">
+          <span aria-hidden="true">&#x1F1FA;&#x1F1F8;</span> <span class="hidden sm:inline">English</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main" class="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+
+    <!-- Hero Section -->
+    <section class="pt-12 sm:pt-20 pb-12 text-center reveal" aria-labelledby="hero-title">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-6">
+        <span class="glow-dot bg-blue-400 text-blue-400" aria-hidden="true"></span>
+        <span data-ja="リアルタイム監視ダッシュボード" data-en="Real-time Monitoring Dashboard">リアルタイム監視ダッシュボード</span>
+      </div>
+      <h1 id="hero-title" class="text-3xl sm:text-5xl font-extrabold mb-4 tracking-tight">
+        <span class="gradient-text">AI Orchestrator</span>
+        <br>
+        <span class="text-slate-300 text-xl sm:text-2xl font-medium" data-ja="Dashboard" data-en="Dashboard">Dashboard</span>
+      </h1>
+      <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed" data-ja="複数のAIエージェントの作業進捗を一元管理し、リアルタイムで可視化するWebダッシュボード。ファイル監視とSSEにより、ページリロード不要で最新状態を把握できます。" data-en="A web dashboard that centralizes and visualizes the progress of multiple AI agents in real time. With file watching and SSE, you can see the latest status without reloading the page.">
+        複数のAIエージェントの作業進捗を一元管理し、リアルタイムで可視化するWebダッシュボード。ファイル監視とSSEにより、ページリロード不要で最新状態を把握できます。
+      </p>
+      <div class="overflow-hidden mt-8 max-w-md mx-auto"><div class="shimmer-line" aria-hidden="true"></div></div>
+    </section>
+
+    <!-- Overview Section -->
+    <section class="mb-16 reveal" aria-labelledby="overview-title">
+      <h2 id="overview-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="info" class="w-6 h-6 text-blue-400" aria-hidden="true"></i>
+        <span data-ja="概要" data-en="Overview">概要</span>
+      </h2>
+      <div class="glass-card p-6 sm:p-8">
+        <p class="text-slate-300 leading-relaxed mb-4" data-ja="AI Orchestrator Dashboardは、AI開発環境で並行稼働する複数のエージェントを統合的に監視するためのツールです。Webアプリ開発、学習コンテンツ生成、GCPベースの学習コンテンツ、スキル公開、動画生成という5種類のエージェントに対応しています。" data-en="AI Orchestrator Dashboard is a tool for comprehensively monitoring multiple agents running in parallel in an AI development environment. It supports five types of agents: Web App Development, Learning Content Generation, GCP-based Learning Content, Skill Publishing, and Video Generation.">
+          AI Orchestrator Dashboardは、AI開発環境で並行稼働する複数のエージェントを統合的に監視するためのツールです。Webアプリ開発、学習コンテンツ生成、GCPベースの学習コンテンツ、スキル公開、動画生成という5種類のエージェントに対応しています。
+        </p>
+        <p class="text-slate-300 leading-relaxed" data-ja="各エージェントが書き出すPROGRESS.yamlファイルをchokidarで監視し、変更を検知するとEventBusを経由してServer-Sent Events（SSE）でブラウザにリアルタイム配信します。手動リロードは一切不要です。" data-en="It watches PROGRESS.yaml files written by each agent using chokidar. When changes are detected, they are delivered in real time to the browser via Server-Sent Events (SSE) through the EventBus. No manual reload is needed.">
+          各エージェントが書き出すPROGRESS.yamlファイルをchokidarで監視し、変更を検知するとEventBusを経由してServer-Sent Events（SSE）でブラウザにリアルタイム配信します。手動リロードは一切不要です。
+        </p>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="mb-16 reveal" aria-labelledby="features-title">
+      <h2 id="features-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="sparkles" class="w-6 h-6 text-purple-400" aria-hidden="true"></i>
+        <span data-ja="主要機能" data-en="Key Features">主要機能</span>
+      </h2>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <!-- Feature 1 -->
+        <article class="glass-card p-5">
+          <div class="flex items-start gap-4">
+            <div class="feature-icon bg-blue-500/15" aria-hidden="true">
+              <i data-lucide="radio" class="w-6 h-6 text-blue-400"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm mb-1" data-ja="リアルタイムSSE更新" data-en="Real-time SSE Updates">リアルタイムSSE更新</h3>
+              <p class="text-xs text-slate-400 leading-relaxed" data-ja="Server-Sent Eventsで進捗変更を即座にブラウザへ配信。自動再接続とハートビート監視を実装。" data-en="Progress changes are instantly pushed to the browser via Server-Sent Events, with automatic reconnection and heartbeat monitoring.">Server-Sent Eventsで進捗変更を即座にブラウザへ配信。自動再接続とハートビート監視を実装。</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Feature 2 -->
+        <article class="glass-card p-5">
+          <div class="flex items-start gap-4">
+            <div class="feature-icon bg-green-500/15" aria-hidden="true">
+              <i data-lucide="bot" class="w-6 h-6 text-green-400"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm mb-1" data-ja="5種類のエージェント対応" data-en="5 Agent Types Supported">5種類のエージェント対応</h3>
+              <p class="text-xs text-slate-400 leading-relaxed" data-ja="Web開発(7フェーズ)、学習コンテンツ(9フェーズ)、GCP学習(9フェーズ)、スキル公開(6フェーズ)、動画生成(5フェーズ)をカバー。" data-en="Covers Web Dev (7 phases), Learning Content (9), GCP Learning (9), Skill Publishing (6), and Video Generation (5 phases).">Web開発(7フェーズ)、学習コンテンツ(9フェーズ)、GCP学習(9フェーズ)、スキル公開(6フェーズ)、動画生成(5フェーズ)をカバー。</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Feature 3 -->
+        <article class="glass-card p-5">
+          <div class="flex items-start gap-4">
+            <div class="feature-icon bg-amber-500/15" aria-hidden="true">
+              <i data-lucide="eye" class="w-6 h-6 text-amber-400"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm mb-1" data-ja="chokidarファイル監視" data-en="chokidar File Watching">chokidarファイル監視</h3>
+              <p class="text-xs text-slate-400 leading-relaxed" data-ja="awaitWriteFinishオプションで書き込みの安定性を確保。PROGRESS.yamlの変更をアトミックに読み取り。" data-en="Ensures write stability with awaitWriteFinish option. Reads PROGRESS.yaml changes atomically.">awaitWriteFinishオプションで書き込みの安定性を確保。PROGRESS.yamlの変更をアトミックに読み取り。</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Feature 4 -->
+        <article class="glass-card p-5">
+          <div class="flex items-start gap-4">
+            <div class="feature-icon bg-purple-500/15" aria-hidden="true">
+              <i data-lucide="keyboard" class="w-6 h-6 text-purple-400"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm mb-1" data-ja="キーボードショートカット" data-en="Keyboard Shortcuts">キーボードショートカット</h3>
+              <p class="text-xs text-slate-400 leading-relaxed" data-ja="1-5でタブ切替、Sで設定、Nでプロジェクト登録、Rでリロード、/で検索。パワーユーザー向けの効率的操作。" data-en="1-5 for tab switching, S for settings, N for register, R for reload, / for search. Efficient navigation for power users.">1-5でタブ切替、Sで設定、Nでプロジェクト登録、Rでリロード、/で検索。パワーユーザー向けの効率的操作。</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Feature 5 -->
+        <article class="glass-card p-5 sm:col-span-2 lg:col-span-1">
+          <div class="flex items-start gap-4">
+            <div class="feature-icon bg-rose-500/15" aria-hidden="true">
+              <i data-lucide="accessibility" class="w-6 h-6 text-rose-400"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-sm mb-1" data-ja="WCAG 2.1 AA準拠" data-en="WCAG 2.1 AA Compliance">WCAG 2.1 AA準拠</h3>
+              <p class="text-xs text-slate-400 leading-relaxed" data-ja="スキップリンク、ARIA属性、フォーカスインジケータ、スクリーンリーダー対応、動きの軽減設定に対応。" data-en="Skip-to-content links, ARIA attributes, focus indicators, screen reader support, and reduced-motion preference support.">スキップリンク、ARIA属性、フォーカスインジケータ、スクリーンリーダー対応、動きの軽減設定に対応。</p>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section class="mb-16 reveal" aria-labelledby="arch-title">
+      <h2 id="arch-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="network" class="w-6 h-6 text-green-400" aria-hidden="true"></i>
+        <span data-ja="アーキテクチャ" data-en="Architecture">アーキテクチャ</span>
+      </h2>
+      <div class="glass-card p-6 sm:p-8">
+        <p class="text-slate-400 text-sm mb-5" data-ja="イベント駆動リアクティブアーキテクチャを採用。全モジュール間通信はEventBusで疎結合化されています。" data-en="Adopts an event-driven reactive architecture. All inter-module communication is decoupled via EventBus.">
+          イベント駆動リアクティブアーキテクチャを採用。全モジュール間通信はEventBusで疎結合化されています。
+        </p>
+        <div class="bg-slate-900/80 rounded-lg p-4 sm:p-6 border border-slate-800 overflow-x-auto">
+          <div class="arch-diagram" role="img" aria-label="Architecture diagram showing data flow from PROGRESS.yaml through chokidar, Watcher, EventBus, to SSE and Browser">
+PROGRESS.yaml ──&gt; chokidar ──&gt; Watcher ──&gt; EventBus ──┬──&gt; SSE Router ──&gt; Browser
+                                    │               │
+                              Progress Parser        ├──&gt; REST API  ──&gt; HTTP Client
+                                                     │
+                                              Project Store
+                                                     │
+                                              projects.json</div>
+        </div>
+        <div class="mt-6 grid sm:grid-cols-3 gap-4">
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500/15 mb-2" aria-hidden="true">
+              <i data-lucide="file-search" class="w-5 h-5 text-blue-400"></i>
+            </div>
+            <h4 class="text-xs font-semibold text-slate-200 mb-1">chokidar</h4>
+            <p class="text-xs text-slate-500" data-ja="ファイル変更検知" data-en="File change detection">ファイル変更検知</p>
+          </div>
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/15 mb-2" aria-hidden="true">
+              <i data-lucide="share-2" class="w-5 h-5 text-purple-400"></i>
+            </div>
+            <h4 class="text-xs font-semibold text-slate-200 mb-1">EventBus</h4>
+            <p class="text-xs text-slate-500" data-ja="疎結合イベント配信" data-en="Decoupled event delivery">疎結合イベント配信</p>
+          </div>
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-green-500/15 mb-2" aria-hidden="true">
+              <i data-lucide="radio-tower" class="w-5 h-5 text-green-400"></i>
+            </div>
+            <h4 class="text-xs font-semibold text-slate-200 mb-1">SSE</h4>
+            <p class="text-xs text-slate-500" data-ja="リアルタイム配信" data-en="Real-time delivery">リアルタイム配信</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section class="mb-16 reveal" aria-labelledby="tech-title">
+      <h2 id="tech-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="layers" class="w-6 h-6 text-amber-400" aria-hidden="true"></i>
+        <span data-ja="技術スタック" data-en="Tech Stack">技術スタック</span>
+      </h2>
+      <div class="glass-card overflow-hidden">
+        <table class="tech-table w-full text-sm">
+          <thead>
+            <tr class="bg-slate-800/50">
+              <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider" data-ja="レイヤー" data-en="Layer">レイヤー</th>
+              <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider" data-ja="技術" data-en="Technology">技術</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/50">
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="バックエンド" data-en="Backend">バックエンド</td>
+              <td class="px-5 py-3 text-slate-400">Node.js + Express</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="フロントエンド" data-en="Frontend">フロントエンド</td>
+              <td class="px-5 py-3 text-slate-400">HTML + Vanilla JS + Tailwind CSS (CDN) + Lucide Icons</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="ファイル監視" data-en="File Watching">ファイル監視</td>
+              <td class="px-5 py-3 text-slate-400">chokidar (awaitWriteFinish)</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="リアルタイム通信" data-en="Real-time">リアルタイム通信</td>
+              <td class="px-5 py-3 text-slate-400">Server-Sent Events (SSE) + Heartbeat</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="YAML解析" data-en="YAML Parsing">YAML解析</td>
+              <td class="px-5 py-3 text-slate-400">js-yaml</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="データ永続化" data-en="Data Storage">データ永続化</td>
+              <td class="px-5 py-3 text-slate-400" data-ja="JSONファイル（アトミック書き込み）" data-en="JSON file (atomic writes)">JSONファイル（アトミック書き込み）</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="アーキテクチャ" data-en="Architecture">アーキテクチャ</td>
+              <td class="px-5 py-3 text-slate-400" data-ja="EventBusパターン（疎結合）" data-en="EventBus pattern (decoupled)">EventBusパターン（疎結合）</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-3 text-slate-300 font-medium" data-ja="テスト" data-en="Testing">テスト</td>
+              <td class="px-5 py-3 text-slate-400">Jest + supertest</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Development Process Section -->
+    <section class="mb-16 reveal" aria-labelledby="process-title">
+      <h2 id="process-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="git-branch" class="w-6 h-6 text-cyan-400" aria-hidden="true"></i>
+        <span data-ja="開発プロセス" data-en="Development Process">開発プロセス</span>
+      </h2>
+      <div class="glass-card p-6 sm:p-8">
+        <p class="text-slate-400 text-sm mb-6" data-ja="Phase別worktreeシステムによる自律開発ワークフローで構築されました。各フェーズで複数アプローチを並列開発し、自律評価で最良を選択する手法を採用しています。" data-en="Built with an autonomous development workflow using a phase-based worktree system. Multiple approaches were developed in parallel at each phase, with the best selected through autonomous evaluation.">
+          Phase別worktreeシステムによる自律開発ワークフローで構築されました。各フェーズで複数アプローチを並列開発し、自律評価で最良を選択する手法を採用しています。
+        </p>
+
+        <div class="space-y-5">
+          <!-- Phase 0 -->
+          <div class="phase-step">
+            <span class="phase-dot border-slate-500" aria-hidden="true"></span>
+            <div>
+              <h4 class="text-sm font-semibold text-slate-200">Phase 0: <span data-ja="初期化" data-en="Initialization">初期化</span></h4>
+              <p class="text-xs text-slate-500 mt-0.5" data-ja="Git worktree作成、プロジェクト設定" data-en="Git worktree creation, project setup">Git worktree作成、プロジェクト設定</p>
+            </div>
+          </div>
+          <!-- Phase 1 -->
+          <div class="phase-step">
+            <span class="phase-dot border-blue-400" aria-hidden="true"></span>
+            <div>
+              <h4 class="text-sm font-semibold text-slate-200">Phase 1: <span data-ja="計画" data-en="Planning">計画</span></h4>
+              <p class="text-xs text-slate-500 mt-0.5" data-ja="2案並列生成、自律評価・選択、仕様設計、WBS作成、テスト設計" data-en="Parallel generation of 2 plans, autonomous evaluation, spec design, WBS creation, test design">2案並列生成、自律評価・選択、仕様設計、WBS作成、テスト設計</p>
+            </div>
+          </div>
+          <!-- Phase 2 -->
+          <div class="phase-step">
+            <span class="phase-dot border-green-400" aria-hidden="true"></span>
+            <div>
+              <h4 class="text-sm font-semibold text-slate-200">Phase 2: <span data-ja="実装" data-en="Implementation">実装</span></h4>
+              <p class="text-xs text-slate-500 mt-0.5" data-ja="3プロトタイプ並列開発（Frontend / Backend / DB）、統合テスト" data-en="3 prototype parallel development (Frontend / Backend / DB), integration testing">3プロトタイプ並列開発（Frontend / Backend / DB）、統合テスト</p>
+            </div>
+          </div>
+          <!-- Phase 3 -->
+          <div class="phase-step">
+            <span class="phase-dot border-amber-400" aria-hidden="true"></span>
+            <div>
+              <h4 class="text-sm font-semibold text-slate-200">Phase 3: <span data-ja="テスト" data-en="Testing">テスト</span></h4>
+              <p class="text-xs text-slate-500 mt-0.5" data-ja="全テスト100%合格、カバレッジ70%以上達成" data-en="100% test pass rate, 70%+ coverage achieved">全テスト100%合格、カバレッジ70%以上達成</p>
+            </div>
+          </div>
+          <!-- Phase 4 -->
+          <div class="phase-step">
+            <span class="phase-dot border-purple-400" aria-hidden="true"></span>
+            <div>
+              <h4 class="text-sm font-semibold text-slate-200">Phase 4: <span data-ja="品質改善" data-en="Quality Improvement">品質改善</span></h4>
+              <p class="text-xs text-slate-500 mt-0.5" data-ja="カバレッジ100%達成、パフォーマンス最適化、2最適化アプローチ並列" data-en="100% coverage achieved, performance optimization, 2 parallel optimization approaches">カバレッジ100%達成、パフォーマンス最適化、2最適化アプローチ並列</p>
+            </div>
+          </div>
+          <!-- Phase 5 -->
+          <div class="phase-step">
+            <span class="phase-dot border-rose-400" aria-hidden="true"></span>
+            <div>
+              <h4 class="text-sm font-semibold text-slate-200">Phase 5: <span data-ja="完成処理" data-en="Delivery">完成処理</span></h4>
+              <p class="text-xs text-slate-500 mt-0.5" data-ja="README生成、ドキュメント、音声解説、公開準備" data-en="README generation, documentation, audio explanation, publish preparation">README生成、ドキュメント、音声解説、公開準備</p>
+            </div>
+          </div>
+          <!-- Phase 6 -->
+          <div class="phase-step">
+            <span class="phase-dot border-cyan-400" aria-hidden="true"></span>
+            <div>
+              <h4 class="text-sm font-semibold text-slate-200">Phase 6: <span data-ja="公開" data-en="Publishing">公開</span></h4>
+              <p class="text-xs text-slate-500 mt-0.5" data-ja="GitHubポートフォリオ公開、セキュリティ検証、GitHub Pages有効化" data-en="GitHub portfolio publishing, security verification, GitHub Pages activation">GitHubポートフォリオ公開、セキュリティ検証、GitHub Pages有効化</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quality Metrics Section -->
+    <section class="mb-16 reveal" aria-labelledby="metrics-title">
+      <h2 id="metrics-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-6 h-6 text-rose-400" aria-hidden="true"></i>
+        <span data-ja="品質メトリクス" data-en="Quality Metrics">品質メトリクス</span>
+      </h2>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="glass-card p-5 text-center">
+          <div class="metric-value text-3xl sm:text-4xl font-extrabold text-blue-400 mb-1">190</div>
+          <div class="text-xs text-slate-500" data-ja="テストケース" data-en="Test Cases">テストケース</div>
+        </div>
+        <div class="glass-card p-5 text-center">
+          <div class="metric-value text-3xl sm:text-4xl font-extrabold text-green-400 mb-1">100<span class="text-lg">%</span></div>
+          <div class="text-xs text-slate-500" data-ja="カバレッジ" data-en="Coverage">カバレッジ</div>
+        </div>
+        <div class="glass-card p-5 text-center">
+          <div class="metric-value text-3xl sm:text-4xl font-extrabold text-purple-400 mb-1">5</div>
+          <div class="text-xs text-slate-500" data-ja="エージェント種別" data-en="Agent Types">エージェント種別</div>
+        </div>
+        <div class="glass-card p-5 text-center">
+          <div class="metric-value text-3xl sm:text-4xl font-extrabold text-amber-400 mb-1">9</div>
+          <div class="text-xs text-slate-500" data-ja="APIエンドポイント" data-en="API Endpoints">APIエンドポイント</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- API Endpoints Section -->
+    <section class="mb-16 reveal" aria-labelledby="api-title">
+      <h2 id="api-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="plug" class="w-6 h-6 text-indigo-400" aria-hidden="true"></i>
+        <span data-ja="REST API" data-en="REST API">REST API</span>
+      </h2>
+      <div class="glass-card overflow-hidden">
+        <table class="tech-table w-full text-sm">
+          <thead>
+            <tr class="bg-slate-800/50">
+              <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider" data-ja="メソッド" data-en="Method">メソッド</th>
+              <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider" data-ja="エンドポイント" data-en="Endpoint">エンドポイント</th>
+              <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell" data-ja="説明" data-en="Description">説明</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/50">
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-green-500/15 text-green-400">GET</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/projects</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="全プロジェクト一覧" data-en="List all projects">全プロジェクト一覧</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-400">POST</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/projects</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="プロジェクト登録" data-en="Register new project">プロジェクト登録</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-400">PATCH</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/projects/:id</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="プロジェクト更新" data-en="Update project">プロジェクト更新</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-red-500/15 text-red-400">DELETE</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/projects/:id</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="プロジェクト削除" data-en="Remove project">プロジェクト削除</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-green-500/15 text-green-400">GET</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/projects/:id/progress</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="進捗データ取得" data-en="Get progress data">進捗データ取得</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-green-500/15 text-green-400">GET</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/events</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="SSEストリーム" data-en="SSE stream">SSEストリーム</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-green-500/15 text-green-400">GET</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/stats</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="統計情報" data-en="Dashboard statistics">統計情報</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-400">POST</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/scan</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="ディレクトリスキャン" data-en="Scan directories">ディレクトリスキャン</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="px-5 py-2.5"><span class="text-xs font-mono px-2 py-0.5 rounded bg-green-500/15 text-green-400">GET</span></td>
+              <td class="px-5 py-2.5 font-mono text-xs text-slate-300">/api/health</td>
+              <td class="px-5 py-2.5 text-xs text-slate-500 hidden sm:table-cell" data-ja="ヘルスチェック" data-en="Health check">ヘルスチェック</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Audio Player Section -->
+    <section class="mb-16 reveal" aria-labelledby="audio-title">
+      <h2 id="audio-title" class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="headphones" class="w-6 h-6 text-cyan-400" aria-hidden="true"></i>
+        <span data-ja="音声解説" data-en="Audio Explanation">音声解説</span>
+      </h2>
+      <div class="glass-card p-6 sm:p-8">
+        <p class="text-slate-400 text-sm mb-5" data-ja="プロジェクトの概要を音声で聴くことができます。" data-en="Listen to an audio overview of this project.">
+          プロジェクトの概要を音声で聴くことができます。
+        </p>
+
+        <!-- Hidden HTML5 audio element -->
+        <audio id="audio-element" preload="metadata" src="./explanation.mp3"></audio>
+
+        <!-- Custom player UI -->
+        <div class="bg-slate-900/80 rounded-xl p-4 sm:p-5 border border-slate-800">
+          <div class="flex items-center gap-4">
+            <!-- Play/Pause Button -->
+            <button id="audio-play-btn" class="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900" aria-label="Play audio">
+              <i data-lucide="play" id="audio-icon-play" class="w-5 h-5 text-white ml-0.5"></i>
+              <i data-lucide="pause" id="audio-icon-pause" class="w-5 h-5 text-white hidden"></i>
+            </button>
+
+            <!-- Progress & Time -->
+            <div class="flex-1 min-w-0">
+              <input type="range" id="audio-progress" class="audio-progress w-full" min="0" max="100" value="0" step="0.1" aria-label="Audio progress">
+              <div class="flex justify-between mt-1.5">
+                <span id="audio-current" class="text-xs text-slate-500 font-mono">0:00</span>
+                <span id="audio-duration" class="text-xs text-slate-500 font-mono">0:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p id="audio-error" class="text-xs text-slate-600 mt-3 hidden" data-ja="音声ファイルが見つかりません。explanation.mp3が同じディレクトリに配置されていることをご確認ください。" data-en="Audio file not found. Please make sure explanation.mp3 is placed in the same directory.">
+          音声ファイルが見つかりません。explanation.mp3が同じディレクトリに配置されていることをご確認ください。
+        </p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 pt-8 pb-4 text-center text-xs text-slate-600 no-print">
+      <p>
+        <span data-ja="AI Orchestrator Dashboard -- Claude Codeによるフルスタック自動開発" data-en="AI Orchestrator Dashboard -- Full-stack auto-development with Claude Code">AI Orchestrator Dashboard -- Claude Codeによるフルスタック自動開発</span>
+      </p>
+      <p class="mt-1">
+        <a href="./index.html" class="text-blue-500 hover:text-blue-400 transition-colors" data-ja="ダッシュボードに戻る" data-en="Back to Dashboard">ダッシュボードに戻る</a>
+      </p>
+    </footer>
+
+  </main>
+
+  <script>
+    // ========================
+    // Language Switching System
+    // ========================
+    const LANG_KEY = 'ai-orchestrator-lang';
+
+    function setLang(lang) {
+      document.documentElement.lang = lang;
+      localStorage.setItem(LANG_KEY, lang);
+
+      // Update all translatable elements
+      document.querySelectorAll('[data-ja][data-en]').forEach(function(el) {
+        el.textContent = el.getAttribute('data-' + lang);
+      });
+
+      // Update button states
+      var btnJa = document.getElementById('btn-ja');
+      var btnEn = document.getElementById('btn-en');
+      if (lang === 'ja') {
+        btnJa.classList.add('active');
+        btnJa.setAttribute('aria-pressed', 'true');
+        btnEn.classList.remove('active');
+        btnEn.setAttribute('aria-pressed', 'false');
+      } else {
+        btnEn.classList.add('active');
+        btnEn.setAttribute('aria-pressed', 'true');
+        btnJa.classList.remove('active');
+        btnJa.setAttribute('aria-pressed', 'false');
+      }
+    }
+
+    // Initialize language from localStorage, default to Japanese
+    (function() {
+      var saved = localStorage.getItem(LANG_KEY);
+      var lang = (saved === 'en') ? 'en' : 'ja';
+      setLang(lang);
+    })();
+
+    // ========================
+    // Scroll Reveal Animation
+    // ========================
+    (function() {
+      var sections = document.querySelectorAll('.reveal');
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+      sections.forEach(function(s) { observer.observe(s); });
+    })();
+
+    // ========================
+    // Custom Audio Player
+    // ========================
+    (function() {
+      var audio = document.getElementById('audio-element');
+      var playBtn = document.getElementById('audio-play-btn');
+      var iconPlay = document.getElementById('audio-icon-play');
+      var iconPause = document.getElementById('audio-icon-pause');
+      var progress = document.getElementById('audio-progress');
+      var currentTime = document.getElementById('audio-current');
+      var durationEl = document.getElementById('audio-duration');
+      var errorEl = document.getElementById('audio-error');
+      var playing = false;
+
+      function formatTime(s) {
+        if (isNaN(s) || !isFinite(s)) return '0:00';
+        var m = Math.floor(s / 60);
+        var sec = Math.floor(s % 60);
+        return m + ':' + (sec < 10 ? '0' : '') + sec;
+      }
+
+      audio.addEventListener('loadedmetadata', function() {
+        durationEl.textContent = formatTime(audio.duration);
+        progress.max = audio.duration || 100;
+      });
+
+      audio.addEventListener('timeupdate', function() {
+        progress.value = audio.currentTime;
+        currentTime.textContent = formatTime(audio.currentTime);
+      });
+
+      audio.addEventListener('ended', function() {
+        playing = false;
+        iconPlay.classList.remove('hidden');
+        iconPause.classList.add('hidden');
+        playBtn.setAttribute('aria-label', 'Play audio');
+        progress.value = 0;
+        currentTime.textContent = '0:00';
+      });
+
+      audio.addEventListener('error', function() {
+        errorEl.classList.remove('hidden');
+      });
+
+      playBtn.addEventListener('click', function() {
+        if (playing) {
+          audio.pause();
+          playing = false;
+          iconPlay.classList.remove('hidden');
+          iconPause.classList.add('hidden');
+          playBtn.setAttribute('aria-label', 'Play audio');
+        } else {
+          audio.play().catch(function() {
+            errorEl.classList.remove('hidden');
+          });
+          playing = true;
+          iconPlay.classList.add('hidden');
+          iconPause.classList.remove('hidden');
+          playBtn.setAttribute('aria-label', 'Pause audio');
+        }
+      });
+
+      progress.addEventListener('input', function() {
+        audio.currentTime = progress.value;
+      });
+    })();
+
+    // ========================
+    // Initialize Lucide Icons
+    // ========================
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+  </script>
+</body>
+</html>

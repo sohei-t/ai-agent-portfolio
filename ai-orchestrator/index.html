@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI Orchestrator Dashboard - Real-time monitoring for AI agent workflows">
+  <title>AI Orchestrator Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            agent: {
+              git: '#3B82F6',
+              learn: '#10B981',
+              gcp: '#F59E0B',
+              skill: '#8B5CF6',
+              video: '#EF4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <!-- Skip to content link for accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-50" role="banner">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center" aria-hidden="true">
+          <i data-lucide="activity" class="w-5 h-5 text-white"></i>
+        </div>
+        <h1 class="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          AI Orchestrator
+        </h1>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- SSE Connection Status -->
+        <div id="sse-status" class="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-slate-700" role="status" aria-live="polite" aria-label="Server connection status">
+          <span id="sse-icon" class="w-2 h-2 rounded-full bg-red-500" aria-hidden="true"></span>
+          <span id="sse-text">Disconnected</span>
+        </div>
+
+        <!-- Keyboard shortcut hint -->
+        <button id="btn-shortcuts" class="p-2 rounded-lg hover:bg-slate-700 transition-colors hidden sm:flex" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+          <i data-lucide="keyboard" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Settings Button -->
+        <button id="btn-settings" class="p-2 rounded-lg hover:bg-slate-700 transition-colors" title="Settings (S)" aria-label="Open settings">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 py-6" role="main">
+    <!-- Summary Cards -->
+    <section id="summary" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" aria-label="Project status summary">
+      <article class="summary-card bg-slate-800 rounded-xl p-4 border border-slate-700" aria-label="Running projects">
+        <div class="flex items-center gap-2 mb-1">
+          <i data-lucide="activity" class="w-4 h-4 text-blue-400" aria-hidden="true"></i>
+          <span class="text-xs text-slate-400">Running</span>
+        </div>
+        <span id="count-running" class="text-2xl font-bold text-blue-400" aria-live="polite">0</span>
+      </article>
+      <article class="summary-card bg-slate-800 rounded-xl p-4 border border-slate-700" aria-label="Completed projects">
+        <div class="flex items-center gap-2 mb-1">
+          <i data-lucide="check-circle" class="w-4 h-4 text-green-400" aria-hidden="true"></i>
+          <span class="text-xs text-slate-400">Completed</span>
+        </div>
+        <span id="count-completed" class="text-2xl font-bold text-green-400" aria-live="polite">0</span>
+      </article>
+      <article class="summary-card bg-slate-800 rounded-xl p-4 border border-slate-700" aria-label="Failed projects">
+        <div class="flex items-center gap-2 mb-1">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400" aria-hidden="true"></i>
+          <span class="text-xs text-slate-400">Failed</span>
+        </div>
+        <span id="count-failed" class="text-2xl font-bold text-red-400" aria-live="polite">0</span>
+      </article>
+      <article class="summary-card bg-slate-800 rounded-xl p-4 border border-slate-700" aria-label="Idle projects">
+        <div class="flex items-center gap-2 mb-1">
+          <i data-lucide="clock" class="w-4 h-4 text-slate-400" aria-hidden="true"></i>
+          <span class="text-xs text-slate-400">Idle</span>
+        </div>
+        <span id="count-idle" class="text-2xl font-bold text-slate-300" aria-live="polite">0</span>
+      </article>
+    </section>
+
+    <!-- Tabs -->
+    <nav id="tabs" class="flex gap-1 mb-6 overflow-x-auto pb-2 scrollbar-hide" role="tablist" aria-label="Filter by agent type">
+      <button class="tab-btn active" data-tab="all" role="tab" aria-selected="true" aria-controls="projects-grid" tabindex="0">
+        <i data-lucide="layout-dashboard" class="w-4 h-4" aria-hidden="true"></i>
+        <span>All</span>
+        <span class="kbd hidden sm:inline-flex" aria-hidden="true">1</span>
+      </button>
+      <button class="tab-btn" data-tab="git-worktree-agent" role="tab" aria-selected="false" aria-controls="projects-grid" tabindex="-1">
+        <i data-lucide="code-2" class="w-4 h-4" aria-hidden="true"></i>
+        <span class="hidden sm:inline">Web Dev</span>
+        <span class="kbd hidden sm:inline-flex" aria-hidden="true">2</span>
+      </button>
+      <button class="tab-btn" data-tab="learning-content-agent" role="tab" aria-selected="false" aria-controls="projects-grid" tabindex="-1">
+        <i data-lucide="book-open" class="w-4 h-4" aria-hidden="true"></i>
+        <span class="hidden sm:inline">Learn</span>
+        <span class="kbd hidden sm:inline-flex" aria-hidden="true">3</span>
+      </button>
+      <button class="tab-btn" data-tab="learning-content-agent-gcp" role="tab" aria-selected="false" aria-controls="projects-grid" tabindex="-1">
+        <i data-lucide="cloud" class="w-4 h-4" aria-hidden="true"></i>
+        <span class="hidden sm:inline">GCP</span>
+        <span class="kbd hidden sm:inline-flex" aria-hidden="true">4</span>
+      </button>
+      <button class="tab-btn" data-tab="skill-publish-agent" role="tab" aria-selected="false" aria-controls="projects-grid" tabindex="-1">
+        <i data-lucide="rocket" class="w-4 h-4" aria-hidden="true"></i>
+        <span class="hidden sm:inline">Skill</span>
+      </button>
+      <button class="tab-btn" data-tab="video-generator-agent" role="tab" aria-selected="false" aria-controls="projects-grid" tabindex="-1">
+        <i data-lucide="video" class="w-4 h-4" aria-hidden="true"></i>
+        <span class="hidden sm:inline">Video</span>
+      </button>
+    </nav>
+
+    <!-- Search & Actions -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+      <div class="relative flex-1">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true"></i>
+        <input id="search-input" type="search" placeholder="Search projects..." autocomplete="off"
+          aria-label="Search projects by name"
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+      </div>
+      <div class="flex gap-2" role="group" aria-label="Project actions">
+        <button id="btn-scan" class="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors min-h-[44px]" aria-label="Scan for projects">
+          <i data-lucide="folder-scan" class="w-4 h-4" aria-hidden="true"></i>
+          <span>Scan</span>
+        </button>
+        <button id="btn-register" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors min-h-[44px]" aria-label="Register new project">
+          <i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>
+          <span>Register</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Project Cards Grid -->
+    <div id="projects-grid" class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3" role="tabpanel" aria-label="Project cards">
+      <!-- Dynamic content injected here -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-16" role="status">
+      <div class="empty-icon">
+        <i data-lucide="inbox" class="w-16 h-16 text-slate-600 mx-auto mb-4" aria-hidden="true"></i>
+      </div>
+      <h3 class="text-lg font-medium text-slate-400 mb-2">No projects found</h3>
+      <p class="text-sm text-slate-500 mb-6">Register a new project or scan your workspace to get started.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button id="btn-scan-empty" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors min-h-[44px]">
+          Scan Directories
+        </button>
+        <button id="btn-register-empty" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors min-h-[44px]">
+          Register Manually
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Register Modal -->
+  <div id="register-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-content bg-slate-800 rounded-2xl border border-slate-700 p-6 w-full max-w-md mx-4 shadow-xl">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="modal-title" class="text-lg font-bold">Register Project</h2>
+        <button id="btn-close-modal" class="p-1 rounded hover:bg-slate-700 transition-colors" aria-label="Close dialog">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="register-form" class="space-y-4" novalidate>
+        <div>
+          <label for="field-name" class="block text-sm text-slate-400 mb-1">Project Name <span class="text-red-400" aria-hidden="true">*</span></label>
+          <input id="field-name" name="name" type="text" required minlength="2" maxlength="100"
+            placeholder="e.g. my-todo-app"
+            aria-describedby="name-hint"
+            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <span id="name-hint" class="text-xs text-slate-500 mt-0.5 block">2-100 characters, alphanumeric and hyphens</span>
+        </div>
+        <div>
+          <label for="field-path" class="block text-sm text-slate-400 mb-1">Project Path <span class="text-red-400" aria-hidden="true">*</span></label>
+          <input id="field-path" name="path" type="text" required placeholder="/Users/sohei/Desktop/AI-Apps/..."
+            aria-describedby="path-hint"
+            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <span id="path-hint" class="text-xs text-slate-500 mt-0.5 block">Absolute path to the project directory</span>
+        </div>
+        <div>
+          <label for="field-agent" class="block text-sm text-slate-400 mb-1">Agent Type <span class="text-red-400" aria-hidden="true">*</span></label>
+          <select id="field-agent" name="agent_type" required
+            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="git-worktree-agent">Web App Development</option>
+            <option value="learning-content-agent">Learning Content (Gemini)</option>
+            <option value="learning-content-agent-gcp">Learning Content (GCP)</option>
+            <option value="skill-publish-agent">Skill Publishing</option>
+            <option value="video-generator-agent">Video Generation</option>
+          </select>
+        </div>
+        <button type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-500 rounded-lg py-2 text-sm font-medium transition-colors min-h-[44px]">
+          Register
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Panel -->
+  <aside id="shortcuts-panel" class="shortcuts-panel hidden" role="complementary" aria-label="Keyboard shortcuts">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-sm font-bold text-slate-200">Keyboard Shortcuts</h3>
+      <button id="btn-close-shortcuts" class="text-slate-500 hover:text-slate-300 text-xs" aria-label="Close shortcuts panel">&times;</button>
+    </div>
+    <dl class="text-xs">
+      <dt><span class="kbd">1</span>-<span class="kbd">4</span></dt>
+      <dd>Switch tabs</dd>
+      <dt><span class="kbd">S</span></dt>
+      <dd>Settings</dd>
+      <dt><span class="kbd">N</span></dt>
+      <dd>Register project</dd>
+      <dt><span class="kbd">R</span></dt>
+      <dd>Reload projects</dd>
+      <dt><span class="kbd">/</span></dt>
+      <dd>Focus search</dd>
+      <dt><span class="kbd">?</span></dt>
+      <dd>Toggle shortcuts</dd>
+      <dt><span class="kbd">Esc</span></dt>
+      <dd>Close modal/panel</dd>
+    </dl>
+  </aside>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2" role="region" aria-live="polite" aria-label="Notifications"></div>
+
+  <!-- Screen reader live region for dynamic updates -->
+  <div id="sr-announcer" class="sr-only" aria-live="assertive" aria-atomic="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"></div>
+
+  <!-- Scripts (load order matters) -->
+  <script src="assets/js/sse-client.js"></script>
+  <script src="assets/js/progress-card.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

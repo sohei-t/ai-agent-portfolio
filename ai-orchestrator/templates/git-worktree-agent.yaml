@@ -1,0 +1,81 @@
+project:
+  name: ""
+  agent_type: "git-worktree-agent"
+  status: "idle"
+  started_at: ""
+  updated_at: ""
+
+progress:
+  overall_percent: 0
+  current_phase: "phase0-init"
+
+phases:
+  - name: "Phase 0: Initialization"
+    status: "pending"
+    steps:
+      - name: "Git worktree creation"
+        done: false
+      - name: "PROJECT_INFO.yaml generation"
+        done: false
+
+  - name: "Phase 1: Planning"
+    status: "pending"
+    steps:
+      - name: "Parallel plan generation"
+        done: false
+      - name: "Autonomous evaluation"
+        done: false
+      - name: "Specification design"
+        done: false
+      - name: "WBS creation"
+        done: false
+      - name: "Test design"
+        done: false
+
+  - name: "Phase 2: Implementation"
+    status: "pending"
+    steps:
+      - name: "Frontend implementation"
+        done: false
+      - name: "Backend implementation"
+        done: false
+      - name: "Database implementation"
+        done: false
+
+  - name: "Phase 3: Testing"
+    status: "pending"
+    steps:
+      - name: "Unit tests pass"
+        done: false
+      - name: "Integration tests pass"
+        done: false
+      - name: "Coverage >= 70%"
+        done: false
+
+  - name: "Phase 4: Quality"
+    status: "pending"
+    steps:
+      - name: "Coverage 80-90%"
+        done: false
+      - name: "Performance optimization"
+        done: false
+
+  - name: "Phase 5: Delivery"
+    status: "pending"
+    steps:
+      - name: "README.md"
+        done: false
+      - name: "about.html"
+        done: false
+      - name: "explanation.mp3"
+        done: false
+
+  - name: "Phase 6: Publishing"
+    status: "pending"
+    steps:
+      - name: "GitHub push"
+        done: false
+      - name: "Security verification"
+        done: false
+
+errors: []

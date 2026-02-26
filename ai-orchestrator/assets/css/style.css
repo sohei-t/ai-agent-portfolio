@@ -1,0 +1,455 @@
+/* AI Orchestrator - Custom Styles */
+
+/* ===== Scrollbar ===== */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ===== Tab buttons ===== */
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: none;
+  min-height: 44px; /* touch-friendly */
+}
+
+.tab-btn:hover {
+  background-color: rgba(51, 65, 85, 0.5);
+  color: #e2e8f0;
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.tab-btn.active {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* ===== Progress bar ===== */
+.progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background-color: #1e293b;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* Shimmer animation - only on active progress bars */
+.progress-bar-fill.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ===== Card animations ===== */
+.progress-card {
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.progress-card.card-enter {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.progress-card.card-pulse {
+  animation: pulse-border 1s ease;
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+.progress-card.card-exit {
+  animation: card-exit 0.3s ease forwards;
+}
+
+@keyframes card-exit {
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+
+/* ===== Card hover glow effect ===== */
+.progress-card.card-enter:hover {
+  box-shadow: 0 0 16px -4px var(--card-accent-color, rgba(59, 130, 246, 0.25));
+  border-color: var(--card-accent-color, rgba(59, 130, 246, 0.35));
+  transform: translateY(-1px);
+}
+
+/* ===== Card left border accent ===== */
+.progress-card.card-enter {
+  border-left: 3px solid var(--card-accent-color, #3B82F6);
+}
+
+/* ===== Card expand/collapse ===== */
+.card-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  opacity: 0;
+}
+
+.progress-card.expanded .card-details {
+  max-height: 600px;
+  opacity: 1;
+}
+
+.progress-card.expanded .card-chevron {
+  transform: rotate(180deg);
+}
+
+.card-chevron {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== Status indicators ===== */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot.in_progress {
+  background-color: #3b82f6;
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+.status-dot.completed { background-color: #10b981; }
+.status-dot.failed { background-color: #ef4444; }
+.status-dot.idle { background-color: #64748b; }
+.status-dot.paused { background-color: #f59e0b; }
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ===== Agent type badge colors ===== */
+.agent-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.agent-badge.git-worktree-agent { background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.agent-badge.learning-content-agent { background-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+.agent-badge.learning-content-agent-gcp { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.agent-badge.skill-publish-agent { background-color: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+.agent-badge.video-generator-agent { background-color: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+/* ===== Step checkmarks ===== */
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.8rem;
+}
+
+.step-item.done { color: #94a3b8; }
+.step-item.pending { color: #64748b; }
+
+/* ===== SSE connection status ===== */
+#sse-status {
+  transition: background-color 0.3s ease;
+}
+
+#sse-icon {
+  transition: background-color 0.3s ease;
+}
+
+#sse-icon.connected {
+  background-color: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+#sse-icon.connecting {
+  background-color: #f59e0b;
+  animation: status-pulse 1s ease-in-out infinite;
+}
+#sse-icon.disconnected { background-color: #ef4444; }
+#sse-icon.failed { background-color: #64748b; }
+
+/* ===== Toast notifications ===== */
+.toast {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  animation: toast-in 0.3s ease;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toast.success { background-color: #065f46; border: 1px solid #10b981; }
+.toast.error { background-color: #7f1d1d; border: 1px solid #ef4444; }
+.toast.info { background-color: #1e3a5f; border: 1px solid #3b82f6; }
+.toast.warning { background-color: #78350f; border: 1px solid #f59e0b; }
+
+.toast-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toast-exit {
+  animation: toast-out 0.3s ease forwards;
+}
+
+@keyframes toast-out {
+  to { opacity: 0; transform: translateX(100%); }
+}
+
+/* ===== Modal ===== */
+#register-modal.show {
+  display: flex;
+}
+
+#register-modal .modal-content {
+  animation: modal-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modal-enter {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Form validation feedback */
+.field-error {
+  color: #f87171;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  animation: field-error-in 0.2s ease;
+}
+
+@keyframes field-error-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+input:invalid:not(:placeholder-shown) {
+  border-color: #ef4444;
+}
+
+input:valid:not(:placeholder-shown) {
+  border-color: #10b981;
+}
+
+/* ===== Summary card ===== */
+.summary-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Counter animation */
+.counter-update {
+  animation: counter-bump 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes counter-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* ===== Empty state ===== */
+#empty-state {
+  animation: empty-float 3s ease-in-out infinite;
+}
+
+@keyframes empty-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+#empty-state .empty-icon {
+  animation: empty-icon-pulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes empty-icon-pulse {
+  0% { opacity: 0.4; }
+  100% { opacity: 0.7; }
+}
+
+/* ===== Focus styles ===== */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+/* ===== Skip to content link (a11y) ===== */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  z-index: 100;
+  border-radius: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+/* ===== Keyboard shortcut hints ===== */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  font-size: 0.65rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background-color: rgba(51, 65, 85, 0.8);
+  border: 1px solid #475569;
+  border-radius: 0.25rem;
+  color: #94a3b8;
+}
+
+/* ===== Copy button ===== */
+.btn-copy {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.card-header:hover .btn-copy,
+.btn-copy:focus-visible {
+  opacity: 1;
+}
+
+.btn-copy.copied {
+  color: #10b981;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .tab-btn span { display: none; }
+  .tab-btn { padding: 0.5rem; min-width: 44px; justify-content: center; }
+}
+
+@media (max-width: 768px) {
+  .summary-card {
+    padding: 0.75rem;
+  }
+  .summary-card .text-2xl {
+    font-size: 1.5rem;
+  }
+  #projects-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .toast {
+    max-width: calc(100vw - 2rem);
+    margin-right: 1rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  #projects-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ===== Keyboard shortcuts help panel ===== */
+.shortcuts-panel {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  z-index: 40;
+  font-size: 0.8rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  animation: toast-in 0.3s ease;
+  max-width: 280px;
+}
+
+.shortcuts-panel.hidden {
+  display: none;
+}
+
+.shortcuts-panel dt {
+  float: left;
+  clear: left;
+  margin-right: 0.5rem;
+}
+
+.shortcuts-panel dd {
+  margin-bottom: 0.35rem;
+  color: #94a3b8;
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

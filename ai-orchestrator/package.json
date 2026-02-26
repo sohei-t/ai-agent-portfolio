@@ -1,0 +1,27 @@
+{
+  "name": "ai-orchestrator",
+  "version": "1.0.0",
+  "description": "AI Agent Progress Dashboard - Real-time monitoring tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "jest --coverage --forceExit --detectOpenHandles",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "chokidar": "^3.6.0",
+    "js-yaml": "^4.1.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["ai", "agent", "dashboard", "monitoring", "sse"],
+  "license": "MIT"
+}
