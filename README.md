@@ -1,242 +1,275 @@
 # AI Agent Portfolio
 
-> **AIエージェントによる一気通貫の高速アプリ開発** を実証するポートフォリオ
+> End-to-end AI-driven application development -- from requirements to deployment, fully automated.
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-success)](https://sohei-t.github.io/ai-agent-portfolio/)
-[![Apps](https://img.shields.io/badge/Apps-14+-blue)](#-portfolio-applications)
-[![Workflow](https://img.shields.io/badge/Workflow-7%20Phases-purple)](#-development-workflow)
+[![Apps](https://img.shields.io/badge/Apps-14+-blue)](#portfolio-applications)
+[![Workflow](https://img.shields.io/badge/Workflow-7%20Phases-purple)](#development-workflow)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[English](#english) | [日本語](#日本語)
-
-**[Live Demo](https://sohei-t.github.io/ai-agent-portfolio/)** | **[音声解説を聴く](https://sohei-t.github.io/ai-agent-portfolio/portfolio_explanation.mp3)**
-
----
-
-<a id="日本語"></a>
-
-## 🎯 概要
-
-このポートフォリオは、**Claude Code + 独自ワークフロー**により、要件定義から本番デプロイまでを自動化した開発プロセスの成果物です。
-
-### 従来の開発との違い
-
-| 観点 | 従来のAI支援開発 | 本ワークフロー |
-|------|-----------------|---------------|
-| **開発方式** | 逐次処理（1タスクずつ） | **9つのGit Worktreeで物理的並列開発** |
-| **思考深度** | 長い会話で文脈が希薄化 | **コンテキスト分割による深い専門思考** |
-| **品質管理** | 人間による確認 | **自律評価システムによる自動選択** |
-| **成果物** | コードのみ | **ドキュメント・音声解説まで自動生成** |
-| **セキュリティ** | 手動チェック | **63パターン自動検出 + 独立監査** |
+**[Live Demo](https://sohei-t.github.io/ai-agent-portfolio/)** | **[Audio Walkthrough](https://sohei-t.github.io/ai-agent-portfolio/portfolio_explanation.mp3)**
 
 ---
 
-## 🏗️ アーキテクチャ
+## Table of Contents
 
-### Git Worktree による物理的並列開発
+- [Overview](#overview)
+- [How It Differs from Conventional AI-Assisted Development](#how-it-differs-from-conventional-ai-assisted-development)
+- [Architecture](#architecture)
+- [Development Workflow](#development-workflow)
+- [Portfolio Applications](#portfolio-applications)
+- [Results](#results)
+- [Tech Stack](#tech-stack)
+- [Skills Demonstrated](#skills-demonstrated)
+- [Author](#author)
+- [License](#license)
+
+---
+
+## Overview
+
+This portfolio is a collection of **14+ interactive web applications** built through a custom AI agent workflow powered by Claude Code. Every application was developed end-to-end -- from requirements analysis through production deployment -- using a 7-phase automated pipeline with parallel execution via Git Worktrees.
+
+The workflow does not merely use AI as a coding assistant. Instead, it orchestrates **multiple specialized sub-agents** working in parallel across physically isolated Git Worktrees, with an autonomous evaluation system that selects the best implementation from competing prototypes.
+
+---
+
+## How It Differs from Conventional AI-Assisted Development
+
+| Dimension | Conventional AI-Assisted Development | This Workflow |
+|-----------|--------------------------------------|---------------|
+| **Execution model** | Sequential (one task at a time) | **9 Git Worktrees for true physical parallelism** |
+| **Reasoning depth** | Context dilution over long conversations | **Context splitting for deep, specialized reasoning** |
+| **Quality control** | Manual human review | **Autonomous evaluation system with automated selection** |
+| **Deliverables** | Code only | **Code + tests + documentation + audio walkthrough -- all auto-generated** |
+| **Security** | Manual checks | **63-pattern automated detection + independent security audit** |
+
+---
+
+## Architecture
+
+### Parallel Development via Git Worktrees
 
 ```
 worktrees/
-├── phase1-planning-a/     # 計画案A（保守的アプローチ）
-├── phase1-planning-b/     # 計画案B（革新的アプローチ）
-├── phase2-impl-prototype-a/   # 実装プロトタイプA
-├── phase2-impl-prototype-b/   # 実装プロトタイプB
-├── phase2-impl-prototype-c/   # 実装プロトタイプC
-├── phase3-testing/        # テスト環境
-├── phase4-quality-opt-a/  # 最適化アプローチA
-├── phase4-quality-opt-b/  # 最適化アプローチB
-└── phase5-delivery/       # 最終成果物
+  phase1-planning-a/           # Plan A (conservative approach)
+  phase1-planning-b/           # Plan B (innovative approach)
+  phase2-impl-prototype-a/     # Implementation prototype A
+  phase2-impl-prototype-b/     # Implementation prototype B
+  phase2-impl-prototype-c/     # Implementation prototype C
+  phase3-testing/              # Testing environment
+  phase4-quality-opt-a/        # Optimization approach A
+  phase4-quality-opt-b/        # Optimization approach B
+  phase5-delivery/             # Final deliverables
 ```
 
-**なぜGit Worktreeか？**
+**Why Git Worktrees?**
 
-1. **物理的なコンテキスト分離**: 各アプローチが独立したディレクトリで開発され、相互干渉を防止
-2. **真の並列実行**: 複数のサブエージェントが同時に異なるディレクトリで作業可能
-3. **比較評価の容易性**: 複数の実装を並べて評価し、最良を選択
+1. **Physical context isolation** -- Each approach lives in an independent directory, preventing cross-contamination between competing implementations.
+2. **True parallel execution** -- Multiple sub-agents work simultaneously in different directories without file-locking conflicts.
+3. **Side-by-side evaluation** -- Multiple implementations can be compared directly, enabling principled selection of the best candidate.
 
-### コンテキスト分割戦略
+### Context Splitting Strategy
 
-LLMのコンテキストウィンドウ制限を克服するため、タスクを専門エージェントに分割：
+To overcome LLM context window limitations, tasks are delegated to specialized sub-agents:
 
 ```
-メインエージェント（オーケストレーター）
-    │
-    ├── 要件分析エージェント
-    │       └── 深い要件理解に特化（REQUIREMENTS.md生成）
-    │
-    ├── 設計エージェント
-    │       └── アーキテクチャ設計に特化（SPEC.md, TECH_STACK.md生成）
-    │
-    ├── 実装エージェント（並列×3）
-    │       ├── Frontend Developer
-    │       ├── Backend Developer
-    │       └── Database Engineer
-    │
-    ├── テストエージェント
-    │       └── 品質保証に特化（100%合格まで継続）
-    │
-    └── ドキュメントエージェント
-            └── README, about.html, 音声解説を自動生成
+Main Agent (Orchestrator)
+  |
+  +-- Requirements Analyst
+  |     Produces: REQUIREMENTS.md
+  |
+  +-- System Architect
+  |     Produces: SPEC.md, TECH_STACK.md
+  |
+  +-- Implementation Agents (3x parallel)
+  |     +-- Frontend Developer
+  |     +-- Backend Developer
+  |     +-- Database Engineer
+  |
+  +-- Test Agent
+  |     Runs until 100% pass rate
+  |
+  +-- Documentation Agent
+        Produces: README, about.html, audio walkthrough
 ```
 
-**効果**: 各エージェントは自身の専門領域に集中でき、より深い思考が可能
+Each sub-agent operates within a focused context, enabling deeper and more specialized reasoning than a single agent handling everything.
 
 ---
 
-## 🔄 開発ワークフロー（7フェーズ）
+## Development Workflow
+
+The workflow consists of 7 phases, each with clearly defined inputs, outputs, and quality gates.
 
 ```
-Phase 0: 初期化
-    │
-    ▼
-Phase 1: 並列計画 ──────────────────┐
-    │  ├─ Planning A（保守的）      │ 自律評価で
-    │  └─ Planning B（革新的）      │ 最良を選択
-    │                              │
-    ▼ ◀────────────────────────────┘
-Phase 2: 並列実装 ──────────────────┐
-    │  ├─ Prototype A              │
-    │  ├─ Prototype B              │ UX重視の
-    │  └─ Prototype C              │ 評価基準で選択
-    │                              │
-    ▼ ◀────────────────────────────┘
-Phase 3: テスト
-    │  └─ 100%合格まで自動修正ループ
-    │
-    ▼
-Phase 4: 品質最適化
-    │  └─ カバレッジ80-90%目標
-    │
-    ▼
-Phase 5: 完成処理
-    │  ├─ README.md自動生成
-    │  ├─ about.html自動生成
-    │  └─ 音声解説自動生成（GCP TTS）
-    │
-    ▼
-Phase 6: GitHub公開
-    │  └─ GitHub Pages自動デプロイ
-    │
-    ▼
-Phase 6.5: セキュリティ検証
-       └─ 独立エージェントによる監査
+Phase 0: Initialize
+    |
+    v
+Phase 1: Parallel Planning ----------------+
+    |  Plan A (conservative)               | Autonomous evaluation
+    |  Plan B (innovative)                 | selects the best plan
+    |                                      |
+    v  <-----------------------------------+
+Phase 2: Parallel Implementation -----------+
+    |  Prototype A                         |
+    |  Prototype B                         | UX-weighted evaluation
+    |  Prototype C                         | selects the best build
+    |                                      |
+    v  <-----------------------------------+
+Phase 3: Testing
+    |  Automated fix loop until 100% pass
+    |
+    v
+Phase 4: Quality Optimization
+    |  Target: 80-90% coverage
+    |
+    v
+Phase 5: Finalization
+    |  Auto-generate README.md
+    |  Auto-generate about.html
+    |  Auto-generate audio walkthrough (GCP TTS)
+    |
+    v
+Phase 6: GitHub Publishing
+    |  Automated GitHub Pages deployment
+    |
+    v
+Phase 6.5: Security Verification
+       Independent agent-based audit
 ```
 
-### 自律評価システム
+### Autonomous Evaluation System
 
-複数の実装から最良を選択する評価基準：
+When multiple implementations compete, the system selects the best candidate using weighted criteria:
 
-```yaml
-evaluation_criteria:
-  user_experience: 35%    # 最優先！
-    - Core Web Vitals準拠
-    - 直感的な操作性
-    - アクセシビリティ（WCAG 2.1 AA）
-    - レスポンシブデザイン
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| **User Experience** | **35%** | Core Web Vitals, intuitive interaction, WCAG 2.1 AA accessibility, responsive design |
+| Feature Completeness | 20% | All specified requirements implemented |
+| Performance | 15% | Load times, rendering efficiency |
+| Test Quality | 15% | Coverage, edge case handling |
+| Security | 10% | Vulnerability scanning, input validation |
+| Maintainability | 5% | Code readability, documentation |
 
-  feature_completeness: 20%
-  performance: 15%
-  test_quality: 15%
-  security: 10%
-  maintainability: 5%
-```
+User experience carries the highest weight, reflecting the principle that software must be usable first and foremost.
 
 ---
 
-## 📱 Portfolio Applications
+## Portfolio Applications
 
-### 🤖 Robo Battle シリーズ
+### Robo Battle Series
 
-| バージョン | 説明 | デモ |
-|-----------|------|------|
-| [Robo Battle v5](./robo-battle-v5/) | **NEW!** MATCH FORMAT EDITION - 2本/3本先取制、エンディング演出 | [Live](https://robo-battle-v5-game.web.app/) |
-| [Robo Battle v4](./robo-battle-v4/) | 魔獣召喚システム + 強化CPU AI搭載 | [Live](https://robo-battle-v4-game.web.app/) |
-| [Robo Battle v3](./robo-battle-v3/) | WebRTC P2Pオンライン対戦対応 | [Live](https://robo-battle-v3-game.web.app/) |
-| [Robo Battle v2](./robo-battle-v2/) | フォトリアル3Dグラフィックス（AI生成スプライト） | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v2/) |
-| [Robo Battle](./robo-battle/) | 初期版ロボット対戦ゲーム | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/) |
+| Version | Description | Demo |
+|---------|-------------|------|
+| [Robo Battle v5](./robo-battle-v5/) | Match format edition -- best-of-3/best-of-5, ending cinematics | [Live](https://robo-battle-v5-game.web.app/) |
+| [Robo Battle v4](./robo-battle-v4/) | Beast summoning system + enhanced CPU AI | [Live](https://robo-battle-v4-game.web.app/) |
+| [Robo Battle v3](./robo-battle-v3/) | WebRTC peer-to-peer online multiplayer | [Live](https://robo-battle-v3-game.web.app/) |
+| [Robo Battle v2](./robo-battle-v2/) | Photorealistic 3D graphics with AI-generated sprites | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle-v2/) |
+| [Robo Battle](./robo-battle/) | Original robot battle game | [Live](https://sohei-t.github.io/ai-agent-portfolio/robo-battle/) |
 
-### 👾 シューティングゲーム
+### Shooting Games
 
-| アプリ名 | 説明 | デモ |
-|---------|------|------|
-| [Boss Shooter 2](./boss-shooter2/) | 10ステージ構成のボス戦シューティング（改良版） | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) |
-| [Boss Shooting](./boss-shooting/) | レトロスタイル縦スクロールシューティング | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/) |
-| [Space Shooter](./space-shooter/) | Space Invaders風シューティング | [Live](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/) |
-| [Gradius Clone](./gradius-clone/) | グラディウス風横スクロールSTG（Phaser 3） | [Live](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/) |
+| Application | Description | Demo |
+|-------------|-------------|------|
+| [Boss Shooter 2](./boss-shooter2/) | 10-stage boss battle shooter (enhanced edition) | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooter2/) |
+| [Boss Shooting](./boss-shooting/) | Retro-style vertical scrolling shooter | [Live](https://sohei-t.github.io/ai-agent-portfolio/boss-shooting/) |
+| [Space Shooter](./space-shooter/) | Space Invaders-inspired arcade shooter | [Live](https://sohei-t.github.io/ai-agent-portfolio/space-shooter/) |
+| [Gradius Clone](./gradius-clone/) | Gradius-style horizontal scrolling STG (Phaser 3) | [Live](https://sohei-t.github.io/ai-agent-portfolio/gradius-clone/) |
 
-### 🎮 その他のゲーム
+### Other Games
 
-| アプリ名 | 説明 | デモ |
-|---------|------|------|
-| [Bowling Adventure v2](./bowling-adventure-v2/) | 3D障害物コースボウリング（Three.js + Cannon.js） | [Live](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure-v2/) |
-| [Bowling Adventure](./bowling-adventure/) | 3Dボウリングゲーム（初期版） | [Live](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure/) |
-| [Dungeon Battles](./dungeon-battles/) | 縦スクロール型ダンジョンRPG | [Live](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/) |
+| Application | Description | Demo |
+|-------------|-------------|------|
+| [Bowling Adventure v2](./bowling-adventure-v2/) | 3D obstacle course bowling (Three.js + Cannon.js) | [Live](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure-v2/) |
+| [Bowling Adventure](./bowling-adventure/) | 3D bowling game (original edition) | [Live](https://sohei-t.github.io/ai-agent-portfolio/bowling-adventure/) |
+| [Dungeon Battles](./dungeon-battles/) | Vertical-scrolling dungeon RPG | [Live](https://sohei-t.github.io/ai-agent-portfolio/dungeon-battles/) |
 
-### 🛠️ ユーティリティ / その他
+### Utilities and Tools
 
-| アプリ名 | 説明 | デモ |
-|---------|------|------|
-| [CLI Sticky Notes](./cli-sticky-notes/) | ターミナル用グローバルホットキー付箋（Electron） | [About](https://sohei-t.github.io/ai-agent-portfolio/cli-sticky-notes/about.html) |
-| [Piano App](./piano-app/) | 18種類の楽器音源搭載ピアノアプリ（Web Audio API） | [Live](https://sohei-t.github.io/ai-agent-portfolio/piano-app/) |
-
----
-
-## 📊 成果
-
-### 定量的実績
-
-- **開発速度**: 要件定義〜デプロイまで **数時間** で完了
-- **品質基準**: テストカバレッジ **80-90%** を自動達成
-- **ドキュメント**: README + about.html + 音声解説を **100%自動生成**
-- **セキュリティ**: **63パターン**の機密ファイル自動除外
-
-### 技術的イノベーション
-
-1. **物理的並列開発**: Git Worktreeによる真の並列処理
-2. **深い専門思考**: コンテキスト分割によるエージェント特化
-3. **自律品質管理**: UX重視の評価基準による自動選択
-4. **エンドツーエンド自動化**: コード→テスト→ドキュメント→デプロイ
+| Application | Description | Demo |
+|-------------|-------------|------|
+| [CLI Sticky Notes](./cli-sticky-notes/) | Terminal sticky notes with global hotkey support (Electron) | [About](https://sohei-t.github.io/ai-agent-portfolio/cli-sticky-notes/about.html) |
+| [Piano App](./piano-app/) | Piano application with 18 instrument sounds (Web Audio API) | [Live](https://sohei-t.github.io/ai-agent-portfolio/piano-app/) |
 
 ---
 
-## 🛠️ 技術スタック
+## Results
 
-### ワークフロー基盤
-- **Claude Code** (Claude Opus 4.5) - メインAIエージェント
-- **Git Worktree** - 並列開発環境
-- **Task Tool** - サブエージェント並列実行
+### Quantitative Outcomes
 
-### 開発ツール
-- **Electron** - デスクトップアプリ
-- **HTML5 Canvas** - ゲーム開発
-- **Jest** - テスト自動化
+| Metric | Result |
+|--------|--------|
+| Development speed | Requirements to deployment in **hours, not days** |
+| Test coverage | **80-90%** automatically achieved |
+| Documentation | README + about.html + audio walkthrough **100% auto-generated** |
+| Security | **63+ patterns** for sensitive file detection and exclusion |
 
-### インフラ
-- **GitHub Pages** - 自動デプロイ
-- **GCP Text-to-Speech** - 音声解説生成
-- **Vertex AI Imagen** - 画像生成（一部アプリ）
+### Technical Innovations
 
----
-
-## 🎓 このポートフォリオが示すスキル
-
-### AIエンジニアリング
-- マルチエージェントシステムの設計・実装
-- LLMのコンテキスト管理とプロンプトエンジニアリング
-- 自律評価システムの構築
-
-### ソフトウェアエンジニアリング
-- テスト駆動開発（TDD）
-- CI/CD パイプライン設計
-- セキュリティを考慮した開発
-
-### プロセス設計
-- 開発ワークフローの自動化
-- 品質基準の定量化と自動検証
-- 再現可能なテンプレート化
+1. **Physical parallelism** -- Git Worktrees enable true concurrent development across isolated directories, going beyond simple branch-based workflows.
+2. **Deep specialized reasoning** -- Context splitting ensures each sub-agent focuses on a single domain, producing higher-quality output than a monolithic approach.
+3. **Autonomous quality control** -- UX-first evaluation criteria (35% weight) drive automated selection between competing implementations.
+4. **End-to-end automation** -- The pipeline covers every stage from requirements analysis through code, testing, documentation, and deployment.
 
 ---
 
-## 👤 Author
+## Tech Stack
+
+### Workflow Infrastructure
+
+| Technology | Role |
+|-----------|------|
+| Claude Code (Claude Opus) | Main AI agent and orchestrator |
+| Git Worktree | Parallel development environments |
+| Task Tool | Sub-agent parallel execution |
+
+### Application Development
+
+| Technology | Role |
+|-----------|------|
+| HTML5 Canvas | Game rendering |
+| Vanilla JavaScript | Core application logic |
+| WebGL / Three.js | 3D graphics |
+| Phaser 3 | Game framework |
+| WebRTC | Peer-to-peer multiplayer |
+| Web Audio API | Audio synthesis |
+| Electron | Desktop application |
+
+### Infrastructure and Services
+
+| Technology | Role |
+|-----------|------|
+| GitHub Pages | Static hosting and deployment |
+| Firebase | Real-time database and hosting for select apps |
+| GCP Text-to-Speech | Audio walkthrough generation |
+| Vertex AI Imagen | AI image generation (select apps) |
+
+---
+
+## Skills Demonstrated
+
+### AI Engineering
+
+- Multi-agent system design and implementation
+- LLM context management and prompt engineering
+- Autonomous evaluation system architecture
+
+### Software Engineering
+
+- Test-driven development (TDD)
+- CI/CD pipeline design
+- Security-conscious development practices
+
+### Process Design
+
+- Development workflow automation
+- Quantitative quality metrics with automated verification
+- Reproducible, templated project scaffolding
+
+---
+
+## Author
 
 **Sohei T.**
 
@@ -245,45 +278,9 @@ evaluation_criteria:
 
 ---
 
-<a id="english"></a>
+## License
 
-## 🇺🇸 English
-
-### Overview
-
-This portfolio demonstrates **end-to-end AI-driven application development** using Claude Code with a custom workflow system.
-
-### Key Innovations
-
-1. **Physical Parallelism**: 9 Git worktrees enable true parallel development
-2. **Context Splitting**: Specialized sub-agents for deeper reasoning
-3. **Autonomous Quality Control**: UX-first evaluation criteria (35% weight)
-4. **Full Automation**: Requirements → Code → Tests → Docs → Deploy
-
-### Workflow Architecture
-
-```
-Phase 0: Initialize → Phase 1: Parallel Planning (2 approaches)
-    → Phase 2: Parallel Implementation (3 prototypes)
-    → Phase 3: Testing (100% pass required)
-    → Phase 4: Quality Optimization (80-90% coverage)
-    → Phase 5: Documentation (auto-generated)
-    → Phase 6: GitHub Publishing
-    → Phase 6.5: Security Verification
-```
-
-### Results
-
-- **Speed**: Full apps delivered in hours, not days
-- **Quality**: 80-90% test coverage automatically achieved
-- **Documentation**: 100% auto-generated (README + about.html + audio)
-- **Security**: 63+ patterns for sensitive file detection
-
----
-
-## 📄 License
-
-MIT License - See individual app directories for details.
+MIT License -- See individual application directories for details.
 
 ---
 
