@@ -1,0 +1,46 @@
+# Project Specification
+
+> Auto-generated: 2026-03-14
+
+
+## Project Info
+
+```yaml
+project:
+  name: text-diff-editor
+  slug: text-diff-editor
+  type: portfolio
+  created: 2026-02-18 15:11:15
+  last_updated: 2026-02-18 15:11:15
+  status: development
+  version: 1.0.0
+  description: "Mac mini Magic Mouse対応の老眼に優しいテキストエディター。ピンチズームでテキスト拡大縮小、ドラッグでテキスト表示位置調整、1-2ファイル同時表示・編集・保存が可能。"
+  development_type: "Portfolio App"
+  platform: "desktop"
+
+portfolio:
+  github_repo: ai-agent-portfolio
+  visibility: public
+  demo_url: "https://sohei-t.github.io/ai-agent-portfolio/text-diff-editor/"
+
+paths:
+  agent_dir: ./Desktop/AI-Apps/text-diff-editor-agent
+  release_dir: ~/Desktop/my-apps/text-diff-editor
+  portfolio_dir: ~/Desktop/GitHub/ai-agent-portfolio/text-diff-editor
+
+workflow:
+  1_develop: "このディレクトリ内で開発"
+  2_test: "worktrees内でテスト実行"
+  3_release: "./release.sh を実行"
+  4_publish: "./publish_to_portfolio.sh を実行"
+  5_modify: "このディレクトリに戻って修正"
+
+features:
+  - "Magic Mouseピンチズームでテキスト全体の拡大縮小"
+  - "ドラッグでテキスト表示位置をスクロール"
+  - "1ファイルまたは2ファイル同時並列表示"
+  - "テキスト編集・保存機能（File System Access API）"
+  - "老眼に優しい大きなフォント・高コントラストUI"
+  - "frontend-design スキル統合"
+
+```
