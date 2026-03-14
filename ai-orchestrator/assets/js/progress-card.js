@@ -252,47 +252,47 @@ class ProgressCard {
     const shimmerClass = status === 'in_progress' ? 'shimmer' : '';
 
     return `
-      <div class="card-header cursor-pointer p-4 hover:bg-slate-750 transition-colors"
+      <div class="card-header cursor-pointer p-5 hover:bg-slate-750 transition-colors"
            role="button" tabindex="0"
            aria-expanded="false"
            aria-label="${I18n.t('card.toggle')} ${this._escape(project.name)}">
         <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2 min-w-0">
+          <div class="flex items-center gap-2.5 min-w-0">
             <span class="status-dot ${status}" aria-hidden="true"></span>
-            <h3 class="font-semibold text-sm truncate">${this._escape(project.name)}</h3>
+            <h3 class="font-semibold text-base truncate">${this._escape(project.name)}</h3>
             <span class="agent-badge ${project.agent_type}" aria-label="${agentLabel}">${agentLabel}</span>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <span class="percent-text text-sm font-mono font-bold" style="color: ${agent.bg}" aria-label="${percent}%">${percent}%</span>
-            <i data-lucide="chevron-down" class="card-chevron w-4 h-4 text-slate-500" aria-hidden="true"></i>
+          <div class="flex items-center gap-2.5 flex-shrink-0">
+            <span class="percent-text text-base font-mono font-bold" style="color: ${agent.bg}" aria-label="${percent}%">${percent}%</span>
+            <i data-lucide="chevron-down" class="card-chevron w-5 h-5 text-slate-500" aria-hidden="true"></i>
           </div>
         </div>
 
-        <div class="progress-bar mb-2" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" aria-label="${percent}%">
+        <div class="progress-bar mb-3" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" aria-label="${percent}%">
           <div class="progress-bar-fill ${shimmerClass}" style="width: ${percent}%; background-color: ${agent.bg}"></div>
         </div>
 
-        <div class="flex items-center justify-between text-xs text-slate-500">
+        <div class="flex items-center justify-between text-sm text-slate-500">
           <div class="flex items-center gap-3">
             <span class="status-text">${statusLabel}</span>
             <span class="phase-text">${this._escape(phase)}</span>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1.5">
             <span class="time-text" title="${project.updated_at || ''}">${time}</span>
             ${project.path ? `
-            <button class="btn-copy p-1 rounded hover:bg-slate-700 transition-colors" title="${I18n.t('card.copy')}" aria-label="${I18n.t('card.copy')}">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <button class="btn-copy p-1.5 rounded hover:bg-slate-700 transition-colors" title="${I18n.t('card.copy')}" aria-label="${I18n.t('card.copy')}">
+              <i data-lucide="copy" class="w-4 h-4"></i>
             </button>` : ''}
-            <button class="btn-delete p-1 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors" title="${I18n.t('card.remove')}" aria-label="${I18n.t('card.remove')} ${this._escape(project.name)}">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <button class="btn-delete p-1.5 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors" title="${I18n.t('card.remove')}" aria-label="${I18n.t('card.remove')} ${this._escape(project.name)}">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </div>
         </div>
       </div>
 
       <div class="card-details" aria-hidden="true">
-        <div class="card-details-content border-t border-slate-700 p-4">
-          ${project.progress_data ? this._detailsTemplate(project.progress_data) : `<p class="text-xs text-slate-500">${I18n.t('card.nodata')}</p>`}
+        <div class="card-details-content border-t border-slate-700 p-5">
+          ${project.progress_data ? this._detailsTemplate(project.progress_data) : `<p class="text-sm text-slate-500">${I18n.t('card.nodata')}</p>`}
         </div>
       </div>
     `;
@@ -303,7 +303,7 @@ class ProgressCard {
    */
   _detailsTemplate(data) {
     if (!data || !data.phases) {
-      return `<p class="text-xs text-slate-500">${I18n.t('card.nophase')}</p>`;
+      return `<p class="text-sm text-slate-500">${I18n.t('card.nophase')}</p>`;
     }
 
     return data.phases.map((phase) => {
@@ -313,8 +313,8 @@ class ProgressCard {
       return `
         <div class="mb-3">
           <div class="flex items-center gap-2 mb-1">
-            <span class="text-sm" aria-hidden="true">${statusIcon}</span>
-            <span class="text-xs font-medium ${phase.status === 'completed' ? 'text-slate-400' : 'text-slate-200'}">${this._escape(phase.name)}</span>
+            <span class="text-base" aria-hidden="true">${statusIcon}</span>
+            <span class="text-sm font-medium ${phase.status === 'completed' ? 'text-slate-400' : 'text-slate-200'}">${this._escape(phase.name)}</span>
           </div>
           ${steps.length > 0 ? `
             <ul class="ml-6 space-y-0.5" role="list">
