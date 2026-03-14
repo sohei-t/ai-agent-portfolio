@@ -1,0 +1,35 @@
+# Changelog
+
+> Auto-generated: 2026-03-14
+
+## Recent Changes
+
+- 56723b9 refactor(frontend): improve code quality for FINDY score optimization (2026-02-22 20:23:18 +0900)
+- 2e0249e ci: add GitHub Actions workflow and README badges (2026-02-21 21:56:13 +0900)
+- 7a0e45c Merge pull request #10 from sohei-t/docs/add-api-documentation (2026-02-21 19:42:33 +0900)
+- 737a0d7 docs: add API client layer documentation (2026-02-21 19:42:04 +0900)
+- 15ebb3c docs: update project documentation for React frontend (2026-02-21 18:47:49 +0900)
+- 854b9a8 test(frontend): add component and page integration tests (2026-02-21 18:47:39 +0900)
+- bf4fd2b test(frontend): add unit tests for utils, hooks, and API client (2026-02-21 18:47:33 +0900)
+- 584c3c1 refactor(server): serve React frontend from frontend/dist/ (2026-02-21 18:47:27 +0900)
+- 1a8aa53 feat(frontend): add CSS design system with dark theme support (2026-02-21 18:47:23 +0900)
+- 1f8996a feat(frontend): add page components and React Router setup (2026-02-21 18:47:17 +0900)
+- 284fc06 feat(frontend): add dashboard components (2026-02-21 18:47:12 +0900)
+- 48c3880 feat(frontend): add task management components (2026-02-21 18:47:07 +0900)
+- f704d0a feat(frontend): add search components with keyboard navigation (2026-02-21 18:47:00 +0900)
+- 0888ecf feat(frontend): add layout and navigation components (2026-02-21 18:46:55 +0900)
+- 94cda45 feat(frontend): add reusable UI components (2026-02-21 18:46:48 +0900)
+- ca64bee feat(frontend): add custom hooks for state management (2026-02-21 18:46:42 +0900)
+- 4ec951c feat(frontend): add React Context providers (2026-02-21 18:46:37 +0900)
+- 7c55ad7 feat(frontend): add typed API client layer (2026-02-21 18:46:33 +0900)
+- 19a4e15 feat(frontend): add utility functions (2026-02-21 18:46:29 +0900)
+- 371b3a1 feat(frontend): add TypeScript type definitions (2026-02-21 18:46:24 +0900)
+- 9e14719 feat(frontend): scaffold Vite + React + TypeScript project (2026-02-21 18:46:19 +0900)
+- 3ec2cc1 chore: update .gitignore for React frontend project (2026-02-21 18:46:13 +0900)
+- e6e4ad4 Merge branch 'main' into phase/quality-opt-b (2026-02-06 11:23:50 +0900)
+- 46868c8 perf(phase4-b): optimize performance and response times (2026-02-06 11:21:59 +0900)
+- 5e5483a test(phase4-a): improve coverage to 98%+ with comprehensive unit tests (2026-02-06 11:21:46 +0900)
+- f319ea3 feat(phase2-b): SPA architecture with modern UX (2026-02-06 11:12:02 +0900)
+- ce99fe2 feat(phase1-b): detailed specification, tech stack, and test design (2026-02-06 10:45:37 +0900)
+- 1e17180 feat(phase1): conservative planning approach (2026-02-06 10:35:00 +0900)
+- bdd4c87 Initial: budget-tracker development environment setup (2026-02-06 10:20:04 +0900)
