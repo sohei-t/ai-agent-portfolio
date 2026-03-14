@@ -1,0 +1,37 @@
+# Changelog
+
+> Auto-generated: 2026-03-14
+
+## Recent Changes
+
+- a4cbfd7 Merge pull request #20 from sohei-t/feat/github-pages-deploy (2026-02-25 11:23:08 +0900)
+- 1bf12cb feat: add GitHub Pages deployment with about page and audio (2026-02-25 11:21:56 +0900)
+- 427ae54 refactor: improve code quality for FINDY score optimization (2026-02-22 20:24:02 +0900)
+- 1e39ad0 ci: add GitHub Actions, MIT License, and comprehensive README (2026-02-21 21:56:32 +0900)
+- 671d36d Merge pull request #4 from sohei-t/docs/add-engine-documentation (2026-02-21 19:42:36 +0900)
+- 47fe392 docs: add DiffEngine algorithm documentation (2026-02-21 19:42:12 +0900)
+- 4d35420 docs: add README and preserve original vanilla JS implementation (2026-02-21 18:50:20 +0900)
+- a294bde test: add comprehensive test suite (66 tests) (2026-02-21 18:50:10 +0900)
+- 7ce2de1 feat: add CSS with three-theme design system (2026-02-21 18:50:04 +0900)
+- 1ac1cea feat: add main app component with provider composition (2026-02-21 18:49:59 +0900)
+- 518efb6 feat: add status bar with live indicators (2026-02-21 18:49:53 +0900)
+- e59d6b4 feat: add search and replace components (2026-02-21 18:49:48 +0900)
+- c7bc046 feat: add multi-panel editor components (2026-02-21 18:49:42 +0900)
+- f50c470 feat: add toolbar with grouped button sections (2026-02-21 18:49:36 +0900)
+- 2c14597 feat: add Toast notification components (2026-02-21 18:49:31 +0900)
+- a81218d feat: add custom hooks for editor functionality (2026-02-21 18:49:26 +0900)
+- b51fa2a feat: add React Context providers (2026-02-21 18:49:17 +0900)
+- 892b9d6 feat: add utility functions (2026-02-21 18:49:11 +0900)
+- 1bb470d feat: port Myers diff algorithm to TypeScript (2026-02-21 18:49:07 +0900)
+- 1d9d14f feat: add TypeScript type definitions (2026-02-21 18:49:01 +0900)
+- 67533c2 feat: scaffold Vite + React + TypeScript project (2026-02-21 18:48:55 +0900)
+- 7e1a084 chore: remove workflow templates and scaffold files (2026-02-21 18:48:49 +0900)
+- 0786502 chore: update .gitignore for React + TypeScript project (2026-02-21 18:48:40 +0900)
+- 9044e65 docs(phase5): generate all deliverables (2026-02-18 16:27:32 +0900)
+- d9a4de5 test(phase4-a): improve coverage to 80-90% (cherry-picked from phase4-a) (2026-02-18 16:19:49 +0900)
+- 61cbc0a perf(phase4-b): UX and performance optimization (2026-02-18 16:18:44 +0900)
+- a8cbd29 fix(phase3): test fixes and quality improvements (2026-02-18 16:01:44 +0900)
+- 3311cb5 feat(phase2-c): component-based text diff editor (2026-02-18 15:50:16 +0900)
+- 15af9b5 feat(phase1-b): complete specification and design documents (2026-02-18 15:34:17 +0900)
+- 15c8833 feat(phase1): merge innovative planning approach from phase1-planning-b (2026-02-18 15:25:17 +0900)
+- e0b9700 Initial: text-diff-editor development environment setup (2026-02-18 15:11:15 +0900)
