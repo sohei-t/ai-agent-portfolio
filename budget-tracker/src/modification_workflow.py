@@ -61,7 +61,7 @@ class GitHubIssuePRManager:
                 return result.stdout.strip()
         except:
             pass
-        return "sohei-t"  # フォールバック
+        raise RuntimeError("Could not determine GitHub username. Set GITHUB_USERNAME env var or install gh CLI.")
 
     def _get_gh_command(self) -> str:
         """gh CLIのパスを取得（M4 Mac対応）"""
