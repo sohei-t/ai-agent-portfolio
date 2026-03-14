@@ -5,6 +5,7 @@
 """
 
 import os
+import sys
 import json
 import re
 import tempfile
@@ -45,7 +46,7 @@ class SmartTTSGenerator:
             self._load_env_file()
             self.credentials_path = os.environ.get(
                 'GOOGLE_APPLICATION_CREDENTIALS',
-                os.path.expanduser("~/Desktop/git-worktree-agent/credentials/gcp-workflow-key.json")
+                ''  # Set GOOGLE_APPLICATION_CREDENTIALS environment variable
             )
 
         self.client = None
@@ -467,32 +468,33 @@ workflow_tasks.append({
 })
 '''
 
-    # 統合ファイルを作成
-    with open('/Users/tsujisouhei/Desktop/git-worktree-agent/src/workflow_tts_integration.py', 'w') as f:
-        f.write(integration_code)
-
-    print("\n📝 ワークフロー統合コードを生成しました")
+    # Print integration code for reference
+    print(integration_code)
+    print("\n📝 ワークフロー統合コードを表示しました（必要に応じてファイルに保存してください）")
 
 
 if __name__ == "__main__":
     # テスト実行
     print("SmartTTSGenerator テスト")
 
-    # 3Dゲームの台本でテスト
+    # テスト用: SSMLファイルから音声を生成
     tts = SmartTTSGenerator()
 
-    # SSMLファイルを読み込み
-    ssml_path = "/Users/tsujisouhei/Desktop/3d-shooting-game/docs/narration_script.ssml"
+    # コマンドライン引数またはデフォルトパスからSSMLファイルを読み込み
+    ssml_path = sys.argv[1] if len(sys.argv) > 1 else "docs/narration_script.ssml"
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "docs/narration_complete.mp3"
+
     if os.path.exists(ssml_path):
         with open(ssml_path, 'r', encoding='utf-8') as f:
             script = f.read()
 
-        # 1つのファイルに結合して生成
         success, stats = tts.generate_from_text(
             text=script,
-            output_path="/Users/tsujisouhei/Desktop/3d-shooting-game/docs/narration_complete.mp3"
+            output_path=output_path
         )
 
         if success:
-            print("\n🎧 音声を再生:")
-            print("open /Users/tsujisouhei/Desktop/3d-shooting-game/docs/narration_complete.mp3")
+            print(f"\n🎧 音声ファイル生成完了: {output_path}")
+    else:
+        print(f"❌ ファイルが見つかりません: {ssml_path}")
+        print("使用法: python tts_smart_generator.py [input_ssml] [output_mp3]")
