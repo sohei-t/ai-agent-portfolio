@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Scout - About</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --border: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .pipeline-step {
+      position: relative;
+      padding-left: 3rem;
+    }
+    .pipeline-step::before {
+      content: '';
+      position: absolute;
+      left: 1rem;
+      top: 2.5rem;
+      bottom: -1.5rem;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--accent-blue), var(--accent-cyan));
+    }
+    .pipeline-step:last-child::before {
+      display: none;
+    }
+    .pipeline-step .step-dot {
+      position: absolute;
+      left: 0.4rem;
+      top: 0.6rem;
+      width: 1.3rem;
+      height: 1.3rem;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      border: 3px solid var(--bg-primary);
+      z-index: 1;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border: 1px solid;
+    }
+
+    .audio-player {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .audio-player audio {
+      width: 100%;
+      height: 40px;
+      border-radius: 8px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .metric-value { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Language Switcher -->
+<div class="fixed top-4 right-4 z-50">
+  <button id="langToggle" onclick="toggleLang()"
+    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+           bg-slate-800/80 backdrop-blur border border-slate-700 hover:border-slate-500
+           transition-all duration-200 cursor-pointer">
+    <span id="langFlag">&#x1f1ef;&#x1f1f5;</span>
+    <span id="langLabel" class="text-slate-300">日本語</span>
+  </button>
+</div>
+
+<!-- Hero Section -->
+<header class="relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-transparent to-cyan-900/20"></div>
+  <div class="relative max-w-6xl mx-auto px-6 py-20 md:py-28 text-center">
+    <div class="mb-6 text-5xl">&#x1f50d;</div>
+    <h1 class="text-4xl md:text-5xl font-bold mb-4">
+      <span class="gradient-text">Content Scout</span>
+    </h1>
+    <p class="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto" data-ja="技術トレンドを自動検知し、研修コンテンツのテーマとして提案する自律パイプライン" data-en="Autonomous pipeline that detects tech trends and proposes training curriculum topics">
+      技術トレンドを自動検知し、研修コンテンツのテーマとして提案する自律パイプライン
+    </p>
+    <div class="flex flex-wrap justify-center gap-3 mt-8">
+      <span class="tag border-blue-500/40 text-blue-400 bg-blue-500/10">Agentic AI Level 4</span>
+      <span class="tag border-cyan-500/40 text-cyan-400 bg-cyan-500/10">Claude CLI</span>
+      <span class="tag border-green-500/40 text-green-400 bg-green-500/10">Slack Integration</span>
+      <span class="tag border-purple-500/40 text-purple-400 bg-purple-500/10">Human-in-the-Loop</span>
+    </div>
+  </div>
+</header>
+
+<!-- Audio Player -->
+<section class="max-w-6xl mx-auto px-6 -mt-4 mb-12">
+  <div class="audio-player max-w-md mx-auto text-center">
+    <p class="text-sm text-slate-400 mb-3" data-ja="&#x1f50a; 音声解説" data-en="&#x1f50a; Audio Explanation">&#x1f50a; 音声解説</p>
+    <audio controls preload="metadata">
+      <source src="./explanation.mp3" type="audio/mpeg">
+      <p data-ja="お使いのブラウザは音声再生に対応していません。" data-en="Your browser does not support audio playback.">お使いのブラウザは音声再生に対応していません。</p>
+    </audio>
+  </div>
+</section>
+
+<!-- Overview Section -->
+<section class="max-w-6xl mx-auto px-6 mb-16 fade-in">
+  <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+    <span class="text-2xl">&#x1f4a1;</span>
+    <span data-ja="概要" data-en="Overview">概要</span>
+  </h2>
+  <div class="grid md:grid-cols-2 gap-6">
+    <div class="card">
+      <h3 class="font-semibold text-lg mb-3 text-blue-400" data-ja="何をするシステムか" data-en="What It Does">何をするシステムか</h3>
+      <p class="text-slate-300 text-sm leading-relaxed" data-ja="Content Scout は、8つの技術情報ソースから最新トレンドを毎日自動巡回し、Claude AI でシグナル分析を行い、研修コンテンツのテーマとして有望なものを Slack 経由で提案します。管理者はSlack上のボタンで承認・却下・保留を判断するだけで、承認されたテーマのカリキュラム環境が自動的に構築されます。" data-en="Content Scout automatically crawls 8 tech information sources daily, analyzes signals with Claude AI, and proposes promising training topics via Slack. Managers simply press Approve/Reject/Defer buttons, and approved topics get their curriculum environment built automatically.">
+        Content Scout は、8つの技術情報ソースから最新トレンドを毎日自動巡回し、Claude AI でシグナル分析を行い、研修コンテンツのテーマとして有望なものを Slack 経由で提案します。管理者はSlack上のボタンで承認・却下・保留を判断するだけで、承認されたテーマのカリキュラム環境が自動的に構築されます。
+      </p>
+    </div>
+    <div class="card">
+      <h3 class="font-semibold text-lg mb-3 text-cyan-400" data-ja="Agentic AI Level 4" data-en="Agentic AI Level 4">Agentic AI Level 4</h3>
+      <ul class="text-slate-300 text-sm space-y-2">
+        <li class="flex items-start gap-2">
+          <span class="text-green-400 mt-0.5">&#x2714;</span>
+          <span data-ja="自律判断: シグナルの重要度を自動スコアリング" data-en="Autonomous judgment: Auto-scores signal importance">自律判断: シグナルの重要度を自動スコアリング</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-green-400 mt-0.5">&#x2714;</span>
+          <span data-ja="自律実行: クロール → 分析 → 通知を無人で完遂" data-en="Autonomous execution: Crawl → Analyze → Notify unattended">自律実行: クロール → 分析 → 通知を無人で完遂</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-green-400 mt-0.5">&#x2714;</span>
+          <span data-ja="人間承認ループ: Slack ボタンで最終判断は人間が担当" data-en="Human approval loop: Final decisions via Slack buttons">人間承認ループ: Slack ボタンで最終判断は人間が担当</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-green-400 mt-0.5">&#x2714;</span>
+          <span data-ja="フィードバック学習: 承認/却下パターンから提案精度を向上" data-en="Feedback learning: Improves accuracy from approve/reject patterns">フィードバック学習: 承認/却下パターンから提案精度を向上</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture / Pipeline Section -->
+<section class="max-w-6xl mx-auto px-6 mb-16 fade-in">
+  <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+    <span class="text-2xl">&#x1f3d7;&#xfe0f;</span>
+    <span data-ja="パイプライン" data-en="Pipeline">パイプライン</span>
+  </h2>
+
+  <div class="space-y-6">
+    <!-- Step 1 -->
+    <div class="pipeline-step">
+      <div class="step-dot" style="background: var(--accent-blue);"></div>
+      <div class="card">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-2xl">&#x1f310;</span>
+          <h3 class="font-semibold text-blue-400">
+            <span data-ja="Step 1: シグナル収集" data-en="Step 1: Signal Collection">Step 1: シグナル収集</span>
+          </h3>
+          <span class="tag border-slate-600 text-slate-400">05:00 JST</span>
+        </div>
+        <p class="text-sm text-slate-300" data-ja="scout.py が RSS/API/HTML スクレイピングで8ソースを巡回。キーワードマッチしたシグナルを raw_signals.jsonl に蓄積。" data-en="scout.py crawls 8 sources via RSS/API/HTML scraping. Keyword-matched signals are appended to raw_signals.jsonl.">
+          scout.py が RSS/API/HTML スクレイピングで8ソースを巡回。キーワードマッチしたシグナルを raw_signals.jsonl に蓄積。
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="pipeline-step">
+      <div class="step-dot" style="background: var(--accent-purple);"></div>
+      <div class="card">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-2xl">&#x1f9e0;</span>
+          <h3 class="font-semibold text-purple-400">
+            <span data-ja="Step 2: Claude AI 分析" data-en="Step 2: Claude AI Analysis">Step 2: Claude AI 分析</span>
+          </h3>
+          <span class="tag border-slate-600 text-slate-400">06:00 JST</span>
+        </div>
+        <p class="text-sm text-slate-300" data-ja="analyst.py がフィードバック学習ウェイトを適用、クロスソース増幅を実行し、Claude --print で分析。提案 YAML を生成（最大2件/日）。" data-en="analyst.py applies feedback learning weights, executes cross-source amplification, and analyzes with Claude --print. Generates proposal YAML (max 2/day).">
+          analyst.py がフィードバック学習ウェイトを適用、クロスソース増幅を実行し、Claude --print で分析。提案 YAML を生成（最大2件/日）。
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="pipeline-step">
+      <div class="step-dot" style="background: var(--accent-green);"></div>
+      <div class="card">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-2xl">&#x1f4e9;</span>
+          <h3 class="font-semibold text-green-400">
+            <span data-ja="Step 3: Slack 通知" data-en="Step 3: Slack Notification">Step 3: Slack 通知</span>
+          </h3>
+        </div>
+        <p class="text-sm text-slate-300" data-ja="proposal_notifier.py が Block Kit カードを組み立て、Slack DM で送信。承認/却下/保留の3ボタンを含む。" data-en="proposal_notifier.py builds Block Kit cards and sends via Slack DM. Includes Approve/Reject/Defer buttons.">
+          proposal_notifier.py が Block Kit カードを組み立て、Slack DM で送信。承認/却下/保留の3ボタンを含む。
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="pipeline-step">
+      <div class="step-dot" style="background: var(--accent-amber);"></div>
+      <div class="card">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-2xl">&#x1f44d;</span>
+          <h3 class="font-semibold text-amber-400">
+            <span data-ja="Step 4: 人間の判断 + 自動実行" data-en="Step 4: Human Decision + Auto Execution">Step 4: 人間の判断 + 自動実行</span>
+          </h3>
+        </div>
+        <p class="text-sm text-slate-300" data-ja="管理者がSlackボタンで判断。承認 → カリキュラム環境を自動作成。却下 → フィードバック学習。保留 → 7日後に自動再評価。" data-en="Manager decides via Slack buttons. Approve → auto-create curriculum. Reject → feedback learning. Defer → auto re-evaluate after 7 days.">
+          管理者がSlackボタンで判断。承認 → カリキュラム環境を自動作成。却下 → フィードバック学習。保留 → 7日後に自動再評価。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Key Features -->
+<section class="max-w-6xl mx-auto px-6 mb-16 fade-in">
+  <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+    <span class="text-2xl">&#x2728;</span>
+    <span data-ja="主要機能" data-en="Key Features">主要機能</span>
+  </h2>
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="card text-center">
+      <div class="text-4xl mb-4">&#x1f4ca;</div>
+      <h3 class="font-semibold mb-2 text-blue-400" data-ja="フィードバック学習" data-en="Feedback Learning">フィードバック学習</h3>
+      <p class="text-sm text-slate-400" data-ja="承認は +0.1、却下は -0.15 の非対称ウェイトでカテゴリ/キーワード別に学習。提案精度が時間とともに向上。" data-en="Asymmetric weights: +0.1 for approvals, -0.15 for rejections. Category/keyword-level learning improves accuracy over time.">
+        承認は +0.1、却下は -0.15 の非対称ウェイトでカテゴリ/キーワード別に学習。提案精度が時間とともに向上。
+      </p>
+    </div>
+    <div class="card text-center">
+      <div class="text-4xl mb-4">&#x1f525;</div>
+      <h3 class="font-semibold mb-2 text-cyan-400" data-ja="クロスソース増幅" data-en="Cross-Source Amplification">クロスソース増幅</h3>
+      <p class="text-sm text-slate-400" data-ja="複数ソースで同一テーマが検出されると自動ブースト。2ソース: 1.5倍、3ソース以上: 2.0倍。" data-en="Auto-boosts signals detected across multiple sources. 2 sources: 1.5x, 3+ sources: 2.0x.">
+        複数ソースで同一テーマが検出されると自動ブースト。2ソース: 1.5倍、3ソース以上: 2.0倍。
+      </p>
+    </div>
+    <div class="card text-center">
+      <div class="text-4xl mb-4">&#x23f0;</div>
+      <h3 class="font-semibold mb-2 text-green-400" data-ja="保留自動再評価" data-en="Deferred Re-evaluation">保留自動再評価</h3>
+      <p class="text-sm text-slate-400" data-ja="保留された提案は7日後に自動再評価。新規シグナル増加でスコアが閾値を超えると再提案。最大3回延長。" data-en="Deferred proposals auto-re-evaluated after 7 days. Re-proposed if new signals push score above threshold. Max 3 extensions.">
+        保留された提案は7日後に自動再評価。新規シグナル増加でスコアが閾値を超えると再提案。最大3回延長。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Tech Stack -->
+<section class="max-w-6xl mx-auto px-6 mb-16 fade-in">
+  <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+    <span class="text-2xl">&#x1f6e0;&#xfe0f;</span>
+    <span data-ja="技術スタック" data-en="Tech Stack">技術スタック</span>
+  </h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x1f40d;</div>
+      <div class="font-semibold text-sm">Python 3</div>
+      <div class="text-xs text-slate-500 mt-1" data-ja="標準ライブラリ中心" data-en="Stdlib-centric">標準ライブラリ中心</div>
+    </div>
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x1f916;</div>
+      <div class="font-semibold text-sm">Claude CLI</div>
+      <div class="text-xs text-slate-500 mt-1">--print mode</div>
+    </div>
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x1f4ac;</div>
+      <div class="font-semibold text-sm">Slack API</div>
+      <div class="text-xs text-slate-500 mt-1">Block Kit + Socket Mode</div>
+    </div>
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x23f0;</div>
+      <div class="font-semibold text-sm">launchd</div>
+      <div class="text-xs text-slate-500 mt-1" data-ja="macOS ネイティブ" data-en="macOS native">macOS ネイティブ</div>
+    </div>
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x1f4c4;</div>
+      <div class="font-semibold text-sm">YAML + JSONL</div>
+      <div class="text-xs text-slate-500 mt-1" data-ja="ファイルベース" data-en="File-based">ファイルベース</div>
+    </div>
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x1f5a5;&#xfe0f;</div>
+      <div class="font-semibold text-sm">Bash</div>
+      <div class="text-xs text-slate-500 mt-1" data-ja="zsh互換" data-en="zsh-compatible">zsh互換</div>
+    </div>
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x1f500;</div>
+      <div class="font-semibold text-sm">Git</div>
+      <div class="text-xs text-slate-500 mt-1" data-ja="カリキュラム管理" data-en="Curriculum VCS">カリキュラム管理</div>
+    </div>
+    <div class="card text-center py-5">
+      <div class="text-3xl mb-2">&#x1f9ea;</div>
+      <div class="font-semibold text-sm">pytest</div>
+      <div class="text-xs text-slate-500 mt-1" data-ja="164テスト" data-en="164 tests">164テスト</div>
+    </div>
+  </div>
+</section>
+
+<!-- Development Process -->
+<section class="max-w-6xl mx-auto px-6 mb-16 fade-in">
+  <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+    <span class="text-2xl">&#x1f504;</span>
+    <span data-ja="開発プロセス" data-en="Development Process">開発プロセス</span>
+  </h2>
+  <div class="grid md:grid-cols-5 gap-3">
+    <div class="card text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Phase 1</div>
+      <div class="font-semibold text-sm mb-2 text-blue-400" data-ja="計画" data-en="Planning">計画</div>
+      <p class="text-xs text-slate-400" data-ja="2案並列生成 → 自律評価 → A選択 + B統合" data-en="2 plans in parallel → auto-evaluate → A selected + B integrated">2案並列生成 → 自律評価 → A選択 + B統合</p>
+    </div>
+    <div class="card text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Phase 2</div>
+      <div class="font-semibold text-sm mb-2 text-purple-400" data-ja="実装" data-en="Implementation">実装</div>
+      <p class="text-xs text-slate-400" data-ja="3プロトタイプ並列 → モノリシック選択" data-en="3 prototypes in parallel → monolithic selected">3プロトタイプ並列 → モノリシック選択</p>
+    </div>
+    <div class="card text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Phase 3</div>
+      <div class="font-semibold text-sm mb-2 text-green-400" data-ja="テスト" data-en="Testing">テスト</div>
+      <p class="text-xs text-slate-400" data-ja="164テスト作成 → 100%合格" data-en="164 tests created → 100% pass">164テスト作成 → 100%合格</p>
+    </div>
+    <div class="card text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Phase 4</div>
+      <div class="font-semibold text-sm mb-2 text-amber-400" data-ja="品質改善" data-en="Quality">品質改善</div>
+      <p class="text-xs text-slate-400" data-ja="カバレッジ 70% → 90%" data-en="Coverage 70% → 90%">カバレッジ 70% → 90%</p>
+    </div>
+    <div class="card text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Phase 5</div>
+      <div class="font-semibold text-sm mb-2 text-cyan-400" data-ja="完成処理" data-en="Delivery">完成処理</div>
+      <p class="text-xs text-slate-400" data-ja="README, about.html, 音声解説" data-en="README, about.html, audio">README, about.html, 音声解説</p>
+    </div>
+  </div>
+</section>
+
+<!-- Metrics Section -->
+<section class="max-w-6xl mx-auto px-6 mb-16 fade-in">
+  <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+    <span class="text-2xl">&#x1f4c8;</span>
+    <span data-ja="メトリクス" data-en="Metrics">メトリクス</span>
+  </h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="card text-center">
+      <div class="metric-value text-blue-400">164</div>
+      <div class="text-sm text-slate-400 mt-2" data-ja="テスト数" data-en="Tests">テスト数</div>
+    </div>
+    <div class="card text-center">
+      <div class="metric-value text-green-400">90%</div>
+      <div class="text-sm text-slate-400 mt-2" data-ja="カバレッジ" data-en="Coverage">カバレッジ</div>
+    </div>
+    <div class="card text-center">
+      <div class="metric-value text-purple-400">6</div>
+      <div class="text-sm text-slate-400 mt-2" data-ja="コンポーネント" data-en="Components">コンポーネント</div>
+    </div>
+    <div class="card text-center">
+      <div class="metric-value text-amber-400">2</div>
+      <div class="text-sm text-slate-400 mt-2" data-ja="外部依存" data-en="Dependencies">外部依存</div>
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-4 mt-4">
+    <div class="card text-center">
+      <div class="metric-value text-cyan-400">100%</div>
+      <div class="text-sm text-slate-400 mt-2" data-ja="テスト合格率" data-en="Pass Rate">テスト合格率</div>
+    </div>
+    <div class="card text-center">
+      <div class="metric-value text-blue-400">~2.5K</div>
+      <div class="text-sm text-slate-400 mt-2" data-ja="コード行数" data-en="Lines of Code">コード行数</div>
+    </div>
+    <div class="card text-center">
+      <div class="metric-value text-green-400">8</div>
+      <div class="text-sm text-slate-400 mt-2" data-ja="巡回ソース" data-en="Sources">巡回ソース</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="border-t border-slate-800 py-8">
+  <div class="max-w-6xl mx-auto px-6 text-center">
+    <p class="text-sm text-slate-500">
+      <span data-ja="Claude Code + AI Agent Workflow で自動生成" data-en="Auto-generated with Claude Code + AI Agent Workflow">Claude Code + AI Agent Workflow で自動生成</span>
+    </p>
+    <p class="text-xs text-slate-600 mt-2">Content Scout &copy; 2026</p>
+  </div>
+</footer>
+
+<script>
+// ─── Language Switcher ───
+const LANG_KEY = 'content-scout-lang';
+
+function getLang() {
+  return localStorage.getItem(LANG_KEY) || 'ja';
+}
+
+function setLang(lang) {
+  localStorage.setItem(LANG_KEY, lang);
+  applyLang(lang);
+}
+
+function toggleLang() {
+  const current = getLang();
+  setLang(current === 'ja' ? 'en' : 'ja');
+}
+
+function applyLang(lang) {
+  // Update toggle button
+  const flag = document.getElementById('langFlag');
+  const label = document.getElementById('langLabel');
+  if (lang === 'ja') {
+    flag.innerHTML = '\u{1f1ef}\u{1f1f5}';
+    label.textContent = '日本語';
+    document.documentElement.lang = 'ja';
+  } else {
+    flag.innerHTML = '\u{1f1fa}\u{1f1f8}';
+    label.textContent = 'English';
+    document.documentElement.lang = 'en';
+  }
+
+  // Update all elements with data-ja / data-en
+  document.querySelectorAll('[data-ja][data-en]').forEach(el => {
+    const text = lang === 'ja' ? el.getAttribute('data-ja') : el.getAttribute('data-en');
+    if (text !== null) {
+      el.textContent = text;
+    }
+  });
+}
+
+// ─── Scroll Animation ───
+function initScrollAnimation() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+}
+
+// ─── Init ───
+document.addEventListener('DOMContentLoaded', () => {
+  applyLang(getLang());
+  initScrollAnimation();
+});
+</script>
+
+</body>
+</html>
