@@ -1,0 +1,14 @@
+# Content Scout パス設定
+# テンプレート・外部参照パスの定義
+
+templates:
+  learning_content_agent: "~/Desktop/Opus4.６-Agentツール/learning-content-agent"
+
+output:
+  curricula_dir: "~/Desktop/Learning-Curricula"
+
+data:
+  scout_data_dir: "~/.scout"
+
+slack_bridge:
+  bot_dir: "~/Desktop/AI-Apps/slack-bridge-for-claude-code"
