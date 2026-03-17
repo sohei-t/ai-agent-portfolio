@@ -1,0 +1,96 @@
+# Content Scout - 情報ソース定義
+# scout.py がこのファイルを読み、各ソースを巡回する
+
+version: "1.0.0"
+
+# 巡回設定
+fetch_settings:
+  timeout_seconds: 30
+  user_agent: "ContentScout/1.0"
+  max_articles_per_source: 20
+
+# === 情報ソース ===
+sources:
+
+  # ─── Tier 1: AI 公式情報（最優先）───
+  anthropic_blog:
+    name: "Anthropic Blog"
+    url: "https://www.anthropic.com/news"
+    type: "html_scrape"
+    selectors:
+      article: "a[href*='/news/']"
+      title: "text"
+      link: "href"
+    base_url: "https://www.anthropic.com"
+    keywords: ["Claude", "MCP", "Agent", "API", "model", "safety", "Sonnet", "Opus", "Haiku"]
+    priority: 10
+    category: "ai_official"
+
+  google_ai_blog:
+    name: "Google AI Blog"
+    url: "https://blog.google/technology/ai/rss/"
+    type: "rss"
+    keywords: ["Gemini", "Vertex AI", "AI Studio", "Google AI", "Bard", "PaLM", "Gemma", "NotebookLM"]
+    priority: 10
+    category: "ai_official"
+
+  openai_blog:
+    name: "OpenAI Blog"
+    url: "https://openai.com/blog/rss.xml"
+    type: "rss"
+    keywords: ["GPT", "API", "Agents", "Codex", "ChatGPT", "DALL-E", "Sora", "o1", "o3"]
+    priority: 10
+    category: "ai_official"
+
+  google_developers_blog:
+    name: "Google Developers Blog"
+    url: "https://developers.googleblog.com/feeds/posts/default?alt=rss"
+    type: "rss"
+    keywords: ["Firebase", "Cloud", "AI", "Flutter", "Android", "Gemini", "TensorFlow"]
+    priority: 8
+    category: "ai_official"
+
+  # ─── Tier 2: テックコミュニティ ───
+  hacker_news:
+    name: "Hacker News"
+    url: "https://hacker-news.firebaseio.com/v0/"
+    type: "hacker_news_api"
+    min_score: 100
+    max_items: 30
+    keywords: ["AI", "LLM", "GPT", "Claude", "Gemini", "OpenAI", "Anthropic", "Google AI",
+               "agent", "MCP", "RAG", "fine-tuning", "prompt", "transformer",
+               "machine learning", "deep learning", "neural"]
+    priority: 6
+    category: "community"
+
+  zenn_trending:
+    name: "Zenn Trending"
+    url: "https://zenn.dev/api/articles?order=daily&count=30"
+    type: "json_api"
+    response_path: "articles"
+    title_field: "title"
+    url_template: "https://zenn.dev{path}"
+    keywords: ["AI", "LLM", "GPT", "Claude", "Gemini", "OpenAI", "Anthropic",
+               "機械学習", "生成AI", "RAG", "エージェント", "プロンプト",
+               "Firebase", "AWS", "GCP", "Azure", "Next.js", "React"]
+    priority: 5
+    category: "community"
+
+  # ─── Tier 3: クラウド公式 ───
+  aws_whats_new:
+    name: "AWS What's New"
+    url: "https://aws.amazon.com/about-aws/whats-new/recent/feed/"
+    type: "rss"
+    keywords: ["AI", "ML", "Bedrock", "SageMaker", "Lambda", "ECS", "EKS",
+               "generative AI", "foundation model"]
+    priority: 7
+    category: "cloud"
+
+  gcp_blog:
+    name: "Google Cloud Blog"
+    url: "https://cloudblog.withgoogle.com/rss/"
+    type: "rss"
+    keywords: ["AI", "ML", "Vertex AI", "Cloud Run", "GKE", "BigQuery",
+               "generative AI", "Gemini", "Firebase"]
+    priority: 7
+    category: "cloud"

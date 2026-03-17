@@ -1,0 +1,121 @@
+# Content Strategy - 研修コンテンツの判断基準
+# analyst (Claude) がこのファイルを参照して研修提案を判断する
+
+version: "1.0.0"
+
+# 対象組織・受講者の定義
+organization:
+  name: "社内エンジニア研修"
+  primary_audience: "エンジニア"
+  secondary_audiences:
+    - "初学者（プログラミング未経験）"
+    - "ビジネス職（非エンジニア向け）"
+
+# === テーマの優先度 ===
+topic_priorities:
+  # Priority 10: 最優先
+  highest:
+    - category: "AI/LLM ツール・サービス"
+      examples: ["Claude API", "Gemini API", "OpenAI API", "MCP", "AI Agent"]
+      reason: "AI活用スキルは全エンジニアの必須要件"
+
+    - category: "AI開発フレームワーク"
+      examples: ["LangChain", "LlamaIndex", "Claude Agent SDK", "Semantic Kernel"]
+      reason: "AIアプリ開発の実践力向上"
+
+  # Priority 8: 高優先
+  high:
+    - category: "クラウドサービス新機能"
+      examples: ["AWS Bedrock", "GCP Vertex AI", "Firebase Extensions"]
+      reason: "既存インフラとの統合"
+
+    - category: "開発生産性ツール"
+      examples: ["Claude Code", "GitHub Copilot", "Cursor", "v0"]
+      reason: "開発効率の直接的な向上"
+
+  # Priority 6: 中優先
+  medium:
+    - category: "Web開発フレームワーク"
+      examples: ["Next.js", "React", "Svelte", "Hono"]
+      reason: "プロダクト開発の基盤"
+
+    - category: "セキュリティ"
+      examples: ["OWASP", "ゼロトラスト", "認証認可"]
+      reason: "セキュリティ意識の向上"
+
+    - category: "DevOps/SRE"
+      examples: ["Docker", "Kubernetes", "CI/CD", "Terraform"]
+      reason: "運用スキルの底上げ"
+
+  # Priority 4: 低優先（余裕がある時）
+  low:
+    - category: "プログラミング言語"
+      examples: ["Rust", "Go", "Python最新機能"]
+    - category: "データベース"
+      examples: ["PostgreSQL", "DynamoDB", "Vector DB"]
+
+# === シグナル評価基準 ===
+signal_evaluation:
+  # 研修化すべきと判断する条件
+  promote_signals:
+    - name: "公式発表の新機能"
+      description: "Claude/Gemini/OpenAIの新APIや大型アップデート"
+      weight: 3.0
+
+    - name: "複数ソースで同時話題"
+      description: "2つ以上の情報源で同日〜3日以内に言及"
+      weight: 2.0
+
+    - name: "既存研修の発展"
+      description: "既に作成済みのカリキュラムの続編・関連テーマ"
+      weight: 1.5
+
+    - name: "実務直結"
+      description: "明日から使える実践的な技術・ツール"
+      weight: 1.5
+
+    - name: "高スコア記事"
+      description: "HN 200pt以上、Zenn Likes 50以上"
+      weight: 1.0
+
+  # 研修化すべきでないと判断する条件
+  reject_signals:
+    - name: "既に類似コンテンツが存在"
+      description: "~/Desktop/Learning-Curricula/ に類似テーマあり"
+      action: "reject_or_suggest_update"
+
+    - name: "ニッチすぎる"
+      description: "対象受講者の大半に関係しない"
+      action: "reject"
+
+    - name: "一過性のバズ"
+      description: "1日で話題が消える。継続的な価値がない"
+      action: "defer"
+
+    - name: "まだ不安定"
+      description: "alpha/beta版で仕様が固まっていない"
+      action: "defer"
+
+# === 提案の上限 ===
+proposal_limits:
+  max_proposals_per_day: 2
+  max_proposals_per_week: 5
+  min_signal_score: 5.0  # この閾値以上のスコアのみ提案
+
+# === 難易度の自動判定ルール ===
+difficulty_rules:
+  - condition: "全く新しい概念・サービスの紹介"
+    difficulty: "入門"
+    audience: "エンジニア"
+
+  - condition: "既存技術の新機能・アップデート"
+    difficulty: "入門〜中級"
+    audience: "エンジニア"
+
+  - condition: "高度な実装パターン・アーキテクチャ"
+    difficulty: "中級〜上級"
+    audience: "エンジニア"
+
+  - condition: "AI概念の非技術者向け説明"
+    difficulty: "入門"
+    audience: "ビジネス職"
