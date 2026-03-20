@@ -1,0 +1,225 @@
+# 前後参照マップテンプレート
+# このファイルは各トピック間の参照関係を定義します
+# Phase 1-4 で作成し、Phase 2 のコンテンツ作成時に参照します
+
+# ===================================
+# 使用方法
+# ===================================
+# 1. カリキュラム構成が決まったら、このテンプレートをコピー
+# 2. 各トピックの情報を埋める
+# 3. トピック間の参照関係（references, foreshadows）を定義
+# 4. コンテンツ作成時にこのマップを参照して前後の言及を入れる
+
+# ===================================
+# 基本構造
+# ===================================
+
+curriculum:
+  title: "{カリキュラムタイトル}"
+  description: "{カリキュラムの概要説明}"
+  target_audience: "{対象学習者}"
+
+  # 用語の統一表記を定義（一貫性チェック用）
+  terminology:
+    # 概念名: 統一表記
+    # 例: "Backend as a Service": "BaaS"
+    - concept: "{概念名}"
+      standard_term: "{統一表記}"
+      alternatives:
+        - "{別表記1}"
+        - "{別表記2}"
+
+chapters:
+  # ===================================
+  # 第1章
+  # ===================================
+  - id: chapter_1
+    title: "{第1章タイトル}"
+    description: "{章の概要}"
+    difficulty: "入門"  # 入門 / 中級 / 上級
+
+    topics:
+      # ---------------------------------
+      # トピック 1-1
+      # ---------------------------------
+      - id: topic_1_1
+        title: "{トピック1-1タイトル}"
+
+        # このトピックで初めて導入する概念
+        # 後のトピックから参照される可能性がある
+        introduces:
+          - concept: "{概念A}"
+            definition: "{概念Aの簡単な定義}"
+          - concept: "{概念B}"
+            definition: "{概念Bの簡単な定義}"
+
+        # 後のトピックで詳しく説明すると予告する内容
+        # 実際に説明するトピックとその予告文を記載
+        foreshadows:
+          - target_topic: "topic_2_1"
+            mention: "この機能については次章で詳しく説明します"
+            context: "{どのスライドで言及するか}"
+
+        # 学習目標（スライド作成時の指針）
+        learning_objectives:
+          - "{学習目標1}"
+          - "{学習目標2}"
+
+        # 想定学習時間
+        estimated_time: "10分"
+
+        # キーポイント（台本作成時の強調点）
+        key_points:
+          - "{重要ポイント1}"
+          - "{重要ポイント2}"
+
+      # ---------------------------------
+      # トピック 1-2
+      # ---------------------------------
+      - id: topic_1_2
+        title: "{トピック1-2タイトル}"
+
+        # 前のトピックから参照する内容
+        # スライド・台本に「前回学んだ〜」として反映
+        references:
+          - source_topic: "topic_1_1"
+            concept: "{概念A}"
+            mention: "前回学んだ{概念A}を踏まえて"
+            required: true  # 必須の参照かオプションか
+
+        introduces:
+          - concept: "{概念C}"
+            definition: "{概念Cの簡単な定義}"
+
+        foreshadows:
+          - target_topic: "topic_1_3"
+            mention: "具体的な使い方は次のトピックで見ていきます"
+
+        learning_objectives:
+          - "{学習目標1}"
+
+        estimated_time: "15分"
+
+  # ===================================
+  # 第2章
+  # ===================================
+  - id: chapter_2
+    title: "{第2章タイトル}"
+    description: "{章の概要}"
+    difficulty: "入門"
+
+    # 章の冒頭で前章を振り返る場合
+    chapter_recap:
+      from_chapter: "chapter_1"
+      mention: "前章では{概要}について学びました。この章では..."
+
+    topics:
+      # ---------------------------------
+      # トピック 2-1
+      # ---------------------------------
+      - id: topic_2_1
+        title: "{トピック2-1タイトル}"
+
+        # 前章からの参照
+        references:
+          - source_topic: "topic_1_1"
+            concept: "{概念A}"
+            mention: "第1章で学んだ{概念A}を実際に使ってみましょう"
+            required: true
+          - source_topic: "topic_1_5"
+            concept: "{概念X}"
+            mention: "前章の最後で触れた{概念X}を思い出してください"
+            required: false
+
+        # トピック1-1で予告されていた内容を回収
+        fulfills_foreshadow:
+          - from_topic: "topic_1_1"
+            original_mention: "この機能については次章で詳しく説明します"
+            fulfillment: "ここで約束通り、詳しく説明していきます"
+
+        introduces:
+          - concept: "{概念D}"
+            definition: "{概念Dの簡単な定義}"
+
+        learning_objectives:
+          - "{学習目標1}"
+
+        estimated_time: "20分"
+
+# ===================================
+# 参照関係のサマリー（自動生成用）
+# ===================================
+# このセクションは、上記の詳細情報から自動的に
+# 参照関係を抽出してサマリーを作成するために使用
+
+reference_summary:
+  # どのトピックがどのトピックを参照するか
+  topic_dependencies:
+    topic_1_2:
+      depends_on:
+        - topic_1_1
+    topic_2_1:
+      depends_on:
+        - topic_1_1
+        - topic_1_5
+
+  # どのトピックがどのトピックに伏線を張るか
+  foreshadow_map:
+    topic_1_1:
+      foreshadows_to:
+        - topic_2_1
+
+# ===================================
+# 品質チェック用のルール
+# ===================================
+quality_rules:
+  # すべてのforeshadowsは対応するfulfills_foreshadowを持つべき
+  foreshadow_fulfillment:
+    rule: "予告した内容は必ず後のトピックで回収する"
+    check: "foreshadows → fulfills_foreshadow の対応確認"
+
+  # 参照元のトピックは参照先より前に来るべき
+  reference_order:
+    rule: "参照元は参照先より前のトピックである"
+    check: "references.source_topic のトピック番号 < 現在のトピック番号"
+
+  # 用語の一貫性
+  terminology_consistency:
+    rule: "同じ概念には同じ用語を使用"
+    check: "terminology で定義した standard_term を使用"
+
+# ===================================
+# 使用例（Firebaseカリキュラムの場合）
+# ===================================
+# example:
+#   curriculum:
+#     title: "Firebase研修カリキュラム"
+#     terminology:
+#       - concept: "Backend as a Service"
+#         standard_term: "BaaS"
+#         alternatives: ["バース", "バックエンドアズアサービス"]
+#
+#   chapters:
+#     - id: chapter_1
+#       title: "Firebase Overview"
+#       topics:
+#         - id: topic_1_1
+#           title: "Firebaseとは？BaaSの概念"
+#           introduces:
+#             - concept: "BaaS"
+#               definition: "バックエンドをサービスとして提供する仕組み"
+#             - concept: "Firebase"
+#               definition: "Googleが提供するBaaSプラットフォーム"
+#           foreshadows:
+#             - target_topic: "topic_2_1"
+#               mention: "認証機能については次章で詳しく説明します"
+#
+#         - id: topic_1_2
+#           title: "Firebaseのサービス全体像"
+#           references:
+#             - source_topic: "topic_1_1"
+#               concept: "BaaS"
+#               mention: "前回学んだBaaSの概念を踏まえて"
+#           introduces:
+#             - concept: "Authentication"
+#               definition: "ユーザー認証を提供するサービス"

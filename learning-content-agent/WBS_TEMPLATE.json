@@ -1,0 +1,340 @@
+{
+  "$schema": "学習コンテンツ作成WBSテンプレート",
+  "version": "2.0.0",
+  "description": "体系的な学習コンテンツ作成のためのWBS（Work Breakdown Structure）テンプレート。phases は辞書形式、コンテンツ作成フェーズには chapters 構造を含む。",
+
+  "curriculum": {
+    "title": "{カリキュラムタイトル}",
+    "total_chapters": 0,
+    "total_topics": 0,
+    "estimated_duration": "{想定学習時間}"
+  },
+
+  "phases": {
+    "phase_0": {
+      "name": "初期化",
+      "tasks": [
+        {
+          "id": "task_0_1",
+          "name": "カリキュラムテーマ入力受付",
+          "dependencies": [],
+          "parallel_possible": false,
+          "estimated_time": "5分"
+        },
+        {
+          "id": "task_0_2",
+          "name": "CONTENT_INFO.yaml生成",
+          "dependencies": ["task_0_1"],
+          "parallel_possible": false,
+          "estimated_time": "2分"
+        },
+        {
+          "id": "task_0_3",
+          "name": "Worktree作成",
+          "dependencies": ["task_0_2"],
+          "parallel_possible": false,
+          "estimated_time": "3分"
+        }
+      ]
+    },
+    "phase_1": {
+      "name": "全体設計・リサーチ",
+      "tasks": [
+        {
+          "id": "task_1_1a",
+          "name": "カリキュラム設計案A作成",
+          "dependencies": ["task_0_3"],
+          "parallel_possible": true,
+          "parallel_group": "curriculum_design",
+          "estimated_time": "15分"
+        },
+        {
+          "id": "task_1_1b",
+          "name": "カリキュラム設計案B作成",
+          "dependencies": ["task_0_3"],
+          "parallel_possible": true,
+          "parallel_group": "curriculum_design",
+          "estimated_time": "15分"
+        },
+        {
+          "id": "task_1_2",
+          "name": "設計案評価・選択・マージ",
+          "dependencies": ["task_1_1a", "task_1_1b"],
+          "parallel_possible": false,
+          "estimated_time": "10分"
+        },
+        {
+          "id": "task_1_3",
+          "name": "ファイル名マッピング生成（FILENAME_MAPPING.yaml）",
+          "dependencies": ["task_1_2"],
+          "parallel_possible": false,
+          "estimated_time": "5分"
+        },
+        {
+          "id": "task_1_4",
+          "name": "全トピックディープリサーチ",
+          "dependencies": ["task_1_3"],
+          "parallel_possible": true,
+          "parallel_note": "各トピックのリサーチは並列実行可能",
+          "estimated_time": "{トピック数} × 3分（並列化で短縮可能）"
+        },
+        {
+          "id": "task_1_5",
+          "name": "前後参照マップ作成",
+          "dependencies": ["task_1_4"],
+          "parallel_possible": false,
+          "critical_path": true,
+          "estimated_time": "20分"
+        },
+        {
+          "id": "task_1_6",
+          "name": "WBS作成",
+          "dependencies": ["task_1_5"],
+          "parallel_possible": false,
+          "estimated_time": "10分"
+        }
+      ]
+    },
+    "phase_1_5": {
+      "name": "デザインシステム確立",
+      "description": "カリキュラム全体で統一されたデザインを確保するための重要フェーズ",
+      "tasks": [
+        {
+          "id": "task_1_5_1",
+          "name": "デザインシステム作成",
+          "dependencies": ["task_1_6"],
+          "parallel_possible": false,
+          "critical_path": true,
+          "estimated_time": "15分",
+          "outputs": [
+            "design-system/variables.css",
+            "design-system/components.css",
+            "design-system/base-template.html",
+            "design-system/DESIGN_GUIDE.md"
+          ],
+          "note": "frontend-designスキルは毎回異なるデザインを生成するため、このフェーズで統一デザインを確立"
+        }
+      ]
+    },
+    "phase_2": {
+      "name": "コンテンツ作成",
+      "description": "チャプター・トピック単位でコンテンツを作成。各トピックに日本語titleとbase_nameを保持。",
+      "chapters": {
+        "chapter_1": {
+          "name": "第1章 {章タイトル}",
+          "topics": [
+            {
+              "id": "topic_01_01",
+              "title": "{日本語タイトル}",
+              "base_name": "01-01_{slug}",
+              "tasks": {
+                "task_2_topic_slide": {
+                  "name": "スライドHTML作成",
+                  "dependencies": ["task_1_5_1"],
+                  "parallel_possible": false,
+                  "estimated_time": "10分"
+                },
+                "task_2_topic_script": {
+                  "name": "台本作成",
+                  "dependencies": ["task_2_topic_slide"],
+                  "parallel_possible": false,
+                  "estimated_time": "5分"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "design_system_required": true,
+      "critical_path": true,
+      "estimated_time": "{トピック数} × 15分（順次処理）",
+      "note": "SSMLは不要（Gemini 2.5 Flash TTSは自然言語から直接音声生成）。chaptersは実際のカリキュラム構造に合わせて展開する。"
+    },
+    "phase_2_5": {
+      "name": "RAG準備",
+      "tasks": [
+        {
+          "id": "task_2_5_1",
+          "name": "RAGチャンキング",
+          "dependencies": ["phase_2"],
+          "parallel_possible": false,
+          "estimated_time": "5分"
+        },
+        {
+          "id": "task_2_5_2",
+          "name": "ベクトルインデックス構築（オプション）",
+          "dependencies": ["task_2_5_1"],
+          "parallel_possible": false,
+          "estimated_time": "10分"
+        },
+        {
+          "id": "task_2_5_3",
+          "name": "RAG精度テスト（オプション）",
+          "dependencies": ["task_2_5_2"],
+          "parallel_possible": false,
+          "estimated_time": "15分"
+        }
+      ]
+    },
+    "phase_3": {
+      "name": "音声生成",
+      "tasks": [
+        {
+          "id": "task_3_1",
+          "name": "全トピック音声生成",
+          "dependencies": ["phase_2"],
+          "parallel_possible": true,
+          "parallel_note": "各トピックの音声生成は並列実行可能（5並列推奨）",
+          "estimated_time": "{トピック数} × 2分 ÷ 5並列"
+        }
+      ]
+    },
+    "phase_4": {
+      "name": "品質検証",
+      "tasks": [
+        {
+          "id": "task_4_1",
+          "name": "Playwright E2Eテスト",
+          "dependencies": ["task_3_1"],
+          "parallel_possible": false,
+          "estimated_time": "15分"
+        },
+        {
+          "id": "task_4_2",
+          "name": "前後参照整合性チェック",
+          "dependencies": ["task_3_1"],
+          "parallel_possible": true,
+          "parallel_group": "quality_check",
+          "estimated_time": "10分"
+        },
+        {
+          "id": "task_4_3",
+          "name": "用語一貫性チェック",
+          "dependencies": ["task_3_1"],
+          "parallel_possible": true,
+          "parallel_group": "quality_check",
+          "estimated_time": "10分"
+        }
+      ]
+    },
+    "phase_5": {
+      "name": "改善",
+      "tasks": [
+        {
+          "id": "task_5_1",
+          "name": "品質評価結果分析",
+          "dependencies": ["task_4_1", "task_4_2", "task_4_3"],
+          "parallel_possible": false,
+          "estimated_time": "10分"
+        },
+        {
+          "id": "task_5_2",
+          "name": "問題箇所修正",
+          "dependencies": ["task_5_1"],
+          "parallel_possible": false,
+          "max_iterations": 3,
+          "estimated_time": "可変（問題数による）"
+        }
+      ]
+    },
+    "phase_6": {
+      "name": "完成処理",
+      "tasks": [
+        {
+          "id": "task_6_1",
+          "name": "目次HTML生成",
+          "dependencies": ["task_5_2"],
+          "parallel_possible": true,
+          "parallel_group": "finalization",
+          "estimated_time": "10分"
+        },
+        {
+          "id": "task_6_2",
+          "name": "README.md生成",
+          "dependencies": ["task_5_2"],
+          "parallel_possible": true,
+          "parallel_group": "finalization",
+          "estimated_time": "5分"
+        }
+      ]
+    }
+  },
+
+  "critical_path": [
+    "task_0_1",
+    "task_0_2",
+    "task_0_3",
+    "task_1_1a/b（並列）",
+    "task_1_2",
+    "task_1_3",
+    "task_1_4",
+    "task_1_5",
+    "task_1_6",
+    "task_1_5_1（デザインシステム確立）",
+    "phase_2（コンテンツ作成・最長パス）",
+    "phase_2_5（RAG準備）",
+    "task_3_1",
+    "task_4_1",
+    "task_5_1",
+    "task_5_2",
+    "task_6_1/6_2（並列）"
+  ],
+
+  "parallel_optimization_points": [
+    {
+      "point": "Phase 1-4: リサーチ",
+      "description": "各トピックのリサーチは互いに独立しているため、5並列程度で実行可能",
+      "expected_speedup": "5倍"
+    },
+    {
+      "point": "Phase 3: 音声生成",
+      "description": "全台本完成後、各トピックの音声生成は独立して実行可能",
+      "expected_speedup": "5倍"
+    },
+    {
+      "point": "Phase 4: 品質チェック",
+      "description": "複数の品質チェック項目を並列実行可能",
+      "expected_speedup": "3倍"
+    },
+    {
+      "point": "Phase 6: 完成処理",
+      "description": "目次HTMLとREADME.mdは並列生成可能",
+      "expected_speedup": "2倍"
+    }
+  ],
+
+  "sequential_constraints": [
+    {
+      "constraint": "トピック内の依存関係",
+      "reason": "HTML → 台本 → 音声の順序は変更不可",
+      "impact": "各トピック内は順次処理必須"
+    },
+    {
+      "constraint": "前後参照の整合性",
+      "reason": "前のトピックの内容を参照するため、章内は基本的に順次処理",
+      "impact": "コンテンツ作成フェーズは最も時間がかかる"
+    },
+    {
+      "constraint": "品質検証→改善の依存",
+      "reason": "検証結果を基に改善するため、順次実行必須",
+      "impact": "改善ループは最大3回"
+    }
+  ],
+
+  "time_estimate_example": {
+    "scenario": "7章 × 10トピック = 70トピック",
+    "breakdown": {
+      "phase_0": "10分",
+      "phase_1": "60分（リサーチ並列化で短縮）",
+      "phase_1_5": "15分（デザインシステム確立）",
+      "phase_2": "1050分（70トピック × 15分）= 17.5時間",
+      "phase_2_5": "5分（チャンキングのみ。オプション処理は+25分）",
+      "phase_3": "28分（70トピック × 2分 ÷ 5並列）",
+      "phase_4": "25分",
+      "phase_5": "30分（改善1回想定）",
+      "phase_6": "10分"
+    },
+    "total": "約19.5時間（Phase 2がボトルネック）",
+    "note": "Phase 1.5でデザインシステムを確立することで、Phase 2のスライド作成が効率化（18分→15分）"
+  }
+}
