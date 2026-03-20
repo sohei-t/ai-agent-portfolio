@@ -1,0 +1,449 @@
+# 学習コンテンツ自動生成エージェント 設定ファイル
+# このファイルはエージェントの動作設定を定義します
+
+version: "1.0.0"
+agent_name: "Learning Content Generator Agent"
+description: "体系的な学習コンテンツを自動生成するAIエージェント"
+
+# ===================================
+# 基本設定
+# ===================================
+basic_settings:
+  # 作業ディレクトリ
+  working_directory: "."
+
+  # 出力ディレクトリ
+  output_directories:
+    research: "research/"          # リサーチ結果
+    content: "content/"            # 生成コンテンツ
+    reports: "reports/"            # 品質レポート
+
+  # Worktree設定
+  worktrees:
+    - name: "phase1-design-a"
+      branch: "phase/design-a"
+      purpose: "カリキュラム設計案A"
+    - name: "phase1-design-b"
+      branch: "phase/design-b"
+      purpose: "カリキュラム設計案B"
+    - name: "phase2-content"
+      branch: "phase/content"
+      purpose: "コンテンツ作成"
+    - name: "phase3-audio"
+      branch: "phase/audio"
+      purpose: "音声生成"
+    - name: "phase4-review"
+      branch: "phase/review"
+      purpose: "品質検証"
+    - name: "phase5-delivery"
+      branch: "phase/delivery"
+      purpose: "完成処理"
+
+# ===================================
+# ファイル名設定
+# ===================================
+filename_settings:
+  # ファイル名フォーマット: {prefix}_{slug}.{ext}
+  # 例: 01-01_firebase_introduction.html
+  format: "{prefix}_{slug}"
+
+  # プレフィックスの形式: {chapter:2桁}-{topic:2桁}（ゼロパディング必須）
+  # ⚠️ 重要: 辞書順ソートで正しい順序になるようにゼロパディングを使用
+  prefix_format: "{chapter:02d}-{topic:02d}"
+  prefix_digits: 2  # 桁数
+
+  # スラッグ生成ルール
+  slug_rules:
+    # タイトル部分の最大長
+    max_length: 40
+    # 小文字に変換
+    lowercase: true
+    # スペースを置換する文字
+    space_replacement: "_"
+    # 日本語処理
+    japanese_handling: "romanize"  # romanize | remove | keep
+    # 許可する文字（正規表現）
+    allowed_chars: "[a-z0-9_]"
+
+  # 関連ファイルの拡張子
+  # ⚠️ SSMLは不要（Gemini 2.5 Flash TTSは自然言語から直接音声生成）
+  extensions:
+    slide: ".html"
+    script: ".txt"
+    audio: ".mp3"
+    research: "_research.md"
+
+  # ファイル名マッピングの保存先
+  mapping_file: "FILENAME_MAPPING.yaml"
+
+  # 生成例（ゼロパディング形式）
+  examples:
+    - title: "Firebaseとは何か"
+      prefix: "01-01"
+      result: "01-01_firebase_toha_nanika"
+    - title: "Introduction to APIs"
+      prefix: "02-03"
+      result: "02-03_introduction_to_apis"
+    - title: "認証とセキュリティ"
+      prefix: "03-02"
+      result: "03-02_ninsho_to_security"
+
+  # ⚠️ ゼロパディングが必要な理由
+  # 旧形式（1-1）: 辞書順ソートで 1-1, 1-10, 1-2, 1-3... と誤順
+  # 新形式（01-01）: 辞書順ソートで 01-01, 01-02, ..., 01-10 と正順
+
+# ===================================
+# Agent Teams 設定（Opus 4.6 対応）
+# ===================================
+agent_teams:
+  enabled: true
+  env_var: "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"
+  fallback_to_sequential: true  # Agent Teams 不安定時は逐次処理にフォールバック
+
+  # フェーズ別ツール選択
+  phase_tool_selection:
+    phase_1:
+      tool: "task_tool"
+      reason: "独立した2案の並列生成 + 並列リサーチ"
+    phase_1_research:
+      tool: "agent_teams"
+      optional: true
+      reason: "複数リサーチャーが知見を共有しながら調査可能"
+    phase_2:
+      tool: "agent_teams"
+      fallback: "sequential"
+      reason: "チャプター内バッチ並列化。用語統一・参照整合性のリアルタイム確保"
+      batch_size:
+        min: 3
+        max: 5
+        default: 3
+      team_per_chapter:
+        content_creators: "3-5（トピック数に応じて）"
+        deep_researcher: "1（追加調査対応）"
+        lead: "1（用語統一チェック・品質レビュー）"
+    phase_3:
+      tool: "task_tool"
+      reason: "一括バッチスクリプト実行（audio_batch_generator.py）"
+    phase_4:
+      tool: "agent_teams"
+      optional: true
+      fallback: "sequential"
+      reason: "CSS/音声/参照の並列品質チェック"
+    phase_5:
+      tool: "task_tool"
+      reason: "改善ループ（逐次処理）"
+    phase_6:
+      tool: "task_tool"
+      reason: "独立タスクの並列実行（目次 + README）"
+
+# ===================================
+# フェーズ設定
+# ===================================
+phases:
+  phase_0:
+    name: "初期化"
+    auto_execute: true
+    tasks:
+      - "カリキュラムテーマ入力受付"
+      - "CONTENT_INFO.yaml生成"
+      - "Worktree作成"
+
+  phase_1:
+    name: "全体設計・リサーチ"
+    parallel_tasks:
+      - group: "curriculum_design"
+        tasks:
+          - "カリキュラム設計案A作成"
+          - "カリキュラム設計案B作成"
+      - group: "research"
+        tasks:
+          - "全トピックディープリサーチ"
+        parallel_limit: 5  # 最大5並列
+    sequential_tasks:
+      - "設計案評価・選択"
+      - "前後参照マップ作成"
+      - "WBS作成"
+
+  # ⚠️ デザイン統一のための重要フェーズ
+  phase_1_5:
+    name: "デザインシステム確立"
+    description: "カリキュラム全体で統一されたデザインを確保"
+    why_needed: |
+      frontend-designスキルは毎回異なるデザインを生成する設計のため、
+      このフェーズでデザインシステムを確立しないと、各スライドが
+      バラバラなデザインになり統一感が失われる
+    tasks:
+      - "デザインシステム作成"
+    outputs:
+      - "design-system/variables.css"      # CSS変数
+      - "design-system/components.css"     # コンポーネント
+      - "design-system/base-template.html" # ベーステンプレート
+      - "design-system/DESIGN_GUIDE.md"    # 使用ガイド
+    subagent_prompt: "SUBAGENT_PROMPT_TEMPLATE.md の「2.5 デザインシステム作成者」を使用"
+
+  phase_2:
+    name: "コンテンツ作成"
+    execution_mode: "sequential_with_context"
+    description: "前後の流れを考慮して順次処理"
+    # ⚠️ 重要: Phase 1.5で作成したデザインシステムを必ず継承
+    design_system_reference:
+      required: true
+      files:
+        - "design-system/variables.css"
+        - "design-system/components.css"
+        - "design-system/base-template.html"
+        - "design-system/DESIGN_GUIDE.md"
+      rule: "独自のカラー・フォントを定義せず、CSS変数を使用"
+    per_topic_tasks:
+      - "スライドHTML作成（デザインシステム継承）"
+      - "台本作成"
+      # SSML追加は不要（Gemini TTSは自然言語から直接音声生成）
+
+  # Phase 2.5 は廃止: RAG構築は Phase 6（完成処理）に統合
+  # コンテンツの改善が確定してからRAGを構築する方が効率的
+
+  phase_3:
+    name: "音声生成"
+    parallel_tasks:
+      - group: "audio_generation"
+        tasks:
+          - "全トピック音声生成"
+        parallel_limit: 10  # Gemini TTS同時接続制限に対応
+        rate_limit:
+          requests_per_minute: 15  # Tier 1制限
+          retry_on_429: true
+          retry_delay_seconds: 5
+
+  phase_4:
+    name: "品質検証"
+    tasks:
+      - "Playwright E2Eテスト"
+      - "前後参照整合性チェック"
+      - "用語一貫性チェック"
+
+  phase_5:
+    name: "改善"
+    max_iterations: 3
+    tasks:
+      - "品質評価結果分析"
+      - "問題箇所修正"
+
+  phase_6:
+    name: "完成処理（目次・README + RAG構築）"
+    tasks:
+      - "目次HTML生成（frontend-designスキル使用）"
+      - "README.md生成"
+    rag_preparation:
+      description: "コンテンツ最終確定後にRAGを構築（GitHub直前）"
+      auto_execute: true
+      tasks:
+        - "台本TXTファイルのチャンキング"
+        - "rag_chunks.json 出力"
+        - "rag_test_questions.json 出力"
+        - "Gemini Embedding API でベクトル化"
+        - "rag_index.json 出力（Embedding付き完成品）"
+      optional_tasks:
+        - "RAG精度テスト（rag_accuracy_test.py）"
+      scripts:
+        chunker: "src/rag_chunker.py"
+        index_builder: "src/rag_index_builder.py"
+        accuracy_test: "src/rag_accuracy_test.py"
+      embedding:
+        model: "models/gemini-embedding-001"
+        batch_size: 5
+        rate_limit_wait: 1.5
+        graceful_fallback: true  # APIキー未設定時はチャンクのみ出力
+      tracker_integration:
+        description: "rag_index.jsonがあれば、トラッカーの「公開」時にFirestoreへ自動アップロード"
+        firestore_path: "ragIndexes/{classroomId}/chunks/{chunkId}"
+
+  phase_7:
+    name: "修正フロー"
+    trigger: "user_request"
+    description: "ユーザーからの修正依頼時に実行"
+
+# ===================================
+# スキル設定
+# ===================================
+skills:
+  frontend_design:
+    path: "/Users/sohei/.claude/skills/frontend-design"
+    usage: "スライドHTML、目次HTML生成時に使用"
+    required: true
+
+  gemini_flash_tts:
+    path: "/Users/sohei/.claude/skills/gemini-flash-tts"
+    usage: "音声生成時に使用"
+    required: true
+    config:
+      default_voice: "Kore"
+      output_format: "mp3"
+      chunk_size: 3500  # バイト
+
+# ===================================
+# 認証設定
+# ===================================
+credentials:
+  gemini:
+    # 新形式: GEMINI_API_KEY_0 〜 GEMINI_API_KEY_9（10個対応）
+    env_var_pattern: "GEMINI_API_KEY_{0-9}"
+    env_vars:
+      - "GEMINI_API_KEY_0"
+      - "GEMINI_API_KEY_1"
+      - "GEMINI_API_KEY_2"
+      - "GEMINI_API_KEY_3"
+      - "GEMINI_API_KEY_4"
+      - "GEMINI_API_KEY_5"
+      - "GEMINI_API_KEY_6"
+      - "GEMINI_API_KEY_7"
+      - "GEMINI_API_KEY_8"
+      - "GEMINI_API_KEY_9"
+    profile_path: "~/.config/ai-agents/profiles/default.env"
+    key_manager: "src/gemini_key_manager.py"
+    rotation_strategy: "round_robin"  # ラウンドロビンでローテーション
+    required_for:
+      - "音声生成"
+
+# ===================================
+# 品質設定
+# ===================================
+quality:
+  criteria_file: "CONTENT_QUALITY_CRITERIA.yaml"
+  pass_threshold: 70
+  max_improvement_iterations: 3
+
+  playwright:
+    viewports:
+      - { width: 1920, height: 1080, name: "Desktop" }
+      - { width: 768, height: 1024, name: "Tablet" }
+      - { width: 375, height: 667, name: "Mobile" }
+    checks:
+      - "slide_display"
+      - "navigation"
+      - "keyboard"
+      - "responsive"
+      - "links"
+
+  # CSS競合チェック（Phase 4で最初に実行）
+  css_conflict_check:
+    enabled: true
+    script: "src/check_slide_css.sh"
+    description: "スライド切り替えを壊すCSS競合を検出"
+    run_before_playwright: true  # Playwrightより先に実行
+    checks:
+      - name: "display_property_conflict"
+        description: ".slide以外で直接display: flexが指定されていないか"
+        severity: "critical"  # 発見時は必ず修正
+    fix_guide: |
+      修正方法:
+        ❌ .title-slide { display: flex; }
+        ✅ .slide.active.title-slide { display: flex; }
+      詳細は SUBAGENT_PROMPT_TEMPLATE.md 参照
+
+  # 音声品質チェック（Phase 4で実行）
+  audio_volume_check:
+    enabled: true
+    script: "src/check_audio_volume.sh"
+    description: "MP3ファイルの途中無音を検出"
+    run_after_generation: true  # Phase 3終了後に自動実行
+    checks:
+      - name: "volume_consistency"
+        description: "前半と後半の音量差が閾値以下か"
+        threshold_db: 20  # 20dB以上の差は問題
+        check_duration_sec: 60  # 前後60秒を比較
+        severity: "critical"  # 発見時は再生成
+    fix_guide: |
+      無音問題の修正方法:
+        1. 該当MP3ファイルを削除
+        2. 音声一括生成を再実行: python3 src/audio_batch_generator.py content
+        3. APIキー状態を確認: python3 src/gemini_key_manager.py
+      原因: APIクォータ超過により一部チャンクが空データになった
+      詳細は CLAUDE.md Phase 3 参照
+
+  # チャンク処理時の音量検証（生成中）
+  chunk_validation:
+    enabled: true
+    min_dbfs: -50  # チャンクの最低音量（dBFS）
+    abort_on_silent_chunk: true  # 無音チャンク検出時は中断
+    abort_on_quota_error: true   # 429エラー時は即座に中断（空データで続行しない）
+
+# ===================================
+# コンテンツ設定
+# ===================================
+content:
+  slide:
+    min_pages: 4
+    max_pages: 20
+    navigation:
+      - "前へ"
+      - "最初へ"
+      - "次へ"
+    keyboard_enabled: true
+
+  script:
+    format: "plain_text"
+    slide_transition_phrase: "次のスライドに進んでください"
+    ending_phrase: "ご清聴、ありがとうございました。"
+    forbidden_patterns:
+      - "スライド[0-9]+"
+      - "「.*」"
+      - "（.*）"
+      - "えー"
+      - "あのー"
+
+  # 間（ポーズ）の自然言語指示（SSMLの代替）
+  # ⚠️ SSMLタグは不要: Gemini 2.5 Flash TTSは自然言語から直接音声生成
+  natural_pause_techniques:
+    topic_change: "「それでは次に、」「さて、」で始める"
+    important_point: "「ここで重要なのは、」と前置き"
+    thinking_time: "「少し考えてみてください。」と明示"
+    slide_change: "空行を入れる（自然な間が入る）"
+    emphasis: "「特に大切なのは、」「ポイントは、」"
+
+# ===================================
+# ログ設定
+# ===================================
+logging:
+  level: "INFO"
+  format: "{timestamp} [{level}] {message}"
+  output:
+    - console
+    - file: "logs/agent.log"
+
+# ===================================
+# エラーハンドリング
+# ===================================
+error_handling:
+  retry:
+    max_attempts: 3
+    backoff_multiplier: 2
+    initial_delay_ms: 1000
+
+  fallback:
+    audio_generation_failure: "skip_and_log"
+    slide_generation_failure: "use_simple_template"
+
+  critical_errors:
+    types:
+      - "authentication_failure"
+      # api_quota_exceeded は critical ではない（キーローテーションで対応）
+    action: "stop_and_notify"
+
+  # API制限エラーの処理（新規追加）
+  api_quota_handling:
+    on_429_error: "rotate_key_and_retry"
+    on_daily_limit: "mark_key_exhausted_and_rotate"
+    on_all_keys_exhausted: "skip_and_log"  # 全停止しない
+    max_retries_per_topic: 3
+
+# ===================================
+# 通知設定（オプション）
+# ===================================
+notifications:
+  on_completion:
+    enabled: true
+    method: "console"  # console, sound, webhook
+
+  on_error:
+    enabled: true
+    method: "console"
