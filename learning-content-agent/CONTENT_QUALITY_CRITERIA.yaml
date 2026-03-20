@@ -1,0 +1,346 @@
+# 学習コンテンツ品質評価基準
+# Phase 4（品質検証）で使用する評価基準を定義
+
+version: "1.1.0"
+description: "体系的な学習コンテンツの品質を評価するための基準"
+
+# ===================================
+# コンテンツ量の最低基準
+# ===================================
+content_volume_requirements:
+  curriculum:
+    min_chapters: 5          # 最低章数
+    max_chapters: 15         # 最大章数
+    min_topics_per_chapter: 5  # 1章あたりの最低Topic数
+    max_topics_per_chapter: 10  # 1章あたりの最大Topic数
+    min_total_topics: 10     # カリキュラム全体の最低Topic数
+
+  topic:
+    min_slides: 7            # 最低スライド枚数
+    max_slides: 20           # 最大スライド枚数
+    min_script_chars: 2500   # 台本の最低文字数
+    max_script_chars: 3500   # 台本の最大文字数
+    min_audio_duration: 300  # 最低音声時間（秒）= 5分
+    max_audio_duration: 600  # 最大音声時間（秒）= 10分
+
+# ===================================
+# 総合評価
+# ===================================
+total_score: 100
+pass_threshold: 70  # 70点以上で合格
+
+# ===================================
+# 評価カテゴリ
+# ===================================
+categories:
+
+  # ---------------------------------
+  # 1. 正確性（30%）
+  # ---------------------------------
+  accuracy:
+    weight: 30
+    description: "コンテンツの事実的・技術的な正確さ"
+
+    criteria:
+      - id: acc_1
+        name: "事実の正確性"
+        weight: 10
+        check_method: "WebSearchで主要な事実を検証"
+        pass_condition: "明らかな誤りがない"
+        fail_examples:
+          - "存在しない機能やサービスの説明"
+          - "古い情報（2年以上前の情報を最新として記載）"
+          - "誤った数値やデータの引用"
+
+      - id: acc_2
+        name: "技術的正確性"
+        weight: 10
+        check_method: "コード例や手順の検証"
+        pass_condition: "コード例が動作する、手順が正しい"
+        fail_examples:
+          - "構文エラーのあるコード例"
+          - "非推奨のAPI使用"
+          - "実際には動作しない手順"
+
+      - id: acc_3
+        name: "最新情報との整合性"
+        weight: 10
+        check_method: "公式ドキュメントとの照合"
+        pass_condition: "現在の仕様と一致"
+        fail_examples:
+          - "廃止された機能の説明"
+          - "変更された仕様の古い説明"
+
+  # ---------------------------------
+  # 2. 分かりやすさ（25%）
+  # ---------------------------------
+  clarity:
+    weight: 25
+    description: "説明の明確さと理解しやすさ"
+
+    criteria:
+      - id: cla_1
+        name: "説明の明確さ"
+        weight: 10
+        check_method: "文章の読みやすさを評価"
+        pass_condition: "専門知識がなくても理解できる説明"
+        fail_examples:
+          - "前提知識なしで専門用語を使用"
+          - "回りくどい説明"
+          - "主語が不明確な文"
+
+      - id: cla_2
+        name: "専門用語の解説"
+        weight: 8
+        check_method: "初出の専門用語に解説があるか"
+        pass_condition: "すべての専門用語に初出時の解説がある"
+        fail_examples:
+          - "解説なしで専門用語を使用"
+          - "略語の説明なし（BaaS、APIなど）"
+
+      - id: cla_3
+        name: "具体例の適切さ"
+        weight: 7
+        check_method: "具体例の質と量を評価"
+        pass_condition: "抽象的な概念に具体例がある"
+        fail_examples:
+          - "概念の説明のみで例なし"
+          - "対象学習者に不適切な例"
+
+  # ---------------------------------
+  # 3. 前後参照の整合性（20%）
+  # ---------------------------------
+  reference_consistency:
+    weight: 20
+    description: "トピック間の参照関係の整合性"
+
+    criteria:
+      - id: ref_1
+        name: "前方参照の正確性"
+        weight: 8
+        check_method: "「前回学んだ〜」の言及が正しいか"
+        pass_condition: "参照先のトピックで実際に説明されている"
+        fail_examples:
+          - "説明していない内容を「前回学んだ」と記載"
+          - "間違ったトピックへの参照"
+
+      - id: ref_2
+        name: "伏線の回収"
+        weight: 7
+        check_method: "「後で説明する〜」の約束が守られているか"
+        pass_condition: "すべての伏線が回収されている"
+        fail_examples:
+          - "「後で説明します」と言って説明しない"
+          - "回収漏れ"
+
+      - id: ref_3
+        name: "難易度の段階的上昇"
+        weight: 5
+        check_method: "各トピックの難易度が順序通りか"
+        pass_condition: "基礎→応用の順序が守られている"
+        fail_examples:
+          - "基礎を説明する前に応用を説明"
+          - "急激な難易度上昇"
+
+  # ---------------------------------
+  # 4. 構成の論理性（15%）
+  # ---------------------------------
+  structure:
+    weight: 15
+    description: "スライドと台本の構成"
+
+    criteria:
+      - id: str_1
+        name: "スライドの構成"
+        weight: 5
+        check_method: "スライドの流れを評価"
+        pass_condition: "導入→本題→まとめの流れがある"
+        fail_examples:
+          - "唐突に本題から始まる"
+          - "まとめがない"
+          - "流れが飛び飛び"
+
+      - id: str_2
+        name: "1スライド1メッセージ"
+        weight: 5
+        check_method: "各スライドのメッセージ数を確認"
+        pass_condition: "各スライドに明確な1つのメッセージ"
+        fail_examples:
+          - "1スライドに複数のトピック"
+          - "メッセージが不明確"
+
+      - id: str_3
+        name: "台本とスライドの一致"
+        weight: 5
+        check_method: "台本がスライドの内容をカバーしているか"
+        pass_condition: "スライドの全内容が台本で説明されている"
+        fail_examples:
+          - "スライドにあるが台本で触れていない内容"
+          - "台本とスライドの順序不一致"
+
+  # ---------------------------------
+  # 5. 用語の一貫性（10%）
+  # ---------------------------------
+  terminology:
+    weight: 10
+    description: "用語の統一と表記の一貫性"
+
+    criteria:
+      - id: ter_1
+        name: "用語の統一"
+        weight: 5
+        check_method: "REFERENCE_MAP.yamlのterminologyと照合"
+        pass_condition: "定義した標準用語を使用"
+        fail_examples:
+          - "「Firebase」と「ファイアベース」の混在"
+          - "「BaaS」と「バース」の混在（台本では読み仮名可）"
+
+      - id: ter_2
+        name: "表記の統一"
+        weight: 5
+        check_method: "表記ルールの一貫性を確認"
+        pass_condition: "英数字、括弧、句読点の統一"
+        fail_examples:
+          - "半角全角の混在"
+          - "「、」と「,」の混在"
+
+# ===================================
+# 自動チェック項目（Playwright）
+# ===================================
+playwright_checks:
+  - id: pw_1
+    name: "スライド表示確認"
+    description: "全スライドが正しく表示されるか"
+    test_steps:
+      - "各HTMLファイルを開く"
+      - "全スライドを順番に表示"
+      - "表示エラーがないことを確認"
+
+  - id: pw_2
+    name: "ナビゲーション動作確認"
+    description: "次へ/前へ/最初へボタンが機能するか"
+    test_steps:
+      - "「次へ」ボタンでスライドが進むか"
+      - "「前へ」ボタンでスライドが戻るか"
+      - "「最初へ」ボタンで最初に戻るか"
+
+  - id: pw_3
+    name: "キーボード操作確認"
+    description: "矢印キーでスライド操作できるか"
+    test_steps:
+      - "→キーでスライドが進むか"
+      - "←キーでスライドが戻るか"
+
+  - id: pw_4
+    name: "レスポンシブ確認"
+    description: "各画面サイズで正しく表示されるか"
+    test_steps:
+      - "PC表示（1920x1080）で確認"
+      - "タブレット表示（768x1024）で確認"
+      - "スマホ表示（375x667）で確認"
+    viewports:
+      - width: 1920
+        height: 1080
+        name: "Desktop"
+      - width: 768
+        height: 1024
+        name: "Tablet"
+      - width: 375
+        height: 667
+        name: "Mobile"
+
+  - id: pw_5
+    name: "リンク確認"
+    description: "目次からの各トピックへのリンクが機能するか"
+    test_steps:
+      - "index.htmlを開く"
+      - "各トピックリンクをクリック"
+      - "正しいページに遷移するか確認"
+
+# ===================================
+# 評価レポートのテンプレート
+# ===================================
+report_template: |
+  # 品質評価レポート
+
+  ## 基本情報
+  - カリキュラム: {curriculum_title}
+  - 評価日時: {evaluation_datetime}
+  - 総トピック数: {total_topics}
+
+  ## 総合評価
+  - **総合スコア: {total_score}/100**
+  - **判定: {PASS/FAIL}**
+
+  ## カテゴリ別評価
+
+  ### 1. 正確性 ({accuracy_score}/30)
+  | 項目 | スコア | 状態 | 備考 |
+  |------|--------|------|------|
+  | 事実の正確性 | {score}/10 | {PASS/FAIL} | {note} |
+  | 技術的正確性 | {score}/10 | {PASS/FAIL} | {note} |
+  | 最新情報との整合性 | {score}/10 | {PASS/FAIL} | {note} |
+
+  ### 2. 分かりやすさ ({clarity_score}/25)
+  ...
+
+  ### 3. 前後参照の整合性 ({reference_score}/20)
+  ...
+
+  ### 4. 構成の論理性 ({structure_score}/15)
+  ...
+
+  ### 5. 用語の一貫性 ({terminology_score}/10)
+  ...
+
+  ## Playwright自動チェック結果
+  | チェック項目 | 結果 | 備考 |
+  |-------------|------|------|
+  | スライド表示確認 | {PASS/FAIL} | {note} |
+  | ナビゲーション動作確認 | {PASS/FAIL} | {note} |
+  | キーボード操作確認 | {PASS/FAIL} | {note} |
+  | レスポンシブ確認 | {PASS/FAIL} | {note} |
+  | リンク確認 | {PASS/FAIL} | {note} |
+
+  ## 改善が必要な箇所
+  | トピック | カテゴリ | 問題点 | 推奨修正 |
+  |---------|---------|--------|---------|
+  | {topic_id} | {category} | {issue} | {recommendation} |
+
+  ## 結論
+  {summary}
+
+# ===================================
+# 改善優先度のルール
+# ===================================
+improvement_priority:
+  critical:
+    description: "即座に修正が必要"
+    conditions:
+      - "事実の誤り"
+      - "技術的に動作しないコード"
+      - "セキュリティ上の問題"
+    action: "Phase 5で最優先で修正"
+
+  high:
+    description: "公開前に修正すべき"
+    conditions:
+      - "伏線の未回収"
+      - "用語の著しい不統一"
+      - "スライドの表示崩れ"
+    action: "Phase 5で修正"
+
+  medium:
+    description: "改善推奨"
+    conditions:
+      - "説明の分かりにくさ"
+      - "具体例の不足"
+      - "軽微な表記の不統一"
+    action: "時間があれば修正"
+
+  low:
+    description: "将来の改善事項"
+    conditions:
+      - "デザインの好み"
+      - "追加コンテンツの提案"
+    action: "Phase 8（修正フロー）で対応"
