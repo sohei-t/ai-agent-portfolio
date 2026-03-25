@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import time
 from contextlib import asynccontextmanager
@@ -64,7 +65,7 @@ REVIEWER_INIT_WAIT: float = 15.0
 SSE_HEARTBEAT_INTERVAL: float = 15.0
 
 # Session name validation pattern
-_SESSION_NAME_RE = re.compile(r"^[a-zA-Z0-9\-]+$")
+_SESSION_NAME_RE = re.compile(r"^[a-zA-Z0-9._\u3000-\u9fff-]+$")
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +74,7 @@ _SESSION_NAME_RE = re.compile(r"^[a-zA-Z0-9\-]+$")
 
 
 class CreateSessionRequest(BaseModel):
-    name: str = Field(..., pattern=r"^[a-zA-Z0-9\-]+$")
+    name: str = Field(..., pattern=r"^[a-zA-Z0-9._\u3000-\u9fff-]+$")
     cwd: str = Field(default="~")
     launch_claude: bool = True
 
@@ -249,7 +250,7 @@ async def _handle_ask_peer(session_name: str, question: str) -> bool:
         return False
 
     # Split window horizontally and launch Claude reviewer
-    cmd = "claude --name peer-reviewer --dangerously-skip-permissions"
+    cmd = "claude --name peer-reviewer"
     ok = await tmux.split_window_horizontal(session_name, cmd, percent=50)
     if not ok:
         return False
@@ -314,10 +315,10 @@ app = FastAPI(title="Web Claude Bridge v2", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5176", "http://127.0.0.1:5176"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -360,6 +361,15 @@ async def create_session(req: CreateSessionRequest) -> JSONResponse:
             content={"error": "invalid_name", "message": "Session name must be alphanumeric with hyphens only"},
         )
 
+    # Validate cwd is under home directory
+    home_dir = os.path.expanduser("~")
+    resolved_cwd = os.path.realpath(os.path.expanduser(req.cwd))
+    if resolved_cwd != home_dir and not resolved_cwd.startswith(home_dir + os.sep):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_cwd", "message": "cwd must be under the home directory"},
+        )
+
     if await tmux.session_exists(req.name):
         return JSONResponse(
             status_code=409,
@@ -386,6 +396,11 @@ async def create_session(req: CreateSessionRequest) -> JSONResponse:
 @app.post("/api/sessions/{name}/send")
 async def send_text(name: str, req: SendTextRequest) -> JSONResponse:
     """Send text to a tmux session."""
+    if not _SESSION_NAME_RE.match(name):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_name", "message": "Invalid session name"},
+        )
     if not await tmux.session_exists(name):
         return JSONResponse(
             status_code=404,
@@ -415,6 +430,11 @@ async def capture_session(
     escape: bool = Query(default=True),
 ) -> JSONResponse:
     """Capture the current pane content of a session."""
+    if not _SESSION_NAME_RE.match(name):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_name", "message": "Invalid session name"},
+        )
     if not await tmux.session_exists(name):
         return JSONResponse(
             status_code=404,
@@ -466,6 +486,11 @@ async def session_stream(
     full_initial: bool = Query(default=True),
 ) -> EventSourceResponse:
     """Per-session SSE output stream (diff-only after initial full capture)."""
+    if not _SESSION_NAME_RE.match(name):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_name", "message": "Invalid session name"},
+        )
 
     async def event_generator() -> AsyncGenerator[dict, None]:
         # Register queue (may raise RuntimeError if limit reached)
@@ -554,8 +579,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     # --- Origin validation (Critical: reject non-local origins) ---
     origin = websocket.headers.get("origin", "")
     allowed_origins = {
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+        "http://localhost:5176",
+        "http://127.0.0.1:5176",
     }
     if origin and origin not in allowed_origins:
         logger.warning("WebSocket connection rejected: origin=%s", origin)
