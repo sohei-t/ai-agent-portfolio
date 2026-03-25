@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About - Web Claude Bridge v2</title>
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2128;
+    --border: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #484f58;
+    --accent: #58a6ff;
+    --accent-hover: #79c0ff;
+    --green: #3fb950;
+    --purple: #bc8cff;
+    --orange: #d29922;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  /* Header */
+  header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  header h1 span { color: var(--accent); }
+  .lang-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .lang-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+  .lang-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(88,166,255,0.1);
+  }
+  .lang-switch { display: flex; gap: 6px; }
+  /* Main */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  section {
+    margin-bottom: 48px;
+  }
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+  h2::before {
+    content: '# ';
+    color: var(--accent);
+  }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 20px 0 10px;
+    color: var(--purple);
+  }
+  p, li {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+  ul {
+    padding-left: 24px;
+    margin: 12px 0;
+  }
+  li { margin-bottom: 6px; }
+  li strong { color: var(--text-primary); }
+  code {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: var(--orange);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 12px 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 12px 0;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(88,166,255,0.1);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin: 2px 4px 2px 0;
+    border: 1px solid rgba(88,166,255,0.2);
+  }
+  .badge.green {
+    background: rgba(63,185,80,0.1);
+    color: var(--green);
+    border-color: rgba(63,185,80,0.2);
+  }
+  .badge.purple {
+    background: rgba(188,140,255,0.1);
+    color: var(--purple);
+    border-color: rgba(188,140,255,0.2);
+  }
+  /* Audio */
+  .audio-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+  }
+  .audio-section.visible { display: flex; }
+  .audio-icon { font-size: 1.4rem; }
+  .audio-section audio { flex: 1; height: 36px; }
+  /* Architecture diagram */
+  .arch-diagram {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+  /* Hidden language blocks */
+  [data-lang] { display: none; }
+  [data-lang].show { display: block; }
+  .audio-section[data-lang].show { display: flex; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>Web Claude Bridge</span> v2</h1>
+  <div class="lang-switch">
+    <button class="lang-btn active" id="btn-ja" onclick="switchLang('ja')">JP</button>
+    <button class="lang-btn" id="btn-en" onclick="switchLang('en')">EN</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ Overview ============ -->
+  <section>
+    <div data-lang="ja">
+      <h2>概要</h2>
+      <p>Web Claude Bridge v2 は、ターミナル上で動作する Claude Code の tmux セッションを Web ブラウザからリアルタイムに操作・監視するブリッジシステムです。</p>
+      <p style="margin-top:12px;">SSE（Server-Sent Events）による差分ストリーミングと WebSocket による双方向コマンド送信の<strong style="color:var(--accent);">二重チャネルアーキテクチャ</strong>を採用し、低遅延かつ効率的なリアルタイム通信を実現しています。</p>
+    </div>
+    <div data-lang="en">
+      <h2>Overview</h2>
+      <p>Web Claude Bridge v2 is a bridge system that lets you monitor and control Claude Code's tmux sessions in real time from a web browser.</p>
+      <p style="margin-top:12px;">It employs a <strong style="color:var(--accent);">dual-channel architecture</strong> combining SSE (Server-Sent Events) for diff-based output streaming and WebSocket for bidirectional command transmission, achieving low-latency and efficient real-time communication.</p>
+    </div>
+  </section>
+
+  <!-- ============ Features ============ -->
+  <section>
+    <div data-lang="ja">
+      <h2>機能</h2>
+      <ul>
+        <li><strong>セッション管理</strong> -- 複数の tmux セッションを一覧表示・切り替え</li>
+        <li><strong>リアルタイム出力</strong> -- SSE 差分ストリーミングによるターミナル出力のライブ表示</li>
+        <li><strong>コマンド送信</strong> -- WebSocket 経由でのテキスト入力・コマンド実行</li>
+        <li><strong>承認 / 拒否</strong> -- Claude Code の確認プロンプトに対する Approve / Deny ボタン</li>
+        <li><strong>Ask Peer</strong> -- 別の Claude インスタンスへの質問機能</li>
+        <li><strong>Reviewer ペイン</strong> -- Worker と Reviewer の分割表示</li>
+        <li><strong>状態自動検出</strong> -- idle / thinking / tool_use / waiting_approval など</li>
+        <li><strong>接続状態表示</strong> -- WS / SSE のステータスをリアルタイム表示</li>
+        <li><strong>トースト通知</strong> -- 操作結果やエラーのポップアップ通知</li>
+      </ul>
+    </div>
+    <div data-lang="en">
+      <h2>Features</h2>
+      <ul>
+        <li><strong>Session Management</strong> -- List and switch between multiple tmux sessions</li>
+        <li><strong>Real-time Output</strong> -- Live terminal display via SSE diff streaming</li>
+        <li><strong>Command Input</strong> -- Send text and execute commands over WebSocket</li>
+        <li><strong>Approve / Deny</strong> -- One-click response to Claude Code confirmation prompts</li>
+        <li><strong>Ask Peer</strong> -- Send questions to another Claude instance</li>
+        <li><strong>Reviewer Pane</strong> -- Split view for Worker and Reviewer</li>
+        <li><strong>Auto State Detection</strong> -- idle / thinking / tool_use / waiting_approval</li>
+        <li><strong>Connection Status</strong> -- Real-time WS / SSE status display</li>
+        <li><strong>Toast Notifications</strong> -- Pop-up notifications for actions and errors</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ Tech Stack ============ -->
+  <section>
+    <div data-lang="ja">
+      <h2>技術スタック</h2>
+      <h3>フロントエンド</h3>
+      <div>
+        <span class="badge">React 19</span>
+        <span class="badge">TypeScript</span>
+        <span class="badge">Vite 6</span>
+        <span class="badge">Tailwind CSS 4</span>
+        <span class="badge">Zustand 5</span>
+        <span class="badge">xterm.js 5</span>
+      </div>
+      <h3>バックエンド</h3>
+      <div>
+        <span class="badge green">Python 3</span>
+        <span class="badge green">FastAPI</span>
+        <span class="badge green">Uvicorn</span>
+        <span class="badge green">SSE-Starlette</span>
+        <span class="badge green">tmux</span>
+      </div>
+      <h3>通信プロトコル</h3>
+      <div>
+        <span class="badge purple">SSE (Server-Sent Events)</span>
+        <span class="badge purple">WebSocket</span>
+        <span class="badge purple">REST API</span>
+      </div>
+    </div>
+    <div data-lang="en">
+      <h2>Tech Stack</h2>
+      <h3>Frontend</h3>
+      <div>
+        <span class="badge">React 19</span>
+        <span class="badge">TypeScript</span>
+        <span class="badge">Vite 6</span>
+        <span class="badge">Tailwind CSS 4</span>
+        <span class="badge">Zustand 5</span>
+        <span class="badge">xterm.js 5</span>
+      </div>
+      <h3>Backend</h3>
+      <div>
+        <span class="badge green">Python 3</span>
+        <span class="badge green">FastAPI</span>
+        <span class="badge green">Uvicorn</span>
+        <span class="badge green">SSE-Starlette</span>
+        <span class="badge green">tmux</span>
+      </div>
+      <h3>Protocols</h3>
+      <div>
+        <span class="badge purple">SSE (Server-Sent Events)</span>
+        <span class="badge purple">WebSocket</span>
+        <span class="badge purple">REST API</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Architecture ============ -->
+  <section>
+    <div data-lang="ja">
+      <h2>アーキテクチャ</h2>
+      <p>SSE + WebSocket の二重チャネル設計により、出力ストリーミング（読み取り）とコマンド送信（書き込み）を完全に分離しています。</p>
+      <div class="card">
+        <pre class="arch-diagram" style="border:none;padding:0;margin:0;background:transparent;">
+Browser (React + Zustand)
+  |
+  +-- SSE  &lt;----  FastAPI /api/sessions/{name}/stream
+  |                 |
+  |            capture-pane (1s polling)
+  |                 |
+  |            DiffEngine (差分計算)
+  |                 |
+  |            SessionState 検出
+  |                 (idle / thinking / tool_use / waiting_approval)
+  |
+  +-- WS   &lt;---&gt;  FastAPI /ws
+                    |
+               AsyncTmuxManager
+                    |
+               tmux send-keys / capture-pane
+                    |
+               Claude Code (tmux session)</pre>
+      </div>
+      <h3>なぜ二重チャネルか？</h3>
+      <ul>
+        <li><strong>SSE (読み取り専用)</strong>: ブラウザの自動再接続、HTTP/2 多重化、プロキシ通過性に優れる</li>
+        <li><strong>WebSocket (書き込み)</strong>: 低レイテンシの双方向通信、コマンドの即座な送信に最適</li>
+        <li>読み取りと書き込みを分離することで、片方が切断しても他方が独立して動作</li>
+      </ul>
+    </div>
+    <div data-lang="en">
+      <h2>Architecture</h2>
+      <p>The dual-channel design (SSE + WebSocket) cleanly separates output streaming (reads) from command input (writes).</p>
+      <div class="card">
+        <pre class="arch-diagram" style="border:none;padding:0;margin:0;background:transparent;">
+Browser (React + Zustand)
+  |
+  +-- SSE  &lt;----  FastAPI /api/sessions/{name}/stream
+  |                 |
+  |            capture-pane (1s polling)
+  |                 |
+  |            DiffEngine (diff computation)
+  |                 |
+  |            SessionState detection
+  |                 (idle / thinking / tool_use / waiting_approval)
+  |
+  +-- WS   &lt;---&gt;  FastAPI /ws
+                    |
+               AsyncTmuxManager
+                    |
+               tmux send-keys / capture-pane
+                    |
+               Claude Code (tmux session)</pre>
+      </div>
+      <h3>Why Dual Channels?</h3>
+      <ul>
+        <li><strong>SSE (read-only)</strong>: Auto-reconnection, HTTP/2 multiplexing, excellent proxy traversal</li>
+        <li><strong>WebSocket (write)</strong>: Low-latency bidirectional communication, ideal for instant command dispatch</li>
+        <li>Separating reads from writes means one channel can survive independently if the other disconnects</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ Development Process ============ -->
+  <section>
+    <div data-lang="ja">
+      <h2>開発プロセス</h2>
+      <p>本プロジェクトは <strong>Conductor パターン</strong>（AI エージェント・オーケストレーション）を用いて開発されました。</p>
+      <ul>
+        <li><strong>Phase 1</strong>: 並列計画生成 &rarr; 自律評価・選択 &rarr; 仕様設計・技術選定・WBS・テスト設計</li>
+        <li><strong>Phase 2</strong>: 3 プロトタイプ並列実装 &rarr; 最良案の選択</li>
+        <li><strong>Phase 3</strong>: テスト合格（単体・結合・E2E）</li>
+        <li><strong>Phase 4</strong>: 品質改善（コードレビュー・リファクタリング）</li>
+        <li><strong>Phase 5</strong>: 完成処理（ビルド・ドキュメント・ランチャー）</li>
+        <li><strong>Phase 6</strong>: GitHub 公開</li>
+      </ul>
+    </div>
+    <div data-lang="en">
+      <h2>Development Process</h2>
+      <p>This project was built using the <strong>Conductor Pattern</strong> (AI agent orchestration).</p>
+      <ul>
+        <li><strong>Phase 1</strong>: Parallel plan generation &rarr; autonomous evaluation &amp; selection &rarr; spec design, tech selection, WBS, test design</li>
+        <li><strong>Phase 2</strong>: 3 parallel prototype implementations &rarr; best candidate selection</li>
+        <li><strong>Phase 3</strong>: Test pass (unit, integration, E2E)</li>
+        <li><strong>Phase 4</strong>: Quality improvement (code review, refactoring)</li>
+        <li><strong>Phase 5</strong>: Finalization (build, docs, launcher)</li>
+        <li><strong>Phase 6</strong>: GitHub release</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ Audio explanation ============ -->
+  <div class="audio-section" data-lang="ja" id="audio-ja">
+    <span class="audio-icon">&#x1F50A;</span>
+    <span>音声解説を聴く:</span>
+    <audio controls preload="none">
+      <source src="./explanation.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+  <div class="audio-section" data-lang="en" id="audio-en">
+    <span class="audio-icon">&#x1F50A;</span>
+    <span>Listen to explanation:</span>
+    <audio controls preload="none">
+      <source src="./explanation.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+</main>
+
+<script>
+  // Language switching
+  function switchLang(lang) {
+    localStorage.setItem('wcb2_lang', lang);
+    document.querySelectorAll('[data-lang]').forEach(el => {
+      el.classList.toggle('show', el.getAttribute('data-lang') === lang);
+    });
+    document.getElementById('btn-ja').classList.toggle('active', lang === 'ja');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+  }
+
+  // Check if explanation.mp3 exists
+  function checkAudio() {
+    const a = new Audio('./explanation.mp3');
+    a.addEventListener('canplaythrough', () => {
+      document.getElementById('audio-ja').classList.add('visible');
+      document.getElementById('audio-en').classList.add('visible');
+    }, { once: true });
+    a.addEventListener('error', () => {
+      // mp3 not found -- keep hidden
+    }, { once: true });
+  }
+
+  // Initialize
+  (function init() {
+    const saved = localStorage.getItem('wcb2_lang') || 'ja';
+    switchLang(saved);
+    checkAudio();
+  })();
+</script>
+
+</body>
+</html>
