@@ -2,6 +2,19 @@
 
 > Auto-generated: 2026-04-27
 
+## v1.0.2 (2026-04-30)
+
+- **improve:** 「N件を結合」ボタンを右ペイン上部に **sticky 配置**。長いキューでも下までスクロールせずに実行できる。
+- **improve:** エンコードモードを **2 択セグメントコントロール（⚡ 高速 / 🎬 安定）** に変更。チェックボックスと逆セマンティクスの混乱を解消。
+  - 高速モード: コーデック自動判定（推奨デフォルト）。
+  - 安定モード: 常に再エンコードで結合（コーデック不揃いの freeze に強い）。
+- **improve:** **Ctrl + Enter / ⌘ + Enter** で結合を即時実行（IME 中・フォーム入力中は誤発火しない）。
+- **improve:** 結合キューに件数バッジを追加。空状態のメッセージを改善（「左のツリーからファイルを選択してください」）。
+- **improve:** sticky アクションバーに選択件数 / 合計サイズ / メモリ警告を統合。
+- **improve:** 結合実行中（busy）は CTA・全解除ボタンを自動的に disabled 化。
+- **a11y:** エンコードモードを `role="radiogroup" / role="radio" + aria-checked` に変更。CTA に `aria-keyshortcuts="Control+Enter Meta+Enter"` を付与。
+- **test:** EncodeModeToggle / JoinActionBar / useJoinShortcut に追加テスト（合計 246 件、+20 件、全て pass）。
+
 ## v1.0.1 (2026-04-30)
 
 - **fix:** 動画結合後に出力動画が「再生時間は進むが映像フレームが固まる」現象を修正
@@ -12,6 +25,10 @@
 
 ## Recent Changes
 
+- 1ef7b9d chore(progress): record Phase 7 completion (v1.0.1 freeze fix) (2026-05-01)
+- 18e6ed2 fix(mp4-join): resolve PTS gap freeze in concat demuxer (v1.0.1) (2026-05-01)
+- 2dbc880 feat(phase6): GitHub portfolio publish + security verify + launcher register (2026-04-27 15:42:01 +0900)
+- 60a69f0 feat(phase5): build, documenter (about/README/mp3), launcher, ai-docs (2026-04-27 15:36:50 +0900)
 - 4ef1f2e refactor(phase4): perf + a11y + UX polish (2026-04-27 15:32:27 +0900)
 - ce2718c test(phase3): expand coverage to 86.83%, critical path 100% (2026-04-27 11:24:46 +0900)
 - 818c01d feat(phase2-prototype-c): innovative multi-thread + virtual tree + dnd-kit (2026-04-27 11:08:27 +0900)
