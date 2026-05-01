@@ -2,6 +2,22 @@
 
 > Auto-generated: 2026-04-27
 
+## v1.0.4 (2026-05-01)
+
+- **fix:** 異なる解像度・フレームレート・音声仕様の mp4 を結合するときに発生していた `concat filter failed with exit code 1` を**根本解消**。
+  - `joinFilter` を**2 段階パイプライン**に置き換え:
+    1. 各入力を統一スペック（`1280x720 / 30 fps / yuv420p / H.264 baseline 3.1` + `AAC stereo 44.1 kHz 128 kb/s`）に**正規化**（アスペクト比は維持し、上下左右を黒帯で pad）。
+    2. 正規化済みファイルを `concat demuxer (-c copy)` で**ロスレスに連結**。
+  - 入力ごとに **音声ストリーム有無を probe**（`Stream #N:M: Audio:` 検出）。音声欠落ファイルには `anullsrc=r=44100:cl=stereo` で**無音トラックを自動合成**。
+  - 個別ファイルの正規化失敗は `skippedFiles` に記録し、他のファイルの結合は続行。すべて失敗したときのみ `All inputs failed to normalize` を投げる。
+  - 進捗表示を「`正規化中… (i/N)`」「`連結中…`」に具体化。
+  - エラー詳細を統一: `normalize failed with exit code N on <filename>` / `final concat failed with exit code N`。
+- **trade-offs (現状の妥協、将来余地あり):**
+  - 4K → 720p は情報損失が出ます。将来 probe で「全ファイルが同一の高解像度なら維持」する分岐を追加予定。
+  - 60 fps → 30 fps も同様。統一スペック化を優先しています。
+  - `-preset ultrafast` で速度優先（ファイルサイズは `medium` より大きめ）。
+- **test:** ffmpegService.test に 12 件の追加テスト（合計 265 件、全て pass）。`buildNormalizeArgs` / `parseHasAudio` のユニットテスト、normalize per-file failure → skippedFiles routing、single-survivor short-circuit、anullsrc 経路の検証など。
+
 ## v1.0.3 (2026-05-01)
 
 - **fix:** 一部環境で「結合に失敗しました」エラーが発生する問題に対する防御策
