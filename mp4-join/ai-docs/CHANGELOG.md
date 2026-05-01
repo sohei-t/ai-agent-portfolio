@@ -2,6 +2,25 @@
 
 > Auto-generated: 2026-04-27
 
+## v1.0.5 (2026-05-01)
+
+- **fix:** 結合速度を **v1.0.0 と同等** に回復（500 ファイルでも数秒）。
+- ロジックを v1.0.0 ベース（`concat demuxer + -c copy`）に戻し、freeze 対策として **timestamp 系フラグだけ** を追加:
+  - `-fflags +genpts`（PTS 再生成）
+  - `-avoid_negative_ts make_zero`（負タイムスタンプを 0 に正規化）
+  - `-movflags +faststart`（プレイヤー対応性向上）
+  - `-auto_convert 1`（互換性のための bitstream フィルタ自動適用）
+- v1.0.1〜v1.0.4 で追加した以下の機能を **削除（過剰設計のため）**:
+  - 入力 probe（codec/解像度/fps/audio params 取得）
+  - 自動 filter ルーティング（互換性なし時に再エンコードへ自動切替）
+  - 「再エンコードで結合」トグル（`forceReencode` ストアフラグ + `EncodeModeToggle` UI）
+  - 全ファイル個別正規化（normalize → concat の 2 段階パイプライン）
+- **維持** した v1.0.2 の UX 改善:
+  - sticky な `JoinActionBar`（右ペイン上部の結合 CTA）
+  - `Ctrl/Cmd + Enter` ショートカット（`useJoinShortcut`）
+- **test:** 221 件（v1.0.4 の 265 件から、削除した機能のテスト 44 件を除去）。全 pass。
+- **note:** edit list 起因の freeze がまだ残る場合は、次のリリースで「各ファイルを `-c copy` で remux してから結合」（再エンコードなし）の対応を検討します。
+
 ## v1.0.4 (2026-05-01)
 
 - **fix:** 異なる解像度・フレームレート・音声仕様の mp4 を結合するときに発生していた `concat filter failed with exit code 1` を**根本解消**。
