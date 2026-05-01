@@ -16,8 +16,9 @@ GitHub Pages で公開予定:
 - 🌳 **ツリー表示**: react-arborist で大規模フォルダもスムーズに（仮想スクロール）
 - 🎯 **直感的な並び替え**: dnd-kit によるドラッグ&ドロップ並び替え
 - 🎬 **MP4結合**: FFmpeg.wasm（マルチスレッド版）でブラウザ内エンコード
-  - `concat demuxer + -c copy` による高速結合（再エンコードなし）。500 ファイルでも数秒で完了
-  - timestamp 系フラグ（`-fflags +genpts`、`-auto_convert 1`、`-avoid_negative_ts make_zero`、`-movflags +faststart`）により PTS gap 起因の freeze を抑止
+  - **2 段階パイプライン**（v1.0.6〜）: Pass 1 で各ファイルを `-ignore_editlist 1 -c copy` で remux（edit list 除去 + PTS 正規化）→ Pass 2 で `concat demuxer + -c copy` 連結（再エンコードなし）
+  - 500 ファイルでも数十秒〜1 分程度で完了。再エンコードしないため画質・音質はオリジナルを保持
+  - timestamp 系フラグ（`-fflags +genpts`、`-auto_convert 1`、`-avoid_negative_ts make_zero`、`-movflags +faststart`）と edit list 除去により、ランダム並び替え時 + 大量ファイル時の freeze を根本的に解消（v1.0.6〜）
 - ⌨️ **キーボードショートカット**: `Ctrl + Enter` / `⌘ + Enter` で結合を即時実行（v1.0.2〜）
 - 📌 **sticky CTA**: 「N 件を結合」ボタンが常に画面上部に表示され、長いキューでもスクロール不要（v1.0.2〜）
 - 💾 **永続化**: IndexedDB で並び順・選択状態を保存
