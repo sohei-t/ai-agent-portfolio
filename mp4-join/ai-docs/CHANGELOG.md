@@ -2,6 +2,29 @@
 
 > Auto-generated: 2026-04-27
 
+## v1.0.6 (2026-05-01)
+
+- **fix:** 結合動画の **freeze 問題を根本解決**（特にランダム並び替え時 + 大量ファイル時）。
+  - 各入力ファイルを連結前に `-ignore_editlist 1 -c copy` で **remux** し、edit list（`elst` atom）と PTS 不整合を除去。
+  - 出力側で `-avoid_negative_ts make_zero -movflags +faststart` を適用し、タイムスタンプを 0 起点に正規化 + faststart 化。
+- **`joinDemuxer` を 2 段階パイプラインに置き換え:**
+  1. **Pass 1 (per-file remux):** 各 `input_NNNN.mp4` を `clean_NNNN.mp4` に remux（再エンコードなし）。
+  2. **Pass 2 (concat):** 整列済み `clean_NNNN.mp4` を `concat demuxer + -c copy` で連結。
+- **再エンコードしない**ため、処理速度は v1.0.5 とほぼ同等を維持（500 ファイルで概ね 30 秒〜1 分の追加コスト）。
+- **メモリ管理:** Pass 1 の remux 完了直後に対応する `input_NNNN.mp4` を MEMFS から削除し、ピークメモリを抑制。
+- 個別ファイルの remux 失敗は `skippedFiles` に記録（`reason: "remux exit code N"`）し、他のファイルの結合は続行。**全ファイル remux 失敗時のみ** `All inputs failed to remux` を投げる。
+- 進捗表示を 3 段階に細分化:
+  - 0% → 5%: 入力ファイル準備
+  - 5% → 80%: 整列中…（i/N） — 線形に進行
+  - 80% → 100%: 連結中… → 出力準備
+- **test:** ffmpegService.test に v1.0.6 専用テストを 6 件追加（合計 227 件、全て pass）。
+  - Pass 1 で `-ignore_editlist 1` が `-i` の前に渡されること
+  - 各入力に対して remux exec が呼ばれること（N+1 回の exec を検証）
+  - `input_NNNN.mp4` が remux 後に MEMFS から削除されること
+  - 個別 remux 失敗で `skippedFiles` に記録され、他のファイルは続行されること
+  - 全 remux 失敗で `All inputs failed to remux` を投げること
+  - `concat_list.txt` が `clean_NNNN.mp4` を参照していること
+
 ## v1.0.5 (2026-05-01)
 
 - **fix:** 結合速度を **v1.0.0 と同等** に回復（500 ファイルでも数秒）。
