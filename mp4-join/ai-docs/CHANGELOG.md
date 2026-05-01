@@ -2,6 +2,15 @@
 
 > Auto-generated: 2026-04-27
 
+## v1.0.3 (2026-05-01)
+
+- **fix:** 一部環境で「結合に失敗しました」エラーが発生する問題に対する防御策
+  - probe（Tier 2）を**完全フェイルセーフ化**。任意の失敗を握り潰してレガシーパス（demuxer→filter）に降格。
+  - probe コマンドを `-f null -` から `-f null __probe_null.tmp` に変更し、`-` を出力 URL として受け付けない wasm ビルドでも動作するように。`-hide_banner` も追加してログのノイズを削減。
+  - 部分的に欠損した probe メタデータでは filter ルーティングを行わない（`videoCodec / width / height` がすべての入力で揃っているときのみ判定する）。
+  - 結合失敗時のトーストに FFmpeg の実エラーメッセージを併記（例: 「結合に失敗しました（詳細: concat demuxer failed with exit code 1）」）。診断容易化のため、トースト表示時間も 5s → 10s に延長。
+- **test:** ffmpegService / useFFmpegJoin に 7 件の追加テスト（合計 253 件、全て pass）。
+
 ## v1.0.2 (2026-04-30)
 
 - **improve:** 「N件を結合」ボタンを右ペイン上部に **sticky 配置**。長いキューでも下までスクロールせずに実行できる。
