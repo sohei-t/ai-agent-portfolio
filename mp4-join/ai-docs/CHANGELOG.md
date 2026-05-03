@@ -2,6 +2,43 @@
 
 > Auto-generated: 2026-04-27
 
+## v2.1.0 (2026-05-04) - skip-on-failure 戦略
+
+### Changed
+- 互換性 probe を完全撤去しました。v2.0.0 で「結合時のみ probe」に絞ってもユーザー環境ではハングが続いたため、もう「結合前にチェックする」ことを諦めました。代わりに、**結合パスで個別タイムアウト + スキップ** する方式に変更しています。
+- 各ファイルの remux に **8 秒のタイムアウト** を設定。タイムアウトしたファイルはスキップし、残りで結合を続行します。タイムアウト発生時は ffmpeg.wasm の worker を `terminate()` し、インスタンスを reload してから次のファイルに進みます。
+- 結果パネルに **スキップ一覧** を表示するようにしました（折りたたみ式の `<details>`、ファイル名 + スキップ理由）。
+- 最終 concat 段にも保険として 5 分のタイムアウトを追加しました。
+
+### Removed
+- `CompatibilityDialog` モーダル（およびテスト）
+- `FFmpegService.probeCompatibility()` メソッド
+- `parseStreamSignature()` ヘルパー関数
+- 型 `CompatGroup` / `CompatProbeResult` / `CompatPhase` / `CompatDecision`
+- ストアの compat-probe 状態と mutator: `compatPhase` / `compatProbeProgress` / `compatProbeResult` / `beginCompatProbe` / `setCompatProbeProgress` / `setCompatProbeResult` / `setCompatPhase` / `resetCompatProbe`
+- `useFFmpegJoin` の `resolveCompatDecision()` メソッド
+- `JoinActionBar` から compat phase 反映ロジック
+- `ProgressModal` から probe phase 表示
+- エラーコード `PROBE_FAILED`
+
+### Added
+- `FFmpegService.execWithTimeout()` (private): `Promise.race` で `runWithProgress` とタイムアウト Promise を競争させ、超過時は worker を terminate して `EXEC_TIMEOUT` エラーで reject する。
+- `FFmpegService.reload()` (private): worker terminate 後にインスタンスを再 init するためのヘルパー。
+- `isTimeoutError()` ヘルパーと `ExecTimeoutError` 型のエクスポート。
+- 公開定数 `REMUX_TIMEOUT_MS` (8000) と `CONCAT_TIMEOUT_MS` (300000)。
+
+### Kept (v2.1.0 でも維持)
+- v1.0.6 の per-file remux + concat demuxer ロジック（タイムアウト追加のみ、骨格は無変更）
+- v1.0.5 の timestamp フラグ群（`-avoid_negative_ts make_zero`、`-fflags +genpts`、`-movflags +faststart`、`-ignore_editlist 1`）
+- 結合ボタン上部 sticky 配置（v1.0.2）
+- Ctrl/Cmd + Enter ショートカット（v1.0.2）
+- ヘッダーのバージョン表示（v1.1.1）
+
+### test
+- 削除: 24 テスト（`CompatibilityDialog.test.tsx` 全 7 件、`ffmpegService.test.ts` の `probeCompatibility` 6 件 + `parseStreamSignature` 6 件、`useFFmpegJoin.test.ts` の compat decision 系 3 件、`appStore.test.ts` の compat-probe state machine 6 件、`JoinActionBar.test.tsx` の compat phase 系 4 件、その他 2 件）
+- 追加: `ffmpegService.test.ts` の v2.1.0 skip-on-failure ブロック 5 件（`isTimeoutError`、`REMUX_TIMEOUT_MS` 値、ハング 1/3 ファイル → 残り結合、全ハング → throw、terminate + reload 連動）、`ResultPanel.test.tsx` のスキップ表示 2 件、`appStore.test.ts` の compat 不存在検証 1 件、`useFFmpegJoin.test.ts` の resolveCompatDecision 不存在検証 1 件、`JoinActionBar.test.tsx` の v2.0.0 ラベル不存在検証 1 件
+- 結果: 263 → 239 件（24 件純減、機能撤去のため）。33 ファイル、全 pass。
+
 ## v2.0.0 (2026-05-03) - 大幅簡素化（破壊的変更）
 
 ### Breaking
