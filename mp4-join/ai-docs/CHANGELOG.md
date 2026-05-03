@@ -2,6 +2,58 @@
 
 > Auto-generated: 2026-04-27
 
+## v2.0.0 (2026-05-03) - 大幅簡素化（破壊的変更）
+
+### Breaking
+- v1.1.0〜v1.2.1 で導入した「ツリー走査時の事前互換性スキャン機能」を **完全撤去** しました。スキャンが特定環境で完了しない問題（500 ファイルで数時間返ってこない）を受けて、根本的にアプローチを変更しました。
+
+### Removed
+- `mp4box` 依存パッケージ（および関連実装すべて）
+- `services/mp4Metadata.ts` / `services/compatibilityGroups.ts`
+- `hooks/useCompatibilityScan.ts`
+- `components/MetadataScanBanner.tsx` / `components/GroupSummary.tsx`
+- ファイル行の色付き互換性バッジ
+- ストアから `metadata` / `groups` / `metadataLoading` / `metadataProgress` / `selectGroup` / `finalizeMetadata` 等
+- `JoinActionBar` の混在時バナー（グループ別救済アクション、ブレイクダウン表示、互換性チェック中インジケータ）
+- `treeCache` の `loadMetadata` / `saveMetadata` / `buildMetadataCacheKey` API（`metadata-cache` IndexedDB ストア自体は互換性のため保持）
+- 型 `StreamSignature` / `CompatibilityGroup` / `UNKNOWN_GROUP_ID`
+
+### Added (フェイルファスト戦略)
+- `services/ffmpegService.probeCompatibility()`: 選択ファイルだけを ffmpeg.wasm で逐次プローブ（`-i input -t 0.01 -f null tmp` を使用）。FFmpeg は load 済みのため追加コストはほぼ exec 呼び出しのみ。グループとファイル数（降順）+ 解析失敗ファイル一覧を返す。
+- `services/ffmpegService.parseStreamSignature()`: ffmpeg stderr ログから `h264|1920x1080|30|aac|44100|2` 形式のシグネチャキーと表示ラベルを抽出。
+- `components/CompatibilityDialog.tsx`: プローブ結果が複数グループまたは解析失敗を含むときに表示するモーダル。3 択を提示:
+  - **最大グループ (N 件) だけ結合**（推奨・高速、`-c copy`）
+  - **全 N 件を再エンコード**（互換性優先・低速、フィルタグラフ）
+  - **キャンセル**
+- ストアに `compatPhase`（`idle | probing | awaiting-decision | concatenating`）、`compatProbeProgress`、`compatProbeResult` を新設。`beginCompatProbe` / `setCompatProbeProgress` / `setCompatProbeResult` / `setCompatPhase` / `resetCompatProbe` の 5 アクション。
+- `useFFmpegJoin` に `resolveCompatDecision(decision)` を新設。ダイアログから呼ばれて runJoin を分岐。
+- `ProgressModal`: プローブ中（`compatPhase === 'probing'`）も対応し、`ファイル確認中… N/M` を表示しキャンセル可能。
+
+### Changed
+- フォルダドロップ後、即座にツリーが表示されます（事前スキャン待ち時間 0）。
+- 結合ボタンを押した時点で初めて、**選択したファイルだけ** を ffmpeg.wasm で互換性確認します（典型的に数秒〜十数秒程度）。
+- 確認結果:
+  - **全ファイルが互換** → そのまま `-c copy` で高速結合（v1.0.6 と同じフロー）
+  - **不一致あり** → ダイアログで 3 択提示
+- 新エラーコード: `PROBE_FAILED`（プローブ自体が例外を投げた場合のみ。個別ファイルの解析失敗はダイアログ内で扱う）。
+
+### Kept (v2.0.0 でも維持)
+- v1.0.6 の per-file remux + concat demuxer ロジック（`joinDemuxer`）— 完全に無変更
+- v1.0.5 の timestamp フラグ群（`-avoid_negative_ts make_zero`、`-fflags +genpts`、`-movflags +faststart`、`-ignore_editlist 1`）
+- 結合ボタン上部 sticky 配置（v1.0.2）
+- Ctrl/Cmd + Enter ショートカット（v1.0.2）
+- ヘッダーのバージョン表示（v1.1.1）
+- IndexedDB の `metadata-cache` ストア自体（古いブラウザタブとの共存のため、書き込まれることはなくなった）
+
+### test
+- 削除: 44 テスト（`mp4Metadata`、`compatibilityGroups`、`useCompatibilityScan`、`MetadataScanBanner`、`GroupSummary`、`appStore.compat`、`treeCache.metadata`、`JoinActionBar` の互換性検証ブロック、`FileNode` の互換性バッジテスト）
+- 追加: `ffmpegService.test.ts` に 12 件（`probeCompatibility` 6 + `parseStreamSignature` 6）、`CompatibilityDialog.test.tsx` 7 件、`useFFmpegJoin.test.ts` 3 件、`appStore.test.ts` の compat-probe state-machine ブロック 6 件、`JoinActionBar.test.tsx` の compat phase 反映 5 件、`FileNode.test.tsx` の不存在検証 1 件。
+- 合計: 307 → 263 件（全 pass、すべての主要機能を維持）。
+
+### Bundle
+- `mp4box` 撤去によりメインバンドルサイズが減少（撤去前の互換性スキャンコード ~30KB が削除）。
+- `npm run build` でクリーンリビルドして全 chunk の出力を確認済み。`@ffmpeg/ffmpeg` / `@ffmpeg/util` の dynamic chunk が `public/assets/` に出力されていることを検証。
+
 ## v1.2.1 (2026-05-03)
 
 - **perf:** **互換性スキャンを並列化**（同時 6 ファイル、ワーカー方式）。500 ファイルでの解析時間を **5 分以上 → 30〜60 秒** 程度に短縮。`useCompatibilityScan` を従来の逐次ループからキューベース並列ワーカー（`SCAN_CONCURRENCY=6`）に変更。
