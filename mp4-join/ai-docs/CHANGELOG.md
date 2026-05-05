@@ -2,6 +2,14 @@
 
 > Auto-generated: 2026-04-27
 
+## v2.1.2 (2026-05-05) — hotfix
+
+### Fixed
+- 99 ファイル × 277 MB の結合で進捗 85% から動かなくなる問題を修正。
+- 原因は最終 concat 段階の `-movflags +faststart` が引き起こす重い後処理（出力ファイルの二重書き）でした。各 clean ファイルは Pass 1 で既に faststart 化されているため Pass 2 での重複は不要だと判断し、Pass 2 のフラグを `-f concat -safe 0 -i list -c copy output.mp4` だけの最小構成に削減。
+- 同時に最終 concat のタイムアウトを 5 分 → 2 分に短縮（ハングの早期検知）。
+- Pass 2 中に 10 秒以上 progress イベントが来ない場合 console に警告を出すよう変更（次回ハング診断用）。
+
 ## v2.1.1 (2026-05-05) — hotfix
 
 ### Fixed
