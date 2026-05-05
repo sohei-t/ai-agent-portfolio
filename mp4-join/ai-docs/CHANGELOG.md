@@ -2,6 +2,31 @@
 
 > Auto-generated: 2026-04-27
 
+## v2.1.1 (2026-05-05) — hotfix
+
+### Fixed
+- v2.1.0 の per-file タイムアウト機構で、`terminate() + reload()` が **MEMFS（仮想ファイルシステム）も消去する**ため、それまで成功していた中間ファイル（`clean_NNNN.mp4`）が失われ、最終 concat が exit code 1 で失敗するバグを修正。1 ファイルでもタイムアウトすると、それ以前に整列済みのファイルが全て巻き戻る挙動になっていました。
+- 失敗した clean ファイルを **JS メモリに即時退避**（remux 直後に `readFile` → `Uint8Array` コピー → MEMFS から削除）し、reload を超えて持ち越すよう実装変更。Pass 2 では JS バッファを最新 FFmpeg インスタンスの MEMFS に書き戻してから concat する 2 段構成に変更しました。
+- 失敗時の `joinFilter`（再エンコード）への silent フォールバックを撤去。v2.1.0 の MEMFS バグが原因で安定パスから外れたケースが、ユーザー意図に反する数時間の再エンコードを引き起こしていたためです。失敗時はそのままユーザーにエラー表示します。
+
+### Changed
+- `FFmpegService.join()` は `joinDemuxer()` の薄いラッパーとなりました。`joinFilter()` メソッド自体はクラスに残置（dead code、将来「再エンコードオプション」を再導入する場合の足場）ですが、`join()` 経由では到達しません。
+- Pass 2 の進捗バーを `0.85〜0.95` に微調整（writeBack ステップ `0.80〜0.85` を新設）。
+
+### Added
+- `cleanBuffers: Array<{ id; name; data: Uint8Array }>` を Pass 1 で蓄積し、Pass 2 で逐次 `writeFile` → 即 `data = new Uint8Array(0)` で参照を切る運用。ピーク時 JS ヒープを生存ファイル合計の約 1× に抑え、2× への一時膨張を回避します。
+- `ffmpeg.readFile` が稀に `string` を返すケースへの防御コード（`TextEncoder().encode()` で Uint8Array に正規化）。
+
+### Note (memory)
+- 500 ファイル × 平均 200KB のユースケースで JS ヒープ約 100MB を消費する見込み。500 ファイル × 平均 5MB（合計 2.5GB）級は本機構の対象外で、README で「総計 2GB を超える結合は推奨しない」旨を別途案内予定。
+
+### test
+- 削除: `join() falls through to filter on demux failure` 1 件（フォールバック撤去のため）
+- 変更: `throws when both demux and filter fail` を `join() throws when concat demuxer fails (no silent fallback)` に書き換え（同 1 件、テスト数は不変）
+- 追加: `v2.1.1 JS-buffered survivors` ブロック 3 件（Pass 1 の `readFile` + `deleteFile` 検証、reload 後インスタンスへの clean buffer 復元検証、`readFile` 文字列フォールバック検証）+ `join() does NOT fall through to filter on demux failure` 1 件 + `Pass 2 list.txt` テストに `clean_NNNN.mp4` 書き戻し検証を追加。
+- mock の `failOn: 'demux'` セマンティクスを「concat 段のみ失敗」に厳格化し、remux 段は `failRemuxFor` / `hangRemuxFor` で個別制御するように変更。
+- 結果: 239 → 242 件（+3、純増）。33 ファイル、全 pass。
+
 ## v2.1.0 (2026-05-04) - skip-on-failure 戦略
 
 ### Changed
