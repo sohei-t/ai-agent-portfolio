@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ROBO BATTLE 3D - Prototype</title>
+<!-- Webフォント: Orbitron(メカHUD向けディスプレイフォント) CDN 1つのみ -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hud-cyan: #6ef3ff;
+    --hud-red: #ff3b3b;
+    --hud-amber: #ffb02e;
+    --hud-bg: rgba(8, 14, 22, 0.55);
+    --hud-line: rgba(110, 243, 255, 0.45);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #0a0e14;
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: 'Orbitron', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  }
+  canvas { display: block; }
+
+  /* ===== HUD レイヤー ===== */
+  #hud {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* --- クロスヘア(非ロック時) --- */
+  #crosshair {
+    position: absolute; left: 50%; top: 50%;
+    width: 28px; height: 28px;
+    transform: translate(-50%, -50%);
+    opacity: 0.85;
+    transition: opacity 0.15s;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: var(--hud-cyan);
+    box-shadow: 0 0 6px var(--hud-cyan);
+  }
+  #crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); clip-path: polygon(0 0, 100% 0, 100% 32%, 0 32%, 0 68%, 100% 68%, 100% 100%, 0 100%); }
+  #crosshair::after  { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); clip-path: polygon(0 0, 32% 0, 32% 100%, 0 100%, 68% 0, 100% 0, 100% 100%, 68% 100%); }
+  #crosshair.hidden { opacity: 0; }
+  /* WR 風の控えめな縦ティック(上下) */
+  #crosshair {
+    background:
+      linear-gradient(var(--hud-cyan), var(--hud-cyan)) center -7px / 1.5px 6px no-repeat,
+      linear-gradient(var(--hud-cyan), var(--hud-cyan)) center calc(100% + 7px) / 1.5px 6px no-repeat;
+  }
+
+  /* --- ロックオンレティクル(赤コーナーブラケット) --- */
+  #lockon {
+    position: absolute; left: 0; top: 0;
+    width: 86px; height: 86px;
+    transform: translate(-50%, -50%);
+    display: none;
+    animation: lockPulse 0.9s ease-in-out infinite;
+  }
+  #lockon.active { display: block; }
+  #lockon .corner {
+    position: absolute; width: 22px; height: 22px;
+    border: 3px solid var(--hud-red);
+    filter: drop-shadow(0 0 5px rgba(255, 59, 59, 0.9));
+  }
+  #lockon .c-tl { left: 0; top: 0; border-right: none; border-bottom: none; }
+  #lockon .c-tr { right: 0; top: 0; border-left: none; border-bottom: none; }
+  #lockon .c-bl { left: 0; bottom: 0; border-right: none; border-top: none; }
+  #lockon .c-br { right: 0; bottom: 0; border-left: none; border-top: none; }
+  /* 遮蔽されかけ(ロック解除予告)は黄色に */
+  #lockon.fading .corner { border-color: var(--hud-amber); filter: drop-shadow(0 0 5px rgba(255, 176, 46, 0.9)); }
+  #lockon.fading #lockon-dist { color: var(--hud-amber); text-shadow: 0 0 6px rgba(255, 176, 46, 0.8); }
+  #lockon.fading #lockon-name { color: var(--hud-amber); }
+  #lockon-dist {
+    position: absolute; left: 50%; top: 100%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+    color: var(--hud-red);
+    font-size: 14px; font-weight: 700; letter-spacing: 2px;
+    text-shadow: 0 0 6px rgba(255, 59, 59, 0.8);
+    white-space: nowrap;
+  }
+  /* V6.7 ターゲットボックス: 機体名(上)+ HP バー(枠の下辺) */
+  #lockon-name {
+    position: absolute; left: 50%; bottom: 100%;
+    transform: translateX(-50%);
+    margin-bottom: 5px;
+    color: var(--hud-red);
+    font-size: 11px; font-weight: 900; letter-spacing: 3px;
+    text-shadow: 0 0 6px rgba(255, 59, 59, 0.8);
+    white-space: nowrap;
+  }
+  #lockon-hp {
+    position: absolute; left: 8px; right: 8px; bottom: -4px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 80, 80, 0.7);
+  }
+  #lockon-hp-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #ff5c5c, #ff2222);
+    transition: width 0.12s linear;
+  }
+  @keyframes lockPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.07); }
+  }
+
+  /* --- V7.0: ロック対象の装備武器アイコン×2 + HP 数値 --- */
+  #lockon-loadout {
+    position: absolute; left: 50%; top: 100%;
+    transform: translateX(-50%);
+    margin-top: 26px; /* 距離表示の下 */
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+  }
+  #lockon-loadout .lk-wpn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 80, 80, 0.65);
+    border-radius: 2px;
+  }
+  #lockon-loadout .lk-wpn img { width: 16px; height: 16px; object-fit: contain; display: block; }
+  #lockon-loadout .lk-wpn.empty { opacity: 0.3; }
+  #lockon-loadout .lk-wpn.thumb-fb { font-size: 11px; }
+  #lockon-hpnum {
+    margin-left: 4px;
+    color: var(--hud-red);
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-shadow: 0 0 5px rgba(255, 59, 59, 0.7);
+  }
+  #lockon.fading #lockon-hpnum { color: var(--hud-amber); }
+  #lockon.fading #lockon-loadout .lk-wpn { border-color: rgba(255, 176, 46, 0.7); }
+
+  /* --- V7.0: 画面外の敵への方向矢印(小さめ・控えめ) --- */
+  #edge-arrow-layer { position: absolute; inset: 0; pointer-events: none; }
+  .edge-arrow {
+    position: absolute; left: 0; top: 0;
+    transform: translate(-50%, -50%);
+    display: none;
+    flex-direction: column; align-items: center;
+    filter: drop-shadow(0 0 4px rgba(255, 59, 59, 0.8));
+  }
+  .edge-arrow .ea-tri {
+    font-size: 16px; line-height: 1;
+    color: var(--hud-red);
+  }
+  .edge-arrow .ea-hp {
+    width: 22px; height: 3px;
+    margin-top: 2px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 80, 80, 0.7);
+  }
+  .edge-arrow .ea-hp-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #ff5c5c, #ff2222);
+  }
+
+  /* --- 敵マーカー(▼ + 機体名 + HPバー / 3D追従) --- */
+  #marker-layer { position: absolute; inset: 0; }
+  .enemy-marker {
+    position: absolute; left: 0; top: 0;
+    transform: translate(-50%, -100%);
+    display: none;
+    text-align: center;
+    pointer-events: none;
+    will-change: transform;
+  }
+  .enemy-marker .em-name {
+    font-size: 9px; font-weight: 700; letter-spacing: 2px;
+    color: #ffb6b6;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    white-space: nowrap;
+  }
+  .enemy-marker .em-hp {
+    width: 56px; height: 5px;
+    margin: 2px auto;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 80, 80, 0.7);
+  }
+  .enemy-marker .em-hp-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #ff5c5c, #ff2222);
+    transition: width 0.12s linear;
+  }
+  .enemy-marker .em-tri {
+    color: var(--hud-red);
+    font-size: 13px; line-height: 1;
+    text-shadow: 0 0 6px rgba(255, 59, 59, 0.85);
+  }
+  .enemy-marker.target .em-tri { color: var(--hud-amber); text-shadow: 0 0 6px rgba(255, 176, 46, 0.85); }
+
+  /* --- 敵残数カウンター(WR風 ▼×残数 / 画面上部) --- */
+  #enemy-counter {
+    position: absolute;
+    top: calc(10px + env(safe-area-inset-top));
+    left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; align-items: center;
+    background: var(--hud-bg);
+    border: 1px solid rgba(255, 80, 80, 0.45);
+    padding: 5px 16px;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+  #enemy-counter .ec-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 3px;
+    color: #ff9b9b;
+  }
+  #enemy-counter .ec-icon {
+    color: var(--hud-red); font-size: 15px; line-height: 1;
+    text-shadow: 0 0 6px rgba(255, 59, 59, 0.8);
+  }
+  #enemy-counter .ec-icon.dead { color: rgba(120, 120, 130, 0.45); text-shadow: none; }
+
+  /* --- 画面下部: プレイヤーHP + ヒートゲージ --- */
+  #status-panel {
+    position: absolute;
+    left: 50%; bottom: calc(14px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    width: min(380px, 46vw);
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+    border-radius: 4px;
+    padding: 8px 12px;
+    backdrop-filter: blur(4px);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .bar-label {
+    width: 48px; flex: none;
+    font-size: 10px; font-weight: 700; letter-spacing: 3px;
+    color: var(--hud-cyan);
+  }
+  .bar-track {
+    flex: 1; height: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(110, 243, 255, 0.25);
+    overflow: hidden;
+  }
+  #player-hp-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #2ee6a8, #6ef3ff);
+    box-shadow: 0 0 8px rgba(110, 243, 255, 0.6);
+    transition: width 0.15s linear;
+  }
+  #heat-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #ffb02e, #ff5a2e);
+    transition: width 0.08s linear;
+  }
+  #status-panel.overheat #heat-fill { background: #ff2222; animation: heatBlink 0.4s steps(2) infinite; }
+  #status-panel.overheat #heat-label { color: #ff4444; animation: heatBlink 0.4s steps(2) infinite; }
+  @keyframes heatBlink { 50% { opacity: 0.35; } }
+
+  /* --- ダメージ数値ポップ --- */
+  #damage-layer { position: absolute; inset: 0; overflow: hidden; }
+  .dmg-pop {
+    position: absolute; left: 0; top: 0;
+    color: #ffd24a;
+    font-size: 20px; font-weight: 900; letter-spacing: 1px;
+    text-shadow: 0 0 8px rgba(255, 140, 40, 0.9), 0 2px 2px rgba(0,0,0,0.6);
+    display: none;
+    will-change: transform, opacity;
+  }
+  .dmg-pop.hurt { color: #ff6060; }
+
+  /* --- 操作UI(タッチ) --- */
+  #controls { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  #joystick-base {
+    position: absolute;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 2px solid rgba(110, 243, 255, 0.4);
+    background: radial-gradient(circle, rgba(110,243,255,0.08) 0%, rgba(110,243,255,0.02) 70%);
+    transform: translate(-50%, -50%);
+    display: none;
+  }
+  #joystick-knob {
+    position: absolute; left: 50%; top: 50%;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(160,250,255,0.85), rgba(40,140,170,0.85));
+    box-shadow: 0 0 12px rgba(110, 243, 255, 0.5);
+    transform: translate(-50%, -50%);
+  }
+  .ctl-btn {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: auto;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit; font-weight: 900; letter-spacing: 2px;
+    color: #dff8ff;
+    border: 2px solid var(--hud-line);
+    background: var(--hud-bg);
+    backdrop-filter: blur(3px);
+    -webkit-user-select: none; user-select: none;
+    touch-action: none;
+  }
+  .ctl-btn:active, .ctl-btn.pressed { transform: scale(0.93); }
+
+  /* --- War Robots 風 円形武器ランチャー(右下・4 セグメント) --- */
+  #weapon-cluster {
+    position: absolute;
+    right: calc(14px + env(safe-area-inset-right));
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    width: 200px; height: 215px;
+    pointer-events: none;
+  }
+  #fire-main {
+    right: 8px; bottom: 8px;
+    width: 106px; height: 106px;
+    font-size: 15px; letter-spacing: 3px;
+    color: #fff;
+    border: 3px solid rgba(255, 130, 110, 0.85);
+    background: radial-gradient(circle at 35% 30%, #ff8a72, #cc2418 60%, #7e120c);
+    box-shadow: 0 0 24px rgba(255, 70, 40, 0.4);
+  }
+  #fire-main:active, #fire-main.pressed { background: radial-gradient(circle at 35% 30%, #ffb09a, #e23a2c 60%, #8e1a12); }
+  .wpn-seg {
+    width: 62px; height: 62px;
+    flex-direction: column;
+    font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
+    overflow: hidden;
+  }
+  .wpn-seg .seg-label { position: relative; }
+  /* 中央 FIRE の周囲に弧状配置(将来増設はこの並びに追加) */
+  #wpn-seg-0 { right: 126px; bottom: 4px; }    /* スロット1(左) */
+  #wpn-seg-1 { right: 100px; bottom: 92px; }   /* スロット2(左上) */
+  /* ターゲット切替(◎): FIRE の上・WR のクロスヘアボタン位置 */
+  #target-btn {
+    right: 32px; bottom: 124px;
+    width: 48px; height: 48px;
+    font-size: 19px;
+    color: var(--hud-amber);
+    border-color: rgba(255, 176, 46, 0.55);
+  }
+  #target-btn:active { color: #fff; }
+  .wpn-seg.overheat { border-color: #ff3b3b; color: #ff6b6b; animation: heatBlink 0.4s steps(2) infinite; }
+  .wpn-seg.nolock { opacity: 0.5; }
+  /* V6.9: 空きスロット(発射不可・グレー表示) */
+  .wpn-seg.empty {
+    opacity: 0.35;
+    border-color: #3a4a55; color: #5a6a75;
+    box-shadow: none;
+    pointer-events: none;
+  }
+  .wpn-seg.ready { border-color: rgba(110, 243, 255, 0.85); box-shadow: 0 0 10px rgba(110, 243, 255, 0.35); }
+  /* クールダウン/熱量の扇形オーバーレイ(--cd: 0..1) */
+  .cd-overlay {
+    position: absolute; inset: -1px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: conic-gradient(rgba(6, 10, 16, 0.78) calc(var(--cd, 0) * 1turn), rgba(0, 0, 0, 0) 0);
+  }
+  /* JUMP は武器パネルの上(WR 準拠) */
+  #jump-btn {
+    right: calc(116px + env(safe-area-inset-right));
+    bottom: calc(218px + env(safe-area-inset-bottom));
+    width: 60px; height: 60px;
+    font-size: 10px;
+    overflow: hidden;
+  }
+  /* PCではタッチボタンを薄く表示(タッチデバイスで濃く) */
+  @media (hover: hover) and (pointer: fine) {
+    #weapon-cluster, #jump-btn, #ability-btn { opacity: 0.55; }
+  }
+
+  /* --- ミニレーダー(右上・WR風) --- */
+  #radar-wrap {
+    position: absolute;
+    top: calc(10px + env(safe-area-inset-top));
+    right: calc(10px + env(safe-area-inset-right));
+    text-align: center;
+  }
+  #radar {
+    border-radius: 50%;
+    border: 1px solid var(--hud-line);
+    box-shadow: 0 0 12px rgba(110, 243, 255, 0.18);
+    display: block;
+  }
+  #radar-dist {
+    margin-top: 3px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--hud-red);
+    text-shadow: 0 0 6px rgba(255, 59, 59, 0.6);
+  }
+  #radar-dist.locked { color: var(--hud-amber); text-shadow: 0 0 6px rgba(255, 176, 46, 0.7); }
+
+  /* --- ミュートトグル(左上) --- */
+  #mute-btn {
+    position: absolute;
+    top: calc(10px + env(safe-area-inset-top));
+    left: calc(10px + env(safe-area-inset-left));
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    pointer-events: auto;
+    font-size: 17px;
+    border: 1px solid var(--hud-line);
+    background: var(--hud-bg);
+    color: #dff8ff;
+    touch-action: none;
+  }
+  #mute-btn.muted { opacity: 0.55; }
+  #mute-btn:active { transform: scale(0.92); }
+
+  /* --- 被弾方向インジケータ(中央周囲の赤い弧) --- */
+  #hit-arc {
+    position: absolute; left: 50%; top: 50%;
+    width: 150px; height: 150px;
+    border: 4px solid transparent;
+    border-top-color: rgba(255, 45, 45, 0.95);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    filter: drop-shadow(0 0 8px rgba(255, 40, 40, 0.8));
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+
+  /* --- 低 HP の赤ビネット --- */
+  #low-hp-vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(255, 20, 20, 0.32) 100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  #low-hp-vignette.show { animation: vignetteBlink 0.9s ease-in-out infinite; }
+  @keyframes vignetteBlink { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+  /* --- キルログ(左上・ミュートボタンの下) --- */
+  #kill-log {
+    position: absolute;
+    top: calc(62px + env(safe-area-inset-top));
+    left: calc(12px + env(safe-area-inset-left));
+    display: flex; flex-direction: column; gap: 4px;
+    pointer-events: none;
+  }
+  .kill-entry {
+    font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    color: #ffb6b6;
+    background: var(--hud-bg);
+    border-left: 3px solid var(--hud-red);
+    padding: 4px 10px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    animation: killIn 0.25s ease-out;
+    transition: opacity 0.6s;
+  }
+  .kill-entry.out { opacity: 0; }
+  @keyframes killIn { from { transform: translateX(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* --- 経過タイマー(敵カウンター内) --- */
+  #timer {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: #bfe8f4;
+    margin-left: 6px;
+    border-left: 1px solid rgba(110, 243, 255, 0.3);
+    padding-left: 10px;
+  }
+
+  /* --- TARGET LOCKED フラッシュ(中央上) --- */
+  #lock-flash {
+    position: absolute;
+    left: 50%; top: 32%;
+    transform: translateX(-50%);
+    font-size: 15px; font-weight: 900; letter-spacing: 6px;
+    color: var(--hud-amber);
+    text-shadow: 0 0 12px rgba(255, 176, 46, 0.8);
+    display: none;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* --- リザルト戦績 --- */
+  #overlay-stats {
+    margin-top: 18px;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    color: #cfeef8;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+    padding: 10px 22px;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+
+  /* --- オーバーレイ(勝敗 / 操作説明) --- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(4, 8, 14, 0.72);
+    backdrop-filter: blur(3px);
+    text-align: center;
+    pointer-events: auto;
+  }
+  .overlay.hidden { display: none; }
+  #overlay-title {
+    font-size: clamp(40px, 9vw, 84px);
+    font-weight: 900; letter-spacing: 0.18em;
+    color: var(--hud-cyan);
+    text-shadow: 0 0 24px rgba(110, 243, 255, 0.7);
+    animation: titleIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+  }
+  #overlay.defeat #overlay-title { color: var(--hud-red); text-shadow: 0 0 24px rgba(255, 59, 59, 0.7); }
+  @keyframes titleIn { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #overlay-sub { margin-top: 10px; color: #9fb8c8; font-size: 13px; letter-spacing: 4px; }
+  .overlay-btns { margin-top: 26px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  #restart-btn, #hangar-btn, #launch-btn {
+    padding: 14px 40px;
+    font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: 4px;
+    color: #06121a;
+    background: linear-gradient(180deg, #8ef6ff, #3ec8e0);
+    border: none; border-radius: 3px;
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    cursor: pointer;
+  }
+  #hangar-btn {
+    color: #dff8ff;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+  }
+  #restart-btn:active, #hangar-btn:active, #launch-btn:active { transform: scale(0.95); }
+  #launch-btn { margin-top: 14px; background: linear-gradient(180deg, #ffd27a, #e89a2e); }
+
+  /* --- リザルトのポイント内訳(V6.7) --- */
+  #result-breakdown {
+    margin-top: 16px;
+    min-width: min(320px, 80vw);
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+    padding: 10px 18px;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+  .rb-row {
+    display: flex; justify-content: space-between; gap: 24px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: #9fc2d4;
+    padding: 3px 0;
+  }
+  .rb-row b { color: #cfeef8; }
+  .rb-row.rb-win b { color: var(--hud-amber); }
+  .rb-row.rb-total { border-top: 1px solid rgba(110,243,255,0.3); margin-top: 4px; padding-top: 6px; }
+  .rb-row.rb-total b { color: var(--hud-cyan); font-size: 13px; }
+  .rb-row.rb-wallet b { color: #ffd24a; font-size: 13px; }
+
+  /* ============================================================
+     ハンガー(V6.8 WR 風ドック / V6.9 在庫制ショップ):
+     中央は透過(背後の 3D ドックが見える)+ 周辺ビネット。
+     左=機体ステータス / 右=スロットカード / 上=WALLET / 右下=LAUNCH
+     ============================================================ */
+  #hangar {
+    background: radial-gradient(ellipse at center,
+      rgba(4, 7, 11, 0) 28%, rgba(4, 7, 11, 0.45) 62%, rgba(3, 5, 9, 0.92) 100%);
+    backdrop-filter: none;            /* 3D プレビューを鮮明に見せる */
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  #hangar-top {
+    width: 100%;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: calc(10px + env(safe-area-inset-top)) 18px 4px;
+  }
+  #hangar-title {
+    font-size: 16px; font-weight: 900; letter-spacing: 3px;
+    color: var(--hud-cyan);
+    text-shadow: 0 0 14px rgba(110, 243, 255, 0.5);
+  }
+  #hangar-title span { font-size: 9px; letter-spacing: 3px; color: #7fa0b4; margin-left: 8px; }
+  #hangar-wallet {
+    color: #ffd24a;
+    font-size: 14px; font-weight: 900; letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(255, 180, 60, 0.5);
+    background: var(--hud-bg);
+    border: 1px solid rgba(255, 200, 80, 0.4);
+    padding: 6px 14px;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+  #hangar-status {
+    color: var(--hud-amber);
+    font-size: 11px; font-weight: 700; letter-spacing: 4px;
+    margin-top: 2px;
+    animation: heatBlink 1.2s steps(2) infinite;
+  }
+  /* 3 カラム(左パネル / 透過センター / 右パネル) */
+  #hangar-main {
+    flex: 1;
+    width: 100%;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    min-height: 0;
+  }
+  #hangar-center { flex: 1; }      /* 透過 — 背後に 3D 機体 */
+  #hangar-left, #hangar-right {
+    width: clamp(168px, 22vw, 232px);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  /* 左: 機体タブ + ステータス */
+  #class-tabs { display: flex; flex-direction: column; gap: 5px; }
+  .class-tab {
+    padding: 8px 12px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+    color: #9fc2d4;
+    font-family: inherit; font-size: 12px; font-weight: 900; letter-spacing: 3px;
+    text-align: left;
+    cursor: pointer;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+  .class-tab.selected {
+    color: var(--hud-cyan);
+    border-color: var(--hud-cyan);
+    box-shadow: 0 0 12px rgba(110, 243, 255, 0.35);
+    background: rgba(110, 243, 255, 0.1);
+  }
+  #class-info {
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+    padding: 10px 12px;
+    text-align: left;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .ci-name { font-size: 16px; font-weight: 900; letter-spacing: 2px; color: var(--hud-cyan); }
+  .ci-class { font-size: 8px; letter-spacing: 3px; color: #7fa0b4; margin-bottom: 8px; }
+  .ci-stat { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  .ci-stat span { width: 26px; font-size: 8px; font-weight: 700; color: #9fc2d4; }
+  .ci-stat b { width: 28px; font-size: 9px; color: #cfeef8; text-align: right; }
+  .ci-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(110,243,255,0.25); }
+  .ci-bar i { display: block; height: 100%; background: linear-gradient(90deg, #2ee6a8, #6ef3ff); }
+  .ci-ab { margin-top: 8px; font-size: 10px; letter-spacing: 1px; color: #aee8ff; }
+  .ci-desc { margin-top: 4px; font-size: 9px; line-height: 1.6; color: #7fa0b4; }
+  /* 右: 武器スロットカード(サムネ + 名前 + 区分) */
+  .slot-card {
+    display: flex; flex-direction: column; gap: 3px;
+    padding: 8px 12px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+    color: #dff8ff;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .slot-card.editing { border-color: var(--hud-amber); box-shadow: 0 0 12px rgba(255, 176, 46, 0.4); }
+  .slot-card .sl-no {
+    font-size: 8px; letter-spacing: 2px; color: #7fa0b4;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .slot-card .sl-thumb { width: 100%; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)); }
+  .slot-card .sl-name { font-size: 12px; font-weight: 900; letter-spacing: 1px; color: var(--hud-cyan); }
+  .slot-card .sl-tag { font-size: 8px; letter-spacing: 1px; color: #ffd9a0; }
+  /* V6.9: EQUIPPED バッジ / UNEQUIP / 空きスロット */
+  .sl-badge {
+    font-size: 7px; font-weight: 900; letter-spacing: 1px;
+    color: #0a1014; background: var(--hud-cyan);
+    padding: 1px 6px;
+    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  }
+  .sl-unequip {
+    align-self: flex-end;
+    margin-top: 2px; padding: 3px 8px;
+    background: rgba(255, 90, 70, 0.12);
+    border: 1px solid rgba(255, 110, 90, 0.5);
+    color: #ff9a86;
+    font-family: inherit; font-size: 8px; font-weight: 900; letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .sl-unequip:hover { background: rgba(255, 90, 70, 0.28); color: #ffc0b4; }
+  .slot-card.empty { border-style: dashed; opacity: 0.85; }
+  .slot-card .sl-empty {
+    font-size: 13px; font-weight: 900; letter-spacing: 2px;
+    color: #5a7484; text-align: center; padding: 12px 0 4px;
+  }
+  .thumb-fb { display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  /* 武器リスト(ショップ) */
+  #weapon-list {
+    display: flex; flex-direction: column; gap: 4px;
+    max-height: min(38vh, 260px); overflow-y: auto;
+  }
+  #weapon-list.hidden { display: none; }
+  /* 操作中スロットの明示ヘッダー(V6.9) */
+  .wl-head {
+    padding: 5px 10px;
+    background: rgba(255, 176, 46, 0.12);
+    border: 1px solid rgba(255, 176, 46, 0.45);
+    color: var(--hud-amber);
+    font-size: 9px; font-weight: 900; letter-spacing: 2px;
+    text-align: left;
+  }
+  .wl-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px;
+    background: var(--hud-bg);
+    border: 1px solid rgba(110, 243, 255, 0.25);
+    color: #dff8ff;
+    font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-align: left;
+  }
+  .wl-row:hover { border-color: var(--hud-cyan); }
+  .wl-row.equipped { border-color: var(--hud-cyan); background: rgba(110, 243, 255, 0.12); }
+  .wl-row.locked { opacity: 0.85; }
+  .wl-row.confirm { border-color: var(--hud-amber); background: rgba(255, 176, 46, 0.14); }
+  .wl-row .wl-thumb { width: 40px; height: 22px; object-fit: contain; flex: none; }
+  .wl-row .wl-body { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .wl-row .wl-name { font-size: 10px; color: #dff8ff; white-space: nowrap; overflow: hidden; }
+  .wl-row .wl-tag { font-size: 8px; color: #7fa0b4; }
+  .wl-row .wl-status { font-size: 8px; color: #ffd9a0; white-space: nowrap; overflow: hidden; }
+  /* 右端のアクションボタン群(V6.9: 状態別の明確なボタン) */
+  .wl-actions { display: flex; flex-direction: column; gap: 3px; flex: none; align-items: stretch; }
+  .wl-btn {
+    padding: 4px 8px;
+    background: rgba(110, 243, 255, 0.1);
+    border: 1px solid rgba(110, 243, 255, 0.5);
+    color: var(--hud-cyan);
+    font-family: inherit; font-size: 8px; font-weight: 900; letter-spacing: 1px;
+    cursor: pointer; white-space: nowrap; text-align: center;
+  }
+  .wl-btn:hover { background: rgba(110, 243, 255, 0.22); }
+  .wl-btn.move { border-color: rgba(255, 176, 46, 0.6); color: var(--hud-amber); background: rgba(255, 176, 46, 0.1); }
+  .wl-btn.move:hover { background: rgba(255, 176, 46, 0.22); }
+  .wl-btn.unequip { border-color: rgba(255, 110, 90, 0.5); color: #ff9a86; background: rgba(255, 90, 70, 0.1); }
+  .wl-btn.unequip:hover { background: rgba(255, 90, 70, 0.24); }
+  .wl-btn.buy { border-color: rgba(255, 200, 80, 0.55); color: #ffd24a; background: rgba(255, 200, 80, 0.08); }
+  .wl-btn.buy:hover { background: rgba(255, 200, 80, 0.2); }
+  .wl-buy2 { border-color: rgba(255, 200, 80, 0.4); color: #d4b46a; background: rgba(255, 200, 80, 0.05); }
+  .wl-buy2:hover { background: rgba(255, 200, 80, 0.16); }
+  .wl-row.confirm .wl-btn.buy, .wl-buy2.confirm {
+    color: var(--hud-amber); border-color: var(--hud-amber);
+    animation: heatBlink 0.6s steps(2) infinite;
+  }
+  /* 右下: 大きな LAUNCH ボタン(WR の「バトルへ」) */
+  #hangar #launch-btn {
+    position: absolute;
+    right: calc(18px + env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    margin: 0;
+    padding: 16px 52px;
+    font-size: 18px; letter-spacing: 5px;
+    background: linear-gradient(180deg, #ffd27a, #e8862e);
+    box-shadow: 0 0 24px rgba(255, 160, 50, 0.45);
+  }
+  /* トースト通知(V6.9: 自動取り外し・購入。下部中央にフェード表示) */
+  #hangar-toast {
+    position: absolute;
+    left: 50%; bottom: calc(64px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(8px);
+    max-width: 80vw;
+    padding: 8px 18px;
+    background: rgba(8, 14, 20, 0.92);
+    border: 1px solid var(--hud-amber);
+    color: #ffe2b0;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 5;
+  }
+  #hangar-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* 下部のコンパクト操作ヒント */
+  #hangar-help {
+    position: absolute;
+    left: calc(18px + env(safe-area-inset-left));
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    font-size: 9px; letter-spacing: 1px; line-height: 1.8;
+    color: #7fa0b4;
+    text-align: left;
+    max-width: 46vw;
+  }
+
+  /* --- アビリティボタン(JUMP の左 / CD 扇形 + 発動中グロー) --- */
+  #ability-btn {
+    right: calc(190px + env(safe-area-inset-right));
+    bottom: calc(218px + env(safe-area-inset-bottom));
+    width: 60px; height: 60px;
+    font-size: 20px;
+    overflow: hidden;
+  }
+  #ability-btn.ready { border-color: rgba(110, 243, 255, 0.85); box-shadow: 0 0 10px rgba(110, 243, 255, 0.35); }
+  #ability-btn.on { border-color: var(--hud-amber); box-shadow: 0 0 14px rgba(255, 176, 46, 0.55); }
+</style>
+</head>
+<body>
+
+<!-- ===== HUD ===== -->
+<div id="hud">
+  <div id="crosshair"></div>
+
+  <div id="lockon">
+    <div class="corner c-tl"></div>
+    <div class="corner c-tr"></div>
+    <div class="corner c-bl"></div>
+    <div class="corner c-br"></div>
+    <div id="lockon-name">TARGET</div>
+    <div id="lockon-hp"><div id="lockon-hp-fill"></div></div>
+    <div id="lockon-dist">-- m</div>
+    <!-- V7.0: ロック対象の装備武器アイコン×2 + HP 数値 -->
+    <div id="lockon-loadout">
+      <span id="lockon-wpn-0" class="lk-wpn"></span>
+      <span id="lockon-wpn-1" class="lk-wpn"></span>
+      <span id="lockon-hpnum"></span>
+    </div>
+  </div>
+
+  <!-- 敵マーカー(JS が .enemy-marker を機数分生成) -->
+  <div id="marker-layer"></div>
+
+  <!-- V7.0: 画面外の敵への方向矢印(JS が .edge-arrow を機数分生成) -->
+  <div id="edge-arrow-layer"></div>
+
+  <!-- 敵残数(JS が ▼ を機数分生成)+ 経過タイマー -->
+  <div id="enemy-counter"><span class="ec-label">ENEMY</span><span id="timer">0:00</span></div>
+
+  <!-- ミニレーダー(右上) -->
+  <div id="radar-wrap">
+    <canvas id="radar" width="128" height="128"></canvas>
+    <div id="radar-dist">▼ ---</div>
+  </div>
+
+  <!-- 被弾方向インジケータ / 低HPビネット / キルログ / ロックフラッシュ -->
+  <div id="hit-arc"></div>
+  <div id="low-hp-vignette"></div>
+  <div id="kill-log"></div>
+  <div id="lock-flash">TARGET LOCKED</div>
+
+  <div id="damage-layer"></div>
+
+  <div id="status-panel">
+    <div class="bar-row">
+      <div class="bar-label">ARMOR</div>
+      <div class="bar-track"><div id="player-hp-fill"></div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label" id="heat-label">HEAT</div>
+      <div class="bar-track"><div id="heat-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== タッチ操作 ===== -->
+<div id="controls">
+  <div id="joystick-base"><div id="joystick-knob"></div></div>
+
+  <!-- JUMP(武器パネルの上 / クールダウン付き) -->
+  <button id="jump-btn" class="ctl-btn" type="button">JUMP<div class="cd-overlay" id="jump-cd"></div></button>
+
+  <!-- アビリティ(B キー / クラス由来。⚡スプリント or 🛡シールド) -->
+  <button id="ability-btn" class="ctl-btn" type="button"><span id="ability-icon">⚡</span><div class="cd-overlay" id="ability-cd"></div></button>
+
+  <!-- War Robots 風 円形武器ランチャー(V6.7: 2 スロット・中央=一斉) -->
+  <div id="weapon-cluster">
+    <button id="wpn-seg-1" class="ctl-btn wpn-seg" type="button">
+      <span class="seg-label" id="seg-label-1">SLOT2</span>
+      <div class="cd-overlay" id="seg-cd-1"></div>
+    </button>
+    <button id="wpn-seg-0" class="ctl-btn wpn-seg" type="button">
+      <span class="seg-label" id="seg-label-0">SLOT1</span>
+      <div class="cd-overlay" id="seg-cd-0"></div>
+    </button>
+    <button id="fire-main" class="ctl-btn" type="button"><span>FIRE</span></button>
+    <!-- ターゲット切替(Tab / WR の中央下配置) -->
+    <button id="target-btn" class="ctl-btn" type="button">◎</button>
+  </div>
+
+  <!-- ミュートトグル -->
+  <button id="mute-btn" type="button">🔊</button>
+</div>
+
+<!-- ===== 勝敗オーバーレイ(V6.7: ポイント精算 + ハンガー循環) ===== -->
+<div id="overlay" class="overlay hidden">
+  <div id="overlay-title">VICTORY</div>
+  <div id="overlay-sub">MISSION COMPLETE</div>
+  <div id="overlay-stats">KILLS 0/3 ・ DAMAGE TAKEN 0 ・ TIME 0:00</div>
+  <div id="result-breakdown"></div>
+  <div class="overlay-btns">
+    <button id="hangar-btn" type="button">RETURN TO HANGAR</button>
+    <button id="restart-btn" type="button">REMATCH</button>
+  </div>
+</div>
+
+<!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
+<div id="hangar" class="overlay">
+  <div id="hangar-top">
+    <div id="hangar-title">ROBO BATTLE 3D<span>V6.9.1 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-wallet">WALLET 0 pt</div>
+  </div>
+  <div id="hangar-status">LOADING...</div>
+  <div id="hangar-main">
+    <!-- 左: 機体タブ + ステータス -->
+    <div id="hangar-left">
+      <div id="class-tabs"></div>
+      <div id="class-info"></div>
+    </div>
+    <!-- 中央: 透過(3D ドックの機体が見える) -->
+    <div id="hangar-center"></div>
+    <!-- 右: 武器スロットカード + 武器リスト(在庫制ショップ) -->
+    <!-- カード内に UNEQUIP ボタンを内包するため button ではなく div -->
+    <div id="hangar-right">
+      <div id="slot-0" class="slot-card"></div>
+      <div id="slot-1" class="slot-card"></div>
+      <div id="weapon-list" class="hidden"></div>
+    </div>
+  </div>
+  <button id="launch-btn" type="button">LAUNCH ⚔</button>
+  <div id="hangar-help">
+    カーソルキー: 移動 ・ Shift+←→: 旋回 ・ Space/Z: 武器 ・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ<br>
+    武器は「実体」: 在庫の数だけ装備可能。他の機体からの載せ替えは MOVE HERE<br>
+    V7.0: 出現はランダム ・ エネルギー弾は横移動で避けられる(距離を取れ)・ 撃破すると HP が回復(残量2倍)
+  </div>
+  <!-- トースト通知(自動取り外し・購入など) -->
+  <div id="hangar-toast"></div>
+</div>
+
+<!-- Three.js importmap (ローカル同梱 v0.170.0) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "./lib/three.module.js"
+  }
+}
+</script>
+<script type="module" src="./game3d.js"></script>
+</body>
+</html>
