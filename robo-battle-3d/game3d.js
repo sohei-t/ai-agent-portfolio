@@ -2921,9 +2921,15 @@ class InputManager {
     press(targetBtn, () => { this.targetCycleQueued = true; }, () => {});
 
     // ---- タッチ: 左半分=ジョイスティック / 右半分=機体旋回スワイプ ----
+    // ハンガー(ドック)表示中はゲーム操作を一切奪わない:
+    // preventDefault するとボタンの click が発火せず、モバイルでハンガーが操作不能になる
+    this.hangarEl = document.getElementById('hangar');
+    this.isHangarOpen = () => this.hangarEl && !this.hangarEl.classList.contains('hidden');
+
     window.addEventListener('touchstart', (e) => {
+      if (this.isHangarOpen()) return;
       for (const t of e.changedTouches) {
-        if (t.target.closest && (t.target.closest('.ctl-btn') || t.target.closest('.overlay') || t.target.closest('#mute-btn'))) continue;
+        if (t.target.closest && (t.target.closest('.ctl-btn') || t.target.closest('.overlay') || t.target.closest('#mute-btn') || t.target.closest('#hangar'))) continue;
         if (t.clientX < window.innerWidth / 2 && this.joyId === null) {
           // フローティングジョイスティック開始(タッチ位置基準)
           this.joyId = t.identifier;
@@ -2942,6 +2948,7 @@ class InputManager {
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
+      if (this.isHangarOpen()) return;
       for (const t of e.changedTouches) {
         if (t.identifier === this.joyId) {
           const R = 50;
