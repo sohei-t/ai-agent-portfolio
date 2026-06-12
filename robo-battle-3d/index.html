@@ -581,6 +581,17 @@
     text-shadow: 0 0 14px rgba(110, 243, 255, 0.5);
   }
   #hangar-title span { font-size: 9px; letter-spacing: 3px; color: #7fa0b4; margin-left: 8px; }
+  /* V7.3: 右上 = 言語トグル + WALLET */
+  #hangar-top-right { display: flex; align-items: center; gap: 10px; }
+  #lang-btn {
+    padding: 4px 10px;
+    background: rgba(110, 243, 255, 0.08);
+    border: 1px solid rgba(110, 243, 255, 0.45);
+    color: var(--hud-cyan);
+    font-family: inherit; font-size: 10px; font-weight: 900; letter-spacing: 1px;
+    cursor: pointer;
+  }
+  #lang-btn:hover { background: rgba(110, 243, 255, 0.2); }
   #hangar-wallet {
     color: #ffd24a;
     font-size: 14px; font-weight: 900; letter-spacing: 2px;
@@ -610,10 +621,15 @@
     width: clamp(168px, 22vw, 232px);
     display: flex; flex-direction: column; gap: 8px;
   }
-  /* 左: 機体タブ + ステータス */
-  #class-tabs { display: flex; flex-direction: column; gap: 5px; }
+  /* 左: 機体タブ + ステータス(V7.2: 全クラス表示 → スクロール可) */
+  #class-tabs {
+    display: flex; flex-direction: column; gap: 5px;
+    max-height: 36vh; overflow-y: auto;
+    touch-action: pan-y; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .class-tab {
-    padding: 8px 12px;
+    padding: 6px 12px;
     background: var(--hud-bg);
     border: 1px solid var(--hud-line);
     color: #9fc2d4;
@@ -621,13 +637,42 @@
     text-align: left;
     cursor: pointer;
     clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    flex: none;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
   }
+  .class-tab .ct-sub { font-size: 8px; letter-spacing: 1px; color: #7fa0b4; font-weight: 700; white-space: nowrap; }
+  /* V7.2: 未所持機体はグレー(プレビューは可能) */
+  .class-tab.locked { opacity: 0.6; color: #6a8290; }
+  .class-tab.locked .ct-sub { color: #c8a86a; }
   .class-tab.selected {
     color: var(--hud-cyan);
     border-color: var(--hud-cyan);
     box-shadow: 0 0 12px rgba(110, 243, 255, 0.35);
     background: rgba(110, 243, 255, 0.1);
+    opacity: 1;
   }
+  /* V7.2: 機体の購入/売却ボタン(class-info 内) */
+  .ci-btn {
+    display: block; width: 100%;
+    margin-top: 8px; padding: 7px 10px;
+    font-family: inherit; font-size: 10px; font-weight: 900; letter-spacing: 1px;
+    cursor: pointer; text-align: center;
+  }
+  .ci-btn.buy {
+    background: rgba(255, 200, 80, 0.1);
+    border: 1px solid rgba(255, 200, 80, 0.55);
+    color: #ffd24a;
+  }
+  .ci-btn.buy:hover { background: rgba(255, 200, 80, 0.22); }
+  .ci-btn.sell {
+    background: rgba(255, 90, 70, 0.1);
+    border: 1px solid rgba(255, 110, 90, 0.5);
+    color: #ff9a86;
+  }
+  .ci-btn.sell:hover { background: rgba(255, 90, 70, 0.24); }
+  .ci-btn.confirm { animation: heatBlink 0.6s steps(2) infinite; border-color: var(--hud-amber); color: var(--hud-amber); }
+  .ci-btn[disabled] { opacity: 0.45; cursor: default; }
+  .ci-note { margin-top: 4px; font-size: 8px; color: #c8a86a; letter-spacing: 1px; }
   #class-info {
     background: var(--hud-bg);
     border: 1px solid var(--hud-line);
@@ -705,23 +750,78 @@
   .sl-size.sz-light { color: #0a1014; background: #7fe8c8; }
   .sl-size.sz-medium { color: #0a1014; background: #ffd24a; }
   .sl-size.sz-heavy { color: #fff; background: #e0543a; }
-  /* 武器リスト(ショップ)。V7.1: 項目増のためモバイルでのタッチスクロールを保証 */
-  #weapon-list {
+  /* ===== V7.3: 武器選択モーダル(画面中央・全武器カタログ) ===== */
+  #wpn-modal { position: absolute; inset: 0; z-index: 30; }
+  #wpn-modal.hidden { display: none; }
+  #wpn-modal-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(2, 6, 10, 0.72); /* 暗転オーバーレイ(タップで閉じる) */
+  }
+  #wpn-modal-panel {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(92vw, 520px);
+    max-height: min(82vh, 560px);
+    display: flex; flex-direction: column;
+    background: rgba(8, 14, 20, 0.96);
+    border: 1px solid var(--hud-cyan);
+    box-shadow: 0 0 30px rgba(110, 243, 255, 0.3);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    padding: 10px;
+  }
+  #wpn-modal-head {
+    padding: 6px 34px 8px 4px;
+    color: var(--hud-amber);
+    font-size: 11px; font-weight: 900; letter-spacing: 2px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 176, 46, 0.35);
+  }
+  #wpn-modal-close {
+    position: absolute; right: 8px; top: 6px;
+    width: 30px; height: 30px;
+    background: rgba(255, 90, 70, 0.12);
+    border: 1px solid rgba(255, 110, 90, 0.5);
+    color: #ff9a86;
+    font-family: inherit; font-size: 13px; font-weight: 900;
+    cursor: pointer;
+  }
+  #wpn-modal-list {
+    flex: 1; min-height: 0;
     display: flex; flex-direction: column; gap: 4px;
-    max-height: min(38vh, 260px); overflow-y: auto;
+    margin-top: 8px;
+    overflow-y: auto;
     touch-action: pan-y; -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  #weapon-list.hidden { display: none; }
-  /* 操作中スロットの明示ヘッダー(V6.9) */
-  .wl-head {
-    padding: 5px 10px;
-    background: rgba(255, 176, 46, 0.12);
-    border: 1px solid rgba(255, 176, 46, 0.45);
-    color: var(--hud-amber);
-    font-size: 9px; font-weight: 900; letter-spacing: 2px;
+  /* サイズ別グループ見出し */
+  .wl-group {
+    padding: 5px 8px; margin-top: 4px;
+    background: rgba(110, 243, 255, 0.08);
+    border-left: 3px solid var(--hud-cyan);
+    color: #aee8ff;
+    font-size: 10px; font-weight: 900; letter-spacing: 2px;
     text-align: left;
+    flex: none;
   }
+  /* 他サイズ武器の折りたたみトグル */
+  .wl-toggle-others {
+    padding: 10px 8px; margin-top: 6px;
+    color: #7fa0b4;
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-align: center;
+    border: 1px dashed rgba(110, 243, 255, 0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    flex: none;
+  }
+  .wl-toggle-others:active { background: rgba(110, 243, 255, 0.08); }
+  /* モーダル内の行はタッチフレンドリーに(高さ ~52px) */
+  #wpn-modal-list .wl-row { min-height: 52px; flex: none; }
+  #wpn-modal-list .wl-thumb { width: 52px; height: 28px; }
+  #wpn-modal-list .wl-btn { padding: 7px 10px; font-size: 9px; }
+  /* スロットサイズ不一致(グレーアウト・BUY のみ可) */
+  .wl-row.mismatch { opacity: 0.55; }
+  .wl-row.mismatch .wl-name { color: #8aa0ae; }
   .wl-row {
     display: flex; align-items: center; gap: 8px;
     padding: 5px 8px;
@@ -861,7 +961,7 @@
 
   <div id="status-panel">
     <div class="bar-row">
-      <div class="bar-label">ARMOR</div>
+      <div class="bar-label" id="armor-label">ARMOR</div>
       <div class="bar-track"><div id="player-hp-fill"></div></div>
     </div>
     <div class="bar-row">
@@ -907,8 +1007,12 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V7.1 ・ BATTLE ROYALE</span></div>
-    <div id="hangar-wallet">WALLET 0 pt</div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V7.3 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-top-right">
+      <!-- V7.3: 言語トグル(JA/EN。セーブに保存) -->
+      <button id="lang-btn" type="button">🌐 JA</button>
+      <div id="hangar-wallet">WALLET 0 pt</div>
+    </div>
   </div>
   <div id="hangar-status">LOADING...</div>
   <div id="hangar-main">
@@ -919,22 +1023,27 @@
     </div>
     <!-- 中央: 透過(3D ドックの機体が見える) -->
     <div id="hangar-center"></div>
-    <!-- 右: 武器スロットカード + 武器リスト(在庫制ショップ) -->
+    <!-- 右: 武器スロットカード(武器選択は V7.3 からモーダル) -->
     <!-- カード内に UNEQUIP ボタンを内包するため button ではなく div -->
     <div id="hangar-right">
       <!-- V7.1: スロットカードはハードポイント数ぶん JS が動的生成(2〜4) -->
       <div id="slot-cards"></div>
-      <div id="weapon-list" class="hidden"></div>
     </div>
   </div>
   <button id="launch-btn" type="button">LAUNCH ⚔</button>
-  <div id="hangar-help">
-    カーソルキー: 移動 ・ Shift+←→: 旋回 ・ Space/Z/X/C: 武器(スロット順)・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ<br>
-    V7.1 ハードポイント制: スロットには同サイズ(軽/中/重)の武器のみ装備可。武器は在庫制・載せ替えは MOVE HERE<br>
-    出現はランダム ・ 実体弾は横移動で回避可 ・ 撃破で HP 回復(残量2倍)・ 砲撃/チャージ武器には予兆がある
-  </div>
+  <div id="hangar-help"><!-- V7.3: applyStaticI18n() が言語別に挿入 --></div>
   <!-- トースト通知(自動取り外し・購入など) -->
   <div id="hangar-toast"></div>
+
+  <!-- ===== V7.3: 武器選択モーダル(スロットタップで開く・全武器カタログ) ===== -->
+  <div id="wpn-modal" class="hidden">
+    <div id="wpn-modal-backdrop"></div>
+    <div id="wpn-modal-panel">
+      <div id="wpn-modal-head"></div>
+      <button id="wpn-modal-close" type="button">✕</button>
+      <div id="wpn-modal-list"></div>
+    </div>
+  </div>
 </div>
 
 <!-- Three.js importmap (ローカル同梱 v0.170.0) -->
@@ -945,6 +1054,9 @@
   }
 }
 </script>
-<script type="module" src="./game3d.js"></script>
+<!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
+     GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
+     lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
+<script type="module" src="./game3d.js?v=731"></script>
 </body>
 </html>
