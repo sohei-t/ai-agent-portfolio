@@ -322,6 +322,16 @@
   body.hangar-open #hud { display: none; }
   body.hangar-open #controls > *:not(#mute-btn) { display: none; }
 
+  /* ============================================================
+     V7.5.2【バグ修正】html/body の touch-action:none(ゲーム操作用)は
+     祖先制約として子孫のスクロールも全て殺す。子要素の pan-x/pan-y 指定は
+     親が none の間は無効(実機で機体チップ列が横スクロールできなかった原因)。
+     → ハンガー/リザルト表示中だけ body のロックを解除し、
+       スクロール可否は各要素の touch-action / overflow に委ねる
+     ============================================================ */
+  body.hangar-open { touch-action: pan-x pan-y; }
+  body.result-open { touch-action: pan-y; }
+
   /* --- War Robots 風 円形武器ランチャー(右下) --- */
   /* V7.5: FIRE を約 2/3 に縮小 + パネル全体を一回り小さく(赤色で視認性は維持) */
   #weapon-cluster {
@@ -886,8 +896,8 @@
     right: calc(18px + env(safe-area-inset-right));
     bottom: calc(16px + env(safe-area-inset-bottom));
     margin: 0;
-    padding: 16px 52px;
-    font-size: 18px; letter-spacing: 5px;
+    padding: 12px 34px;
+    font-size: 15px; letter-spacing: 4px;
     background: linear-gradient(180deg, #ffd27a, #e8862e);
     box-shadow: 0 0 24px rgba(255, 160, 50, 0.45);
   }
@@ -929,6 +939,19 @@
   #class-summary { display: none; }
   #ss-cycle { display: none; }
   .sl-plus { display: none; }
+  /* ===== V7.5.2: セクションラベル(🤖 機体 / 🔫 武器)— PC は列の上に表示 ===== */
+  .sec-row { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .sec-label {
+    flex: none;
+    font-size: 9px; font-weight: 900; letter-spacing: 2px;
+    text-align: left;
+  }
+  .sec-label.sec-mech { color: var(--hud-cyan); }
+  .sec-label.sec-weapons { color: var(--hud-amber); }
+  /* V7.5.2: 詳細シートの ✕ / 背景はモバイル専用(PC は常時展開のため不要) */
+  #ci-close { display: none; }
+  #ci-backdrop { display: none; }
+  .sl-mini { display: none; }
   #cs-toggle {
     width: 34px; height: 30px; flex: none;
     background: rgba(110, 243, 255, 0.08);
@@ -959,16 +982,34 @@
     #hangar-status { font-size: 9px; min-height: 12px; }
 
     /* --- メイン: 縦積み(上=チップ列 / 中=3D 透過 / 下=スロットチップ) --- */
-    /* 下余白 = ステージ巡回 + LAUNCH の帯(重なり防止) */
-    #hangar-main { flex-direction: column; align-items: stretch; padding: 0 10px 48px; gap: 6px; }
+    /* 下余白 = ステージ巡回 + START の帯(重なり防止)。V7.5.2: 縦間隔を微調整 */
+    #hangar-main { flex-direction: column; align-items: stretch; padding: 0 10px 48px; gap: 5px; }
     #hangar-left, #hangar-right { width: 100%; }
 
-    /* --- 機体切替: 横スクロールのチップ列(WR カルーセル風) --- */
+    /* --- V7.5.2: セクション行 = 左端ラベル + 横スクロール領域 --- */
+    .sec-row { flex-direction: row; align-items: center; gap: 6px; position: relative; }
+    .sec-label { font-size: 9px; line-height: 1.2; }
+    #class-tabs, #slot-cards { flex: 1; min-width: 0; }
+    /* 「まだ続きがある」右端フェード(右端到達で has-more が外れて消える) */
+    .sec-row::after {
+      content: '';
+      position: absolute; right: 0; top: 0; bottom: 0;
+      width: 30px;
+      background: linear-gradient(90deg, rgba(10, 14, 20, 0), rgba(10, 14, 20, 0.85));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+    .sec-row.has-more::after { opacity: 1; }
+
+    /* --- 機体切替: 横スクロールのチップ列(WR カルーセル風・シアン系) --- */
     #class-tabs {
       flex-direction: row; gap: 6px;
       max-height: none; overflow-x: auto; overflow-y: hidden;
       touch-action: pan-x; -webkit-overflow-scrolling: touch;
       padding-bottom: 2px;
+      border-left: 2px solid rgba(110, 243, 255, 0.45); /* 機体=シアンの色分け */
+      padding-left: 6px;
     }
     .class-tab {
       flex-direction: column; align-items: flex-start; gap: 1px;
@@ -981,7 +1022,7 @@
     /* --- 1 行サマリー + ⓘ 詳細トグル --- */
     #class-summary {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      padding: 4px 10px;
+      padding: 3px 10px; /* V7.5.2: 縦間隔の微調整(チップ見切れ防止) */
       background: var(--hud-bg);
       border: 1px solid var(--hud-line);
     }
@@ -1000,22 +1041,52 @@
       background: rgba(8, 14, 20, 0.96);
       border-color: var(--hud-cyan);
       box-shadow: 0 0 24px rgba(110, 243, 255, 0.25);
+      padding-top: 14px; /* ✕ ボタンぶんの余白 */
+    }
+    /* V7.5.2: シート右上の ✕(タッチ判定 44px)と背景タップで閉じる */
+    #class-info.open #ci-close {
+      display: flex; align-items: center; justify-content: center;
+      position: absolute; right: 2px; top: 2px;
+      width: 44px; height: 40px;
+      background: rgba(255, 90, 70, 0.12);
+      border: 1px solid rgba(255, 110, 90, 0.5);
+      color: #ff9a86;
+      font-family: inherit; font-size: 14px; font-weight: 900;
+      cursor: pointer;
+    }
+    #ci-backdrop.show {
+      display: block;
+      position: absolute; inset: 0;
+      z-index: 24; /* シート(25)の直下・他 UI の上 */
+      background: rgba(2, 6, 10, 0.45);
     }
 
     /* --- 3D プレビュー領域(透過のまま最大化) --- */
     #hangar-center { flex: 1; min-height: 0; }
 
-    /* --- 武器スロット: サムネ + サイズタグのみのコンパクトチップ(横並び) --- */
+    /* --- 武器スロット: サムネ + サイズタグのコンパクトチップ(横並び・アンバー系) --- */
     #slot-cards {
       flex-direction: row; gap: 6px;
       max-height: none; overflow-x: auto; overflow-y: hidden;
       touch-action: pan-x; -webkit-overflow-scrolling: touch;
+      border-left: 2px solid rgba(255, 176, 46, 0.5); /* 武器=アンバーの色分け(V7.5.2) */
+      padding-left: 6px;
     }
     .slot-card {
       flex: none;
+      position: relative; /* .sl-mini の絶対配置用 */
       width: 78px; height: 44px;
       padding: 3px 6px;
       flex-direction: row; align-items: center; gap: 4px;
+      border-color: rgba(255, 176, 46, 0.5); /* 機体チップ(シアン)との区別 */
+    }
+    /* V7.5.2: 「SLOT n ▸」ミニラベル(タップで武器モーダルが開く手がかり) */
+    .slot-card .sl-mini {
+      display: block;
+      position: absolute; right: 3px; bottom: 1px;
+      font-size: 7px; font-weight: 900; letter-spacing: 0.5px;
+      color: #ffd9a0;
+      pointer-events: none;
     }
     .slot-card .sl-slotname, .slot-card .sl-badge,
     .slot-card .sl-name, .slot-card .sl-tag,
@@ -1049,14 +1120,49 @@
 
     /* --- LAUNCH: 少しコンパクトに --- */
     #hangar #launch-btn {
-      padding: 10px 26px;
-      font-size: 14px; letter-spacing: 3px;
+      padding: 8px 20px;
+      font-size: 13px; letter-spacing: 3px;
       bottom: calc(12px + env(safe-area-inset-bottom));
       right: calc(12px + env(safe-area-inset-right));
     }
 
     /* --- 操作ヒントは非表示(情報過多の解消) --- */
     #hangar-help { display: none; }
+  }
+
+  /* ============================================================
+     V7.5.2【バグ修正】リザルト画面の横画面対応(高さ 520px 以下)。
+     縦 1 列だとボタンが画面外に出て操作不能だった →
+     コンパクト 2 カラム(左=タイトル+戦績 / 右=内訳+ボタン)で 1 画面に収め、
+     保険として overflow-y: auto + pan-y(必ずスクロールで到達できる)
+     ============================================================ */
+  @media (max-height: 520px) {
+    #overlay {
+      overflow-y: auto;
+      touch-action: pan-y; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    /* .overlay.hidden(display:none)より優先されないよう :not(.hidden) で限定 */
+    #overlay:not(.hidden) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(240px, 1fr);
+      grid-template-areas:
+        'title break'
+        'sub   break'
+        'stats btns';
+      grid-template-rows: auto auto 1fr;
+      align-content: center; align-items: center;
+      column-gap: 18px; row-gap: 4px;
+      padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
+    }
+    #overlay-title { grid-area: title; font-size: clamp(24px, 8vh, 40px); align-self: end; }
+    #overlay-sub { grid-area: sub; margin-top: 2px; font-size: 10px; letter-spacing: 3px; }
+    #overlay-stats { grid-area: stats; align-self: start; justify-self: center; margin-top: 6px; font-size: 10px; padding: 6px 14px; }
+    #result-breakdown { grid-area: break; margin-top: 0; min-width: 0; width: 100%; padding: 6px 12px; }
+    #result-breakdown .rb-row { font-size: 9px; padding: 2px 0; gap: 12px; }
+    /* ボタンは右カラム下に常時視認(2 カラムで必ず 1 画面内) */
+    #overlay .overlay-btns { grid-area: btns; align-self: start; margin-top: 8px; gap: 10px; }
+    #overlay .overlay-btns button { padding: 9px 18px; font-size: 12px; letter-spacing: 2px; }
   }
   /* トースト通知(V6.9: 自動取り外し・購入。下部中央にフェード表示) */
   #hangar-toast {
@@ -1204,12 +1310,18 @@
   <div id="hangar-main">
     <!-- 左: 機体タブ + ステータス(V7.5: モバイルは上部チップ列 + 詳細シートに変形) -->
     <div id="hangar-left">
-      <div id="class-tabs"></div>
+      <!-- V7.5.2: セクションラベル「🤖 機体」(機体列と武器列の区別) -->
+      <div class="sec-row" id="mech-row">
+        <span class="sec-label sec-mech" id="lbl-mech">🤖</span>
+        <div id="class-tabs"></div>
+      </div>
       <!-- V7.5: モバイル用 1 行サマリー(HP・SPD・アビリティ)+ ⓘ 詳細トグル。PC では非表示 -->
       <div id="class-summary">
         <span id="cs-line"></span>
         <button id="cs-toggle" type="button">ⓘ</button>
       </div>
+      <!-- V7.5.2: 詳細シートの背景(タップで閉じる。モバイルのみ表示) -->
+      <div id="ci-backdrop"></div>
       <div id="class-info"></div>
     </div>
     <!-- 中央: 透過(3D ドックの機体が見える) -->
@@ -1217,13 +1329,17 @@
     <!-- 右: 武器スロットカード(武器選択は V7.3 からモーダル) -->
     <!-- カード内に UNEQUIP ボタンを内包するため button ではなく div -->
     <div id="hangar-right">
-      <!-- V7.1: スロットカードはハードポイント数ぶん JS が動的生成(2〜4) -->
-      <div id="slot-cards"></div>
+      <!-- V7.5.2: セクションラベル「🔫 武器」 -->
+      <div class="sec-row" id="weapons-row">
+        <span class="sec-label sec-weapons" id="lbl-weapons">🔫</span>
+        <!-- V7.1: スロットカードはハードポイント数ぶん JS が動的生成(2〜4) -->
+        <div id="slot-cards"></div>
+      </div>
     </div>
   </div>
   <!-- V7.4: ステージセレクタ(JS が生成。V7.5: モバイルは 1 つの巡回ボタン) -->
   <div id="stage-select"></div>
-  <button id="launch-btn" type="button">LAUNCH ⚔</button>
+  <button id="launch-btn" type="button">START ⚔</button>
   <div id="hangar-help"><!-- V7.3: applyStaticI18n() が言語別に挿入 --></div>
   <!-- トースト通知(自動取り外し・購入など) -->
   <div id="hangar-toast"></div>
@@ -1250,6 +1366,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=75"></script>
+<script type="module" src="./game3d.js?v=752"></script>
 </body>
 </html>
