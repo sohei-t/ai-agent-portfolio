@@ -849,6 +849,60 @@
   /* スロットサイズ不一致(グレーアウト・BUY のみ可) */
   .wl-row.mismatch { opacity: 0.55; }
   .wl-row.mismatch .wl-name { color: #8aa0ae; }
+
+  /* ===== V7.6: ジャンルタグ(archetype: 破壊力/長距離/連射/特殊) ===== */
+  .wl-arch {
+    display: inline-block;
+    margin-left: 6px; padding: 0 5px;
+    font-size: 7px; font-weight: 900; letter-spacing: 1px;
+    vertical-align: 1px;
+    clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+  }
+  .wl-arch.at-power { color: #fff; background: #d04030; }
+  .wl-arch.at-range { color: #06121a; background: #6ef3ff; }
+  .wl-arch.at-rapid { color: #06121a; background: #ffd24a; }
+  .wl-arch.at-special { color: #fff; background: #9a5ad0; }
+  /* ⓘ 情報ボタン(行右端・小) */
+  .wl-info {
+    min-width: 26px;
+    border-color: rgba(159, 194, 212, 0.5) !important;
+    color: #9fc2d4 !important;
+    background: rgba(159, 194, 212, 0.08) !important;
+  }
+
+  /* ===== V7.6: 武器情報ポップアップ(モーダル内の中央オーバーレイ) ===== */
+  #wpn-info {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(86%, 340px);
+    max-height: 86%;
+    overflow-y: auto;
+    touch-action: pan-y; -webkit-overflow-scrolling: touch;
+    z-index: 5;
+    background: rgba(6, 12, 18, 0.97);
+    border: 1px solid var(--hud-amber);
+    box-shadow: 0 0 26px rgba(255, 176, 46, 0.35);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    padding: 10px 12px;
+    pointer-events: auto;
+  }
+  #wpn-info.hidden { display: none; }
+  #wpn-info-head {
+    display: flex; align-items: center; gap: 6px;
+    padding-bottom: 6px; margin-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 176, 46, 0.35);
+  }
+  #wpn-info-head .wi-thumb { width: 52px; height: 26px; object-fit: contain; flex: none; }
+  #wpn-info-head .wi-name { font-size: 12px; font-weight: 900; letter-spacing: 1px; color: #ffe2b0; }
+  .wi-row {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 2.5px 0;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: #9fc2d4;
+    text-align: left;
+  }
+  .wi-row b { color: #dff8ff; text-align: right; }
   .wl-row {
     display: flex; align-items: center; gap: 8px;
     padding: 5px 8px;
@@ -1299,7 +1353,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V7.5 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V7.6 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.3: 言語トグル(JA/EN。セーブに保存) -->
       <button id="lang-btn" type="button">🌐 JA</button>
@@ -1351,6 +1405,11 @@
       <div id="wpn-modal-head"></div>
       <button id="wpn-modal-close" type="button">✕</button>
       <div id="wpn-modal-list"></div>
+      <!-- V7.6: 武器情報ポップアップ(行の長押し or ⓘ。内容は JS が WEAPONS から自動算出) -->
+      <div id="wpn-info" class="hidden">
+        <div id="wpn-info-head"></div>
+        <div id="wpn-info-body"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1366,6 +1425,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=752"></script>
+<script type="module" src="./game3d.js?v=76"></script>
 </body>
 </html>
