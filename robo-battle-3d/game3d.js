@@ -1,6 +1,19 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V7.0)
+// ROBO BATTLE 3D - Prototype (V7.1)
 // War Robots 風 TPS メカ 4 機バトルロイヤル / Three.js (ESM)
+//
+// V7.1 変更点(WR 準拠のハードポイント制 + 武器 12 種):
+//  1. ハードポイント制: スロットにサイズ(light/medium/heavy)。同サイズの武器のみ
+//     搭載可。SCOUT [軽,軽] / VANGUARD [中,軽,軽] / BASTION [重,重,軽,軽] /
+//     RAIDER [中,中,軽]。発射はスロット順に Space/Z/X/C。武器パネルは動的生成(2〜4)
+//  2. 新武器 6 種: NEEDLE(軽・長射程精密)/ SWARM(軽・微誘導 6 連)/
+//     ARC BLASTER(中・電撃連鎖)/ REPULSOR(中・ノックバック)/
+//     ARTILLERY RAIN(重・着弾予報つき長距離爆撃)/ TEMPEST(重・チャージ 1.8s →
+//     3 秒持続稲妻ビーム・全熱量消費)。AI もクラス別ロードアウト(aiWeapons)で使用
+//  3. セーブ v3(v6_save_v3): loadouts がスロット数可変。v2/v1 から自動マイグレーション
+//     (旧装備はサイズの合うスロットへ引き継ぎ、入らない武器は在庫へ)
+//  4. ハンガー: スロットカードを動的生成 + サイズタグ(軽/中/重)。
+//     武器リストはスロットサイズで絞り込み(モバイルはタッチスクロール対応)
 //
 // V7.0 変更点(「正面から撃ち合うだけ」の単調さを壊す):
 //  1. ランダム出現: CONFIG.SPAWN_POINTS の 12 候補から毎試合 4 機へランダム割当
@@ -128,31 +141,47 @@ const CONFIG = {
   // ASSAULT は AI 専用。model はモデルレジストリのキー
   // (assets/models/{model}_walking_glb_url.glb が無ければプリミティブに自動フォールバック)
   // ============================================================
+  // V7.1: ハードポイント制(WR 準拠)
+  //   hardpoints: スロットサイズ配列(light/medium/heavy)。同サイズの武器のみ搭載可
+  //   weapons:    プレイヤー既定ロードアウト(サイズ整合必須・初期在庫で成立すること)
+  //   aiWeapons:  AI 出撃時のロードアウト(クラスごとの個性。在庫制約なし)
   MECH_CLASSES: {
     LIGHT: {
       name: 'SCOUT', speed: 6.2, hp: 140, // V7.0: 4.6→6.2(回避運動の成立)
-      weapons: ['mg', 'pulse'], ability: 'sprint',
+      hardpoints: ['light', 'light'],
+      weapons: ['mg', 'pulse'],
+      aiWeapons: ['needle', 'swarm'], // 遠距離チクチク + マイクロロケット(逃げ撃ち型)
+      ability: 'sprint',
       model: 'mech_scout', scale: 0.85,
       colors: { primary: 0x3fa18c, secondary: 0x9fd8cc, dark: 0x1f3330 },
       desc: '高速・軽装甲の偵察機',
     },
     MEDIUM: {
       name: 'VANGUARD', speed: 4.8, hp: 200, // V7.0: 3.5→4.8
-      weapons: ['pulse', 'missile'], ability: 'shield',
+      hardpoints: ['medium', 'light', 'light'],
+      weapons: ['missile', 'pulse', 'mg'],
+      aiWeapons: ['arc', 'pulse', 'mg'],   // 電撃連鎖 + 中近距離の堅実な圧力
+      ability: 'shield',
       model: 'mech_player', scale: 1.0,
       colors: { primary: 0x3a6ea8, secondary: 0x8fb4d4, dark: 0x232b36 },
       desc: 'バランス型の主力機',
     },
     HEAVY: {
       name: 'BASTION', speed: 3.6, hp: 290, // V7.0: 2.7→3.6
-      weapons: ['bazooka', 'missile'], ability: 'shield',
+      hardpoints: ['heavy', 'heavy', 'light', 'light'],
+      weapons: ['bazooka', 'bazooka', 'pulse', 'mg'],
+      aiWeapons: ['artillery', 'tempest', 'pulse', 'mg'], // 砲撃の脅威(両方とも予兆あり=回避可能)
+      ability: 'shield',
       model: 'mech_heavy', scale: 1.15,
       colors: { primary: 0x7a6f3f, secondary: 0xb8ad7a, dark: 0x2e2a1a },
       desc: '重装甲の砲撃機',
     },
     ASSAULT: { // AI 専用
       name: 'RAIDER', speed: 5.0, hp: 180, // V7.0: 3.6→5.0
-      weapons: ['pulse', 'mg'], ability: 'sprint',
+      hardpoints: ['medium', 'medium', 'light'],
+      weapons: ['spread', 'repulsor', 'mg'],
+      aiWeapons: ['spread', 'repulsor', 'mg'], // 接近してノックバックで崩す強襲型
+      ability: 'sprint',
       model: 'mech_enemy', scale: 1.0,
       colors: { primary: 0xa83a3a, secondary: 0xd49a8f, dark: 0x362323 },
       desc: '突撃型の強襲機',
@@ -190,48 +219,87 @@ const CONFIG = {
   PROP_HP: 120,
 
   // ============================================================
-  // WEAPONS: 武器定義テーブル(V6.7 / V7.0 で kind を再編)
-  //   kind: bolt | hitscan | railcharge | missile | rocket
-  //     - bolt(V7.0): 発光する実体弾(エネルギーボルト)が飛ぶ。飛行中に命中判定
-  //       するため、距離があれば横移動で回避できる。boltSpeed が弾速 u/s
-  //     - hitscan: 即着弾(MG のみ。低威力チップダメージの近距離武器)
-  //     - railcharge(V7.0): チャージ式テレグラフ → 0.5s 後にヒットスキャン発射
-  //       (敵が使う時は収束光 + チャージ音が見える/聞こえる = 遮蔽に隠れる対抗手段)
-  //   mount: arm | shoulder(視覚装着位置)
-  //   price: ショップ価格(購入 1 回 = 在庫 +1。V6.9: 武器は実体で在庫制。
-  //          基本武器も追加購入すれば複数機に同時装備できる)
+  // WEAPONS: 武器定義テーブル(V6.7 / V7.0 kind 再編 / V7.1 サイズ制 + 12 種)
+  //   size: light | medium | heavy(V7.1 ハードポイント。同サイズのスロットのみ搭載可)
+  //     設計原則: 軽 = 低威力・高取り回し / 中 = バランス / 重 = 高威力・予兆や長 CD
+  //   kind: bolt | hitscan | railcharge | missile | rocket | swarm | artillery | tempest
+  //     - bolt(V7.0): 発光する実体弾。飛行中に命中判定 → 横移動で回避できる
+  //     - hitscan: 即着弾(MG / NEEDLE。低威力の取り回し武器)
+  //     - railcharge: チャージ式テレグラフ → chargeTime 後にヒットスキャン射出
+  //     - swarm(V7.1): マイクロロケット 6 連(弱ホーミング・ロック不要)
+  //     - artillery(V7.1): 長距離爆撃。着弾予報サークル表示 → 山なり弾道 6 発が降る
+  //     - tempest(V7.1): チャージ 1.8s → 3 秒間の持続稲妻ビーム(全熱量消費)
+  //   mount: arm | shoulder(視覚装着位置。4 スロット時は両手 + 両肩に振り分け)
+  //   price: ショップ価格(購入 1 回 = 在庫 +1。武器は実体で在庫制)
   //   heat 系はゲージ共有。interval/cd はスロット個別クールダウン
   // ============================================================
   WEAPONS: {
-    pulse: {
-      name: 'PULSE CANNON', label: 'PULSE', kind: 'bolt', mount: 'arm', price: 600,
-      dmgMin: 10, dmgMax: 15, interval: 0.6, heat: 22, range: 80,
-      boltSpeed: 48, boltScale: 1, // V7.0: 弾速 48 u/s の単発エネルギーボルト
-      color: 0x7feaff, colorE: 0xff8866, sfx: 'pulse', recoil: 0.03, spreadAim: 0.3, tag: '中量エネルギー',
-    },
+    // ---------------- 軽(light): 低威力・高取り回し ----------------
     mg: {
-      name: 'MACHINE GUN', label: 'MG', kind: 'hitscan', mount: 'arm', price: 500,
-      dmgMin: 2, dmgMax: 3, interval: 0.09, heat: 4, range: 80,
-      color: 0xffe9a8, colorE: 0xffc080, sfx: 'mg', recoil: 0.006, spreadAim: 1.5, tag: '軽量速射(近接)',
+      name: 'MACHINE GUN', label: 'MG', kind: 'hitscan', size: 'light', mount: 'arm', price: 500,
+      dmgMin: 2, dmgMax: 3, interval: 0.09, heat: 4, range: 30, // V7.1: 射程 80→30(近接チップ専用)
+      color: 0xffe9a8, colorE: 0xffc080, sfx: 'mg', recoil: 0.006, spreadAim: 1.5, tag: '軽・近距離速射',
     },
+    pulse: {
+      name: 'PULSE CANNON', label: 'PULSE', kind: 'bolt', size: 'light', mount: 'arm', price: 600,
+      dmgMin: 10, dmgMax: 15, interval: 0.6, heat: 22, range: 70, // V7.1: 軽に再分類・射程 80→70
+      boltSpeed: 48, boltScale: 1,
+      color: 0x7feaff, colorE: 0xff8866, sfx: 'pulse', recoil: 0.03, spreadAim: 0.3, tag: '軽・エネルギー弾',
+    },
+    needle: { // V7.1 新規: 高精度の細い長射程ヒットスキャン(遠くからチクチク)
+      name: 'NEEDLE LANCER', label: 'NEEDLE', kind: 'hitscan', size: 'light', mount: 'arm', price: 1200,
+      dmgMin: 4, dmgMax: 6, interval: 0.4, heat: 6, range: 100,
+      color: 0xd8ffe8, colorE: 0xffd8e8, sfx: 'needle', recoil: 0.01, spreadAim: 0.06, tag: '軽・長距離精密',
+    },
+    swarm: { // V7.1 新規: マイクロロケット 6 連(弱ホーミング・ロック不要の緩追尾)
+      name: 'SWARM POD', label: 'SWARM', kind: 'swarm', size: 'light', mount: 'shoulder', price: 1800,
+      cd: 4, count: 6, dmgMin: 3, dmgMax: 4, range: 55,
+      color: 0xffe9a8, colorE: 0xffb080, sfx: 'swarm', tag: '軽・微誘導 6 連',
+    },
+    // ---------------- 中(medium): バランス ----------------
     spread: {
-      name: 'SPREAD SHOT', label: 'SPREAD', kind: 'bolt', mount: 'arm', price: 1500,
-      pellets: 8, dmgMin: 4, dmgMax: 6, interval: 0.9, heat: 18, range: 28,
-      boltSpeed: 40, boltScale: 0.7, boltSpread: 0.1, // V7.0: ペレットを 40 u/s で散弾発射
-      color: 0xffc060, colorE: 0xff9860, sfx: 'spread', recoil: 0.05, spreadAim: 0.2, tag: '軽量近接',
-    },
-    rail: {
-      name: 'RAILGUN', label: 'RAIL', kind: 'railcharge', mount: 'arm', price: 3500,
-      dmgMin: 45, dmgMax: 55, interval: 2.2, heat: 45, range: 120, chargeTime: 0.5, // V7.0: 0.5s 予兆
-      color: 0xb8e4ff, colorE: 0xffa0c0, sfx: 'rail', recoil: 0.12, spreadAim: 0.1, tag: '狙撃(予兆あり)',
+      name: 'SPREAD SHOT', label: 'SPREAD', kind: 'bolt', size: 'medium', mount: 'arm', price: 1500,
+      pellets: 8, dmgMin: 4, dmgMax: 6, interval: 0.9, heat: 18, range: 28, // V7.1: 中に再分類
+      boltSpeed: 40, boltScale: 0.7, boltSpread: 0.1,
+      color: 0xffc060, colorE: 0xff9860, sfx: 'spread', recoil: 0.05, spreadAim: 0.2, tag: '中・近距離散弾',
     },
     missile: {
-      name: 'MISSILE SALVO', label: 'MISSILE', kind: 'missile', mount: 'shoulder', price: 900,
-      cd: 8, needLock: true, tag: '誘導',
+      name: 'MISSILE SALVO', label: 'MISSILE', kind: 'missile', size: 'medium', mount: 'shoulder', price: 900,
+      cd: 8, needLock: true, tag: '中・誘導 4 連',
     },
+    arc: { // V7.1 新規: 電撃ボルト。命中時 12m 以内の別の敵 1 機へ 40% 連鎖(稲妻)
+      name: 'ARC BLASTER', label: 'ARC', kind: 'bolt', size: 'medium', mount: 'arm', price: 2200,
+      dmgMin: 14, dmgMax: 18, interval: 1.4, heat: 26, range: 60,
+      boltSpeed: 40, boltScale: 1.1, chain: 0.4, chainRange: 12,
+      color: 0x9fc8ff, colorE: 0xcf9fff, sfx: 'arc', recoil: 0.04, spreadAim: 0.25, tag: '中・電撃連鎖',
+    },
+    repulsor: { // V7.1 新規: 命中した敵を後方へ ~6m ノックバック(位置取りを崩す)
+      name: 'REPULSOR WAVE', label: 'RPLS', kind: 'bolt', size: 'medium', mount: 'arm', price: 2400,
+      dmgMin: 12, dmgMax: 15, interval: 3.0, range: 50, // 熱なし・CD 3s
+      boltSpeed: 32, boltScale: 1.6, knockback: 18, // 初速 18 × 減衰 3/s ≈ 6m 押し込み
+      color: 0xaef3e0, colorE: 0xffc8a0, sfx: 'repulsor', recoil: 0.06, spreadAim: 0.3, tag: '中・衝撃ノックバック',
+    },
+    // ---------------- 重(heavy): 高威力・予兆/長 CD ----------------
     bazooka: {
-      name: 'BAZOOKA', label: 'BZK', kind: 'rocket', mount: 'shoulder', price: 800,
-      cd: 3.5, tag: '重量爆発',
+      name: 'BAZOOKA', label: 'BZK', kind: 'rocket', size: 'heavy', mount: 'shoulder', price: 800,
+      cd: 3.5, tag: '重・弾道爆発',
+    },
+    rail: {
+      name: 'RAILGUN', label: 'RAIL', kind: 'railcharge', size: 'heavy', mount: 'arm', price: 3500,
+      dmgMin: 45, dmgMax: 55, interval: 2.2, heat: 45, range: 120, chargeTime: 0.5,
+      color: 0xb8e4ff, colorE: 0xffa0c0, sfx: 'rail', recoil: 0.12, spreadAim: 0.1, tag: '重・狙撃(予兆 0.5s)',
+    },
+    artillery: { // V7.1 新規: 長距離爆撃 6 発(着弾予報サークル → 山なり弾道で降る)
+      name: 'ARTILLERY RAIN', label: 'ARTY', kind: 'artillery', size: 'heavy', mount: 'shoulder', price: 4200,
+      cd: 9, count: 6, dmgMin: 18, dmgMax: 24, blast: 4,
+      rangeMin: 40, rangeMax: 110, scatter: 9, // 照準方向 40-110 に散布半径 9 のランダム着弾
+      color: 0xffb060, colorE: 0xff8050, sfx: 'artillery', tag: '重・長距離爆撃(予報あり)',
+    },
+    tempest: { // V7.1 新規: チャージ 1.8s → 3s 持続稲妻ビーム(全熱量消費・移動 30% 減)
+      name: 'TEMPEST BEAM', label: 'TMPST', kind: 'tempest', size: 'heavy', mount: 'arm', price: 5000,
+      dmgTick: 8, tickInterval: 0.25, burnTime: 3, interval: 6, range: 45, chargeTime: 1.8,
+      slowMul: 0.7, // 照射中の移動倍率
+      color: 0xc8e8ff, colorE: 0xffc8f0, sfx: 'tempest', recoil: 0.02, spreadAim: 0.1, tag: '重・持続電撃照射',
     },
   },
 
@@ -242,10 +310,11 @@ const CONFIG = {
   HEAT_RECOVER_TO: 30,    // オーバーヒート復帰しきい値
 
   // ============================================================
-  // ポイント経済(V6.7。V6.9 から localStorage v6_save_v2 に永続化)
+  // ポイント経済(V6.7。V7.1 から localStorage v6_save_v3 に永続化)
   // ============================================================
-  SAVE_KEY: 'v6_save_v2',
-  SAVE_KEY_V1: 'v6_save_v1', // 旧セーブ(マイグレーション元)
+  SAVE_KEY: 'v6_save_v3',    // V7.1: ハードポイント制(スロット数可変)
+  SAVE_KEY_V2: 'v6_save_v2', // 旧セーブ v2(2 スロット固定。マイグレーション元)
+  SAVE_KEY_V1: 'v6_save_v1', // 旧セーブ v1(owned 配列)
   PT_KILL: 100,           // 撃破ボーナス
   PT_PER_DMG: 1,          // 与ダメージ 1pt / dmg
   PT_WIN: 300,            // 勝利ボーナス
@@ -265,7 +334,7 @@ const CONFIG = {
   ],
 
   // ミサイル飛翔体(発射 CD は WEAPONS.missile.cd)
-  MISSILE_POOL: 16,
+  MISSILE_POOL: 24,       // V7.1: SWARM(6 連)との同時飛翔を考慮して 16→24
   MISSILE_SALVO: 4,       // 1サルボの発射数
   MISSILE_DAMAGE_MIN: 8,
   MISSILE_DAMAGE_MAX: 12,
@@ -304,6 +373,24 @@ const CONFIG = {
   AI_LEAD_MAX: 1.1,          // リード係数の上限(過大=先に撃ちすぎる)
   AI_LEAD_MISS_SPREAD: 1.6,  // リード予測へ加える角度ばらつきの基準(距離で増す)
 
+  // ============================================================
+  // V7.1: ARTILLERY(長距離爆撃)の飛翔体 + 着弾予報
+  // ============================================================
+  ARTY_POOL: 18,             // 砲弾プール(6 発/回 × 同時 3 ボレー)
+  ARTY_TELEGRAPH_POOL: 4,    // 着弾予報サークルの同時表示数
+  ARTY_FLIGHT_BASE: 1.5,     // 飛翔時間の基準(s。距離・発番で加算 → 回避猶予)
+  ARTY_FLIGHT_PER_U: 0.004,  // 距離 1u あたりの飛翔時間加算
+  ARTY_STAGGER: 0.14,        // 発ごとの着弾時間差(雨のように降る)
+  ARTY_ARC_HEIGHT: 16,       // 山なり弾道の頂点高(+距離比例分)
+
+  // V7.1: TEMPEST(持続稲妻ビーム)の演出
+  TEMPEST_FX_POOL: 4,        // 同時ビーム数(最大 4 機が全員照射)
+  TEMPEST_SEGS: 9,           // 稲妻ポリラインの分割数(ジグザグ)
+  TEMPEST_JAG: 0.7,          // ジグザグの最大横ぶれ(u)
+
+  // V7.1: ノックバック(REPULSOR)。速度は指数減衰(decay 3/s)
+  KNOCKBACK_DECAY: 3,        // 減衰率 /s(押し込み距離 ≈ 初速 / decay)
+
   // ロックオン(V6.7: WR 準拠で取得と維持を非対称化)
   LOCK_RANGE: 110,        // 視認できる距離ならロック可
   LOCK_FOV: 55 * Math.PI / 180,      // 取得時の視野半角
@@ -339,6 +426,7 @@ const CONFIG = {
   CAM_SHOULDER: 1.0,      // 肩越しオフセット
   CAM_LERP: 6,            // 追従の遅れを増やして重量感を演出
   CAM_SENS: 0.0045,
+  TOUCH_LOOK_MUL: 2.4,    // タッチスワイプの旋回感度倍率(画面半分のスワイプ 1 回で ~180°)
   KEY_TURN_RATE: 2.4,     // Shift+←→ の旋回速度 rad/s
   CAM_PITCH_MIN: -0.32,
   CAM_PITCH_MAX: 0.72,
@@ -410,18 +498,24 @@ const CONFIG = {
 };
 
 // ============================================================
-// セーブデータ(V6.9: 武器在庫制)。バージョンキー付き localStorage。
-// 構造 v2: { wallet, inventory: {武器キー: 所持数}, lastClass,
-//            loadouts: {クラス: [武器キー|null, 武器キー|null]} }
+// セーブデータ(V6.9 在庫制 / V7.1 ハードポイント制)。localStorage。
+// 構造 v3: { wallet, inventory: {武器キー: 所持数}, lastClass,
+//            loadouts: {クラス: [武器キー|null × hardpoints.length]} }
 //   - 武器は「実体」: 装備中の合計数 ≤ 所持数(在庫)を常に保証
+//   - V7.1: スロット数はクラスの hardpoints 依存(2〜4)。
+//     さらに「武器サイズ = スロットサイズ」を不変条件に追加
 //   - null = 空きスロット(戦闘では発射不可)
-//   - v1(owned 配列)からは自動マイグレーション
+//   - v2(2 スロット固定)/ v1(owned 配列)からは自動マイグレーション
 // ============================================================
 const PLAYER_CLASSES = ['LIGHT', 'MEDIUM', 'HEAVY']; // 在庫を共有するプレイヤー用クラス
 
-/** 初期在庫: 全クラスの既定装備が同時成立する最小構成 */
+/** クラスのハードポイント配列(スロットサイズ) */
+function hardpointsOf(clsKey) { return CONFIG.MECH_CLASSES[clsKey].hardpoints; }
+
+/** 初期在庫: 全クラスの既定装備が同時成立する最小構成(V7.1 再定義) */
 function defaultInventory() {
-  return { pulse: 2, mg: 1, missile: 2, bazooka: 1 };
+  // SCOUT [mg,pulse] + VANGUARD [missile,pulse,mg] + BASTION [bazooka,bazooka,pulse,mg]
+  return { pulse: 3, mg: 3, missile: 1, bazooka: 2 };
 }
 function defaultSave() {
   const loadouts = {};
@@ -434,8 +528,9 @@ function defaultSave() {
   };
 }
 /**
- * v2 セーブの正規化。構造が壊れていたら null(呼び出し側で初期化)。
- * 在庫超過の装備(改ざん/マイグレーション起因)は後勝ちで null に落とす。
+ * v3 セーブの正規化。構造が壊れていたら null(呼び出し側で初期化)。
+ * 不変条件の回復: 在庫超過の装備は後勝ちで null / サイズ不一致の装備も null
+ * (在庫としては保持されるので消失はしない)。
  */
 function sanitizeSave(s) {
   if (!s || typeof s.wallet !== 'number' || !s.inventory || !s.loadouts) return null;
@@ -449,14 +544,16 @@ function sanitizeSave(s) {
   if (CONFIG.MECH_CLASSES[s.lastClass] && PLAYER_CLASSES.includes(s.lastClass)) {
     out.lastClass = s.lastClass;
   }
-  // ロードアウト: [武器キー|null] × 2 のみ許可。それ以外は空きスロット扱い
+  // ロードアウト: hardpoints 長の [武器キー|null]。サイズ整合 + 在庫内のみ採用
   const used = {};
   for (const c of PLAYER_CLASSES) {
+    const hp = hardpointsOf(c);
     const lo = Array.isArray(s.loadouts[c]) ? s.loadouts[c] : [];
-    out.loadouts[c] = [null, null];
-    for (let i = 0; i < 2; i++) {
+    out.loadouts[c] = new Array(hp.length).fill(null);
+    for (let i = 0; i < hp.length; i++) {
       const w = lo[i];
       if (w === null || w === undefined || !CONFIG.WEAPONS[w]) continue;
+      if (CONFIG.WEAPONS[w].size !== hp[i]) continue; // V7.1: サイズ不一致は外す
       // 在庫超過の装備は外す(装備合計 ≤ 所持数の不変条件を回復)
       if ((used[w] || 0) >= (out.inventory[w] || 0)) continue;
       used[w] = (used[w] || 0) + 1;
@@ -465,7 +562,53 @@ function sanitizeSave(s) {
   }
   return out;
 }
-/** v1(v6_save_v1: owned 配列)→ v2 へのマイグレーション */
+/**
+ * v2(2 スロット固定)→ v3 へのマイグレーション(V7.1)。
+ *   - 在庫は引き継ぎ + 新デフォルト在庫との max(既定装備が必ず成立するよう底上げ)
+ *   - 旧装備はサイズが合うスロットへ可能な範囲で引き継ぎ。入らない武器は在庫に残る
+ *   - 空いたスロットはクラス既定武器で埋める(在庫が許す範囲)
+ */
+function migrateSaveV2(s) {
+  if (!s || typeof s.wallet !== 'number' || !s.inventory) return null;
+  // 在庫の底上げ(新デフォルト装備の成立を保証)
+  const inv = defaultInventory();
+  for (const k of Object.keys(CONFIG.WEAPONS)) {
+    const n = s.inventory[k];
+    if (typeof n === 'number' && n >= 0) inv[k] = Math.max(inv[k] || 0, Math.floor(n));
+  }
+  // 旧 2 スロット装備をサイズの合う空きスロットへ詰め直す
+  const loadouts = {};
+  const used = {};
+  const canUse = (w) => (used[w] || 0) < (inv[w] || 0);
+  for (const c of PLAYER_CLASSES) {
+    const hp = hardpointsOf(c);
+    loadouts[c] = new Array(hp.length).fill(null);
+    const oldLo = (s.loadouts && Array.isArray(s.loadouts[c])) ? s.loadouts[c] : [];
+    for (const w of oldLo) {
+      if (!w || !CONFIG.WEAPONS[w] || !canUse(w)) continue;
+      const idx = hp.findIndex((sz, i) => loadouts[c][i] === null && CONFIG.WEAPONS[w].size === sz);
+      if (idx >= 0) { loadouts[c][idx] = w; used[w] = (used[w] || 0) + 1; }
+      // 入らない武器は在庫に残る(消失しない)
+    }
+    // 空きスロットをクラス既定で補完(在庫が許す範囲)
+    const defaults = CONFIG.MECH_CLASSES[c].weapons;
+    for (let i = 0; i < hp.length; i++) {
+      if (loadouts[c][i] !== null) continue;
+      const w = defaults[i];
+      if (w && CONFIG.WEAPONS[w] && CONFIG.WEAPONS[w].size === hp[i] && canUse(w)) {
+        loadouts[c][i] = w;
+        used[w] = (used[w] || 0) + 1;
+      }
+    }
+  }
+  return sanitizeSave({
+    wallet: s.wallet,
+    inventory: inv,
+    lastClass: s.lastClass,
+    loadouts,
+  });
+}
+/** v1(v6_save_v1: owned 配列)→ v2 相当 → v3 へのマイグレーション */
 function migrateSaveV1(s) {
   if (!s || typeof s.wallet !== 'number') return null;
   const inv = defaultInventory();
@@ -475,8 +618,7 @@ function migrateSaveV1(s) {
       if (CONFIG.WEAPONS[k] && inv[k] === undefined) inv[k] = 1;
     }
   }
-  // sanitizeSave が在庫超過(v1 はクラス間の重複装備が可能だった)を解消する
-  return sanitizeSave({
+  return migrateSaveV2({
     wallet: s.wallet,
     inventory: inv,
     lastClass: s.lastClass,
@@ -489,15 +631,24 @@ function loadSave() {
     if (raw) {
       const s = sanitizeSave(JSON.parse(raw));
       if (s) return s;
-      return defaultSave(); // v2 が壊れていたら安全に初期化
+      return defaultSave(); // v3 が壊れていたら安全に初期化
     }
-    // v2 が無ければ v1 からマイグレーション
+    // v3 が無ければ v2 → v1 の順にマイグレーション
+    const rawV2 = localStorage.getItem(CONFIG.SAVE_KEY_V2);
+    if (rawV2) {
+      const s = migrateSaveV2(JSON.parse(rawV2));
+      if (s) {
+        try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(s)); } catch (_) { /* private mode */ }
+        console.info('[V7.1] セーブを v2 → v3(ハードポイント制)にマイグレーションしました');
+        return s;
+      }
+    }
     const rawV1 = localStorage.getItem(CONFIG.SAVE_KEY_V1);
     if (rawV1) {
       const s = migrateSaveV1(JSON.parse(rawV1));
       if (s) {
         try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(s)); } catch (_) { /* private mode */ }
-        console.info('[V6.9] セーブを v1 → v2 にマイグレーションしました');
+        console.info('[V7.1] セーブを v1 → v3 にマイグレーションしました');
         return s;
       }
     }
@@ -511,7 +662,7 @@ function saveSave(s) {
 }
 const SAVE = loadSave(); // boot(ハンガー)と Game(リザルト加算)で共有
 
-// ---- 在庫ヘルパー(V6.9) ----
+// ---- 在庫ヘルパー(V6.9 / V7.1 スロット数可変) ----
 /** 武器の所持数 */
 function invCount(key) { return SAVE.inventory[key] || 0; }
 /** 武器が装備されている場所 [{cls, slot}](プレイヤー 3 クラスのみ) */
@@ -519,10 +670,12 @@ function equippedSlots(key) {
   const out = [];
   for (const c of PLAYER_CLASSES) {
     const lo = SAVE.loadouts[c];
-    for (let i = 0; i < 2; i++) if (lo[i] === key) out.push({ cls: c, slot: i });
+    for (let i = 0; i < lo.length; i++) if (lo[i] === key) out.push({ cls: c, slot: i });
   }
   return out;
 }
+/** サイズ表示(ハンガーのタグ用) */
+const SIZE_LABEL = { light: '軽', medium: '中', heavy: '重' };
 
 // ============================================================
 // ユーティリティ
@@ -931,6 +1084,87 @@ function buildWeaponModel(wKey) {
       muzzle.position.set(0, 0, 1.2);
       break;
     }
+    case 'needle': { // V7.1: 極細の長砲身 + 小型スコープ(精密射撃)
+      const barrel = add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 1.9, 8), steel));
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.z = 0.8;
+      const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.2, 0.55), dark));
+      body.position.z = -0.05;
+      const scopeMat = wpnMat('needleScope', { color: 0xb8ffd8, emissive: 0x44dd88, emissiveIntensity: 1.4, metalness: 0.3, roughness: 0.3 });
+      const scope = add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.26, 8), scopeMat));
+      scope.rotation.x = Math.PI / 2;
+      scope.position.set(0, 0.15, 0.1);
+      muzzle.position.set(0, 0, 1.78);
+      break;
+    }
+    case 'swarm': { // V7.1: 六角クラスタの 6 連マイクロロケットポッド
+      const body = add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.7, 6), dark));
+      body.rotation.x = Math.PI / 2;
+      body.position.z = 0.15;
+      const tubeMat = wpnMat('tube', { color: 0x14161a, metalness: 0.6, roughness: 0.6 });
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2;
+        const t = add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.1, 8), tubeMat));
+        t.rotation.x = Math.PI / 2;
+        t.position.set(Math.cos(a) * 0.17, Math.sin(a) * 0.17, 0.51);
+      }
+      muzzle.position.set(0, 0, 0.6);
+      break;
+    }
+    case 'arc': { // V7.1: 二叉プロング + 中央の放電オーブ
+      const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.7), dark));
+      body.position.z = 0;
+      for (const y of [0.12, -0.12]) {
+        const prong = add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 1.0), steel));
+        prong.position.set(0, y, 0.75);
+      }
+      const orbMat = wpnMat('arcOrb', { color: 0xbfd8ff, emissive: 0x6f9fff, emissiveIntensity: 2.2, metalness: 0.2, roughness: 0.25 });
+      const orb = add(new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), orbMat));
+      orb.position.z = 0.55;
+      muzzle.position.set(0, 0, 1.25);
+      break;
+    }
+    case 'repulsor': { // V7.1: 末広がりのディッシュエミッタ(衝撃波)
+      const body = add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.17, 0.6, 10), dark));
+      body.rotation.x = Math.PI / 2;
+      body.position.z = 0.1;
+      const dishMat = wpnMat('repDish', { color: 0x9fe8d0, emissive: 0x3fbf9a, emissiveIntensity: 1.5, metalness: 0.4, roughness: 0.35 });
+      const dish = add(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.14, 0.35, 12, 1, true), dishMat));
+      dish.rotation.x = -Math.PI / 2;
+      dish.position.z = 0.55;
+      muzzle.position.set(0, 0, 0.78);
+      break;
+    }
+    case 'artillery': { // V7.1: 上向き 6 連チューブの箱型爆撃ランチャー
+      const box = add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.5, 0.95), dark));
+      box.position.z = 0.05;
+      const tubeMat = wpnMat('tube', { color: 0x14161a, metalness: 0.6, roughness: 0.6 });
+      for (let i = 0; i < 6; i++) {
+        const tx = (i % 3 - 1) * 0.18, ty = (i < 3 ? 0.12 : -0.12);
+        const t = add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.16, 8), tubeMat));
+        t.rotation.x = Math.PI / 2 - 0.5; // やや上向き(山なり弾道)
+        t.position.set(tx, ty + 0.18, 0.5);
+      }
+      const stripMat = wpnMat('artyStrip', { color: 0xffc080, emissive: 0xff8030, emissiveIntensity: 1.4, metalness: 0.3, roughness: 0.4 });
+      const strip = add(new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.05, 0.2), stripMat));
+      strip.position.set(0, -0.2, 0.4);
+      muzzle.position.set(0, 0.3, 0.6);
+      break;
+    }
+    case 'tempest': { // V7.1: 積層コイル + 中心ロッドの重電撃砲
+      const rod = add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.7, 8), steel));
+      rod.rotation.x = Math.PI / 2;
+      rod.position.z = 0.6;
+      const coilMat = wpnMat('tempestCoil', { color: 0xd0e8ff, emissive: 0x88c0ff, emissiveIntensity: 2.0, metalness: 0.3, roughness: 0.25 });
+      for (const z of [0.15, 0.45, 0.75, 1.05]) {
+        const coil = add(new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.05, 8, 14), coilMat));
+        coil.position.z = z;
+      }
+      const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.34, 0.7), dark));
+      body.position.z = -0.25;
+      muzzle.position.set(0, 0, 1.5);
+      break;
+    }
     default:
       muzzle.position.set(0, 0, 0.8);
   }
@@ -1063,8 +1297,9 @@ class MechModel {
   }
 
   /**
-   * 武器スロットを視覚装着(V6.7 ハードポイント / V6.8: 付替え対応)
-   * arm 武器: 1 個目=左手 / 2 個目=右手。shoulder 武器: 肩上部(右→左)
+   * 武器スロットを視覚装着(V6.7 ハードポイント / V6.8 付替え / V7.1 最大 4 スロット)
+   * 配置: 両手(arm × 2)+ 両肩(shoulder × 2)。
+   * arm 系が 3 つ以上などの偏った構成は、空いている肩(または手)へ振り分ける
    */
   mountWeapons(slots) {
     // 既存の装着武器を外す(ドックでの装備変更に対応)
@@ -1074,20 +1309,27 @@ class MechModel {
     this.weaponGroups = [];
     this.muzzles = [];
     let armN = 0, shoulderN = 0;
+    const mountArm = (group) => {
+      const arm = armN === 0 ? this.armL : this.armR;
+      armN++;
+      group.position.set(0, 0, 0.35);
+      arm.add(group);
+    };
+    const mountShoulder = (group) => {
+      const sx = shoulderN === 0 ? 0.85 : -0.85;
+      shoulderN++;
+      group.position.set(sx, 1.5, -0.05);
+      this.torso.add(group);
+    };
     slots.forEach((key, i) => {
       const w = CONFIG.WEAPONS[key];
       if (!w) { this.muzzles[i] = this.fallbackMuzzle; return; }
       const { group, muzzle } = buildWeaponModel(key);
+      // 希望マウントが満杯なら反対側へオーバーフロー(最大 4 スロット = 必ず収まる)
       if (w.mount === 'arm') {
-        const arm = armN === 0 ? this.armL : this.armR;
-        armN++;
-        group.position.set(0, 0, 0.35);
-        arm.add(group);
+        if (armN < 2) mountArm(group); else mountShoulder(group);
       } else {
-        const sx = shoulderN === 0 ? 0.85 : -0.85;
-        shoulderN++;
-        group.position.set(sx, 1.5, -0.05);
-        this.torso.add(group);
+        if (shoulderN < 2) mountShoulder(group); else mountArm(group);
       }
       this.weaponGroups.push(group);
       this.muzzles[i] = muzzle;
@@ -1261,25 +1503,27 @@ class GlbMechModel {
     this.muzzles = [];
     this.followers = []; // { obj, bone, lift, fwd } — 毎フレーム追従
     let armN = 0, shoulderN = 0;
+    // V7.1: 最大 4 スロット = 両手 + 両肩。希望マウント満杯時は反対側へオーバーフロー
+    const takeArm = () => {
+      const bone = this.bones[armN === 0 ? 'LeftHand' : 'RightHand'];
+      armN++;
+      return { bone, lift: 0.04, fwd: 0.3 }; // 手の中心 → グリップ上面 / 銃身を少し前へ
+    };
+    const takeShoulder = () => {
+      const bone = this.bones[shoulderN === 0 ? 'RightShoulder' : 'LeftShoulder'];
+      shoulderN++;
+      return { bone, lift: 0.5, fwd: 0.1 }; // 肩上部マウント
+    };
     slots.forEach((key, i) => {
       const w = CONFIG.WEAPONS[key];
       if (!w) { this.muzzles[i] = this.fallbackMuzzle; return; }
       const { group, muzzle } = buildWeaponModel(key);
-      let bone, lift, fwd;
-      if (w.mount === 'arm') {
-        bone = this.bones[armN === 0 ? 'LeftHand' : 'RightHand'];
-        armN++;
-        lift = 0.04; // 手の中心 → グリップ上面
-        fwd = 0.3;   // 照準方向へ少し前(銃身が手に重ならない)
-      } else {
-        bone = this.bones[shoulderN === 0 ? 'RightShoulder' : 'LeftShoulder'];
-        shoulderN++;
-        lift = 0.5;  // 肩上部マウント
-        fwd = 0.1;
-      }
+      const pt = (w.mount === 'arm')
+        ? (armN < 2 ? takeArm() : takeShoulder())
+        : (shoulderN < 2 ? takeShoulder() : takeArm());
       this.weaponRig.add(group);
-      if (bone) {
-        this.followers.push({ obj: group, bone, lift, fwd });
+      if (pt.bone) {
+        this.followers.push({ obj: group, bone: pt.bone, lift: pt.lift, fwd: pt.fwd });
       } else {
         // ボーン欠落時の保険: 機体ローカルの固定位置
         group.position.set(armN > 0 ? 0.8 : -0.8, 2.6, 0.5);
@@ -1408,9 +1652,10 @@ class Robot {
     this.maxSpeed = cls.speed;
     this.radius = CONFIG.MECH_RADIUS * cls.scale;   // 衝突半径
     this.chestY = CHEST_Y_BASE * cls.scale;         // 胸高(照準/被弾点)
-    // 武器スロット(V6.7: 2 スロット制 + ハードポイント視覚装着)
-    this.slots = (slots && slots.length === 2) ? [...slots] : [...cls.weapons];
-    this.slotCd = [0, 0];
+    // 武器スロット(V7.1: ハードポイント制。スロット数 = cls.hardpoints.length)
+    const slotCount = cls.hardpoints.length;
+    this.slots = (slots && slots.length === slotCount) ? [...slots] : [...cls.weapons];
+    this.slotCd = new Array(slotCount).fill(0);
     this.model.mountWeapons(this.slots);
     this.ability = cls.ability;                      // 'sprint' | 'shield'
     this.abilityCd = 0;
@@ -1455,9 +1700,17 @@ class Robot {
     this.backpedal = false;  // 後ずさり中(歩行アニメ逆再生)
     this.bank = 0;           // 旋回バンク(曲がる時だけ僅かに傾く)
     this._prevTorsoYaw = 0;  // バンク計算用(照準の角速度)
-    // V7.0: RAILGUN チャージ式テレグラフ(スロットごと)。t>0 でチャージ中
-    this.chargeT = [0, 0];   // 残りチャージ時間(s)
+    // V7.0: チャージ式テレグラフ(RAILGUN / V7.1 TEMPEST。スロットごと)。t>0 でチャージ中
+    this.chargeT = new Array(slotCount).fill(0); // 残りチャージ時間(s)
     this.chargeSlot = -1;    // 現在チャージ中のスロット(-1 = なし)
+    // V7.1: TEMPEST 持続ビーム状態
+    this.beamT = 0;          // 残り照射時間(s)
+    this.beamSlot = -1;      // 照射中のスロット
+    this.beamTarget = null;  // AI の照射対象(プレイヤーは null = 照準方向)
+    this.beamTick = 0;       // 次の damage tick までの時間
+    // V7.1: ノックバック速度(REPULSOR。指数減衰)
+    this.kbX = 0;
+    this.kbZ = 0;
   }
 
   get position() { return this.group.position; }
@@ -1469,9 +1722,14 @@ class Robot {
     return out;
   }
 
-  /** スプリント込みの現在の目標最高速 */
+  /** スプリント込みの現在の目標最高速(V7.1: TEMPEST 照射中は減速) */
   get effectiveSpeed() {
-    return this.maxSpeed * (this.sprintT > 0 ? CONFIG.SPRINT_MUL : 1);
+    let s = this.maxSpeed * (this.sprintT > 0 ? CONFIG.SPRINT_MUL : 1);
+    if (this.beamT > 0) {
+      const w = CONFIG.WEAPONS[this.slots[this.beamSlot]];
+      s *= (w && w.slowMul) || 0.7;
+    }
+    return s;
   }
 
   /** アビリティ発動(成功したら true) */
@@ -1601,15 +1859,16 @@ class Robot {
         p.y = sup;
       }
     }
-    // 武器熱の冷却 + 各クールダウン
-    this.heat = Math.max(0, this.heat - CONFIG.HEAT_COOL_RATE * dt);
+    // 武器熱の冷却 + 各クールダウン(V7.1: TEMPEST 照射中は冷却しない)
+    if (this.beamT <= 0) {
+      this.heat = Math.max(0, this.heat - CONFIG.HEAT_COOL_RATE * dt);
+    }
     if (this.overheated && this.heat <= CONFIG.HEAT_RECOVER_TO) this.overheated = false;
-    this.slotCd[0] = Math.max(0, this.slotCd[0] - dt);
-    this.slotCd[1] = Math.max(0, this.slotCd[1] - dt);
+    for (let i = 0; i < this.slotCd.length; i++) this.slotCd[i] = Math.max(0, this.slotCd[i] - dt);
     this.jumpCd = Math.max(0, this.jumpCd - dt);
-    // V7.0: RAILGUN チャージ予兆の減算(発射判定は Game 側。死亡で中断)
+    // V7.0: チャージ予兆の減算(発射判定は Game 側。死亡で中断)
     if (this.chargeSlot >= 0) {
-      if (!this.alive) { this.chargeSlot = -1; this.chargeT[0] = this.chargeT[1] = 0; }
+      if (!this.alive) { this.chargeSlot = -1; this.chargeT.fill(0); }
       else this.chargeT[this.chargeSlot] = Math.max(0, this.chargeT[this.chargeSlot] - dt);
     }
 
@@ -1667,8 +1926,7 @@ class Robot {
     this.hp = this.maxHp;
     this.heat = 0;
     this.overheated = false;
-    this.slotCd[0] = 0;
-    this.slotCd[1] = 0;
+    this.slotCd.fill(0);
     this.jumpCd = 0;
     this.alive = true;
     this.deathT = -1;
@@ -1683,8 +1941,14 @@ class Robot {
     this.shieldT = 0;
     this.lastAttacker = null;
     this.lastAttackT = -99;
-    this.chargeT = [0, 0];
+    this.chargeT.fill(0);
     this.chargeSlot = -1;
+    this.beamT = 0;
+    this.beamSlot = -1;
+    this.beamTarget = null;
+    this.beamTick = 0;
+    this.kbX = 0;
+    this.kbZ = 0;
     if (this.shieldMesh) this.shieldMesh.visible = false;
     this.model.root.rotation.z = 0;
     this.model.root.position.y = 0;
@@ -1980,16 +2244,22 @@ class MissilePool {
     }
   }
 
-  /** 4連サルボを時間差で発射キューに積む(slot = ポッドのスロット番号) */
-  fireSalvo(shooter, target, slot = 0) {
-    for (let i = 0; i < CONFIG.MISSILE_SALVO; i++) {
+  /**
+   * サルボを時間差で発射キューに積む(slot = ポッドのスロット番号)。
+   * V7.1: opts でサルボ特性を上書き(SWARM のマイクロロケット対応)
+   *   { count, dmgMin, dmgMax, turn, speed, armTime, sfx, flat }
+   *   flat: true で前方初速主体(SWARM。target null なら無誘導の直進弾)
+   */
+  fireSalvo(shooter, target, slot = 0, opts = null) {
+    const count = (opts && opts.count) || CONFIG.MISSILE_SALVO;
+    for (let i = 0; i < count; i++) {
       this.pending.push({
         delay: i * 0.12,
-        shooter, target, slot,
+        shooter, target, slot, opts,
         side: (i % 2 === 0) ? 1 : -1,
       });
     }
-    this.game.sound.playAt('missile', shooter.position, 18);
+    this.game.sound.playAt((opts && opts.sfx) || 'missile', shooter.position, 18);
   }
 
   /** 1発を発射(肩のミサイルポッド銃口から上方初速で射出) */
@@ -1997,6 +2267,7 @@ class MissilePool {
     const m = this.items[this.cursor];
     this.cursor = (this.cursor + 1) % this.items.length;
     const shooter = req.shooter;
+    const o = req.opts;
 
     // 発射位置: 装着ポッドの銃口 + わずかな左右ばらけ
     shooter.model.getMuzzleWorld(req.slot, _v1);
@@ -2006,17 +2277,31 @@ class MissilePool {
 
     m.mesh.position.copy(_v1);
     m.prev.copy(_v1);
-    // 上方初速 + 前方 + ばらけ(山なり軌道の元)
-    m.vel.set(
-      Math.sin(yaw) * 5 + (rng() - 0.5) * 4,
-      10 + rng() * 4,
-      Math.cos(yaw) * 5 + (rng() - 0.5) * 4,
-    );
+    if (o && o.flat) {
+      // SWARM: 前方主体の初速(やや上向き + ばらけ)。低空を這うように飛ぶ
+      m.vel.set(
+        Math.sin(yaw) * 14 + (rng() - 0.5) * 5,
+        3 + rng() * 2,
+        Math.cos(yaw) * 14 + (rng() - 0.5) * 5,
+      );
+    } else {
+      // MISSILE: 上方初速 + 前方 + ばらけ(山なり軌道の元)
+      m.vel.set(
+        Math.sin(yaw) * 5 + (rng() - 0.5) * 4,
+        10 + rng() * 4,
+        Math.cos(yaw) * 5 + (rng() - 0.5) * 4,
+      );
+    }
     m.life = CONFIG.MISSILE_LIFE;
-    m.armed = CONFIG.MISSILE_ARM_TIME;
+    m.armed = (o && o.armTime !== undefined) ? o.armTime : CONFIG.MISSILE_ARM_TIME;
     m.smoke = 0;
     m.target = req.target;
     m.shooter = req.shooter;      // FFA: 発射者以外の全機に当たる
+    // V7.1: 弾ごとの特性(SWARM = 弱ホーミング・低ダメージ)
+    m.turn = (o && o.turn) || CONFIG.MISSILE_TURN;
+    m.maxSpeed = (o && o.speed) || CONFIG.MISSILE_SPEED;
+    m.dmgMin = (o && o.dmgMin) || CONFIG.MISSILE_DAMAGE_MIN;
+    m.dmgMax = (o && o.dmgMax) || CONFIG.MISSILE_DAMAGE_MAX;
     m.mesh.visible = true;
     // 射出煙
     this.game.particles.spawn(_v1, 3, { color: 0xcccccc, speed: 1.5, life: 0.35, gravity: 1, scale: 1, upBias: 0.2 });
@@ -2042,11 +2327,12 @@ class MissilePool {
       const speed = m.vel.length();
       if (m.armed <= 0 && m.target && m.target.alive) {
         // 簡易比例航法: 速度方向を目標方向へ徐々に向ける + 加速
+        // (V7.1: 旋回/最高速は弾ごと。SWARM は弱ホーミング = 横移動で振り切れる)
         m.target.chest(_v2);
         _v1.subVectors(_v2, m.mesh.position).normalize();
         _v3.copy(m.vel).divideScalar(Math.max(1e-4, speed));
-        _v3.lerp(_v1, Math.min(1, CONFIG.MISSILE_TURN * dt)).normalize();
-        const spd = Math.min(CONFIG.MISSILE_SPEED, speed + CONFIG.MISSILE_ACCEL * dt);
+        _v3.lerp(_v1, Math.min(1, (m.turn || CONFIG.MISSILE_TURN) * dt)).normalize();
+        const spd = Math.min(m.maxSpeed || CONFIG.MISSILE_SPEED, speed + CONFIG.MISSILE_ACCEL * dt);
         m.vel.copy(_v3).multiplyScalar(spd);
       } else {
         // 無誘導(発射直後 or 目標喪失): 軽い重力で山なりに
@@ -2125,8 +2411,9 @@ class MissilePool {
         this.game.shieldRipple(hitRobot, m.prev);
         return;
       }
-      const dmg = CONFIG.MISSILE_DAMAGE_MIN
-        + Math.floor(rng() * (CONFIG.MISSILE_DAMAGE_MAX - CONFIG.MISSILE_DAMAGE_MIN + 1));
+      const dMin = m.dmgMin || CONFIG.MISSILE_DAMAGE_MIN;
+      const dMax = m.dmgMax || CONFIG.MISSILE_DAMAGE_MAX;
+      const dmg = dMin + Math.floor(rng() * (dMax - dMin + 1));
       this.game.dmgTexts.show(pos, String(dmg), hitRobot === this.game.player);
       this.game.dealDamage(hitRobot, dmg, pos, m.shooter);
     }
@@ -2337,6 +2624,10 @@ class BoltPool {
     b.color = color;
     b.trail = 0;
     b.shooter = shooter;
+    // V7.1: 武器固有の命中時効果
+    b.chain = w.chain || 0;             // ARC: 連鎖ダメージ率(0 = なし)
+    b.chainRange = w.chainRange || 12;  // ARC: 連鎖の検索半径
+    b.kb = w.knockback || 0;            // REPULSOR: ノックバック初速(0 = なし)
     const sc = (w.boltScale || 1) * CONFIG.BOLT_RADIUS;
     b.mesh.scale.setScalar(sc);
     b.mesh.material.color.setHex(color);
@@ -2384,7 +2675,18 @@ class BoltPool {
           game.particles.spawn(_v1, 8, { color: 0xffcc66, speed: 8, life: 0.4, gravity: -10, scale: 1.1, boost: 1.6 });
           game.rings.spawn(_v1, { mode: 'billboard', scale: 2.2, life: 0.25, color: 0xffd9a0, boost: 1.7 });
           game.lights.spawn(_v1, b.color, 22);
+          // V7.1 REPULSOR: 弾の進行方向(水平)へノックバック(dealDamage の前 = KO 時も吹き飛ぶ)
+          if (b.kb > 0) {
+            const hl = Math.hypot(_v3.x, _v3.z) || 1;
+            hitTarget.kbX += (_v3.x / hl) * b.kb;
+            hitTarget.kbZ += (_v3.z / hl) * b.kb;
+            game.rings.spawn(_v1, { mode: 'billboard', scale: 3.6, life: 0.35, color: b.color, boost: 1.8 });
+          }
           game.dealDamage(hitTarget, dmg, b.shooter ? b.shooter.position : b.prev, b.shooter);
+          // V7.1 ARC: 12m 以内の別の敵 1 機へ連鎖(稲妻演出 + 40% ダメージ)
+          if (b.chain > 0) {
+            game.arcChain(hitTarget, Math.round(dmg * b.chain), b.shooter, b.chainRange);
+          }
         }
         done = true;
       }
@@ -2424,6 +2726,259 @@ class BoltPool {
 
   clear() {
     for (const b of this.items) { b.life = 0; b.mesh.visible = false; b.shooter = null; }
+  }
+}
+
+// ============================================================
+// ArtilleryPool(V7.1): 長距離爆撃ミサイル(ARTILLERY RAIN)。
+//   発射時に着弾予報サークルを地面に表示(食らう側に回避チャンス)→
+//   山なり弾道の砲弾 6 発が散布半径内のランダム地点へ時間差で降る。
+//   弾道はパラメトリック補間(from→to + 放物線高)で軽量に再現。プール制。
+// ============================================================
+class ArtilleryPool {
+  constructor(scene, game) {
+    this.game = game;
+    this.items = [];
+    this.cursor = 0;
+    const geo = new THREE.ConeGeometry(0.18, 0.8, 8);
+    geo.rotateX(Math.PI / 2); // 先端を +z に
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffd0a0 });
+    for (let i = 0; i < CONFIG.ARTY_POOL; i++) {
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.visible = false;
+      scene.add(mesh);
+      this.items.push({
+        mesh,
+        from: new THREE.Vector3(),
+        to: new THREE.Vector3(),
+        t: 0, T: 1, h: 14,
+        delay: 0,        // 発射待ち(時間差射出)
+        active: false,
+        smoke: 0,
+        dmgMin: 18, dmgMax: 24, blast: 4,
+        shooter: null,
+      });
+    }
+    // 着弾予報サークル(赤リング・点滅)。ボレー単位で使い回し
+    this.telegraphs = [];
+    const tgGeo = new THREE.RingGeometry(0.86, 1.0, 40); // scale で半径を合わせる
+    tgGeo.rotateX(-Math.PI / 2);
+    for (let i = 0; i < CONFIG.ARTY_TELEGRAPH_POOL; i++) {
+      const m = new THREE.Mesh(tgGeo, new THREE.MeshBasicMaterial({
+        color: new THREE.Color(0xff5030).multiplyScalar(1.6),
+        transparent: true, opacity: 0.5,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+      }));
+      m.visible = false;
+      scene.add(m);
+      this.telegraphs.push({ mesh: m, until: 0 });
+    }
+    this.tgCursor = 0;
+  }
+
+  /**
+   * 1 ボレー(6 発)を発射。
+   * @param {Robot} shooter
+   * @param {THREE.Vector3} center 着弾の中心点(地表)
+   * @param {object} w WEAPONS.artillery
+   */
+  fireVolley(shooter, center, w) {
+    const scatter = w.scatter || 9;
+    shooter.chest(_v1); // 発射元は機体上部(肩ポッド相当)
+    _v1.y += 1.2;
+    const distC = Math.hypot(center.x - _v1.x, center.z - _v1.z);
+    let lastImpact = 0;
+    for (let i = 0; i < (w.count || 6); i++) {
+      const m = this.items[this.cursor];
+      this.cursor = (this.cursor + 1) % this.items.length;
+      // 散布半径内のランダム着弾点(uniform disk)
+      const a = rng() * Math.PI * 2;
+      const r = Math.sqrt(rng()) * scatter;
+      const ix = clamp(center.x + Math.cos(a) * r, -CONFIG.MOVE_LIMIT, CONFIG.MOVE_LIMIT);
+      const iz = clamp(center.z + Math.sin(a) * r, -CONFIG.MOVE_LIMIT, CONFIG.MOVE_LIMIT);
+      m.from.copy(_v1);
+      m.to.set(ix, getGroundHeight(ix, iz), iz);
+      m.T = CONFIG.ARTY_FLIGHT_BASE + distC * CONFIG.ARTY_FLIGHT_PER_U;
+      m.delay = i * CONFIG.ARTY_STAGGER; // 時間差で「雨のように」降る
+      m.t = 0;
+      m.h = CONFIG.ARTY_ARC_HEIGHT + distC * 0.08;
+      m.active = true;
+      m.smoke = 0;
+      m.dmgMin = w.dmgMin; m.dmgMax = w.dmgMax; m.blast = w.blast || 4;
+      m.shooter = shooter;
+      m.mesh.visible = false; // delay 消化後に表示
+      lastImpact = Math.max(lastImpact, m.delay + m.T);
+    }
+    // 着弾予報サークル(最後の着弾まで点滅表示)
+    const tg = this.telegraphs[this.tgCursor];
+    this.tgCursor = (this.tgCursor + 1) % this.telegraphs.length;
+    tg.mesh.scale.setScalar(scatter + (w.blast || 4) * 0.5);
+    tg.mesh.position.set(center.x, getGroundHeight(center.x, center.z) + 0.25, center.z);
+    tg.mesh.visible = true;
+    tg.until = this.game.elapsed + lastImpact;
+    this.game.sound.playAt('artillery', shooter.position, 26);
+  }
+
+  update(dt) {
+    // 予報サークルの点滅 + 期限切れ消灯
+    for (const tg of this.telegraphs) {
+      if (!tg.mesh.visible) continue;
+      if (this.game.elapsed >= tg.until) { tg.mesh.visible = false; continue; }
+      tg.mesh.material.opacity = 0.3 + 0.3 * Math.sin(this.game.elapsed * 10);
+    }
+    for (const m of this.items) {
+      if (!m.active) continue;
+      if (m.delay > 0) { m.delay -= dt; continue; }
+      m.mesh.visible = true;
+      m.t += dt;
+      const k = Math.min(1, m.t / m.T);
+      // パラメトリック弾道: 線形補間 + 放物線高(4k(1-k))
+      const px = m.from.x + (m.to.x - m.from.x) * k;
+      const py = m.from.y + (m.to.y - m.from.y) * k + m.h * 4 * k * (1 - k);
+      const pz = m.from.z + (m.to.z - m.from.z) * k;
+      // 進行方向を向く(数値微分)
+      _v4.set(px - m.mesh.position.x, py - m.mesh.position.y, pz - m.mesh.position.z);
+      m.mesh.position.set(px, py, pz);
+      if (_v4.lengthSq() > 1e-6) {
+        _v4.add(m.mesh.position);
+        m.mesh.lookAt(_v4);
+      }
+      // 煙トレイル(間引き)
+      m.smoke -= dt;
+      if (m.smoke <= 0) {
+        m.smoke = 0.07;
+        this.game.particles.spawn(m.mesh.position, 1, { color: 0xc8b8a0, speed: 0.5, life: 0.4, gravity: 1, scale: 1, upBias: 0 });
+      }
+      if (k >= 1) this.explodeShell(m);
+    }
+  }
+
+  /** 砲弾の着弾爆発(爆風 r=blast の範囲ダメージ。FFA・発射者は除外) */
+  explodeShell(m) {
+    m.active = false;
+    m.mesh.visible = false;
+    const pos = m.to;
+    this.game.particles.spawn(pos, 14, { color: 0xffa040, speed: 11, life: 0.6, gravity: -7, scale: 2, boost: 1.9 });
+    this.game.particles.spawn(pos, 5, { color: 0x999188, speed: 3.5, life: 0.9, gravity: 2.5, scale: 1.8, upBias: 1 });
+    this.game.rings.spawn(pos, { mode: 'ground', scale: m.blast * 1.6, life: 0.4, color: 0xffbb77, boost: 1.7, y: pos.y + 0.3 });
+    this.game.lights.spawn(pos, 0xff7733, 40);
+    this.game.sound.playAt('explosion', pos, 13, 0.8);
+    this.game.shakeFrom(pos, 0.35, 26);
+    this.game.damageDestructiblesAt(pos, m.blast, m.dmgMin); // 樽/遮蔽も巻き込む
+    const R = m.blast;
+    for (const c of this.game.robots) {
+      if (c === m.shooter || !c.alive) continue;
+      c.chest(_v2);
+      const d = pos.distanceTo(_v2);
+      if (d >= R + 1.2) continue; // +機体半径ぶんの猶予
+      const t = clamp(d / R, 0, 1);
+      const dmg = Math.round(m.dmgMin + (m.dmgMax - m.dmgMin) * (1 - t));
+      this.game.dmgTexts.show(_v2, String(dmg), c === this.game.player);
+      this.game.dealDamage(c, dmg, pos, m.shooter);
+    }
+  }
+
+  clear() {
+    for (const m of this.items) { m.active = false; m.mesh.visible = false; m.shooter = null; }
+    for (const tg of this.telegraphs) tg.mesh.visible = false;
+  }
+}
+
+// ============================================================
+// TempestFX(V7.1): 持続稲妻ビームのジグザグポリライン描画。
+//   機体ごとに最大 TEMPEST_FX_POOL 本。毎フレーム頂点をランダムに揺らして
+//   「バリバリと走る稲妻」を表現(コア白 + グロー色の 2 本 1 組)。
+//   ダメージ判定は Game.updateTempests 側(0.25s tick)。これは描画専用。
+// ============================================================
+class TempestFX {
+  constructor(scene) {
+    this.items = [];
+    for (let i = 0; i < CONFIG.TEMPEST_FX_POOL; i++) {
+      const make = (color, boost) => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(CONFIG.TEMPEST_SEGS * 3), 3));
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+          color: new THREE.Color(color).multiplyScalar(boost),
+          transparent: true, opacity: 0.95,
+          blending: THREE.AdditiveBlending, depthWrite: false,
+        }));
+        line.visible = false;
+        line.frustumCulled = false; // 端点が画面外でも稲妻全体を描く
+        scene.add(line);
+        return line;
+      };
+      this.items.push({
+        core: make(0xffffff, 2.2),  // 白コア
+        glow: make(0x88c0ff, 1.5),  // 色グロー(set で武器色に差し替え)
+        used: false,
+        hold: 0, // 単発稲妻の残光フレーム数
+      });
+    }
+  }
+
+  /**
+   * このフレームのビームを 1 本描画(start→end をジグザグに)。
+   * @param {number} hold 追加表示フレーム数(0 = 毎フレーム再 draw が前提。
+   *                      ARC 連鎖などの単発稲妻は 8 程度で ~0.13s 残す)
+   * 注: start/end はテンポラリベクトルが渡されることがあるため、
+   *     先頭でスカラへ退避してから内部テンポラリ(_v3/_v4)を使う(エイリアス対策)
+   */
+  draw(start, end, color, hold = 0) {
+    const it = this.items.find((x) => !x.used);
+    if (!it) return;
+    const sx = start.x, sy = start.y, sz = start.z;
+    let dx = end.x - sx, dy = end.y - sy, dz = end.z - sz;
+    const len = Math.hypot(dx, dy, dz);
+    if (len < 1e-3) return;
+    dx /= len; dy /= len; dz /= len;
+    // 水平直交軸(横ぶれ用)
+    let px = -dz, pz = dx;
+    const pl = Math.hypot(px, pz);
+    if (pl < 1e-3) { px = 1; pz = 0; } else { px /= pl; pz /= pl; }
+    it.used = true;
+    it.hold = hold;
+    it.glow.material.color.setHex(color).multiplyScalar(1.5);
+    const n = CONFIG.TEMPEST_SEGS;
+    for (const line of [it.core, it.glow]) {
+      const pos = line.geometry.attributes.position;
+      for (let i = 0; i < n; i++) {
+        const k = i / (n - 1);
+        const jag = (i === 0 || i === n - 1) ? 0 : CONFIG.TEMPEST_JAG * Math.sin(k * Math.PI);
+        const ox = (rng() - 0.5) * 2 * jag;
+        const oy = (rng() - 0.5) * 2 * jag;
+        pos.setXYZ(
+          i,
+          sx + dx * len * k + px * ox,
+          sy + dy * len * k + oy,
+          sz + dz * len * k + pz * ox,
+        );
+      }
+      pos.needsUpdate = true;
+      line.visible = true;
+    }
+  }
+
+  /** フレーム末: 再 draw されなかったビームを hold 消化後に消す */
+  endFrame() {
+    for (const it of this.items) {
+      if (it.used) {
+        it.used = false; // 次フレームの draw 待ち
+      } else if (it.hold > 0) {
+        it.hold--; // 単発稲妻(ARC 連鎖)の残光
+      } else {
+        it.core.visible = false;
+        it.glow.visible = false;
+      }
+    }
+  }
+
+  clear() {
+    for (const it of this.items) {
+      it.core.visible = false;
+      it.glow.visible = false;
+      it.used = false;
+      it.hold = 0;
+    }
   }
 }
 
@@ -2546,6 +3101,43 @@ class SoundManager {
         this._osc({ f0: 880, dur: 0.08, vol: 0.3 * vol });
         this._osc({ f0: 1320, dur: 0.12, vol: 0.3 * vol, delay: 0.08 });
         this._osc({ f0: 1760, dur: 0.18, vol: 0.26 * vol, delay: 0.17 });
+        break;
+      case 'needle': // V7.1: ニードル: 鋭く細い射出チック
+        if (!this._voice(0.1)) return;
+        this._osc({ type: 'square', f0: 2400, f1: 1400, dur: 0.06, vol: 0.22 * vol });
+        this._noise({ dur: 0.04, f0: 5000, type: 'highpass', vol: 0.12 * vol });
+        break;
+      case 'swarm': // V7.1: スワーム: 複数の小ロケットのシュシュ音
+        if (!this._voice(0.5)) return;
+        this._noise({ dur: 0.35, f0: 900, f1: 2800, vol: 0.26 * vol });
+        this._noise({ dur: 0.3, f0: 700, f1: 2400, vol: 0.2 * vol, delay: 0.1 });
+        break;
+      case 'arc': // V7.1: アーク: 放電ザップ
+        if (!this._voice(0.25)) return;
+        this._osc({ type: 'sawtooth', f0: 1800, f1: 300, dur: 0.18, vol: 0.32 * vol });
+        this._noise({ dur: 0.12, f0: 3600, type: 'highpass', vol: 0.22 * vol });
+        break;
+      case 'zap': // V7.1: 連鎖 / TEMPEST tick: 短いバチッ
+        if (!this._voice(0.12)) return;
+        this._noise({ dur: 0.08, f0: 4200, type: 'highpass', vol: 0.2 * vol });
+        this._osc({ type: 'square', f0: 900, f1: 350, dur: 0.07, vol: 0.16 * vol });
+        break;
+      case 'repulsor': // V7.1: リパルサー: 低い衝撃波ドン
+        if (!this._voice(0.35)) return;
+        this._osc({ type: 'sine', f0: 220, f1: 55, dur: 0.3, vol: 0.5 * vol });
+        this._noise({ dur: 0.18, f0: 600, f1: 150, vol: 0.3 * vol });
+        break;
+      case 'artillery': // V7.1: アーティラリー: 連続した重い射出ドンドン
+        if (!this._voice(0.8)) return;
+        for (let i = 0; i < 3; i++) {
+          this._osc({ type: 'triangle', f0: 130, f1: 45, dur: 0.18, vol: 0.34 * vol, delay: i * 0.14 });
+          this._noise({ dur: 0.14, f0: 700, f1: 180, vol: 0.22 * vol, delay: i * 0.14 });
+        }
+        break;
+      case 'tempest': // V7.1: テンペスト発動: 雷鳴の立ち上がり
+        if (!this._voice(0.6)) return;
+        this._noise({ dur: 0.5, f0: 2000, f1: 5000, type: 'highpass', vol: 0.3 * vol });
+        this._osc({ type: 'sawtooth', f0: 300, f1: 900, dur: 0.4, vol: 0.22 * vol });
         break;
       case 'repair': // V7.0: 撃破時 HP 回復(残量 2 倍): 短い上昇音(きらめき)
         if (!this._voice(0.3)) return;
@@ -2846,8 +3438,7 @@ class InputManager {
     this.keys = Object.create(null);
     this.mouseFire = false;     // クリック = 全武器発射
     this.fireAllHeld = false;   // 中央赤ボタン
-    this.seg0Held = false;      // スロット 1 セグメント
-    this.seg1Held = false;      // スロット 2 セグメント
+    this.segHeld = [false, false, false, false]; // V7.1: スロットセグメント(最大 4)
     this.jumpQueued = false;
     this.abilityQueued = false; // アビリティ(B / 専用ボタン)
     this.targetCycleQueued = false; // ターゲット切替(Tab / 専用ボタン)
@@ -2868,8 +3459,7 @@ class InputManager {
     this.joyBase = document.getElementById('joystick-base');
     this.joyKnob = document.getElementById('joystick-knob');
     const fireMain = document.getElementById('fire-main');
-    const seg0 = document.getElementById('wpn-seg-0');
-    const seg1 = document.getElementById('wpn-seg-1');
+    // V7.1: 武器セグメントは動的生成(Game.applyLoadoutHUD)→ bindSeg() で後から結線
     const jumpBtn = document.getElementById('jump-btn');
     const abilityBtn = document.getElementById('ability-btn');
     const targetBtn = document.getElementById('target-btn');
@@ -2914,11 +3504,10 @@ class InputManager {
       el.addEventListener('mouseleave', () => off());
     };
     press(fireMain, () => { this.fireAllHeld = true; }, () => { this.fireAllHeld = false; });
-    press(seg0, () => { this.seg0Held = true; }, () => { this.seg0Held = false; });
-    press(seg1, () => { this.seg1Held = true; }, () => { this.seg1Held = false; });
     press(jumpBtn, () => { this.jumpQueued = true; }, () => {});
     press(abilityBtn, () => { this.abilityQueued = true; }, () => {});
     press(targetBtn, () => { this.targetCycleQueued = true; }, () => {});
+    this._press = press; // V7.1: 動的セグメントの結線に再利用
 
     // ---- タッチ: 左半分=ジョイスティック / 右半分=機体旋回スワイプ ----
     // ハンガー(ドック)表示中はゲーム操作を一切奪わない:
@@ -2928,6 +3517,9 @@ class InputManager {
 
     window.addEventListener('touchstart', (e) => {
       if (this.isHangarOpen()) return;
+      // ゲーム入力として実際に使ったタッチがある時だけ preventDefault する。
+      // 一律に呼ぶと UI ボタン(リザルトの RETURN TO HANGAR 等)の click が発火しない
+      let claimed = false;
       for (const t of e.changedTouches) {
         if (t.target.closest && (t.target.closest('.ctl-btn') || t.target.closest('.overlay') || t.target.closest('#mute-btn') || t.target.closest('#hangar'))) continue;
         if (t.clientX < window.innerWidth / 2 && this.joyId === null) {
@@ -2939,16 +3531,19 @@ class InputManager {
           this.joyBase.style.left = `${t.clientX}px`;
           this.joyBase.style.top = `${t.clientY}px`;
           this.joyKnob.style.transform = 'translate(-50%,-50%)';
+          claimed = true;
         } else if (this.lookId === null) {
           this.lookId = t.identifier;
           this.lookLast.x = t.clientX; this.lookLast.y = t.clientY;
+          claimed = true;
         }
       }
-      if (e.cancelable) e.preventDefault();
+      if (claimed && e.cancelable) e.preventDefault();
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
       if (this.isHangarOpen()) return;
+      let handled = false;
       for (const t of e.changedTouches) {
         if (t.identifier === this.joyId) {
           const R = 50;
@@ -2959,13 +3554,16 @@ class InputManager {
           this.joyVec.x = dx / R;
           this.joyVec.y = -dy / R; // 画面上方向 = 前進
           this.joyKnob.style.transform = `translate(-50%,-50%) translate(${dx}px,${dy}px)`;
+          handled = true;
         } else if (t.identifier === this.lookId) {
-          this.lookDX += t.clientX - this.lookLast.x;
-          this.lookDY += t.clientY - this.lookLast.y;
+          // スワイプ旋回はマウスより感度を上げる(片手スワイプ 1 回で ~180° 回れる感度)
+          this.lookDX += (t.clientX - this.lookLast.x) * CONFIG.TOUCH_LOOK_MUL;
+          this.lookDY += (t.clientY - this.lookLast.y) * CONFIG.TOUCH_LOOK_MUL;
           this.lookLast.x = t.clientX; this.lookLast.y = t.clientY;
+          handled = true;
         }
       }
-      if (e.cancelable) e.preventDefault();
+      if (handled && e.cancelable) e.preventDefault();
     }, { passive: false });
 
     const endTouch = (e) => {
@@ -3011,10 +3609,22 @@ class InputManager {
 
   /** 全武器一斉発射(中央ボタン / クリック)— WR 準拠 */
   get fireAll() { return this.fireAllHeld || this.mouseFire; }
-  /** スロット 1(Space / セグメント / キー1) */
-  get fireSlot0() { return this.fireAll || this.seg0Held || !!this.keys['Space'] || !!this.keys['Digit1']; }
-  /** スロット 2(Z / セグメント / キー2) */
-  get fireSlot1() { return this.fireAll || this.seg1Held || !!this.keys['KeyZ'] || !!this.keys['Digit2']; }
+
+  /**
+   * V7.1: スロット i の発射ホールド判定(スロット順に Space / Z / X / C。
+   * 数字キー 1-4 も併用可。セグメントボタン / 中央 FIRE も加味)
+   */
+  fireSlot(i) {
+    return this.fireAll || this.segHeld[i]
+      || !!this.keys[InputManager.FIRE_KEYS[i]]
+      || !!this.keys[`Digit${i + 1}`];
+  }
+
+  /** V7.1: 動的生成された武器セグメントを結線(redeploy ごとに再呼び出し) */
+  bindSeg(el, i) {
+    this.segHeld[i] = false;
+    this._press(el, () => { this.segHeld[i] = true; }, () => { this.segHeld[i] = false; });
+  }
 
   /** 旋回入力量を消費して返す */
   consumeLook(out) {
@@ -3041,6 +3651,8 @@ class InputManager {
     return t;
   }
 }
+// V7.1: スロット順の発射キー(ハードポイント数 2〜4 に対応)
+InputManager.FIRE_KEYS = ['Space', 'KeyZ', 'KeyX', 'KeyC'];
 
 // ============================================================
 // EnemyAI: ステートマシン(接近・牽制/交戦/遮蔽退避/再出撃)
@@ -3279,22 +3891,40 @@ class EnemyAI {
       }
     }
 
-    // ---- 射撃(COMBAT のみ。スロット 2 つを武器種別ごとに運用) ----
-    //   V7.0: 開幕 OPENING_PEACE 秒は射撃禁止(即交戦の回避)。チャージ完了は loop で射出
-    const canShoot = this.state === 'COMBAT' && hasLOS && this.game.matchTime >= CONFIG.OPENING_PEACE;
+    // ---- 射撃(COMBAT のみ。スロット 2〜4 を武器種別ごとに運用 / V7.1) ----
+    //   V7.0: 開幕 OPENING_PEACE 秒は射撃禁止(即交戦の回避)。チャージ完了は下で射出
+    const peaceOver = this.game.matchTime >= CONFIG.OPENING_PEACE;
+    const canShoot = this.state === 'COMBAT' && hasLOS && peaceOver;
+    // V7.1: ARTILLERY は攻城武器 — 接近中(APPROACH)でも射程内 + LOS なら撃つ
+    const canSiege = (this.state === 'COMBAT' || this.state === 'APPROACH') && hasLOS && peaceOver;
+    if (canSiege) {
+      for (let i = 0; i < bot.slots.length; i++) {
+        const w = CONFIG.WEAPONS[bot.slots[i]];
+        if (!w || w.kind !== 'artillery') continue;
+        if (bot.slotCd[i] <= 0 && dist >= w.rangeMin && dist <= w.rangeMax) {
+          bot.slotCd[i] = w.cd + rng() * 3;
+          // 着弾中心 = 目標の現在位置 + 軽いリード(完璧でない)
+          _v5.copy(tgt.position);
+          _v5.x += tgt.velX * 0.8 * (0.5 + rng());
+          _v5.z += tgt.velZ * 0.8 * (0.5 + rng());
+          this.game.artillery.fireVolley(bot, _v5, w);
+        }
+      }
+    }
     if (canShoot) {
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < bot.slots.length; i++) {
         const w = CONFIG.WEAPONS[bot.slots[i]];
         if (!w) continue;
-        if (w.kind === 'bolt') { // V7.0: リード射撃のエネルギーボルト
+        if (w.kind === 'bolt') { // V7.0: リード射撃のエネルギーボルト(ARC/REPULSOR 含む)
           if (dist < (w.range || CONFIG.WEAPON_RANGE) && bot.canFireSlot(i)) {
             this.game.aiBolt(bot, tgt, i);
           }
-        } else if (w.kind === 'railcharge') { // V7.0: チャージ開始(完了は loop が射出)
+        } else if (w.kind === 'railcharge' || w.kind === 'tempest') {
+          // V7.0/V7.1: チャージ式(予兆あり)。完了は下のチャージ解決が射出
           if (dist < (w.range || CONFIG.WEAPON_RANGE) && bot.chargeSlot < 0 && bot.canFireSlot(i)) {
             this.game.startCharge(bot, i);
           }
-        } else if (w.kind === 'hitscan') {
+        } else if (w.kind === 'hitscan') { // MG / NEEDLE
           if (dist < (w.range || CONFIG.WEAPON_RANGE) && bot.canFireSlot(i)) {
             this.game.aiShot(bot, tgt, i);
           }
@@ -3306,6 +3936,12 @@ class EnemyAI {
             bot.slotCd[i] = CONFIG.ENEMY_MISSILE_COOLDOWN;
             this.game.missiles.fireSalvo(bot, tgt, i);
           }
+        } else if (w.kind === 'swarm') {
+          // V7.1: マイクロロケット(緩追尾・ロック不要)
+          if (bot.slotCd[i] <= 0 && dist >= 12 && dist <= (w.range || 55)) {
+            bot.slotCd[i] = w.cd + rng() * 2;
+            this.game.fireSwarm(bot, tgt, i, w);
+          }
         } else if (w.kind === 'rocket') {
           // バズーカ(中近距離で直射)
           if (bot.slotCd[i] <= 0 && dist >= 12 && dist <= 70) {
@@ -3316,8 +3952,7 @@ class EnemyAI {
       }
     }
 
-    // ---- V7.0: RAILGUN チャージ完了 → ターゲットへヒットスキャン射出 ----
-    //   レールはヒットスキャンなのでリード不要。命中率ぶんだけ散らす
+    // ---- チャージ完了の解決(RAILGUN → ヒットスキャン / TEMPEST → 持続ビーム) ----
     if (bot.chargeSlot >= 0 && bot.chargeT[bot.chargeSlot] <= 0) {
       tgt.chest(_v5);
       const miss = rng() > CONFIG.ENEMY_ACCURACY;
@@ -3325,7 +3960,7 @@ class EnemyAI {
       _v5.x += (rng() - 0.5) * s;
       _v5.y += (rng() - 0.5) * s * 0.5;
       _v5.z += (rng() - 0.5) * s;
-      this.game.resolveCharge(bot, _v5);
+      this.game.resolveCharge(bot, _v5, tgt); // tempest はターゲット追尾照射
     }
   }
 }
@@ -3352,6 +3987,7 @@ class Game {
     this.initPools();
     this.initHUD();
     this.input = new InputManager();
+    this.applyLoadoutHUD(); // V7.1: input 生成後に再構築(セグメントのタッチ結線)
     this.raycaster = new THREE.Raycaster();
     this.fxQueue = [];        // 多段爆発などの遅延エフェクト {t, fn}
     this.sound.listener = this.camera.position; // 距離減衰の基準
@@ -3894,7 +4530,9 @@ class Game {
       let name = cls.name;
       usedNames[name] = (usedNames[name] || 0) + 1;
       if (usedNames[name] > 1) name = `${name}-${usedNames[name]}`;
-      const e = new Robot(this.scene, cls, name, sel.gltfs.ais[i] || null, false);
+      // V7.1: AI はクラスごとの専用ロードアウト(aiWeapons)で出撃
+      const e = new Robot(this.scene, cls, name, sel.gltfs.ais[i] || null, false,
+        cls.aiWeapons || cls.weapons);
       e.reset(x, z, Math.atan2(px - x, pz - z)); // プレイヤー方向を向いて出現
       this.enemies.push(e);
       this.ais.push(new EnemyAI(e, this));
@@ -4049,7 +4687,9 @@ class Game {
     this.rings = new RingPool(this.scene, this.camera);
     this.missiles = new MissilePool(this.scene, this);
     this.rockets = new RocketPool(this.scene, this);
-    this.bolts = new BoltPool(this.scene, this); // V7.0: エネルギーボルト(PULSE/SPREAD)
+    this.bolts = new BoltPool(this.scene, this);         // V7.0: エネルギーボルト
+    this.artillery = new ArtilleryPool(this.scene, this); // V7.1: 長距離爆撃 + 着弾予報
+    this.tempestFx = new TempestFX(this.scene);           // V7.1: 持続稲妻ビーム描画
     this.initCrates();
   }
 
@@ -4116,8 +4756,7 @@ class Game {
       lockonDist: $('lockon-dist'),
       lockonName: $('lockon-name'),         // V6.7 ターゲットボックス: 機体名
       lockonHpFill: $('lockon-hp-fill'),    // V6.7 ターゲットボックス: HP バー
-      lockonWpn0: $('lockon-wpn-0'),        // V7.0 ロック対象の装備武器アイコン
-      lockonWpn1: $('lockon-wpn-1'),
+      lockonWpns: $('lockon-wpns'),         // V7.1 ロック対象の装備アイコン(動的 2〜4)
       lockonHpNum: $('lockon-hpnum'),       // V7.0 ロック対象の HP 数値
       playerHpFill: $('player-hp-fill'),
       heatFill: $('heat-fill'),
@@ -4128,13 +4767,10 @@ class Game {
       overlaySub: $('overlay-sub'),
       restartBtn: $('restart-btn'),
       resultBreakdown: $('result-breakdown'), // V6.7 リザルトのポイント内訳
-      // 武器パネル(V6.7: 2 スロット)
-      seg0: $('wpn-seg-0'),
-      seg1: $('wpn-seg-1'),
-      segLabel0: $('seg-label-0'),
-      segLabel1: $('seg-label-1'),
-      segCd0: $('seg-cd-0'),
-      segCd1: $('seg-cd-1'),
+      // 武器パネル(V7.1: スロット数ぶん動的生成 → applyLoadoutHUD が segs を構築)
+      weaponCluster: $('weapon-cluster'),
+      fireMain: $('fire-main'),
+      segs: [], // [{ seg, label, cd }]
       jumpBtn: $('jump-btn'),
       jumpCd: $('jump-cd'),
       // アビリティ(V6.6)
@@ -4222,18 +4858,34 @@ class Game {
     });
   }
 
-  /** 出撃ロードアウトを HUD に反映(セグラベル/アビリティアイコン)。redeploy 対応 */
+  /**
+   * 出撃ロードアウトを HUD に反映(V7.1: セグメントをスロット数ぶん動的生成)。
+   * redeploy のたびに呼ばれ、DOM を作り直して InputManager へ再結線する。
+   * 空きスロットはグレー表示(発射不可は canFireSlot 側で担保)
+   */
   applyLoadoutHUD() {
-    for (let i = 0; i < 2; i++) {
-      const w = CONFIG.WEAPONS[this.player.slots[i]];
-      const seg = i === 0 ? this.ui.seg0 : this.ui.seg1;
-      const label = i === 0 ? this.ui.segLabel0 : this.ui.segLabel1;
-      // V6.9: 空きスロットは非表示ではなくグレー表示(発射不可は canFireSlot 側で担保)
-      seg.style.display = '';
-      seg.classList.toggle('empty', !w);
-      if (!w) seg.classList.remove('ready', 'overheat', 'nolock'); // 前回装備の残留クラスを掃除
-      label.textContent = w ? w.label : '—';
-    }
+    const cluster = this.ui.weaponCluster;
+    // 旧セグメントを除去(fire-main / target-btn は残す)
+    for (const old of cluster.querySelectorAll('.wpn-seg')) old.remove();
+    this.ui.segs = [];
+    const keyHints = ['SPC', 'Z', 'X', 'C'];
+    this.player.slots.forEach((key, i) => {
+      const w = CONFIG.WEAPONS[key];
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `ctl-btn wpn-seg seg-pos-${i}`;
+      btn.innerHTML = `<span class="seg-label">${w ? w.label : '—'}</span>`
+        + `<span class="seg-key">${keyHints[i] || ''}</span>`
+        + `<div class="cd-overlay"></div>`;
+      cluster.insertBefore(btn, this.ui.fireMain); // FIRE ボタンより手前(z 順は CSS)
+      btn.classList.toggle('empty', !w);
+      this.ui.segs.push({
+        seg: btn,
+        label: btn.querySelector('.seg-label'),
+        cd: btn.querySelector('.cd-overlay'),
+      });
+      if (this.input) this.input.bindSeg(btn, i); // タッチ/マウスの押しっぱなし結線
+    });
     this.ui.abilityIcon.textContent = this.player.ability === 'sprint' ? '⚡' : '🛡';
   }
 
@@ -4407,13 +5059,13 @@ class Game {
   }
 
   /**
-   * V7.0: RAILGUN のチャージ開始(0.5s 後に resolveCharge でヒットスキャン発射)。
+   * チャージ開始(V7.0 RAILGUN 0.5s / V7.1 TEMPEST 1.8s)。
    *  - チャージ中は銃口に収束光 + チャージ音(敵が使う時は察知できる)
-   *  - 既にチャージ/CD 中、オーバーヒート中は開始しない
+   *  - 既にチャージ/CD 中、オーバーヒート中、照射中は開始しない
    */
   startCharge(shooter, slotIdx) {
     const w = CONFIG.WEAPONS[shooter.slots[slotIdx]];
-    if (!w || shooter.chargeSlot >= 0) return false;
+    if (!w || shooter.chargeSlot >= 0 || shooter.beamT > 0) return false;
     if (!shooter.canFireSlot(slotIdx)) return false;
     shooter.chargeSlot = slotIdx;
     shooter.chargeT[slotIdx] = w.chargeTime || 0.5;
@@ -4422,8 +5074,12 @@ class Game {
     return true;
   }
 
-  /** チャージ完了 → ヒットスキャン射出(aimPoint へ。shootBeam を再利用) */
-  resolveCharge(shooter, aimPoint) {
+  /**
+   * チャージ完了の解決。
+   *   RAILGUN → aimPoint へヒットスキャン射出(shootBeam 再利用)
+   *   TEMPEST → 持続稲妻ビーム開始(targetRobot があれば追尾照射 / null = 照準方向)
+   */
+  resolveCharge(shooter, aimPoint, targetRobot = null) {
     const slotIdx = shooter.chargeSlot;
     shooter.chargeSlot = -1;
     if (slotIdx < 0) return;
@@ -4431,6 +5087,16 @@ class Game {
     if (!shooter.alive) return;
     const w = CONFIG.WEAPONS[shooter.slots[slotIdx]];
     if (!w) return;
+    if (w.kind === 'tempest') { // V7.1: 3 秒間の持続照射を開始
+      shooter.beamT = w.burnTime || 3;
+      shooter.beamSlot = slotIdx;
+      shooter.beamTarget = targetRobot; // AI はターゲット追尾 / プレイヤーは null(照準)
+      shooter.beamTick = 0;
+      shooter.slotCd[slotIdx] = w.interval || 6;
+      if (shooter.isPlayer) this.sound.play('tempest');
+      else this.sound.playAt('tempest', shooter.position, 24);
+      return;
+    }
     this.shootBeam(shooter, aimPoint, slotIdx);
     if (shooter.isPlayer) {
       this.sound.play('rail');
@@ -4438,6 +5104,139 @@ class Game {
     } else {
       this.sound.playAt('rail', shooter.position, 18);
     }
+  }
+
+  /**
+   * V7.1: TEMPEST 持続ビームの更新(ダメージ tick + 稲妻描画 + 熱の消費)。
+   * 毎フレーム呼ぶ。終了時は全熱量消費(HEAT_MAX → オーバーヒート)。
+   */
+  updateTempests(dt) {
+    for (const r of this.allRobots) {
+      if (r.beamT <= 0) continue;
+      const w = CONFIG.WEAPONS[r.slots[r.beamSlot]];
+      if (!r.alive || !w) { r.beamT = 0; r.beamSlot = -1; r.beamTarget = null; continue; }
+      r.beamT -= dt;
+      const burn = w.burnTime || 3;
+      // 熱を照射時間で線形に消費(終了時にちょうど満タン → オーバーヒート)
+      r.heat = Math.min(CONFIG.HEAT_MAX, r.heat + (CONFIG.HEAT_MAX / burn) * dt);
+      if (r.beamT <= 0) {
+        r.beamT = 0;
+        r.beamSlot = -1;
+        r.beamTarget = null;
+        r.heat = CONFIG.HEAT_MAX;
+        r.overheated = true; // 全熱量消費 = 撃ち切り後は息切れ(ハイリスク)
+        if (r === this.player) this.sound.play('overheat', 0.7);
+        continue;
+      }
+
+      // ---- 照準点: AI = ターゲット胸 / プレイヤー = ロック or カメラ正面 ----
+      const range = w.range || 45;
+      if (r.beamTarget && r.beamTarget.alive) {
+        r.beamTarget.chest(_v5);
+      } else if (r.isPlayer) {
+        this._playerAimPoint(0.1, range); // → _v5
+      } else {
+        // ターゲット喪失: 照準方向へ垂れ流し
+        r.chest(_v5);
+        _v5.x += Math.sin(r.torsoYaw) * range;
+        _v5.z += Math.cos(r.torsoYaw) * range;
+      }
+
+      // ---- ビームの到達点(遮蔽 / 射程 / 機体)を決定 ----
+      r.model.getMuzzleWorld(r.beamSlot, _muzzle);
+      _v2.subVectors(_v5, _muzzle);
+      const aimDist = _v2.length();
+      if (aimDist < 1e-3) continue;
+      _v2.divideScalar(aimDist);
+      const wallDist = Math.min(
+        this.raycastWallDist(_muzzle, _v2, range),
+        this.raymarchGround(_muzzle, _v2, range),
+      );
+      let hitDist = Infinity, hitTarget = null;
+      for (const c of this.robots) {
+        if (c === r || !c.alive) continue;
+        c.chest(_v3);
+        const d = raySphereDist(_muzzle, _v2, _v3, 1.9 * c.cls.scale, _v4);
+        if (d >= 0 && d < hitDist) { hitDist = d; hitTarget = c; }
+      }
+      let endDist = Math.min(range, wallDist);
+      let victim = null;
+      if (hitTarget && hitDist < wallDist && hitDist <= range) {
+        endDist = hitDist;
+        victim = hitTarget;
+      }
+      _v1.copy(_muzzle).addScaledVector(_v2, endDist);
+      // 端点をスカラ退避(dealDamage → onKO/repairOnKill が _v1/_v2 を使うため)
+      const ex = _v1.x, ey = _v1.y, ez = _v1.z;
+      const mx = _muzzle.x, my = _muzzle.y, mz = _muzzle.z;
+
+      // ---- ダメージ tick(0.25s ごと・シールド考慮) ----
+      r.beamTick -= dt;
+      if (r.beamTick <= 0) {
+        r.beamTick = w.tickInterval || 0.25;
+        if (victim) {
+          if (this.shieldBlocks(victim, _muzzle)) {
+            this.shieldRipple(victim, _muzzle);
+          } else {
+            const dmg = w.dmgTick || 8;
+            this.dmgTexts.show(_v1, String(dmg), victim === this.player);
+            this.dealDamage(victim, dmg, r.position, r);
+          }
+        }
+        // 命中点スパーク + バチバチ音(tick 同期)
+        _v1.set(ex, ey, ez);
+        this.particles.spawn(_v1, 4, { color: w.color, speed: 6, life: 0.25, gravity: -6, scale: 1, boost: 2 });
+        this.sound.playAt('zap', _v1, 10, 0.7);
+      }
+
+      // ---- 稲妻描画(毎フレーム頂点を揺らす)+ 銃口グロー ----
+      const beamColor = r.isPlayer ? w.color : w.colorE;
+      _muzzle.set(mx, my, mz);
+      _v1.set(ex, ey, ez);
+      this.tempestFx.draw(_muzzle, _v1, beamColor);
+      if (rng() < 0.5) this.lights.spawn(_v1, beamColor, 18);
+    }
+    this.tempestFx.endFrame();
+  }
+
+  /**
+   * V7.1 ARC BLASTER: 命中対象の chainRange 以内にいる「別の敵」1 機へ連鎖。
+   * 稲妻ポリライン(TempestFX を 1 フレーム借用)+ ダメージ + バチッ音。
+   */
+  arcChain(fromRobot, chainDmg, shooter, chainRange) {
+    if (chainDmg <= 0) return;
+    let best = null, bestD = Infinity;
+    for (const c of this.robots) {
+      if (c === fromRobot || c === shooter || !c.alive) continue;
+      const d = c.position.distanceTo(fromRobot.position);
+      if (d <= chainRange && d < bestD) { bestD = d; best = c; }
+    }
+    if (!best) return;
+    // 稲妻演出(2 機の胸を結ぶ。hold=8 フレームで残光)
+    fromRobot.chest(_v4);
+    best.chest(_v5);
+    this.tempestFx.draw(_v4, _v5, 0x9fc8ff, 8);
+    this.particles.spawn(_v5, 6, { color: 0x9fc8ff, speed: 5, life: 0.3, gravity: -4, boost: 2 });
+    this.lights.spawn(_v5, 0x9fc8ff, 24);
+    this.sound.playAt('zap', _v5, 14);
+    this.dmgTexts.show(_v5, String(chainDmg), best === this.player);
+    this.dealDamage(best, chainDmg, fromRobot.position, shooter);
+  }
+
+  /**
+   * V7.1 SWARM POD: マイクロロケット 6 連(緩追尾・ロック不要)。
+   * target が null の場合は照準コーン内の最寄り敵を自動取得(いなければ無誘導)。
+   */
+  fireSwarm(shooter, target, slotIdx, w) {
+    this.missiles.fireSalvo(shooter, target, slotIdx, {
+      count: w.count || 6,
+      dmgMin: w.dmgMin, dmgMax: w.dmgMax,
+      turn: 1.6,        // 弱ホーミング(MISSILE の半分 → 横移動で振り切れる)
+      speed: 30,
+      armTime: 0.2,
+      flat: true,       // 前方初速主体(肩から真っ直ぐ展開)
+      sfx: 'swarm',
+    });
   }
 
   /**
@@ -4577,7 +5376,8 @@ class Game {
       this.shootBolt(p, this._playerAimPoint(w.spreadAim, range), i);
       this.sound.play(w.sfx);
       this.recoil = Math.min(0.15, this.recoil + w.recoil);
-    } else if (w.kind === 'railcharge') { // V7.0: チャージ式テレグラフ(完了は loop で射出)
+    } else if (w.kind === 'railcharge' || w.kind === 'tempest') {
+      // V7.0/V7.1: チャージ式テレグラフ(完了は updatePlayer のチャージ解決が処理)
       this.startCharge(p, i);
     } else if (w.kind === 'hitscan') {
       if (!p.canFireSlot(i)) return;
@@ -4590,6 +5390,21 @@ class Game {
       if (!this.locked || !this.lockTarget || !this.lockTarget.alive) return; // 要ロック
       p.slotCd[i] = w.cd;
       this.missiles.fireSalvo(p, this.lockTarget, i);
+    } else if (w.kind === 'swarm') {
+      // V7.1: マイクロロケット(ロック不要)。ロック中はその対象 /
+      // 非ロック時は照準コーン内の最寄り敵へ緩追尾(いなければ無誘導の直進)
+      if (p.slotCd[i] > 0) return;
+      p.slotCd[i] = w.cd;
+      let tgt = (this.locked && this.lockTarget && this.lockTarget.alive) ? this.lockTarget : null;
+      if (!tgt) tgt = this._swarmAutoTarget(w.range || 55);
+      this.fireSwarm(p, tgt, i, w);
+    } else if (w.kind === 'artillery') {
+      // V7.1: 長距離爆撃(ロック不要)。照準方向の地表 40-110 を着弾中心に
+      if (p.slotCd[i] > 0) return;
+      p.slotCd[i] = w.cd;
+      this._artilleryAimPoint(w); // → _v5
+      this.artillery.fireVolley(p, _v5, w);
+      this.recoil = Math.min(0.1, this.recoil + 0.04);
     } else { // rocket(バズーカ: ロック不要・直射)
       if (p.slotCd[i] > 0) return;
       p.slotCd[i] = w.cd;
@@ -4601,6 +5416,53 @@ class Game {
       this.sound.play('bazooka');
       this.recoil = Math.min(0.08, this.recoil + 0.05);
     }
+  }
+
+  /** V7.1 SWARM: 非ロック時の自動取得(照準コーン ~25° 内の最寄り敵・LOS あり) */
+  _swarmAutoTarget(range) {
+    _v2.set(Math.sin(this.camYaw), 0, Math.cos(this.camYaw));
+    const fovCos = Math.cos(25 * Math.PI / 180);
+    let best = null, bestD = Infinity;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      _v1.subVectors(e.position, this.player.position);
+      _v1.y = 0;
+      const d = _v1.length();
+      if (d > range || d < 1e-3) continue;
+      _v1.divideScalar(d);
+      if (_v1.dot(_v2) < fovCos) continue;
+      if (!this.hasLOS(this.player, e)) continue;
+      if (d < bestD) { bestD = d; best = e; }
+    }
+    return best;
+  }
+
+  /**
+   * V7.1 ARTILLERY: プレイヤーの着弾中心を計算 → _v5。
+   * カメラ視線と地形の交点(無ければ最大距離)を取り、
+   * プレイヤーからの水平距離を rangeMin..rangeMax にクランプ。
+   */
+  _artilleryAimPoint(w) {
+    this.camera.getWorldDirection(_v4);
+    const gd = this.raymarchGround(this.camera.position, _v4, 140);
+    if (gd !== Infinity) {
+      _v5.copy(this.camera.position).addScaledVector(_v4, gd);
+    } else {
+      _v5.copy(this.camera.position).addScaledVector(_v4, w.rangeMax);
+    }
+    // プレイヤーからの水平距離をレンジにクランプ
+    const px = this.player.position.x, pz = this.player.position.z;
+    let dx = _v5.x - px, dz = _v5.z - pz;
+    const d = Math.hypot(dx, dz) || 1;
+    const cd2 = clamp(d, w.rangeMin, w.rangeMax);
+    dx = dx / d * cd2; dz = dz / d * cd2;
+    _v5.set(
+      clamp(px + dx, -CONFIG.MOVE_LIMIT, CONFIG.MOVE_LIMIT),
+      0,
+      clamp(pz + dz, -CONFIG.MOVE_LIMIT, CONFIG.MOVE_LIMIT),
+    );
+    _v5.y = getGroundHeight(_v5.x, _v5.z);
+    return _v5;
   }
 
   /** AI のヒットスキャン射撃(MG。FFA: 任意のターゲットへ。命中率で散らす) */
@@ -4923,6 +5785,8 @@ class Game {
     this.missiles.clear();
     this.rockets.clear();
     this.bolts.clear();
+    this.artillery.clear(); // V7.1: 砲弾 + 着弾予報
+    this.tempestFx.clear(); // V7.1: 稲妻ビーム
     this.dmgTexts.clear();
     this.fxQueue.length = 0;        // 未消化の多段爆発を破棄
     this.restoreDestructibles();    // ドラム缶/遮蔽を復元
@@ -5015,19 +5879,21 @@ class Game {
       this.onAbilityUsed(player);
     }
 
-    // ---- 射撃(スロット 1 = Space / スロット 2 = Z。中央=一斉) ----
+    // ---- 射撃(V7.1: スロット順に Space / Z / X / C。中央=一斉) ----
     if (!this.gameOver) {
-      if (this.input.fireSlot0) this.tryPlayerFireSlot(0);
-      if (this.input.fireSlot1) this.tryPlayerFireSlot(1);
+      for (let i = 0; i < player.slots.length; i++) {
+        if (this.input.fireSlot(i)) this.tryPlayerFireSlot(i);
+      }
       // 手動ターゲット切替(Tab / 専用ボタン)
       if (this.input.consumeTargetCycle()) this.cycleTarget();
     }
 
-    // ---- V7.0: RAILGUN チャージ完了 → 現在の照準へヒットスキャン射出 ----
+    // ---- チャージ完了 → 解決(RAILGUN=射出 / TEMPEST=照射開始) ----
     if (player.chargeSlot >= 0 && player.chargeT[player.chargeSlot] <= 0) {
       const w = CONFIG.WEAPONS[player.slots[player.chargeSlot]];
       const range = w ? (w.range || CONFIG.WEAPON_RANGE) : CONFIG.WEAPON_RANGE;
-      this.resolveCharge(player, this._playerAimPoint(w ? w.spreadAim : 0.1, range));
+      // tempest はターゲット null = 照準追従(ロック中は _playerAimPoint が対象を向く)
+      this.resolveCharge(player, this._playerAimPoint(w ? w.spreadAim : 0.1, range), null);
     }
   }
 
@@ -5212,17 +6078,11 @@ class Game {
     return out;
   }
 
-  /** V7.0: ロック対象の装備武器アイコンを 1 スロットぶん設定(THUMBS サムネを縮小) */
-  _setLockonWpn(el, key) {
-    if (!el) return;
-    if (!key || !CONFIG.WEAPONS[key]) { el.className = 'lk-wpn empty'; el.innerHTML = ''; return; }
-    if (THUMBS[key]) {
-      el.className = 'lk-wpn';
-      el.innerHTML = `<img src="${THUMBS[key]}" alt="">`;
-    } else {
-      el.className = 'lk-wpn thumb-fb';
-      el.textContent = CONFIG.WEAPONS[key].label.slice(0, 2); // 絵文字代替: ラベル頭 2 文字
-    }
+  /** V7.1: ロック対象の装備武器アイコン 1 つぶんの HTML(THUMBS サムネを縮小) */
+  _lockonWpnHTML(key) {
+    if (!key || !CONFIG.WEAPONS[key]) return '<span class="lk-wpn empty"></span>';
+    if (THUMBS[key]) return `<span class="lk-wpn"><img src="${THUMBS[key]}" alt=""></span>`;
+    return `<span class="lk-wpn thumb-fb">${CONFIG.WEAPONS[key].label.slice(0, 2)}</span>`;
   }
 
   /**
@@ -5285,11 +6145,10 @@ class Game {
     ui.statusPanel.classList.toggle('overheat', player.overheated);
     ui.heatLabel.textContent = player.overheated ? 'OVRHT' : 'HEAT';
 
-    // ---- 武器パネル(V6.7: スロット 2 つ。熱 / CD の扇形表示) ----
+    // ---- 武器パネル(V7.1: スロット数可変。熱 / CD / チャージの扇形表示) ----
     const heatFrac = player.heat / CONFIG.HEAT_MAX;
-    for (let i = 0; i < 2; i++) {
-      const seg = i === 0 ? ui.seg0 : ui.seg1;
-      const cdEl = i === 0 ? ui.segCd0 : ui.segCd1;
+    for (let i = 0; i < ui.segs.length; i++) {
+      const { seg, cd: cdEl } = ui.segs[i];
       const w = CONFIG.WEAPONS[player.slots[i]];
       if (!w) { cdEl.style.setProperty('--cd', '0'); continue; } // 空きスロット(グレー表示は applyLoadoutHUD)
       const cdMax = w.interval || w.cd || 1;
@@ -5297,12 +6156,14 @@ class Game {
       let frac = w.heat
         ? Math.max(heatFrac, cdMax > 0.5 ? player.slotCd[i] / cdMax : 0)
         : player.slotCd[i] / cdMax;
-      // V7.0: RAILGUN チャージ中はチャージ進捗を扇形に表示(満タン→発射)
+      // チャージ中はチャージ進捗(RAILGUN/TEMPEST)/ TEMPEST 照射中は残り照射時間
       const charging = player.chargeSlot === i && player.chargeT[i] > 0;
       if (charging) frac = Math.max(frac, player.chargeT[i] / (w.chargeTime || 0.5));
+      const beaming = player.beamSlot === i && player.beamT > 0;
+      if (beaming) frac = Math.max(frac, 1 - player.beamT / (w.burnTime || 3));
       cdEl.style.setProperty('--cd', Math.min(1, frac).toFixed(3));
       seg.classList.toggle('overheat', !!w.heat && player.overheated);
-      seg.classList.toggle('charging', charging); // CSS が無くても無害
+      seg.classList.toggle('charging', charging || beaming);
       seg.classList.toggle('nolock', !!w.needLock && !this.locked);
       seg.classList.toggle('ready',
         w.heat ? !player.overheated : (player.slotCd[i] <= 0 && (!w.needLock || this.locked)));
@@ -5368,11 +6229,11 @@ class Game {
         ui.lockonHpFill.style.width = `${(this.lockTarget.hp / this.lockTarget.maxHp) * 100}%`;
         const dist = player.position.distanceTo(this.lockTarget.position);
         ui.lockonDist.textContent = `${Math.round(dist)} m`;
-        // V7.0: ロック対象の装備武器アイコン×2 + HP 数値(対象切替時のみ DOM 更新)
+        // V7.1: ロック対象の装備武器アイコン(スロット数ぶん)+ HP 数値(対象切替時のみ DOM 更新)
         if (this._lockonLoadoutFor !== this.lockTarget) {
           this._lockonLoadoutFor = this.lockTarget;
-          this._setLockonWpn(ui.lockonWpn0, this.lockTarget.slots[0]);
-          this._setLockonWpn(ui.lockonWpn1, this.lockTarget.slots[1]);
+          ui.lockonWpns.innerHTML = this.lockTarget.slots
+            .map((key) => this._lockonWpnHTML(key)).join('');
         }
         ui.lockonHpNum.textContent = `${Math.max(0, Math.round(this.lockTarget.hp))}`;
       } else {
@@ -5677,6 +6538,22 @@ class Game {
     this.missiles.update(dt);
     this.rockets.update(dt);
     this.bolts.update(dt);    // V7.0: エネルギーボルト飛翔体
+    this.artillery.update(dt); // V7.1: 爆撃砲弾 + 着弾予報サークル
+    this.updateTempests(dt);   // V7.1: 持続稲妻ビーム(tick + 描画)
+
+    // V7.1: ノックバック(REPULSOR)の適用と指数減衰
+    for (const r of this.allRobots) {
+      const kb2 = r.kbX * r.kbX + r.kbZ * r.kbZ;
+      if (kb2 > 0.01) {
+        r.moveWithCollision(r.kbX * dt, r.kbZ * dt, this.obstacles);
+        const decay = Math.exp(-CONFIG.KNOCKBACK_DECAY * dt);
+        r.kbX *= decay;
+        r.kbZ *= decay;
+      } else if (kb2 > 0) {
+        r.kbX = 0;
+        r.kbZ = 0;
+      }
+    }
     this.updateCamera(rawDt); // カメラは実時間で滑らかに
     this.updateHUD(rawDt);
 
@@ -6005,60 +6882,84 @@ function refreshHangarUI() {
     tab.classList.toggle('selected', tab.dataset.cls === clsKey);
   }
 
-  // 左パネル: クラスステータス(HP / SPEED バー + アビリティ)
-  const maxHp = 290, maxSpd = 4.6;
+  // 左パネル: クラスステータス(HP / SPEED バー + ハードポイント構成 + アビリティ)
+  const maxHp = 290, maxSpd = 6.2; // V7.1: 速度上限を SCOUT 6.2 に追従
+  const hpTags = CONFIG.MECH_CLASSES[clsKey].hardpoints
+    .map((sz) => `<span class="sl-size sz-${sz}">${SIZE_LABEL[sz]}</span>`).join('');
   $id('class-info').innerHTML = `
     <div class="ci-name">${cls.name}${HANGAR.buffers && HANGAR.buffers[cls.model] ? '' : ' *'}</div>
     <div class="ci-class">${clsKey} CLASS</div>
     <div class="ci-stat"><span>HP</span><div class="ci-bar"><i style="width:${Math.round(cls.hp / maxHp * 100)}%"></i></div><b>${cls.hp}</b></div>
     <div class="ci-stat"><span>SPD</span><div class="ci-bar"><i style="width:${Math.round(cls.speed / maxSpd * 100)}%"></i></div><b>${cls.speed}</b></div>
+    <div class="ci-ab">SLOTS ${hpTags}</div>
     <div class="ci-ab">${cls.ability === 'sprint' ? '⚡ SPRINT' : '🛡 SHIELD'}</div>
     <div class="ci-desc">${cls.desc}</div>`;
 
-  // 右パネル: 武器スロットカード(サムネ + 名前 + EQUIPPED バッジ + UNEQUIP)
+  // 右パネル: 武器スロットカード(V7.1: hardpoints 数ぶん動的生成 + サイズタグ)
   const loadout = SAVE.loadouts[clsKey];
-  for (let i = 0; i < 2; i++) {
+  const hp = hardpointsOf(clsKey);
+  const keyHints = ['Space', 'Z', 'X', 'C'];
+  const cardsWrap = $id('slot-cards');
+  cardsWrap.innerHTML = '';
+  for (let i = 0; i < hp.length; i++) {
     const key = loadout[i];
     const w = CONFIG.WEAPONS[key];
-    const card = $id(`slot-${i}`);
-    const slotLabel = `SLOT ${i + 1}${i === 0 ? ' [Space]' : ' [Z]'}`;
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    card.id = `slot-${i}`;
+    const sizeTag = `<span class="sl-size sz-${hp[i]}">${SIZE_LABEL[hp[i]]}</span>`;
+    const slotLabel = `${sizeTag}SLOT ${i + 1} [${keyHints[i] || ''}]`;
     if (w) {
-      card.classList.remove('empty');
-      card.innerHTML = `<span class="sl-no">${slotLabel}<span class="sl-badge">EQUIPPED</span></span>`
+      card.innerHTML = `<span class="sl-no"><span>${slotLabel}</span><span class="sl-badge">EQUIPPED</span></span>`
         + thumbHTML(key, 'sl-thumb')
         + `<span class="sl-name">${w.name}</span>`
         + `<span class="sl-tag">${w.tag} ・ ${w.mount === 'arm' ? 'ARM' : 'SHOULDER'}</span>`
         + `<button type="button" class="sl-unequip">✕ UNEQUIP</button>`;
-      // 取り外し(カードの開閉クリックとは独立)
-      card.querySelector('.sl-unequip').addEventListener('click', (e) => {
+    } else {
+      card.classList.add('empty');
+      card.innerHTML = `<span class="sl-no"><span>${slotLabel}</span></span>`
+        + `<span class="sl-empty">— EMPTY —</span>`
+        + `<span class="sl-tag">タップして${SIZE_LABEL[hp[i]]}武器を装備</span>`;
+    }
+    card.classList.toggle('editing', HANGAR.activeSlot === i);
+    // カード開閉(動的生成のためここで結線。V7.1)
+    card.addEventListener('click', () => {
+      HANGAR.activeSlot = HANGAR.activeSlot === i ? -1 : i;
+      HANGAR.pendingBuy = null;
+      uiSfx();
+      refreshHangarUI();
+    });
+    // 取り外し(カードの開閉クリックとは独立)
+    const unequipBtn = card.querySelector('.sl-unequip');
+    if (unequipBtn) {
+      unequipBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         HANGAR.pendingBuy = null;
         setSlot(clsKey, i, null);
       });
-    } else {
-      card.classList.add('empty');
-      card.innerHTML = `<span class="sl-no">${slotLabel}</span>`
-        + `<span class="sl-empty">— EMPTY —</span>`
-        + `<span class="sl-tag">タップして武器を装備</span>`;
     }
-    card.classList.toggle('editing', HANGAR.activeSlot === i);
+    cardsWrap.appendChild(card);
   }
+  if (HANGAR.activeSlot >= hp.length) HANGAR.activeSlot = -1; // クラス切替でスロット数減
 
   // 武器リスト(ショップ + 装備。開いているスロットがある時のみ)
+  // V7.1: そのスロットサイズの武器のみ表示
   const list = $id('weapon-list');
   if (HANGAR.activeSlot < 0) {
     list.classList.add('hidden');
   } else {
     const slotIdx = HANGAR.activeSlot;
+    const slotSize = hp[slotIdx];
     list.classList.remove('hidden');
     list.innerHTML = '';
     // ヘッダー: どのスロットを操作中かを常に明示
     const head = document.createElement('div');
     head.className = 'wl-head';
-    head.textContent = `SLOT ${slotIdx + 1} に装備する武器を選択`;
+    head.textContent = `SLOT ${slotIdx + 1}(${SIZE_LABEL[slotSize]})に装備する武器を選択`;
     list.appendChild(head);
 
     for (const [key, w] of Object.entries(CONFIG.WEAPONS)) {
+      if (w.size !== slotSize) continue; // V7.1: サイズ不一致は表示しない
       const inv = invCount(key);
       const used = equippedSlots(key);
       const isThisSlot = loadout[slotIdx] === key;
@@ -6160,9 +7061,9 @@ async function buildSetup(playerClass) {
 /** 出撃(Game は常に存在 → redeploy のみ) */
 async function deploy() {
   if (HANGAR.deploying || !HANGAR.game) return;
-  // 両スロット空での出撃は禁止(最低 1 武器)
+  // 全スロット空での出撃は禁止(最低 1 武器。V7.1: スロット数可変)
   const lo = SAVE.loadouts[HANGAR.selectedClass];
-  if (!lo[0] && !lo[1]) {
+  if (!lo.some(Boolean)) {
     $id('hangar-status').textContent = 'EQUIP AT LEAST ONE WEAPON!';
     showToast('武器がありません — 最低 1 つ装備してください');
     uiSfx();
@@ -6213,15 +7114,7 @@ function returnToHangar() {
   HANGAR.game.enterHangar();
   statusEl.textContent = 'SELECT YOUR MECH';
 
-  // スロットカード: 武器リストの開閉
-  for (let i = 0; i < 2; i++) {
-    $id(`slot-${i}`).addEventListener('click', () => {
-      HANGAR.activeSlot = HANGAR.activeSlot === i ? -1 : i;
-      HANGAR.pendingBuy = null;
-      uiSfx();
-      refreshHangarUI();
-    });
-  }
+  // スロットカードの開閉は動的生成時に結線(V7.1: refreshHangarUI 内)
   $id('launch-btn').addEventListener('click', deploy);
   $id('hangar-btn').addEventListener('click', returnToHangar); // リザルト側のボタン
 })();

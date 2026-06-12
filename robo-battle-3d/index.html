@@ -125,6 +125,7 @@
     display: flex; align-items: center; gap: 4px;
     white-space: nowrap;
   }
+  #lockon-wpns { display: inline-flex; align-items: center; gap: 4px; } /* V7.1: アイコン 2〜4 個 */
   #lockon-loadout .lk-wpn {
     display: inline-flex; align-items: center; justify-content: center;
     width: 18px; height: 18px;
@@ -309,12 +310,12 @@
   }
   .ctl-btn:active, .ctl-btn.pressed { transform: scale(0.93); }
 
-  /* --- War Robots 風 円形武器ランチャー(右下・4 セグメント) --- */
+  /* --- War Robots 風 円形武器ランチャー(右下・V7.1: 2〜4 セグメント動的生成) --- */
   #weapon-cluster {
     position: absolute;
     right: calc(14px + env(safe-area-inset-right));
     bottom: calc(18px + env(safe-area-inset-bottom));
-    width: 200px; height: 215px;
+    width: 210px; height: 252px;
     pointer-events: none;
   }
   #fire-main {
@@ -328,15 +329,18 @@
   }
   #fire-main:active, #fire-main.pressed { background: radial-gradient(circle at 35% 30%, #ffb09a, #e23a2c 60%, #8e1a12); }
   .wpn-seg {
-    width: 62px; height: 62px;
+    width: 58px; height: 58px;
     flex-direction: column;
     font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
     overflow: hidden;
   }
   .wpn-seg .seg-label { position: relative; }
-  /* 中央 FIRE の周囲に弧状配置(将来増設はこの並びに追加) */
-  #wpn-seg-0 { right: 126px; bottom: 4px; }    /* スロット1(左) */
-  #wpn-seg-1 { right: 100px; bottom: 92px; }   /* スロット2(左上) */
+  .wpn-seg .seg-key { position: relative; font-size: 6.5px; color: #7fa0b4; letter-spacing: 1px; }
+  /* 中央 FIRE の周囲に弧状配置(V7.1: スロット 1〜4 = 左下から左上へ) */
+  .seg-pos-0 { right: 130px; bottom: 0; }      /* スロット1(左) */
+  .seg-pos-1 { right: 118px; bottom: 64px; }   /* スロット2(左上) */
+  .seg-pos-2 { right: 84px; bottom: 126px; }   /* スロット3(上左) */
+  .seg-pos-3 { right: 22px; bottom: 180px; }   /* スロット4(上) */
   /* ターゲット切替(◎): FIRE の上・WR のクロスヘアボタン位置 */
   #target-btn {
     right: 32px; bottom: 124px;
@@ -348,6 +352,8 @@
   #target-btn:active { color: #fff; }
   .wpn-seg.overheat { border-color: #ff3b3b; color: #ff6b6b; animation: heatBlink 0.4s steps(2) infinite; }
   .wpn-seg.nolock { opacity: 0.5; }
+  /* V7.1: チャージ中(RAILGUN/TEMPEST)は琥珀で明滅 */
+  .wpn-seg.charging { border-color: var(--hud-amber); color: var(--hud-amber); animation: heatBlink 0.5s steps(2) infinite; }
   /* V6.9: 空きスロット(発射不可・グレー表示) */
   .wpn-seg.empty {
     opacity: 0.35;
@@ -681,10 +687,30 @@
     color: #5a7484; text-align: center; padding: 12px 0 4px;
   }
   .thumb-fb { display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  /* 武器リスト(ショップ) */
+  /* V7.1: スロットカードのコンテナ(2〜4 枚を縦積み・多い時はスクロール) */
+  #slot-cards {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 44vh; overflow-y: auto;
+    touch-action: pan-y; -webkit-overflow-scrolling: touch;
+  }
+  /* V7.1: 4 スロット時はカードを少しコンパクトに */
+  #slot-cards .sl-thumb { height: 34px; }
+  /* V7.1: ハードポイントサイズタグ(軽/中/重) */
+  .sl-size {
+    display: inline-block;
+    padding: 0 5px; margin-right: 5px;
+    font-size: 8px; font-weight: 900; letter-spacing: 1px;
+    clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+  }
+  .sl-size.sz-light { color: #0a1014; background: #7fe8c8; }
+  .sl-size.sz-medium { color: #0a1014; background: #ffd24a; }
+  .sl-size.sz-heavy { color: #fff; background: #e0543a; }
+  /* 武器リスト(ショップ)。V7.1: 項目増のためモバイルでのタッチスクロールを保証 */
   #weapon-list {
     display: flex; flex-direction: column; gap: 4px;
     max-height: min(38vh, 260px); overflow-y: auto;
+    touch-action: pan-y; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   #weapon-list.hidden { display: none; }
   /* 操作中スロットの明示ヘッダー(V6.9) */
@@ -803,10 +829,9 @@
     <div id="lockon-name">TARGET</div>
     <div id="lockon-hp"><div id="lockon-hp-fill"></div></div>
     <div id="lockon-dist">-- m</div>
-    <!-- V7.0: ロック対象の装備武器アイコン×2 + HP 数値 -->
+    <!-- V7.1: ロック対象の装備武器アイコン(スロット数ぶん JS が生成)+ HP 数値 -->
     <div id="lockon-loadout">
-      <span id="lockon-wpn-0" class="lk-wpn"></span>
-      <span id="lockon-wpn-1" class="lk-wpn"></span>
+      <span id="lockon-wpns"></span>
       <span id="lockon-hpnum"></span>
     </div>
   </div>
@@ -856,16 +881,8 @@
   <!-- アビリティ(B キー / クラス由来。⚡スプリント or 🛡シールド) -->
   <button id="ability-btn" class="ctl-btn" type="button"><span id="ability-icon">⚡</span><div class="cd-overlay" id="ability-cd"></div></button>
 
-  <!-- War Robots 風 円形武器ランチャー(V6.7: 2 スロット・中央=一斉) -->
+  <!-- War Robots 風 円形武器ランチャー(V7.1: セグメントはスロット数ぶん JS が動的生成) -->
   <div id="weapon-cluster">
-    <button id="wpn-seg-1" class="ctl-btn wpn-seg" type="button">
-      <span class="seg-label" id="seg-label-1">SLOT2</span>
-      <div class="cd-overlay" id="seg-cd-1"></div>
-    </button>
-    <button id="wpn-seg-0" class="ctl-btn wpn-seg" type="button">
-      <span class="seg-label" id="seg-label-0">SLOT1</span>
-      <div class="cd-overlay" id="seg-cd-0"></div>
-    </button>
     <button id="fire-main" class="ctl-btn" type="button"><span>FIRE</span></button>
     <!-- ターゲット切替(Tab / WR の中央下配置) -->
     <button id="target-btn" class="ctl-btn" type="button">◎</button>
@@ -890,7 +907,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V6.9.1 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V7.1 ・ BATTLE ROYALE</span></div>
     <div id="hangar-wallet">WALLET 0 pt</div>
   </div>
   <div id="hangar-status">LOADING...</div>
@@ -905,16 +922,16 @@
     <!-- 右: 武器スロットカード + 武器リスト(在庫制ショップ) -->
     <!-- カード内に UNEQUIP ボタンを内包するため button ではなく div -->
     <div id="hangar-right">
-      <div id="slot-0" class="slot-card"></div>
-      <div id="slot-1" class="slot-card"></div>
+      <!-- V7.1: スロットカードはハードポイント数ぶん JS が動的生成(2〜4) -->
+      <div id="slot-cards"></div>
       <div id="weapon-list" class="hidden"></div>
     </div>
   </div>
   <button id="launch-btn" type="button">LAUNCH ⚔</button>
   <div id="hangar-help">
-    カーソルキー: 移動 ・ Shift+←→: 旋回 ・ Space/Z: 武器 ・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ<br>
-    武器は「実体」: 在庫の数だけ装備可能。他の機体からの載せ替えは MOVE HERE<br>
-    V7.0: 出現はランダム ・ エネルギー弾は横移動で避けられる(距離を取れ)・ 撃破すると HP が回復(残量2倍)
+    カーソルキー: 移動 ・ Shift+←→: 旋回 ・ Space/Z/X/C: 武器(スロット順)・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ<br>
+    V7.1 ハードポイント制: スロットには同サイズ(軽/中/重)の武器のみ装備可。武器は在庫制・載せ替えは MOVE HERE<br>
+    出現はランダム ・ 実体弾は横移動で回避可 ・ 撃破で HP 回復(残量2倍)・ 砲撃/チャージ武器には予兆がある
   </div>
   <!-- トースト通知(自動取り外し・購入など) -->
   <div id="hangar-toast"></div>
