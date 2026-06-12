@@ -229,22 +229,22 @@
     position: absolute;
     left: 50%; bottom: calc(14px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
-    width: min(380px, 46vw);
+    width: min(340px, 42vw); /* V7.5: わずかに縮小 */
     background: var(--hud-bg);
     border: 1px solid var(--hud-line);
     border-radius: 4px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     backdrop-filter: blur(4px);
     clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   }
-  .bar-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
   .bar-label {
-    width: 48px; flex: none;
-    font-size: 10px; font-weight: 700; letter-spacing: 3px;
+    width: 44px; flex: none;
+    font-size: 9px; font-weight: 700; letter-spacing: 2px;
     color: var(--hud-cyan);
   }
   .bar-track {
-    flex: 1; height: 10px;
+    flex: 1; height: 9px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(110, 243, 255, 0.25);
     overflow: hidden;
@@ -309,43 +309,56 @@
     touch-action: none;
   }
   .ctl-btn:active, .ctl-btn.pressed { transform: scale(0.93); }
+  /* V7.5: タッチ判定を見た目より一回り大きく(疑似要素は要素のヒット領域になる)。
+     隣接セグメントとの誤タップを避けるため拡張は ±6px に留める */
+  .ctl-btn::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; }
 
-  /* --- War Robots 風 円形武器ランチャー(右下・V7.1: 2〜4 セグメント動的生成) --- */
+  /* ============================================================
+     V7.5【バグ修正】ハンガー中は戦闘 HUD/操作 UI を完全に隠す。
+     ハンガー中央は透過(3D ドックが見える)ため、従来は背後の
+     ENEMY カウンター・レーダー・ARMOR/HEAT・JUMP・FIRE 等が
+     ドックに重なって表示されていた。🔊 ミュートだけは残す。
+     ============================================================ */
+  body.hangar-open #hud { display: none; }
+  body.hangar-open #controls > *:not(#mute-btn) { display: none; }
+
+  /* --- War Robots 風 円形武器ランチャー(右下) --- */
+  /* V7.5: FIRE を約 2/3 に縮小 + パネル全体を一回り小さく(赤色で視認性は維持) */
   #weapon-cluster {
     position: absolute;
     right: calc(14px + env(safe-area-inset-right));
     bottom: calc(18px + env(safe-area-inset-bottom));
-    width: 210px; height: 252px;
+    width: 170px; height: 196px;
     pointer-events: none;
   }
   #fire-main {
-    right: 8px; bottom: 8px;
-    width: 106px; height: 106px;
-    font-size: 15px; letter-spacing: 3px;
+    right: 6px; bottom: 6px;
+    width: 70px; height: 70px; /* V7.5: 106 → 70(約 2/3) */
+    font-size: 11px; letter-spacing: 2px;
     color: #fff;
-    border: 3px solid rgba(255, 130, 110, 0.85);
+    border: 2px solid rgba(255, 130, 110, 0.85);
     background: radial-gradient(circle at 35% 30%, #ff8a72, #cc2418 60%, #7e120c);
-    box-shadow: 0 0 24px rgba(255, 70, 40, 0.4);
+    box-shadow: 0 0 18px rgba(255, 70, 40, 0.4);
   }
   #fire-main:active, #fire-main.pressed { background: radial-gradient(circle at 35% 30%, #ffb09a, #e23a2c 60%, #8e1a12); }
   .wpn-seg {
-    width: 58px; height: 58px;
+    width: 48px; height: 48px; /* V7.5: 58 → 48 */
     flex-direction: column;
-    font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
+    font-size: 7px; font-weight: 700; letter-spacing: 1px;
     overflow: hidden;
   }
   .wpn-seg .seg-label { position: relative; }
-  .wpn-seg .seg-key { position: relative; font-size: 6.5px; color: #7fa0b4; letter-spacing: 1px; }
-  /* 中央 FIRE の周囲に弧状配置(V7.1: スロット 1〜4 = 左下から左上へ) */
-  .seg-pos-0 { right: 130px; bottom: 0; }      /* スロット1(左) */
-  .seg-pos-1 { right: 118px; bottom: 64px; }   /* スロット2(左上) */
-  .seg-pos-2 { right: 84px; bottom: 126px; }   /* スロット3(上左) */
-  .seg-pos-3 { right: 22px; bottom: 180px; }   /* スロット4(上) */
-  /* ターゲット切替(◎): FIRE の上・WR のクロスヘアボタン位置 */
+  .wpn-seg .seg-key { position: relative; font-size: 6px; color: #7fa0b4; letter-spacing: 1px; }
+  /* 中央 FIRE の周囲に弧状配置(V7.5: 縮小に合わせて再配置) */
+  .seg-pos-0 { right: 94px; bottom: 0; }     /* スロット1(左) */
+  .seg-pos-1 { right: 86px; bottom: 50px; }  /* スロット2(左上) */
+  .seg-pos-2 { right: 60px; bottom: 100px; } /* スロット3(上左) */
+  .seg-pos-3 { right: 10px; bottom: 138px; } /* スロット4(上) */
+  /* ターゲット切替(◎): FIRE の直上(V7.5: 48 → 38) */
   #target-btn {
-    right: 32px; bottom: 124px;
-    width: 48px; height: 48px;
-    font-size: 19px;
+    right: 22px; bottom: 84px;
+    width: 38px; height: 38px;
+    font-size: 15px;
     color: var(--hud-amber);
     border-color: rgba(255, 176, 46, 0.55);
   }
@@ -369,12 +382,12 @@
     pointer-events: none;
     background: conic-gradient(rgba(6, 10, 16, 0.78) calc(var(--cd, 0) * 1turn), rgba(0, 0, 0, 0) 0);
   }
-  /* JUMP は武器パネルの上(WR 準拠) */
+  /* JUMP は武器パネルの上(WR 準拠)。V7.5: 60 → 48(~80%) */
   #jump-btn {
-    right: calc(116px + env(safe-area-inset-right));
-    bottom: calc(218px + env(safe-area-inset-bottom));
-    width: 60px; height: 60px;
-    font-size: 10px;
+    right: calc(96px + env(safe-area-inset-right));
+    bottom: calc(186px + env(safe-area-inset-bottom));
+    width: 48px; height: 48px;
+    font-size: 8.5px;
     overflow: hidden;
   }
   /* PCではタッチボタンを薄く表示(タッチデバイスで濃く) */
@@ -403,22 +416,24 @@
   }
   #radar-dist.locked { color: var(--hud-amber); text-shadow: 0 0 6px rgba(255, 176, 46, 0.7); }
 
-  /* --- ミュートトグル(左上) --- */
+  /* --- ミュートトグル(左上)。V7.5: 戦闘中は半透明の極小表示 --- */
   #mute-btn {
     position: absolute;
     top: calc(10px + env(safe-area-inset-top));
     left: calc(10px + env(safe-area-inset-left));
-    width: 42px; height: 42px;
+    width: 30px; height: 30px;
     border-radius: 50%;
     pointer-events: auto;
-    font-size: 17px;
+    font-size: 12px;
     border: 1px solid var(--hud-line);
     background: var(--hud-bg);
     color: #dff8ff;
     touch-action: none;
+    opacity: 0.45;
   }
-  #mute-btn.muted { opacity: 0.55; }
-  #mute-btn:active { transform: scale(0.92); }
+  #mute-btn::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; } /* タッチ判定拡張 */
+  #mute-btn.muted { opacity: 0.3; }
+  #mute-btn:active { transform: scale(0.92); opacity: 1; }
 
   /* --- 被弾方向インジケータ(中央周囲の赤い弧) --- */
   #hit-arc {
@@ -612,7 +627,9 @@
     flex: 1;
     width: 100%;
     display: flex; justify-content: space-between; align-items: center;
-    padding: 0 16px;
+    /* V7.5: 下端に操作ヒント/LAUNCH の帯ぶんの余白を確保
+       (絶対配置の #hangar-help が左カラムのクラス情報に重なるバグの修正) */
+    padding: 0 16px 56px;
     gap: 10px;
     min-height: 0;
   }
@@ -907,6 +924,140 @@
     background: rgba(90, 106, 117, 0.12);
     cursor: default;
   }
+
+  /* ===== V7.5: PC では新モバイル要素を隠す(モバイル側は @media が出す) ===== */
+  #class-summary { display: none; }
+  #ss-cycle { display: none; }
+  .sl-plus { display: none; }
+  #cs-toggle {
+    width: 34px; height: 30px; flex: none;
+    background: rgba(110, 243, 255, 0.08);
+    border: 1px solid rgba(110, 243, 255, 0.45);
+    color: var(--hud-cyan);
+    font-family: inherit; font-size: 13px; font-weight: 900;
+    cursor: pointer;
+  }
+  #cs-toggle.on {
+    color: var(--hud-amber); border-color: var(--hud-amber);
+    background: rgba(255, 176, 46, 0.12);
+  }
+
+  /* ============================================================
+     V7.5: モバイルのハンガー整理(縦横回転に追従)
+     方針: Progressive Disclosure — 常時見せるのは
+     ①機体(3D+名前) ②機体切替チップ ③武器スロットチップ ④LAUNCH のみ
+     ブレークポイント: 幅 980px 以下 or 高さ 520px 以下
+     (iPhone Pro Max 横向き = 幅 932px を確実に含めるため 900 → 980/520)
+     ============================================================ */
+  @media (max-width: 980px), (max-height: 520px) {
+    /* --- 上部バー: タイトル縮小・バージョン非表示・コンパクト --- */
+    #hangar-top { padding: calc(6px + env(safe-area-inset-top)) 10px 2px; }
+    #hangar-title { font-size: 12px; letter-spacing: 2px; }
+    #hangar-title span { display: none; } /* バージョン表記は隠す */
+    #hangar-wallet { font-size: 12px; }
+    #lang-btn { padding: 3px 7px; font-size: 9px; }
+    #hangar-status { font-size: 9px; min-height: 12px; }
+
+    /* --- メイン: 縦積み(上=チップ列 / 中=3D 透過 / 下=スロットチップ) --- */
+    /* 下余白 = ステージ巡回 + LAUNCH の帯(重なり防止) */
+    #hangar-main { flex-direction: column; align-items: stretch; padding: 0 10px 48px; gap: 6px; }
+    #hangar-left, #hangar-right { width: 100%; }
+
+    /* --- 機体切替: 横スクロールのチップ列(WR カルーセル風) --- */
+    #class-tabs {
+      flex-direction: row; gap: 6px;
+      max-height: none; overflow-x: auto; overflow-y: hidden;
+      touch-action: pan-x; -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+    }
+    .class-tab {
+      flex-direction: column; align-items: flex-start; gap: 1px;
+      padding: 5px 10px;
+      font-size: 10px; letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .class-tab .ct-sub { font-size: 7px; }
+
+    /* --- 1 行サマリー + ⓘ 詳細トグル --- */
+    #class-summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 4px 10px;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-line);
+    }
+    #cs-line { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #cfeef8; }
+
+    /* --- 詳細(ステータス/説明/BUY/SELL)はシートに格納(デフォルト閉) --- */
+    #class-info { display: none; }
+    #class-info.open {
+      display: block;
+      position: absolute;
+      left: 10px; right: 10px;
+      top: calc(96px + env(safe-area-inset-top));
+      z-index: 25;
+      max-height: 58vh; overflow-y: auto;
+      touch-action: pan-y; -webkit-overflow-scrolling: touch;
+      background: rgba(8, 14, 20, 0.96);
+      border-color: var(--hud-cyan);
+      box-shadow: 0 0 24px rgba(110, 243, 255, 0.25);
+    }
+
+    /* --- 3D プレビュー領域(透過のまま最大化) --- */
+    #hangar-center { flex: 1; min-height: 0; }
+
+    /* --- 武器スロット: サムネ + サイズタグのみのコンパクトチップ(横並び) --- */
+    #slot-cards {
+      flex-direction: row; gap: 6px;
+      max-height: none; overflow-x: auto; overflow-y: hidden;
+      touch-action: pan-x; -webkit-overflow-scrolling: touch;
+    }
+    .slot-card {
+      flex: none;
+      width: 78px; height: 44px;
+      padding: 3px 6px;
+      flex-direction: row; align-items: center; gap: 4px;
+    }
+    .slot-card .sl-slotname, .slot-card .sl-badge,
+    .slot-card .sl-name, .slot-card .sl-tag,
+    .slot-card .sl-unequip, .slot-card .sl-empty { display: none; }
+    .slot-card .sl-no { flex: none; }
+    #slot-cards .sl-thumb { width: 44px; height: 30px; }
+    .slot-card .sl-plus {
+      display: block;
+      font-size: 18px; font-weight: 900; color: #5a7484;
+      margin: 0 auto;
+    }
+
+    /* --- 未所持機体の注意カード(チップ化の例外: テキストを残す) --- */
+    .slot-card.sl-note { width: auto; height: auto; flex-direction: column; align-items: flex-start; }
+    .slot-card.sl-note .sl-empty { display: block; font-size: 10px; padding: 2px 0; }
+    .slot-card.sl-note .sl-tag { display: block; font-size: 8px; }
+
+    /* --- ステージ: 1 つの巡回ボタンに(4 ボタンとラベルは隠す) --- */
+    #stage-select { bottom: calc(64px + env(safe-area-inset-bottom)); right: calc(12px + env(safe-area-inset-right)); }
+    #stage-select .ss-label, #stage-select .ss-btn { display: none; }
+    #ss-cycle {
+      display: block;
+      padding: 6px 12px;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-line);
+      color: #9fc2d4;
+      font-family: inherit; font-size: 10px; font-weight: 900; letter-spacing: 1px;
+      cursor: pointer;
+      clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+    }
+
+    /* --- LAUNCH: 少しコンパクトに --- */
+    #hangar #launch-btn {
+      padding: 10px 26px;
+      font-size: 14px; letter-spacing: 3px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      right: calc(12px + env(safe-area-inset-right));
+    }
+
+    /* --- 操作ヒントは非表示(情報過多の解消) --- */
+    #hangar-help { display: none; }
+  }
   /* トースト通知(V6.9: 自動取り外し・購入。下部中央にフェード表示) */
   #hangar-toast {
     position: absolute;
@@ -936,19 +1087,21 @@
     max-width: 46vw;
   }
 
-  /* --- アビリティボタン(JUMP の左 / CD 扇形 + 発動中グロー) --- */
+  /* --- アビリティボタン(JUMP の左 / CD 扇形 + 発動中グロー)。V7.5: 60 → 48 --- */
   #ability-btn {
-    right: calc(190px + env(safe-area-inset-right));
-    bottom: calc(218px + env(safe-area-inset-bottom));
-    width: 60px; height: 60px;
-    font-size: 20px;
+    right: calc(156px + env(safe-area-inset-right));
+    bottom: calc(186px + env(safe-area-inset-bottom));
+    width: 48px; height: 48px;
+    font-size: 16px;
     overflow: hidden;
   }
   #ability-btn.ready { border-color: rgba(110, 243, 255, 0.85); box-shadow: 0 0 10px rgba(110, 243, 255, 0.35); }
   #ability-btn.on { border-color: var(--hud-amber); box-shadow: 0 0 14px rgba(255, 176, 46, 0.55); }
 </style>
 </head>
-<body>
+<!-- V7.5: 起動時はハンガーから始まるため hangar-open を初期付与
+     (戦闘 HUD がドックへ透けて重なるのを防ぐ。トグルは enterHangar/exitHangar) -->
+<body class="hangar-open">
 
 <!-- ===== HUD ===== -->
 <div id="hud">
@@ -1040,18 +1193,23 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V7.4 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V7.5 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.3: 言語トグル(JA/EN。セーブに保存) -->
       <button id="lang-btn" type="button">🌐 JA</button>
-      <div id="hangar-wallet">WALLET 0 pt</div>
+      <div id="hangar-wallet">💰 0</div>
     </div>
   </div>
   <div id="hangar-status">LOADING...</div>
   <div id="hangar-main">
-    <!-- 左: 機体タブ + ステータス -->
+    <!-- 左: 機体タブ + ステータス(V7.5: モバイルは上部チップ列 + 詳細シートに変形) -->
     <div id="hangar-left">
       <div id="class-tabs"></div>
+      <!-- V7.5: モバイル用 1 行サマリー(HP・SPD・アビリティ)+ ⓘ 詳細トグル。PC では非表示 -->
+      <div id="class-summary">
+        <span id="cs-line"></span>
+        <button id="cs-toggle" type="button">ⓘ</button>
+      </div>
       <div id="class-info"></div>
     </div>
     <!-- 中央: 透過(3D ドックの機体が見える) -->
@@ -1063,7 +1221,7 @@
       <div id="slot-cards"></div>
     </div>
   </div>
-  <\!-- V7.4: ステージセレクタ(JS が CITY/DESERT/HARBOR/RANDOM ボタンを生成) -->
+  <!-- V7.4: ステージセレクタ(JS が生成。V7.5: モバイルは 1 つの巡回ボタン) -->
   <div id="stage-select"></div>
   <button id="launch-btn" type="button">LAUNCH ⚔</button>
   <div id="hangar-help"><!-- V7.3: applyStaticI18n() が言語別に挿入 --></div>
@@ -1092,6 +1250,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=74"></script>
+<script type="module" src="./game3d.js?v=75"></script>
 </body>
 </html>
