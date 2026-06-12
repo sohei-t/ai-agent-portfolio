@@ -1,6 +1,18 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V7.4)
+// ROBO BATTLE 3D - Prototype (V7.5)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V7.5 変更点(機能追加なし — モバイル UI の整理 + 表示バグ修正):
+//  0.【バグ修正】ハンガー中に戦闘 HUD(敵カウンター/レーダー/ARMOR/JUMP/FIRE 等)が
+//     透過部から漏れてドックに重なっていた → body.hangar-open で一括非表示。
+//     HTML コメント記法ミス(<\!--)が本文として描画されるバグも修正(対応 30/30 確認)
+//  1. ハンガーのスリム化(幅 980px 以下 or 高さ 520px 以下):
+//     機体タブ → 上部の横スクロール・チップ列 / ステータス・BUY/SELL → ⓘ詳細シート
+//     (閉時は「HP・SPD・アビリティ」の 1 行チップ)/ スロット → サムネ+サイズタグの
+//     コンパクトチップ / ステージ → 1 つの巡回ボタン / ヒント・バージョン表記は非表示
+//  2. 戦闘 UI: FIRE 106→70px(約 2/3)・武器セグメント 58→48・JUMP/アビリティ 60→48・
+//     ◎ 48→38・🔊 42→30(半透明)・ARMOR/HEAT パネル縮小。
+//     タッチ判定は ::after で見た目より ±6px 拡張(操作性は維持)
 //
 // V7.4 変更点(セーブ修復 + ステージ 3 種 + 7 機乱戦):
 //  0. 【P0】セーブ移行バグ修正: 旧キー破損が移行チェーン全体を中断して
@@ -1106,6 +1118,7 @@ const I18N = {
     // ---- V7.4: ステージ ----
     stageLabel: 'STAGE', st_CITY: '都市', st_DESERT: '砂漠の遺跡', st_HARBOR: '港湾', st_RANDOM: 'ランダム',
     sellFirst: '先に機体を売却してください({0}/{1})',
+    details: '詳細', // V7.5: ⓘ 詳細シート
     // ---- HUD ----
     armor: 'ARMOR', heat: 'HEAT', overheat: 'OVRHT', enemyLabel: 'ENEMY',
     targetLocked: 'TARGET LOCKED', destroyed: '{0} DESTROYED', repairLog: ' (+{0} 修復)',
@@ -1171,6 +1184,7 @@ const I18N = {
     // ---- V7.4: stages ----
     stageLabel: 'STAGE', st_CITY: 'CITY', st_DESERT: 'DESERT RUINS', st_HARBOR: 'HARBOR', st_RANDOM: 'RANDOM',
     sellFirst: 'Sell a mech first ({0}/{1})',
+    details: 'Details', // V7.5: ⓘ detail sheet
     armor: 'ARMOR', heat: 'HEAT', overheat: 'OVRHT', enemyLabel: 'ENEMY',
     targetLocked: 'TARGET LOCKED', destroyed: '{0} DESTROYED', repairLog: ' (+{0} repair)',
     victory: 'VICTORY', defeat: 'DEFEAT',
@@ -6162,11 +6176,15 @@ class Game {
   enterHangar() {
     this.inHangar = true;
     this.bgm.setMode('title');
+    // V7.5: ハンガー中は戦闘 HUD/操作ボタンを完全に隠す(中央透過から漏れて
+    // ドックに重なるバグの恒久対策。CSS の body.hangar-open が一括制御)
+    document.body.classList.add('hangar-open');
   }
 
   exitHangar() {
     this.inHangar = false;
     this.bgm.setMode('battle');
+    document.body.classList.remove('hangar-open'); // 戦闘 HUD を復帰
   }
 
   /** ドックシーンをブルーム込みで描画(RenderPass の scene/camera を差し替え) */
@@ -8010,6 +8028,7 @@ const HANGAR = {
   activeSlot: -1,       // 武器リストを開いているスロット(-1 = 閉)
   pendingBuy: null,     // 購入確認中の武器キー(カード 2 度押しで確定)
   pendingMech: null,    // V7.2: 機体の購入/売却確認 { type: 'buy'|'sell', key }
+  detailOpen: false,    // V7.5: モバイルの詳細シート(ⓘ)開閉状態。PC では常時表示
   deploying: false,
 };
 const $id = (id) => document.getElementById(id);
@@ -8203,7 +8222,8 @@ function thumbHTML(key, cssClass) {
 // ハンガー UI
 // ============================================================
 function refreshHangarWallet() {
-  $id('hangar-wallet').textContent = `WALLET ${fmtPt(SAVE.wallet)} pt`;
+  // V7.5: コンパクト表記(💰 + 桁区切りのみ。モバイル/PC 共通)
+  $id('hangar-wallet').textContent = `💰 ${fmtPt(SAVE.wallet)}`;
 }
 
 /** UI 操作音(AudioContext はユーザー操作で解禁) */
@@ -8300,8 +8320,10 @@ function sellMech(clsKey) {
 function renderStageSelect() {
   const wrap = $id('stage-select');
   if (!wrap) return;
+  const order = [...CONFIG.STAGE_KEYS, 'RANDOM'];
   wrap.innerHTML = `<span class="ss-label">${T('stageLabel')}</span>`;
-  for (const key of [...CONFIG.STAGE_KEYS, 'RANDOM']) {
+  // PC: 4 ボタン並び
+  for (const key of order) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'ss-btn' + (SAVE.stage === key ? ' selected' : '');
@@ -8315,6 +8337,20 @@ function renderStageSelect() {
     });
     wrap.appendChild(btn);
   }
+  // V7.5 モバイル: 1 つの巡回ボタン(タップで CITY→DESERT→HARBOR→RANDOM)。
+  // 表示の出し分けは CSS(@media)が行う
+  const cyc = document.createElement('button');
+  cyc.type = 'button';
+  cyc.id = 'ss-cycle';
+  cyc.textContent = `🗺 ${T(`st_${SAVE.stage}`)}`;
+  cyc.addEventListener('click', () => {
+    const i = order.indexOf(SAVE.stage);
+    SAVE.stage = order[(i + 1) % order.length];
+    saveSave(SAVE);
+    uiSfx();
+    renderStageSelect();
+  });
+  wrap.appendChild(cyc);
 }
 
 /** 機体タブ(V7.2: 全クラス表示。未所持はグレー + 価格) */
@@ -8336,6 +8372,8 @@ function renderClassTabs() {
       HANGAR.activeSlot = -1;
       HANGAR.pendingBuy = null;
       HANGAR.pendingMech = null;
+      // V7.5: 未所持機体を選んだら詳細(BUY のある場所)を自動で開く
+      if (!owned) HANGAR.detailOpen = true;
       uiSfx();
       refreshHangarUI();
     });
@@ -8395,6 +8433,18 @@ function refreshHangarUI() {
     <div class="ci-desc">${cdesc(clsKey)}</div>
     ${mechAction}`;
 
+  // V7.5: モバイル用 1 行サマリー + 詳細シート(ⓘ)の開閉状態を反映
+  const csLine = $id('cs-line');
+  if (csLine) {
+    csLine.textContent = `HP ${cls.hp} ・ SPD ${cls.speed} ・ ${cls.ability === 'sprint' ? '⚡' : '🛡'}${owned ? '' : ' 🔒'}`;
+  }
+  $id('class-info').classList.toggle('open', !!HANGAR.detailOpen);
+  const csToggle = $id('cs-toggle');
+  if (csToggle) {
+    csToggle.classList.toggle('on', !!HANGAR.detailOpen);
+    csToggle.title = T('details');
+  }
+
   // 機体の購入/売却ボタン(2 度押し確認)
   const buyBtn = $id('mech-buy-btn');
   if (buyBtn) {
@@ -8445,7 +8495,7 @@ function refreshHangarUI() {
     HANGAR.activeSlot = -1;
     closeWeaponModal(false);
     const note = document.createElement('div');
-    note.className = 'slot-card empty';
+    note.className = 'slot-card empty sl-note'; // V7.5: モバイルチップ化の例外(テキスト表示を維持)
     note.innerHTML = `<span class="sl-empty">${T('notOwnedCard')}</span>`
       + `<span class="sl-tag">${T('buyToCustomize', hp.map((sz) => SIZE_LABEL[sz]).join('/'))}</span>`;
     cardsWrap.appendChild(note);
@@ -8458,8 +8508,9 @@ function refreshHangarUI() {
     const card = document.createElement('div');
     card.className = 'slot-card';
     card.id = `slot-${i}`;
+    // V7.5: サイズタグとスロット名を分離(モバイルチップではタグ + サムネのみ表示)
     const sizeTag = `<span class="sl-size sz-${hp[i]}">${SIZE_LABEL[hp[i]]}</span>`;
-    const slotLabel = `${sizeTag}${T('slotN', i + 1)} [${keyHints[i] || ''}]`;
+    const slotLabel = `${sizeTag}<span class="sl-slotname">${T('slotN', i + 1)} [${keyHints[i] || ''}]</span>`;
     if (w) {
       card.innerHTML = `<span class="sl-no"><span>${slotLabel}</span><span class="sl-badge">${T('equipped')}</span></span>`
         + thumbHTML(key, 'sl-thumb')
@@ -8469,6 +8520,7 @@ function refreshHangarUI() {
     } else {
       card.classList.add('empty');
       card.innerHTML = `<span class="sl-no"><span>${slotLabel}</span></span>`
+        + `<span class="sl-plus">＋</span>` // V7.5: モバイルチップ用の「+」(PC では非表示)
         + `<span class="sl-empty">${T('emptySlot')}</span>`
         + `<span class="sl-tag">${T('tapToEquip', SIZE_LABEL[hp[i]])}</span>`;
     }
@@ -8832,6 +8884,13 @@ function buildBootSetup(playerClass) {
     $id('lang-btn').addEventListener('click', () => {
       setLang(LANG === 'ja' ? 'en' : 'ja');
       uiSfx();
+    });
+
+    // V7.5: 詳細シートのトグル(ⓘ。モバイルのみ表示 — PC は常時展開)
+    $id('cs-toggle').addEventListener('click', () => {
+      HANGAR.detailOpen = !HANGAR.detailOpen;
+      uiSfx();
+      refreshHangarUI();
     });
   } catch (err) {
     // 起動失敗時もエラー内容を画面に出す(LOADING のまま固まらせない)
