@@ -1,6 +1,20 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V7.5)
+// ROBO BATTLE 3D - Prototype (V7.5.2)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V7.5.2 変更点(モバイル実機フィードバック 4 件):
+//  1.【最優先】横画面のリザルトが操作不能 → 高さ 520px 以下はコンパクト 2 カラム
+//     (左=タイトル+戦績 / 右=内訳+ボタン)+ overflow-y/pan-y の保険スクロール。
+//     body.result-open で html/body の touch-action:none を一時解除
+//  2. ⓘ詳細シートに ✕ ボタン(44px タッチ)+ 背景タップで閉じる(モーダルと同作法)
+//  3. 機体列/武器列にセクションラベル(🤖 機体=シアン / 🔫 武器=アンバー)+
+//     スロットチップに「SLOT n ▸」ミニラベル(色分けで初見の区別を改善)
+//  4.【バグ修正】機体チップ列が横スクロール不能 → 原因は html/body の
+//     touch-action:none が祖先制約として子の pan-x を無効化していたこと。
+//     body.hangar-open 中はロック解除 + 右端フェードでスクロール可能を可視化
+//  5. 経済バランス(6 体乱戦の難度補填): 初期 wallet 1,000→3,000 /
+//     既存セーブに一回限り +2,000pt(balanceBonus75 フラグ・トースト通知)/
+//     撃破ボーナス PT_KILL 100→150
 //
 // V7.5 変更点(機能追加なし — モバイル UI の整理 + 表示バグ修正):
 //  0.【バグ修正】ハンガー中に戦闘 HUD(敵カウンター/レーダー/ARMOR/JUMP/FIRE 等)が
@@ -321,7 +335,8 @@ const CONFIG = {
   // V7.2: 機体ロスター(購入・所有・売却)
   MECH_MAX_OWNED: 3,      // 同時所有の上限(編成判断を生む)
   MECH_SELL_RATIO: 0.6,   // 売却額 = 購入価格 × この率
-  NEW_PLAYER_WALLET: 1000, // 新規プレイヤーの初期ポイント(SCOUT/RAIDER が視野に入る)
+  NEW_PLAYER_WALLET: 3000, // 新規プレイヤーの初期ポイント(V7.5.2: 1,000→3,000。6 体乱戦の難度に合わせ増額)
+  BALANCE_BONUS_75: 2000,  // V7.5.2: 既存セーブへの一回限りバランス調整ボーナス
 
   // アビリティ(B キー / 専用ボタン)
   SPRINT_DURATION: 3,     // スプリント持続(s)
@@ -484,7 +499,7 @@ const CONFIG = {
   SAVE_KEY_V2: 'v6_save_v2', // 旧セーブ v2(2 スロット固定)
   SAVE_KEY_V1: 'v6_save_v1', // 旧セーブ v1(owned 配列)
   REPAIR_BONUS: 500,         // V7.4: セーブ自動修復時の補償ポイント
-  PT_KILL: 100,           // 撃破ボーナス
+  PT_KILL: 150,           // 撃破ボーナス(V7.5.2: 100→150。6 体乱戦の手数に見合う報酬に)
   PT_PER_DMG: 1,          // 与ダメージ 1pt / dmg
   PT_WIN: 300,            // 勝利ボーナス
   PT_SURVIVE_SEC: 4,      // 生存 1pt / この秒数
@@ -784,7 +799,7 @@ function defaultInventory() {
   return { pulse: 3, mg: 3, missile: 1, bazooka: 2 };
 }
 /**
- * V7.2 新規プレイヤー: VANGUARD 1 台 + wallet 1,000(SCOUT/RAIDER がすぐ視野に入る)。
+ * V7.2 新規プレイヤー: VANGUARD 1 台 + wallet 3,000(V7.5.2 増額。SCOUT/RAIDER がすぐ視野に入る)。
  * 未所持クラスのロードアウトは全 null(在庫を保持しない)— sanitize と同じ不変条件。
  */
 function defaultSave() {
@@ -805,6 +820,7 @@ function defaultSave() {
     lang: (typeof navigator !== 'undefined' && (navigator.language || '').startsWith('ja')) ? 'ja' : 'en',
     stage: 'CITY',      // V7.4: 選択ステージ(CITY/DESERT/HARBOR/RANDOM)
     repairDone: false,  // V7.4: 旧データ自動修復を実施/判定済みか(再移行は 1 回だけ)
+    balanceBonus75: true, // V7.5.2: 新規は初期 3,000pt のためボーナス対象外(付与済み扱い)
   };
 }
 /**
@@ -841,6 +857,8 @@ function sanitizeSave(s) {
   // V7.4: ステージ選択 + 修復済みフラグ
   if (['CITY', 'DESERT', 'HARBOR', 'RANDOM'].includes(s.stage)) out.stage = s.stage;
   out.repairDone = s.repairDone === true;
+  // V7.5.2: バランス調整ボーナスの付与済みフラグ(未付与セーブは loadSave が 1 回だけ付与)
+  out.balanceBonus75 = s.balanceBonus75 === true;
   // ロードアウト: hardpoints 長の [武器キー|null]。
   //   所有機体のみ装備を保持(サイズ整合 + 在庫内)。未所持は全 null
   const used = {};
@@ -995,6 +1013,8 @@ function looksLikeFreshDefault(s) {
 
 // V7.4: 自動修復が走ったことを boot へ通知するフラグ(トースト表示用)
 let REPAIR_NOTICE = false;
+// V7.5.2: バランス調整ボーナスを付与したことの通知フラグ
+let BONUS_NOTICE = false;
 
 function loadSave() {
   // ---- 1) v5 を読む(破損時は null → 旧キーへ) ----
@@ -1025,6 +1045,16 @@ function loadSave() {
       console.info(`[V7.4] 旧データからセーブを自動修復しました(+${CONFIG.REPAIR_BONUS}pt 補償)`);
     }
     s.repairDone = true; // 修復実施/不要のどちらでも 1 回判定したら以後はチェックしない
+  }
+
+  // ---- 4) V7.5.2: 既存セーブへの一回限りバランス調整ボーナス(+2,000pt) ----
+  //   6 体乱戦化で稼ぎにくくなった補填。repairDone とは独立に 1 回だけ。
+  //   旧バージョンから移行したセーブ(フラグなし)が対象。新規は初期 3,000pt 側で対応
+  if (!s.balanceBonus75) {
+    s.wallet += CONFIG.BALANCE_BONUS_75;
+    s.balanceBonus75 = true;
+    BONUS_NOTICE = true;
+    console.info(`[V7.5.2] バランス調整ボーナス +${CONFIG.BALANCE_BONUS_75}pt を付与しました`);
   }
 
   try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(s)); } catch (_) { /* private mode */ }
@@ -1119,6 +1149,8 @@ const I18N = {
     stageLabel: 'STAGE', st_CITY: '都市', st_DESERT: '砂漠の遺跡', st_HARBOR: '港湾', st_RANDOM: 'ランダム',
     sellFirst: '先に機体を売却してください({0}/{1})',
     details: '詳細', // V7.5: ⓘ 詳細シート
+    secMech: '機体', secWeapons: '武器', // V7.5.2: セクションラベル
+    balanceBonus: '🎁 バランス調整ボーナス +{0} pt', // V7.5.2: 既存セーブへの一回限り
     // ---- HUD ----
     armor: 'ARMOR', heat: 'HEAT', overheat: 'OVRHT', enemyLabel: 'ENEMY',
     targetLocked: 'TARGET LOCKED', destroyed: '{0} DESTROYED', repairLog: ' (+{0} 修復)',
@@ -1185,6 +1217,8 @@ const I18N = {
     stageLabel: 'STAGE', st_CITY: 'CITY', st_DESERT: 'DESERT RUINS', st_HARBOR: 'HARBOR', st_RANDOM: 'RANDOM',
     sellFirst: 'Sell a mech first ({0}/{1})',
     details: 'Details', // V7.5: ⓘ detail sheet
+    secMech: 'MECH', secWeapons: 'WEAPONS', // V7.5.2: section labels
+    balanceBonus: '🎁 Balance adjustment bonus +{0} pt', // V7.5.2: one-time for existing saves
     armor: 'ARMOR', heat: 'HEAT', overheat: 'OVRHT', enemyLabel: 'ENEMY',
     targetLocked: 'TARGET LOCKED', destroyed: '{0} DESTROYED', repairLog: ' (+{0} repair)',
     victory: 'VICTORY', defeat: 'DEFEAT',
@@ -1244,6 +1278,9 @@ function applyStaticI18n() {
   if (help) help.innerHTML = `${T('help1')}<br>${T('help2')}<br>${T('help3')}`;
   const langBtn = document.getElementById('lang-btn');
   if (langBtn) langBtn.textContent = `🌐 ${LANG.toUpperCase()}`;
+  // V7.5.2: セクションラベル(機体列 / 武器列の区別)
+  set('lbl-mech', `🤖 ${T('secMech')}`);
+  set('lbl-weapons', `🔫 ${T('secWeapons')}`);
 }
 
 // ============================================================
@@ -6895,6 +6932,9 @@ class Game {
   showResult() {
     // RESTART ボタンを押せるようにポインターロックを解除
     if (document.pointerLockElement) document.exitPointerLock();
+    // V7.5.2: リザルト中は縦パンを許可(html/body の touch-action:none を一時解除。
+    // 横画面でボタンが収まらない場合でも必ずスクロールで到達できる保険)
+    document.body.classList.add('result-open');
     const win = this.pendingResult === 'win';
     this.ui.overlayTitle.textContent = win ? T('victory') : T('defeat');
     this.ui.overlaySub.textContent = win ? T('winSub') : T('loseSub');
@@ -7037,6 +7077,8 @@ class Game {
   }
 
   restart() {
+    // V7.5.2: リザルトの縦パン許可を解除(戦闘中は touch-action:none に戻す)
+    document.body.classList.remove('result-open');
     // V7.0: ランダム出現(SPAWN_RANDOM)。無効なら旧固定配置
     let spawnsList;
     if (CONFIG.SPAWN_RANDOM) {
@@ -8353,6 +8395,20 @@ function renderStageSelect() {
   wrap.appendChild(cyc);
 }
 
+/**
+ * V7.5.2: チップ列の「まだ続きがある」フェードの更新。
+ * 右端までスクロールし切っていない間だけ親 .sec-row に has-more を付ける
+ * (CSS が右端グラデーションを表示。scroll イベントから呼ばれる軽量処理)
+ */
+function updateChipFade() {
+  for (const id of ['class-tabs', 'slot-cards']) {
+    const el = $id(id);
+    if (!el || !el.parentElement) continue;
+    const more = el.scrollWidth - el.clientWidth - el.scrollLeft > 4;
+    el.parentElement.classList.toggle('has-more', more);
+  }
+}
+
 /** 機体タブ(V7.2: 全クラス表示。未所持はグレー + 価格) */
 function renderClassTabs() {
   const tabsEl = $id('class-tabs');
@@ -8424,6 +8480,7 @@ function refreshHangarUI() {
     }
   }
   $id('class-info').innerHTML = `
+    <button type="button" id="ci-close">✕</button>
     <div class="ci-name">${cls.name}${HANGAR.buffers[cls.model] === null ? ' *' : ''}</div>
     <div class="ci-class">${clsKey} CLASS ・ ${owned ? T('ownedMark') : T('notOwned')}</div>
     <div class="ci-stat"><span>HP</span><div class="ci-bar"><i style="width:${Math.round(cls.hp / maxHp * 100)}%"></i></div><b>${cls.hp}</b></div>
@@ -8444,6 +8501,18 @@ function refreshHangarUI() {
     csToggle.classList.toggle('on', !!HANGAR.detailOpen);
     csToggle.title = T('details');
   }
+  // V7.5.2: シートの ✕(innerHTML 再構築のため毎回結線)+ 背景の表示状態
+  const ciClose = $id('ci-close');
+  if (ciClose) {
+    ciClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      HANGAR.detailOpen = false;
+      uiSfx();
+      refreshHangarUI();
+    });
+  }
+  const ciBackdrop = $id('ci-backdrop');
+  if (ciBackdrop) ciBackdrop.classList.toggle('show', !!HANGAR.detailOpen);
 
   // 機体の購入/売却ボタン(2 度押し確認)
   const buyBtn = $id('mech-buy-btn');
@@ -8499,6 +8568,7 @@ function refreshHangarUI() {
     note.innerHTML = `<span class="sl-empty">${T('notOwnedCard')}</span>`
       + `<span class="sl-tag">${T('buyToCustomize', hp.map((sz) => SIZE_LABEL[sz]).join('/'))}</span>`;
     cardsWrap.appendChild(note);
+    updateChipFade(); // V7.5.2: 未所持表示でもフェード状態を更新
     updateDockMech(clsKey); // プレビューは同期する
     return;
   }
@@ -8511,18 +8581,22 @@ function refreshHangarUI() {
     // V7.5: サイズタグとスロット名を分離(モバイルチップではタグ + サムネのみ表示)
     const sizeTag = `<span class="sl-size sz-${hp[i]}">${SIZE_LABEL[hp[i]]}</span>`;
     const slotLabel = `${sizeTag}<span class="sl-slotname">${T('slotN', i + 1)} [${keyHints[i] || ''}]</span>`;
+    // V7.5.2: モバイルチップ用「SLOT n ▸」(タップで編集できる手がかり。PC 非表示)
+    const miniLabel = `<span class="sl-mini">SLOT ${i + 1} ▸</span>`;
     if (w) {
       card.innerHTML = `<span class="sl-no"><span>${slotLabel}</span><span class="sl-badge">${T('equipped')}</span></span>`
         + thumbHTML(key, 'sl-thumb')
         + `<span class="sl-name">${w.name}</span>`
         + `<span class="sl-tag">${wtag(key)} ・ ${w.mount === 'arm' ? 'ARM' : 'SHOULDER'}</span>`
-        + `<button type="button" class="sl-unequip">${T('unequip')}</button>`;
+        + `<button type="button" class="sl-unequip">${T('unequip')}</button>`
+        + miniLabel;
     } else {
       card.classList.add('empty');
       card.innerHTML = `<span class="sl-no"><span>${slotLabel}</span></span>`
         + `<span class="sl-plus">＋</span>` // V7.5: モバイルチップ用の「+」(PC では非表示)
         + `<span class="sl-empty">${T('emptySlot')}</span>`
-        + `<span class="sl-tag">${T('tapToEquip', SIZE_LABEL[hp[i]])}</span>`;
+        + `<span class="sl-tag">${T('tapToEquip', SIZE_LABEL[hp[i]])}</span>`
+        + miniLabel;
     }
     card.classList.toggle('editing', HANGAR.activeSlot === i);
     // V7.3: スロットタップ → 画面中央の武器選択モーダルを開く
@@ -8552,6 +8626,9 @@ function refreshHangarUI() {
   if (HANGAR.activeSlot >= 0 && !$id('wpn-modal').classList.contains('hidden')) {
     renderWeaponModal();
   }
+
+  // V7.5.2: チップ列のスクロール可否フェードを更新(再構築後の幅で判定)
+  updateChipFade();
 
   // 3D プレビューを同期(クラス変更=機体差替え / 武器変更=付替え)
   updateDockMech(clsKey);
@@ -8811,6 +8888,7 @@ async function deploy() {
 /** リザルトからドックへ戻る(装備変更/購入が可能) */
 function returnToHangar() {
   $id('overlay').classList.add('hidden');
+  document.body.classList.remove('result-open'); // V7.5.2: リザルトの縦パン許可を解除
   HANGAR.activeSlot = -1;
   HANGAR.pendingBuy = null;
   HANGAR.pendingMech = null; // V7.2: 機体売買の確認状態もリセット
@@ -8871,6 +8949,11 @@ function buildBootSetup(playerClass) {
 
     // V7.4: セーブ自動修復の通知(旧データから復元した場合に 1 回だけ)
     if (REPAIR_NOTICE) showToast(T('saveRepaired', CONFIG.REPAIR_BONUS));
+    // V7.5.2: バランス調整ボーナスの通知(修復トーストと重なる場合は後から表示)
+    if (BONUS_NOTICE) {
+      setTimeout(() => showToast(T('balanceBonus', fmtPt(CONFIG.BALANCE_BONUS_75))),
+        REPAIR_NOTICE ? 2600 : 0);
+    }
 
     // スロットカードの開閉は動的生成時に結線(V7.1: refreshHangarUI 内)
     $id('launch-btn').addEventListener('click', deploy);
@@ -8892,6 +8975,18 @@ function buildBootSetup(playerClass) {
       uiSfx();
       refreshHangarUI();
     });
+
+    // V7.5.2: シート外(背景)タップでも閉じる(武器モーダルと同じ作法)
+    $id('ci-backdrop').addEventListener('click', () => {
+      HANGAR.detailOpen = false;
+      uiSfx();
+      refreshHangarUI();
+    });
+
+    // V7.5.2: チップ列のスクロールでフェードを更新(横スクロール到達の可視化)
+    $id('class-tabs').addEventListener('scroll', updateChipFade, { passive: true });
+    $id('slot-cards').addEventListener('scroll', updateChipFade, { passive: true });
+    window.addEventListener('resize', updateChipFade);
   } catch (err) {
     // 起動失敗時もエラー内容を画面に出す(LOADING のまま固まらせない)
     console.error('[V7.3] 起動エラー:', err);
