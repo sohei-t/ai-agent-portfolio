@@ -874,6 +874,39 @@
     background: linear-gradient(180deg, #ffd27a, #e8862e);
     box-shadow: 0 0 24px rgba(255, 160, 50, 0.45);
   }
+  /* V7.4: ステージセレクタ(LAUNCH の直上) */
+  #stage-select {
+    position: absolute;
+    right: calc(18px + env(safe-area-inset-right));
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    display: flex; align-items: center; gap: 5px;
+  }
+  #stage-select .ss-label {
+    font-size: 9px; font-weight: 900; letter-spacing: 2px; color: #7fa0b4;
+    margin-right: 2px;
+  }
+  .ss-btn {
+    padding: 5px 9px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-line);
+    color: #9fc2d4;
+    font-family: inherit; font-size: 9px; font-weight: 900; letter-spacing: 1px;
+    cursor: pointer;
+    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  }
+  .ss-btn.selected {
+    color: var(--hud-amber);
+    border-color: var(--hud-amber);
+    background: rgba(255, 176, 46, 0.12);
+    box-shadow: 0 0 8px rgba(255, 176, 46, 0.35);
+  }
+  /* V7.4: 機体 3 台満杯時の BUY ボタン(無効化見た目・タップはトースト) */
+  .ci-btn.buy.roster-full {
+    opacity: 0.55;
+    border-color: #5a6a75; color: #8aa0ae;
+    background: rgba(90, 106, 117, 0.12);
+    cursor: default;
+  }
   /* トースト通知(V6.9: 自動取り外し・購入。下部中央にフェード表示) */
   #hangar-toast {
     position: absolute;
@@ -1007,7 +1040,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V7.3 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V7.4 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.3: 言語トグル(JA/EN。セーブに保存) -->
       <button id="lang-btn" type="button">🌐 JA</button>
@@ -1030,6 +1063,8 @@
       <div id="slot-cards"></div>
     </div>
   </div>
+  <\!-- V7.4: ステージセレクタ(JS が CITY/DESERT/HARBOR/RANDOM ボタンを生成) -->
+  <div id="stage-select"></div>
   <button id="launch-btn" type="button">LAUNCH ⚔</button>
   <div id="hangar-help"><!-- V7.3: applyStaticI18n() が言語別に挿入 --></div>
   <!-- トースト通知(自動取り外し・購入など) -->
@@ -1057,6 +1092,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=731"></script>
+<script type="module" src="./game3d.js?v=74"></script>
 </body>
 </html>
