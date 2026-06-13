@@ -1,6 +1,45 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V7.6)
+// ROBO BATTLE 3D - Prototype (V7.8)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V7.8 変更点(クラウドセーブ/レベル制/高額武器ティア):
+//  1. Firebase クラウドセーブ(同期コード方式): localStorage が主、Firebase は
+//     自動バックアップ + 端末間同期。SDK は CDN から動的 import(失敗しても完全動作)。
+//     RTDB パス v6saves/{syncCode} に RB1 エクスポート文字列を保存(検証フロー流用)。
+//     同期コード = 紛らわしい文字を除く英数 8 文字(衝突チェック付き)。
+//     💾 モーダルに ☁️ 保存/読込を追加。読込前に v6_save_backup_pre_cloud へ退避。
+//     バトル終了時に自動バックアップ(syncCode 取得済みの場合のみ・失敗は無視)
+//  2. レベル/XP 制: SAVE.xp 累計 → Lv1-30(必要累計 XP = 100×(lv−1)^1.6)。
+//     獲得 = 与ダメ×0.5 + 撃破×100 + 勝利 200 / 参加 30(リザルトに内訳 + LEVEL UP 演出)。
+//     効果 = 最大 HP +1.5%/Lv(全機)・速度 +0.5%/Lv(プレイヤーのみ)。
+//     敵 Lv = プレイヤー Lv ± 2(最低 1)。敵装備はレベル帯のティアで再抽選
+//     (Lv1-5 安価帯 / 6-12 中堅 / 13-20 高級 / 21+ 最高級混在)。
+//     ハンガー右上に Lv + XP バー。既存セーブは xp:0 で補完
+//  3. 高額武器ティア 6 種(計 26 種・全て評価式 E と価格逆転ゼロを機械検証):
+//     VORTEX SHREDDER(軽 12,000)/ QUASAR LANCE(軽 16,000)/
+//     TACHYON STORM(中 22,000)/ HELIOS PIERCER(中 28,000)/
+//     NOVA INFERNO(重 40,000)/ TITAN BREAKER(重 50,000 = チャージ 3.5s・
+//     170-200dmg + 爆風 r5 のハイリスク最高峰)。
+//     V7.6 武器 5 種の wtag_ 欠落(タグがキー表示になる)も修正
+//
+// V7.7 変更点(カメラ/ジャンプ/パワーアップ/セーブ移行):
+//  1. 初期ポイント: NEW_PLAYER_WALLET 3,000 → 5,000(新規のみ。looksLikeFreshDefault は
+//     CONFIG 参照のため自動追従)
+//  2. カメラ 3 段階プリセット: 縦スワイプの pitch 操作を廃止(横スワイプの旋回は維持)。
+//     📐 ボタン(◎ の隣・LOW/MID/HIGH 表示)と F キーで巡回。
+//     LOW(0.08/6.2)/ MID(0.38/7.0・既定)/ HIGH(0.72/8.2)。指数 lerp で滑らかに遷移。
+//     SAVE.camMode に保存。ロック中の自動センタリング/カメラ壁回避は従来どおり
+//  3. ジャンプ戦術化: JUMP_VELOCITY 9→14(滞空 ~1.1s・高度 ~3.7 でボルトを飛び越せる)/
+//     CD 3→3.5s / 空中加速 ×0.6(AIR_ACCEL_MUL)。AI リード射撃が velY を含み空中目標を
+//     追尾(aiBolt/boltcharge)。AI も回避ジャンプ(被弾直後 25% / チャージ予兆視認 30%)
+//  4. 時間限定パワーアップ(プレイヤー専用・7 秒で消滅・12〜20s 間隔・最大 2 個):
+//     REPAIR(+60HP)/ POWER(15s 与ダメ+30%・武器が赤熱)/ SPEED(10s 速度+50%・
+//     青トレイル・遠い敵側に湧く)/ NUKE(次のミサイル/ロケット系 1 発が 60dmg 爆風 r8。
+//     非装備時はスロット 0 の次弾)。ビーコン光柱 + 出現 SFX + レーダー金パルスリング +
+//     HUD 残時間表示(#pwr-hud)
+//  5. セーブのエクスポート/インポート: ハンガー 💾 → モーダル。
+//     形式 "RB1.<base64(JSON)>.<djb2 チェックサム>"(破損/改変検出)。
+//     コピーは clipboard API(失敗時は手動選択)/ 復元は sanitizeSave 検証 → reload
 //
 // V7.6 変更点(武器システムの拡充と透明化):
 //  1. 武器情報ポップアップ: モーダル行の長押し ~450ms(離すと閉・ムーブ 10px でキャンセル)
@@ -194,8 +233,9 @@ const CONFIG = {
   IDLE_ALIGN_RATE: 2.2,   // 停止時に下半身が照準方向へ整列する速度
   TURN_INERTIA: 7,        // 旋回の慣性(camYaw が目標値を追う速度)
   GRAVITY: -26,
-  JUMP_VELOCITY: 9,       // 重量感: 低めのジャンプ
-  JUMP_COOLDOWN: 3,       // ジャンプのクールダウン(s。V7.0: 4→3 で回避起動を増やす)
+  JUMP_VELOCITY: 14,      // V7.7: 9→14(滞空 ~1.1s・高度 ~3.7 = ボルトを飛び越える回避手段)
+  JUMP_COOLDOWN: 3.5,     // V7.7: 3→3.5(強化に合わせて CD 微増)
+  AIR_ACCEL_MUL: 0.6,     // V7.7: 空中の移動加速倍率(空中でも進路を変えられる)
   LAND_SHAKE: 0.25,       // 着地時の画面シェイク量
 
   // 姿勢(V6.5: 横移動の捻れ修正 + 旋回バンク)
@@ -347,7 +387,7 @@ const CONFIG = {
   // V7.2: 機体ロスター(購入・所有・売却)
   MECH_MAX_OWNED: 3,      // 同時所有の上限(編成判断を生む)
   MECH_SELL_RATIO: 0.6,   // 売却額 = 購入価格 × この率
-  NEW_PLAYER_WALLET: 3000, // 新規プレイヤーの初期ポイント(V7.5.2: 1,000→3,000。6 体乱戦の難度に合わせ増額)
+  NEW_PLAYER_WALLET: 5000, // 新規プレイヤーの初期ポイント(V7.7: 3,000→5,000。修復判定 looksLikeFreshDefault の閾値も自動追従)
   BALANCE_BONUS_75: 2000,  // V7.5.2: 既存セーブへの一回限りバランス調整ボーナス
 
   // アビリティ(B キー / 専用ボタン)
@@ -428,6 +468,19 @@ const CONFIG = {
       dmgMin: 2, dmgMax: 2, interval: 0.25, heat: 8, range: 55, laser: true,
       color: 0xff8c9e, colorE: 0xffb09e, sfx: 'blazer', recoil: 0, spreadAim: 0.05, tag: '軽・持続レーザー',
     },
+    vortex: { // V7.8 高額ティア(軽): 10 粒の高威力散弾を 0.5s 間隔で叩き込む近距離シュレッダー
+      name: 'VORTEX SHREDDER', label: 'VRTX', kind: 'bolt', size: 'light', mount: 'arm', price: 12000,
+      archetype: 'power',
+      pellets: 10, dmgMin: 9, dmgMax: 12, interval: 0.6, heat: 15, range: 30,
+      boltSpeed: 44, boltScale: 0.8, boltSpread: 0.09,
+      color: 0xff7a50, colorE: 0xff5030, sfx: 'spread', recoil: 0.06, spreadAim: 0.2, tag: '軽・高速シュレッダー',
+    },
+    quasar: { // V7.8 高額ティア(軽): チャージ 0.4s → 80-95 の精密レーザーレール
+      name: 'QUASAR LANCE', label: 'QSR', kind: 'railcharge', size: 'light', mount: 'arm', price: 16000,
+      archetype: 'range',
+      dmgMin: 85, dmgMax: 100, interval: 2.2, heat: 30, range: 100, chargeTime: 0.4,
+      color: 0xc8a8ff, colorE: 0xff9af0, sfx: 'rail', recoil: 0.1, spreadAim: 0.08, tag: '軽・高速チャージ精密',
+    },
     // ---------------- 中(medium): バランス ----------------
     spread: {
       name: 'SPREAD SHOT', label: 'SPREAD', kind: 'bolt', size: 'medium', mount: 'arm', price: 1600,
@@ -482,6 +535,18 @@ const CONFIG = {
       boltSpeed: 50, boltScale: 0.6,
       color: 0xa8e8a0, colorE: 0xffc890, sfx: 'repeater', recoil: 0.012, spreadAim: 0.8, tag: '中・連射ボルト',
     },
+    tachyon: { // V7.8 高額ティア(中): 12 連マイクロホーミング(SWARM 上位)
+      name: 'TACHYON STORM', label: 'TCHN', kind: 'swarm', size: 'medium', mount: 'shoulder', price: 22000,
+      archetype: 'special',
+      cd: 6, count: 12, dmgMin: 12, dmgMax: 16, range: 65,
+      color: 0x9fffe0, colorE: 0x50ffc0, sfx: 'swarm', tag: '中・微誘導 12 連',
+    },
+    helios: { // V7.8 高額ティア(中): チャージ 1.0s → 130-150 の貫通レール上位
+      name: 'HELIOS PIERCER', label: 'HELI', kind: 'railcharge', size: 'medium', mount: 'arm', price: 28000,
+      archetype: 'range',
+      dmgMin: 130, dmgMax: 150, interval: 3.0, heat: 50, range: 110, chargeTime: 1.0,
+      color: 0xffe080, colorE: 0xffb040, sfx: 'rail', recoil: 0.16, spreadAim: 0.08, tag: '中・貫通レール上位',
+    },
     // ---------------- 重(heavy): 高威力・予兆/長 CD ----------------
     bazooka: {
       name: 'BAZOOKA', label: 'BZK', kind: 'rocket', size: 'heavy', mount: 'shoulder', price: 2100,
@@ -528,6 +593,20 @@ const CONFIG = {
       boltSpeed: 52, boltScale: 2.2, blast: 3, boltTrail: 0.01, tracer: true,
       color: 0xffe8a0, colorE: 0xff8060, sfx: 'annihilator', recoil: 0.2, spreadAim: 0.15, tag: '重・超大型徹甲弾',
     },
+    inferno: { // V7.8 高額ティア(重): チャージ 1.2s → 3s 持続の広域プラズマ放射(TEMPEST 上位)
+      name: 'NOVA INFERNO', label: 'NOVA', kind: 'tempest', size: 'heavy', mount: 'arm', price: 40000,
+      archetype: 'special',
+      dmgTick: 20, tickInterval: 0.25, burnTime: 3, interval: 7, range: 45, chargeTime: 1.2,
+      slowMul: 0.7,
+      color: 0xffb070, colorE: 0xff7030, sfx: 'tempest', recoil: 0.03, spreadAim: 0.1, tag: '重・広域プラズマ放射',
+    },
+    titan: { // V7.8 高額ティア(重・最高峰): チャージ 3.5s → 170-200 + 爆風 r5 の単発キャノン
+      name: 'TITAN BREAKER', label: 'TITN', kind: 'boltcharge', size: 'heavy', mount: 'arm', price: 50000,
+      archetype: 'power', // 中型機の HP を 1 発で奪うが、予兆最大・射程控えめ
+      dmgMin: 170, dmgMax: 200, interval: 3.0, heat: 65, range: 60, chargeTime: 3.5, // 実質 CD ≈ 6.5s
+      boltSpeed: 48, boltScale: 3.0, blast: 5, boltTrail: 0.008, tracer: true,
+      color: 0xff6040, colorE: 0xffcc40, sfx: 'annihilator', recoil: 0.25, spreadAim: 0.15, tag: '重・超高威力単発',
+    },
   },
 
   // ============================================================
@@ -540,6 +619,39 @@ const CONFIG = {
   MINE_BLAST: 4,          // 爆風半径
   MINE_DMG: 25,           // 爆心ダメージ(縁へ線形減衰)
   MINE_ARM_TIME: 0.8,     // 着地後の起爆有効化までの時間(自走で踏まない保険)
+
+  // ============================================================
+  // V7.7: 時間限定パワーアップ(プレイヤー専用・7 秒で消える)
+  // ============================================================
+  PWR_MAX: 2,             // 同時出現の上限
+  PWR_LIFE: 7,            // 出現から消滅まで(s)
+  PWR_INTERVAL_MIN: 12,   // 次の出現までの間隔(ランダム)
+  PWR_INTERVAL_MAX: 20,
+  PWR_PICK_RADIUS: 2.2,   // 取得判定距離
+  PWR_REPAIR_HP: 60,      // REPAIR: 即時回復量
+  PWR_POWER_TIME: 15,     // POWER: 持続(s)
+  PWR_POWER_MUL: 1.3,     // POWER: 与ダメージ倍率(+30%)
+  PWR_SPEED_TIME: 10,     // SPEED: 持続(s)
+  PWR_SPEED_MUL: 1.5,     // SPEED: 速度倍率(+50%)
+  PWR_NUKE_DMG: 60,       // NUKE: 直撃ダメージ
+  PWR_NUKE_BLAST: 8,      // NUKE: 爆風半径
+
+  // ============================================================
+  // V7.8: レベル/XP 制
+  //   - 累計 XP(SAVE.xp)から派生レベル(Lv1〜30)
+  //   - 到達必要累計 XP = LVL_XP_BASE × (lv−1)^1.6(Lv2=100 / Lv10≈3,360 / Lv30≈21,800)
+  //   - 成長は控えめ: HP +1.5%/Lv(全機)・速度 +0.5%/Lv(プレイヤーのみ)。
+  //     与ダメージは武器側で決まるため成長させない(経済バランス維持)
+  // ============================================================
+  LVL_MAX: 30,
+  LVL_XP_BASE: 100,
+  LVL_HP_PER: 0.015,      // 最大 HP +1.5%/Lv
+  LVL_SPD_PER: 0.005,     // 移動速度 +0.5%/Lv(プレイヤーのみ)
+  XP_PER_DMG: 0.5,        // 与ダメージ 1 → 0.5 XP
+  XP_KILL: 100,           // 撃破 1 → 100 XP
+  XP_WIN: 200,            // 生存勝利 → 200 XP
+  XP_PLAY: 30,            // 敗北でも参加 → 30 XP
+  ENEMY_LVL_SPREAD: 2,    // 敵レベル = プレイヤー Lv ± 2(最低 1)
   MINE_TOSS_T: 0.6,       // 投射の滞空時間(s)
 
   // 共通武器パラメータ
@@ -670,8 +782,14 @@ const CONFIG = {
   CAM_SENS: 0.0045,
   TOUCH_LOOK_MUL: 2.4,    // タッチスワイプの旋回感度倍率(画面半分のスワイプ 1 回で ~180°)
   KEY_TURN_RATE: 2.4,     // Shift+←→ の旋回速度 rad/s
-  CAM_PITCH_MIN: -0.32,
-  CAM_PITCH_MAX: 0.72,
+  // V7.7: 縦スワイプの pitch 操作を廃止 → 3 段階プリセットをボタン/F キーで巡回。
+  // 戦闘中に視点が意図せず縦ずれする問題の恒久対策(yaw 旋回は従来通り)
+  CAM_PRESETS: [
+    { key: 'LOW', pitch: 0.08, dist: 6.2 },  // 水平寄り(従来の真後ろ視点)
+    { key: 'MID', pitch: 0.38, dist: 7.0 },  // 中間(既定)
+    { key: 'HIGH', pitch: 0.72, dist: 8.2 }, // 俯瞰 45°
+  ],
+  CAM_PRESET_LERP: 5,     // プリセット切替の補間速度(smooth lerp)
 
   // 敵AI(V6.6: FFA 化。攻撃トークン制は廃止 — ターゲット分散で過集中を自然回避)
   ENEMY_COUNT: 6,         // V7.4: 3→6(計 7 機の本格乱戦)
@@ -878,7 +996,10 @@ function defaultSave() {
     lang: (typeof navigator !== 'undefined' && (navigator.language || '').startsWith('ja')) ? 'ja' : 'en',
     stage: 'CITY',      // V7.4: 選択ステージ(CITY/DESERT/HARBOR/RANDOM)
     repairDone: false,  // V7.4: 旧データ自動修復を実施/判定済みか(再移行は 1 回だけ)
-    balanceBonus75: true, // V7.5.2: 新規は初期 3,000pt のためボーナス対象外(付与済み扱い)
+    balanceBonus75: true, // V7.5.2: 新規は初期ポイント側で対応済み(付与済み扱い)
+    camMode: 'MID',     // V7.7: カメラプリセット(LOW/MID/HIGH)
+    xp: 0,              // V7.8: 累計 XP(レベルは levelFromXp で派生)
+    syncCode: null,     // V7.8: クラウドセーブの同期コード(初回クラウド保存時に生成)
   };
 }
 /**
@@ -917,6 +1038,11 @@ function sanitizeSave(s) {
   out.repairDone = s.repairDone === true;
   // V7.5.2: バランス調整ボーナスの付与済みフラグ(未付与セーブは loadSave が 1 回だけ付与)
   out.balanceBonus75 = s.balanceBonus75 === true;
+  // V7.7: カメラプリセット(LOW/MID/HIGH のみ許可)
+  if (['LOW', 'MID', 'HIGH'].includes(s.camMode)) out.camMode = s.camMode;
+  // V7.8: 累計 XP(非負整数のみ)+ 同期コード(8 文字の許可文字のみ)
+  if (typeof s.xp === 'number' && s.xp >= 0 && Number.isFinite(s.xp)) out.xp = Math.floor(s.xp);
+  if (typeof s.syncCode === 'string' && /^[A-HJ-NP-Z2-9]{8}$/.test(s.syncCode)) out.syncCode = s.syncCode;
   // ロードアウト: hardpoints 長の [武器キー|null]。
   //   所有機体のみ装備を保持(サイズ整合 + 在庫内)。未所持は全 null
   const used = {};
@@ -1121,6 +1247,189 @@ function loadSave() {
 function saveSave(s) {
   try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(s)); } catch (_) { /* private mode */ }
 }
+
+// ---- V7.7: セーブのエクスポート/インポート(機種変更・ブラウザ移行用) ----
+// 形式: "RB1.<base64(JSON)>.<checksum>" の 1 行コード。
+//   - RB1 = フォーマットバージョン(将来の互換判定用)
+//   - checksum = base64 部の djb2 ハッシュ(base36)。破損/改変を検出
+/** djb2 ハッシュ(軽量チェックサム) */
+function saveChecksum(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+/** 現在の SAVE 全体を 1 行コードに変換 */
+function exportSaveCode() {
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(SAVE))));
+  return `RB1.${b64}.${saveChecksum(b64)}`;
+}
+/**
+ * コードからセーブを復元。'ok' | 'format' | 'checksum' | 'decode' | 'storage' を返す。
+ * 復元成功後は呼び出し側が location.reload() して全状態を再構築する。
+ */
+function importSaveCode(code) {
+  const m = /^RB1\.([A-Za-z0-9+/=]+)\.([a-z0-9]+)$/.exec(String(code || '').trim());
+  if (!m) return 'format';
+  if (saveChecksum(m[1]) !== m[2]) return 'checksum';
+  let data = null;
+  try { data = JSON.parse(decodeURIComponent(escape(atob(m[1])))); } catch (_) { return 'decode'; }
+  const clean = sanitizeSave(data); // 既存の正規化で不変条件を回復(不正なら null)
+  if (!clean) return 'decode';
+  try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(clean)); } catch (_) { return 'storage'; }
+  return 'ok';
+}
+
+// ============================================================
+// V7.8: レベル/XP ヘルパー
+//   - 到達必要累計 XP = LVL_XP_BASE × (lv−1)^1.6(Lv2=100 / Lv10≈3,360 / Lv30≈21,800)
+//   - 単調増加・序盤テンポ重視。レベルは累計 XP から毎回派生(別フィールドを持たない)
+// ============================================================
+/** Lv lv 到達に必要な累計 XP */
+function xpForLevel(lv) {
+  return lv <= 1 ? 0 : Math.round(CONFIG.LVL_XP_BASE * Math.pow(lv - 1, 1.6));
+}
+/** 累計 XP → レベル(Lv1〜LVL_MAX) */
+function levelFromXp(xp) {
+  let lv = 1;
+  while (lv < CONFIG.LVL_MAX && xp >= xpForLevel(lv + 1)) lv++;
+  return lv;
+}
+
+/**
+ * V7.8: 敵レベルに応じた AI ロードアウト。
+ *   Lv1-5 = クラス定義の安価帯(aiWeapons)そのまま /
+ *   Lv6+ = スロットごとに 55% で価格帯から抽選(45% はクラスの個性を残す)
+ *   価格帯: Lv6-12 中堅(≤3,500)/ Lv13-20 高級(≤22,000)/ Lv21+ 最高級混在(≥1,500)
+ */
+function aiTierLoadout(cls, lv) {
+  const base = cls.aiWeapons || cls.weapons;
+  if (lv <= 5) return [...base];
+  let min = 0, max = 3500;                      // Lv6-12: 中堅
+  if (lv >= 21) { min = 1500; max = Infinity; } // Lv21+: 最高級まで混在
+  else if (lv >= 13) { min = 1100; max = 22000; } // Lv13-20: 高級
+  return cls.hardpoints.map((size, i) => {
+    if (rng() < 0.45) return base[i]; // クラスの個性を残す
+    const cands = Object.keys(CONFIG.WEAPONS).filter((k) => {
+      const w = CONFIG.WEAPONS[k];
+      return w.size === size && w.price >= min && w.price <= max;
+    });
+    return cands.length ? cands[Math.floor(rng() * cands.length)] : base[i];
+  });
+}
+
+// ============================================================
+// V7.8: Firebase クラウドセーブ(同期コード方式)
+//   - localStorage が主。Firebase は自動バックアップ + 端末間同期のみ
+//   - SDK は CDN から動的 import。失敗してもゲームは完全動作(graceful degradation)
+//   - RTDB パス: v6saves/{syncCode} = { data: RB1コード, updatedAt, ver }
+//     (値は V7.7 の RB1 エクスポート文字列 1 本 = 数 KB。検証フローも流用)
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyDXaFtpAMxiTX72Fa8YXZEwTmwgKWgIbkg',
+  authDomain: 'robo-battle-v3-game.firebaseapp.com',
+  databaseURL: 'https://robo-battle-v3-game-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'robo-battle-v3-game',
+  storageBucket: 'robo-battle-v3-game.firebasestorage.app',
+  messagingSenderId: '254763140382',
+  appId: '1:254763140382:web:7290cacfc5e6ee228d750f',
+};
+const CLOUD = { db: null, fns: null };
+
+/** SDK を遅延ロードして初期化(失敗時は false — オフライン/ブロックでも例外は漏らさない) */
+async function cloudInit() {
+  if (CLOUD.db) return true;
+  try {
+    const appMod = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
+    const dbMod = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
+    const app = appMod.initializeApp(FIREBASE_CONFIG);
+    CLOUD.db = dbMod.getDatabase(app);
+    CLOUD.fns = {
+      ref: dbMod.ref, get: dbMod.get, set: dbMod.set,
+      serverTimestamp: dbMod.serverTimestamp,
+    };
+    return true;
+  } catch (err) {
+    console.warn('[V7.8] Firebase 初期化失敗(ローカルのみで続行):', err && err.message);
+    return false;
+  }
+}
+
+// 同期コード: 紛らわしい文字(0/O/1/I/l)を除いた英大文字 + 数字の 8 文字
+const SYNC_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function genSyncCode() {
+  let s = '';
+  for (let i = 0; i < 8; i++) s += SYNC_CHARS[Math.floor(Math.random() * SYNC_CHARS.length)];
+  return s;
+}
+
+/** 現セーブをクラウドへ保存 → { ok, code?, reason? } */
+async function cloudSave() {
+  if (!(await cloudInit())) return { ok: false, reason: 'offline' };
+  try {
+    const { ref, get, set, serverTimestamp } = CLOUD.fns;
+    let code = SAVE.syncCode;
+    if (!code) {
+      // 新規コードは書き込み前に衝突チェック(存在したら再生成、最大 5 回)
+      for (let i = 0; i < 5; i++) {
+        const cand = genSyncCode();
+        const snap = await get(ref(CLOUD.db, `v6saves/${cand}`));
+        if (!snap.exists()) { code = cand; break; }
+      }
+      if (!code) return { ok: false, reason: 'collision' };
+      SAVE.syncCode = code;
+      saveSave(SAVE);
+    }
+    await set(ref(CLOUD.db, `v6saves/${code}`), {
+      data: exportSaveCode(), updatedAt: serverTimestamp(), ver: 'v5',
+    });
+    return { ok: true, code };
+  } catch (err) {
+    console.warn('[V7.8] クラウド保存失敗:', err && err.message);
+    return { ok: false, reason: 'network' };
+  }
+}
+
+/**
+ * 同期コードからクラウドセーブを取得して適用。
+ * 適用前に現セーブを v6_save_backup_pre_cloud へ自動退避。
+ * @returns 'ok' | 'badcode' | 'offline' | 'notfound' | 'invalid' | 'network'
+ */
+async function cloudLoad(codeRaw) {
+  const code = String(codeRaw || '').trim().toUpperCase();
+  if (!/^[A-HJ-NP-Z2-9]{8}$/.test(code)) return 'badcode';
+  if (!(await cloudInit())) return 'offline';
+  try {
+    const { ref, get } = CLOUD.fns;
+    const snap = await get(ref(CLOUD.db, `v6saves/${code}`));
+    if (!snap.exists()) return 'notfound';
+    const val = snap.val();
+    const data = val && val.data;
+    // 容量/型ガード: RB1 文字列 1 本のみ(最大 64KB)
+    if (typeof data !== 'string' || data.length > 65536) return 'invalid';
+    // 適用前に現在のセーブを退避(誤読込からの復旧用)
+    try { localStorage.setItem('v6_save_backup_pre_cloud', JSON.stringify(SAVE)); } catch (_) { /* private */ }
+    const r = importSaveCode(data); // RB1 検証(チェックサム → sanitizeSave)を流用
+    if (r !== 'ok') return 'invalid';
+    // 読込先でも同じコードで同期を継続できるよう syncCode を維持
+    try {
+      const cur = JSON.parse(localStorage.getItem(CONFIG.SAVE_KEY));
+      cur.syncCode = code;
+      localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(cur));
+    } catch (_) { /* 失われても次回クラウド保存で再生成される */ }
+    return 'ok';
+  } catch (err) {
+    console.warn('[V7.8] クラウド読込失敗:', err && err.message);
+    return 'network';
+  }
+}
+
+/** バトル終了時の自動バックアップ(syncCode 取得済みの場合のみ。失敗は無視) */
+function cloudAutoBackup() {
+  if (!SAVE.syncCode) return;
+  cloudSave()
+    .then((r) => { if (!r.ok) console.warn('[V7.8] 自動バックアップ失敗:', r.reason); })
+    .catch((e) => console.warn('[V7.8] 自動バックアップ例外:', e && e.message));
+}
 const SAVE = loadSave(); // boot(ハンガー)と Game(リザルト加算)で共有
 
 // ---- 在庫ヘルパー(V6.9 / V7.1 スロット数可変) ----
@@ -1209,6 +1518,16 @@ const I18N = {
     details: '詳細', // V7.5: ⓘ 詳細シート
     secMech: '機体', secWeapons: '武器', // V7.5.2: セクションラベル
     balanceBonus: '🎁 バランス調整ボーナス +{0} pt', // V7.5.2: 既存セーブへの一回限り
+    // ---- V7.7: セーブ移行(エクスポート/インポート) ----
+    saveExportNote: 'このコードを保存すれば、別の端末/ブラウザで進行状況を復元できます。',
+    saveImportNote: '復元コードを貼り付けてください(現在のデータは上書きされます)。',
+    saveCopyBtn: 'コードをコピー', saveRestoreBtn: 'コードを貼り付けて復元',
+    saveCopied: '✅ コピーしました', saveCopyFail: '⚠ 下のコードを手動で選択コピーしてください',
+    saveBadFormat: '⚠ コードの形式が正しくありません',
+    saveBadChecksum: '⚠ コードが破損しています(チェックサム不一致)',
+    saveBadData: '⚠ コードの内容を読み取れません',
+    saveStorageFail: '⚠ 保存に失敗しました(プライベートモード?)',
+    saveRestored: '✅ 復元しました — 再読み込みします…',
     // ---- V7.6: 武器情報ポップアップ ----
     wiHit: '1撃ダメージ', wiDps: '推定DPS', wiRange: '射程', wiCycle: '間隔/CD',
     wiCharge: 'チャージ', wiSpinup: 'スピンアップ', wiHeat: '熱/発', wiTraits: '特性',
@@ -1238,6 +1557,25 @@ const I18N = {
     wtag_repulsor: '中・衝撃ノックバック', wtag_minelayer: '中・地雷設置',
     wtag_bazooka: '重・弾道爆発', wtag_rail: '重・狙撃(予兆 0.5s)', wtag_artillery: '重・長距離爆撃(予報あり)',
     wtag_tempest: '重・持続電撃照射', wtag_devastator: '重・徹甲スラグ',
+    // V7.8: V7.6 武器のタグ補完(欠落バグ修正)+ 高額ティア 6 種
+    wtag_brute: '中・チャージ重撃', wtag_lance: '中・長距離精密弾', wtag_repeater: '中・連射ボルト',
+    wtag_havoc: '重・回転連射', wtag_annihilator: '重・超大型徹甲弾',
+    wtag_vortex: '軽・高速シュレッダー', wtag_quasar: '軽・高速チャージ精密',
+    wtag_tachyon: '中・微誘導 12 連', wtag_helios: '中・貫通レール上位',
+    wtag_inferno: '重・広域プラズマ放射', wtag_titan: '重・超高威力単発',
+    // ---- V7.8: レベル/XP ----
+    rbXp: '⭐ XP(与ダメ + 撃破 + {0})', rbXpWin: '勝利', rbXpPlay: '参加',
+    levelUp: 'LEVEL UP! Lv.{0}', levelUpDesc: '最大HP +1.5%/Lv ・ 移動速度 +0.5%/Lv',
+    // ---- V7.8: クラウドセーブ ----
+    cloudNote: '☁️ クラウド同期: コード 1 つで端末間を移行できます(バトル後に自動バックアップ)。',
+    cloudSaveBtn: 'クラウド保存', cloudLoadBtn: '読込',
+    cloudSaving: '⏳ クラウドへ保存中…', cloudLoading: '⏳ クラウドから読込中…',
+    cloudSaved: '✅ クラウドに保存しました — このコードを他の端末で入力',
+    cloudSaveFail: '⚠ クラウド保存に失敗しました(時間をおいて再試行)',
+    cloudLoadFail: '⚠ クラウド読込に失敗しました(時間をおいて再試行)',
+    cloudNotFound: '⚠ このコードのセーブが見つかりません',
+    cloudBadCode: '⚠ コードは 8 文字の英数字です(0/O/1/I を除く)',
+    cloudOffline: '⚠ クラウドに接続できません(オフライン?)— ローカルは動作します',
     // ---- 機体説明 ----
     cdesc_LIGHT: '高速・軽装甲の偵察機', cdesc_MEDIUM: 'バランス型の主力機', cdesc_HEAVY: '重装甲の砲撃機',
     cdesc_ASSAULT: '突撃型の強襲機', cdesc_WASP: '最速のホバードローン。紙装甲を機動で補う',
@@ -1285,6 +1623,17 @@ const I18N = {
     details: 'Details', // V7.5: ⓘ detail sheet
     secMech: 'MECH', secWeapons: 'WEAPONS', // V7.5.2: section labels
     balanceBonus: '🎁 Balance adjustment bonus +{0} pt', // V7.5.2: one-time for existing saves
+    // ---- V7.7: save transfer (export/import) ----
+    saveExportNote: 'Save this code to restore your progress on another device/browser.',
+    saveImportNote: 'Paste a transfer code below (your current data will be overwritten).',
+    saveCopyBtn: 'COPY CODE', saveRestoreBtn: 'PASTE CODE & RESTORE',
+    saveCopied: '✅ Copied to clipboard',
+    saveCopyFail: '⚠ Copy failed — select the code below manually',
+    saveBadFormat: '⚠ Invalid code format',
+    saveBadChecksum: '⚠ Code is corrupted (checksum mismatch)',
+    saveBadData: '⚠ Could not read code contents',
+    saveStorageFail: '⚠ Failed to save (private mode?)',
+    saveRestored: '✅ Restored — reloading…',
     // ---- V7.6: weapon info popup ----
     wiHit: 'Damage/hit', wiDps: 'Est. DPS', wiRange: 'Range', wiCycle: 'Interval/CD',
     wiCharge: 'Charge', wiSpinup: 'Spin-up', wiHeat: 'Heat/shot', wiTraits: 'Traits',
@@ -1310,6 +1659,25 @@ const I18N = {
     wtag_repulsor: 'Med ・ knockback wave', wtag_minelayer: 'Med ・ mine layer',
     wtag_bazooka: 'Heavy ・ ballistic blast', wtag_rail: 'Heavy ・ sniper (0.5s charge)', wtag_artillery: 'Heavy ・ long-range barrage',
     wtag_tempest: 'Heavy ・ sustained lightning', wtag_devastator: 'Heavy ・ AP slug',
+    // V7.8: V7.6 weapon tags (missing-key fix) + premium tier x6
+    wtag_brute: 'Med ・ charge cannon', wtag_lance: 'Med ・ long-range precision', wtag_repeater: 'Med ・ rapid bolts',
+    wtag_havoc: 'Heavy ・ rotary rapid fire', wtag_annihilator: 'Heavy ・ super-heavy AP',
+    wtag_vortex: 'Light ・ rapid shredder', wtag_quasar: 'Light ・ fast-charge precision',
+    wtag_tachyon: 'Med ・ 12x micro-homing', wtag_helios: 'Med ・ piercing rail+',
+    wtag_inferno: 'Heavy ・ wide plasma projector', wtag_titan: 'Heavy ・ ultra single-shot',
+    // ---- V7.8: level/XP ----
+    rbXp: '⭐ XP (damage + kills + {0})', rbXpWin: 'victory', rbXpPlay: 'participation',
+    levelUp: 'LEVEL UP! Lv.{0}', levelUpDesc: 'Max HP +1.5%/Lv ・ speed +0.5%/Lv',
+    // ---- V7.8: cloud save ----
+    cloudNote: '☁️ Cloud sync: one code moves your save between devices (auto-backup after battles).',
+    cloudSaveBtn: 'CLOUD SAVE', cloudLoadBtn: 'LOAD',
+    cloudSaving: '⏳ Saving to cloud…', cloudLoading: '⏳ Loading from cloud…',
+    cloudSaved: '✅ Saved to cloud — enter this code on another device',
+    cloudSaveFail: '⚠ Cloud save failed (try again later)',
+    cloudLoadFail: '⚠ Cloud load failed (try again later)',
+    cloudNotFound: '⚠ No save found for this code',
+    cloudBadCode: '⚠ Code is 8 letters/digits (no 0/O/1/I)',
+    cloudOffline: '⚠ Cannot reach the cloud (offline?) — local play still works',
     cdesc_LIGHT: 'Fast, lightly armored scout', cdesc_MEDIUM: 'Balanced mainline mech', cdesc_HEAVY: 'Heavily armored artillery platform',
     cdesc_ASSAULT: 'Aggressive assault raider', cdesc_WASP: 'Fastest hover drone — paper armor, pure agility',
     cdesc_GLIDER: 'Twin-engine hover weapons platform', cdesc_JUGGERNAUT: 'Tracked super-heavy — highest HP in the game',
@@ -1355,6 +1723,15 @@ function applyStaticI18n() {
   // V7.5.2: セクションラベル(機体列 / 武器列の区別)
   set('lbl-mech', `🤖 ${T('secMech')}`);
   set('lbl-weapons', `🔫 ${T('secWeapons')}`);
+  // V7.7: セーブ移行モーダル
+  set('save-export-note', T('saveExportNote'));
+  set('save-import-note', T('saveImportNote'));
+  set('save-copy-btn', `📋 ${T('saveCopyBtn')}`);
+  set('save-restore-btn', `♻ ${T('saveRestoreBtn')}`);
+  // V7.8: クラウドセーブ
+  set('cloud-note', T('cloudNote'));
+  set('cloud-save-btn', `☁️ ${T('cloudSaveBtn')}`);
+  set('cloud-load-btn', `☁️ ${T('cloudLoadBtn')}`);
 }
 
 // ============================================================
@@ -1955,6 +2332,104 @@ function buildWeaponModel(wKey) {
       const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.34, 0.7), dark));
       body.position.z = -0.25;
       muzzle.position.set(0, 0, 1.5);
+      break;
+    }
+    // ---------------- V7.8: 高額ティア 6 種(既存スタイルの上位再構成 + 専用色) ----------------
+    case 'vortex': { // 軽・高速シュレッダー: 5 連の短バレルリング + 赤熱コア
+      const drum = add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.6, 10), dark));
+      drum.rotation.x = Math.PI / 2;
+      drum.position.z = 0.25;
+      const hotMat = wpnMat('vrtxHot', { color: 0xff7a50, emissive: 0xff4020, emissiveIntensity: 1.8, metalness: 0.3, roughness: 0.3 });
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * Math.PI * 2;
+        const b = add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.7, 6), steel));
+        b.rotation.x = Math.PI / 2;
+        b.position.set(Math.cos(a) * 0.13, Math.sin(a) * 0.13, 0.7);
+      }
+      const core = add(new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.045, 8, 14), hotMat));
+      core.position.z = 0.58;
+      muzzle.position.set(0, 0, 1.05);
+      break;
+    }
+    case 'quasar': { // 軽・高速チャージ精密: 極細レール + 紫のフォーカスリング
+      const rail = add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 1.7), dark));
+      rail.position.set(0, 0.06, 0.65);
+      const rail2 = add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 1.7), dark));
+      rail2.position.set(0, -0.06, 0.65);
+      const focMat = wpnMat('qsrFoc', { color: 0xc8a8ff, emissive: 0x9a60ff, emissiveIntensity: 2.0, metalness: 0.3, roughness: 0.25 });
+      for (const z of [0.35, 0.9, 1.3]) {
+        const ring = add(new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.03, 8, 12), focMat));
+        ring.position.z = z;
+      }
+      const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.5), dark));
+      body.position.z = -0.15;
+      muzzle.position.set(0, 0, 1.55);
+      break;
+    }
+    case 'tachyon': { // 中・12 連マイクロホーミング: 大型六角クラスタ ×2 段
+      const body = add(new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.85, 6), dark));
+      body.rotation.x = Math.PI / 2;
+      body.position.z = 0.2;
+      const tubeMat2 = wpnMat('tchnTube', { color: 0x103028, emissive: 0x30ffb0, emissiveIntensity: 0.7, metalness: 0.5, roughness: 0.5 });
+      for (let ring = 0; ring < 2; ring++) {
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * Math.PI * 2 + ring * Math.PI / 6;
+          const r = ring === 0 ? 0.13 : 0.24;
+          const t = add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.12, 6), tubeMat2));
+          t.rotation.x = Math.PI / 2;
+          t.position.set(Math.cos(a) * r, Math.sin(a) * r, 0.65);
+        }
+      }
+      muzzle.position.set(0, 0, 0.75);
+      break;
+    }
+    case 'helios': { // 中・貫通レール上位: 2 本レール + 金色コイル
+      const railMat = wpnMat('heliRail', { color: 0x5a5040, metalness: 0.9, roughness: 0.3 });
+      for (const y of [0.08, -0.08]) {
+        const r = add(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 2.0), railMat));
+        r.position.set(0, y, 0.75);
+      }
+      const coilMat2 = wpnMat('heliCoil', { color: 0xffe080, emissive: 0xffb040, emissiveIntensity: 2.2, metalness: 0.3, roughness: 0.25 });
+      for (const z of [0.3, 0.75, 1.2, 1.6]) {
+        const c2 = add(new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 8, 14), coilMat2));
+        c2.position.z = z;
+      }
+      const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.36, 0.7), dark));
+      body.position.z = -0.2;
+      muzzle.position.set(0, 0, 1.85);
+      break;
+    }
+    case 'inferno': { // 重・広域プラズマ放射: 太いコイル積層 + 末広がりノズル
+      const rod = add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5, 8), steel));
+      rod.rotation.x = Math.PI / 2;
+      rod.position.z = 0.55;
+      const novaMat = wpnMat('novaCoil', { color: 0xffb070, emissive: 0xff6020, emissiveIntensity: 2.4, metalness: 0.3, roughness: 0.25 });
+      for (const z of [0.15, 0.45, 0.75, 1.05]) {
+        const c3 = add(new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.06, 8, 14), novaMat));
+        c3.position.z = z;
+      }
+      const nozzle = add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.16, 0.35, 10, 1, true), dark));
+      nozzle.rotation.x = Math.PI / 2;
+      nozzle.position.z = 1.4;
+      const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.4, 0.7), dark));
+      body.position.z = -0.25;
+      muzzle.position.set(0, 0, 1.6);
+      break;
+    }
+    case 'titan': { // 重・超高威力単発: ANNIHILATOR 超級の巨砲 + 赤熱 4 重コイル
+      const barrel = add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 2.3, 12), dark));
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.z = 0.85;
+      const titanMat = wpnMat('titanCoil', { color: 0xff6040, emissive: 0xff3010, emissiveIntensity: 2.4, metalness: 0.3, roughness: 0.25 });
+      for (const z of [0.25, 0.7, 1.15, 1.6]) {
+        const c4 = add(new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 16), titanMat));
+        c4.position.z = z;
+      }
+      const brace = add(new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.52, 0.32), steel));
+      brace.position.z = 1.9;
+      const body = add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.56, 0.9), dark));
+      body.position.z = -0.35;
+      muzzle.position.set(0, 0, 2.15);
       break;
     }
     default:
@@ -2644,6 +3119,7 @@ class Robot {
     scene.add(this.group);
 
     // クラス由来のステータス
+    this.level = 1;          // V7.8: レベル(applyLevel で HP/速度に反映)
     this.maxHp = cls.hp;
     this.maxSpeed = cls.speed;
     this.radius = CONFIG.MECH_RADIUS * cls.scale;   // 衝突半径
@@ -2657,6 +3133,9 @@ class Robot {
     this.abilityCd = 0;
     this.sprintT = 0;
     this.shieldT = 0;
+    this.dmgBoostT = 0;     // V7.7: POWER パワーアップ(与ダメ +30%)
+    this.spdBoostT = 0;     // V7.7: SPEED パワーアップ(速度 +50%)
+    this.nukeReady = false; // V7.7: NUKE パワーアップ(次の 1 発が特殊ミサイル)
     this.lastAttacker = null;  // FFA ヘイト用
     this.lastAttackT = -99;
 
@@ -2711,6 +3190,17 @@ class Robot {
 
   get position() { return this.group.position; }
 
+  /**
+   * V7.8: レベル補正を基本性能へ反映(restart 時に毎回呼ばれる)。
+   *   HP +1.5%/Lv は全機 / 速度 +0.5%/Lv はプレイヤーのみ(敵は HP のみ補正)
+   */
+  applyLevel(lv) {
+    this.level = Math.max(1, Math.min(CONFIG.LVL_MAX, Math.floor(lv) || 1));
+    this.maxHp = Math.round(this.cls.hp * (1 + CONFIG.LVL_HP_PER * (this.level - 1)));
+    this.maxSpeed = this.cls.speed
+      * (this.isPlayer ? (1 + CONFIG.LVL_SPD_PER * (this.level - 1)) : 1);
+  }
+
   /** 胸(照準点)のワールド座標(クラス scale 反映) */
   chest(out) {
     out.copy(this.group.position);
@@ -2721,6 +3211,7 @@ class Robot {
   /** スプリント込みの現在の目標最高速(V7.1: TEMPEST 照射中は減速) */
   get effectiveSpeed() {
     let s = this.maxSpeed * (this.sprintT > 0 ? CONFIG.SPRINT_MUL : 1);
+    if (this.spdBoostT > 0) s *= CONFIG.PWR_SPEED_MUL; // V7.7: SPEED パワーアップ
     if (this.beamT > 0) {
       const w = CONFIG.WEAPONS[this.slots[this.beamSlot]];
       s *= (w && w.slowMul) || 0.7;
@@ -2750,8 +3241,10 @@ class Robot {
     const ax = tx - this.velX, az = tz - this.velZ;
     const al = Math.hypot(ax, az);
     // V7.2: ホバー機はさらに機敏(回避の主役)
+    // V7.7: 空中でも AIR_ACCEL_MUL の加速で進路を変えられる(戦術ジャンプ)
     const maxA = CONFIG.MECH_ACCEL * dt * (this.sprintT > 0 ? 1.6 : 1)
-      * (this.cls.hover ? CONFIG.HOVER_ACCEL_MUL : 1);
+      * (this.cls.hover ? CONFIG.HOVER_ACCEL_MUL : 1)
+      * (this.grounded ? 1 : CONFIG.AIR_ACCEL_MUL);
     if (al > maxA) {
       this.velX += ax / al * maxA;
       this.velZ += az / al * maxA;
@@ -2874,6 +3367,8 @@ class Robot {
     this.abilityCd = Math.max(0, this.abilityCd - dt);
     this.sprintT = Math.max(0, this.sprintT - dt);
     this.shieldT = Math.max(0, this.shieldT - dt);
+    this.dmgBoostT = Math.max(0, this.dmgBoostT - dt); // V7.7
+    this.spdBoostT = Math.max(0, this.spdBoostT - dt); // V7.7
     if (this.shieldMesh) {
       const on = this.shieldT > 0 && this.alive;
       this.shieldMesh.visible = on;
@@ -2946,6 +3441,9 @@ class Robot {
     this.abilityCd = 0;
     this.sprintT = 0;
     this.shieldT = 0;
+    this.dmgBoostT = 0;     // V7.7
+    this.spdBoostT = 0;     // V7.7
+    this.nukeReady = false; // V7.7
     this.lastAttacker = null;
     this.lastAttackT = -99;
     this.chargeT.fill(0);
@@ -3311,6 +3809,8 @@ class MissilePool {
     m.maxSpeed = (o && o.speed) || CONFIG.MISSILE_SPEED;
     m.dmgMin = (o && o.dmgMin) || CONFIG.MISSILE_DAMAGE_MIN;
     m.dmgMax = (o && o.dmgMax) || CONFIG.MISSILE_DAMAGE_MAX;
+    m.nuke = !!(o && o.nuke); // V7.7: NUKE パワーアップ弾(大型化 + 爆風 r8)
+    m.mesh.scale.setScalar(m.nuke ? 2.4 : 1);
     m.mesh.visible = true;
     // 射出煙
     this.game.particles.spawn(_v1, 3, { color: 0xcccccc, speed: 1.5, life: 0.35, gravity: 1, scale: 1, upBias: 0.2 });
@@ -3357,7 +3857,10 @@ class MissilePool {
       m.smoke -= dt;
       if (m.smoke <= 0) {
         m.smoke = 0.05;
-        this.game.particles.spawn(m.prev, 1, { color: 0xb8b8b8, speed: 0.6, life: 0.4, gravity: 1.5, scale: 0.9, upBias: 0 });
+        // V7.7: NUKE 弾は金色の太いトレイルで識別
+        this.game.particles.spawn(m.prev, 1, m.nuke
+          ? { color: 0xffd24a, speed: 0.8, life: 0.5, gravity: 1, scale: 1.6, boost: 1.6, upBias: 0 }
+          : { color: 0xb8b8b8, speed: 0.6, life: 0.4, gravity: 1.5, scale: 0.9, upBias: 0 });
       }
 
       // ---- 衝突判定 ----
@@ -3403,6 +3906,31 @@ class MissilePool {
     m.life = 0;
     m.mesh.visible = false;
     const pos = m.mesh.position;
+
+    // ---- V7.7: NUKE 弾 — 直撃 60 + 半径 8 の大爆風(発射者は安全) ----
+    if (m.nuke) {
+      const R = CONFIG.PWR_NUKE_BLAST;
+      this.game.particles.spawn(pos, 26, { color: 0xffc040, speed: 16, life: 0.8, gravity: -6, scale: 2.6, boost: 2 });
+      this.game.particles.spawn(pos, 10, { color: 0x998877, speed: 5, life: 1.2, gravity: 3, scale: 2.2, upBias: 1 });
+      this.game.rings.spawn(pos, { mode: 'ground', scale: R * 2.1, life: 0.6, color: 0xffd24a, boost: 1.9, y: pos.y + 0.3 });
+      this.game.lights.spawn(pos, 0xffaa33, 60);
+      this.game.sound.playAt('explosion', pos, 26, 1.0);
+      this.game.shakeFrom(pos, 0.7, 36);
+      this.game.damageDestructiblesAt(pos, R, CONFIG.PWR_NUKE_DMG);
+      for (const c of this.game.robots) {
+        if (c === m.shooter || !c.alive) continue;
+        c.chest(_v2);
+        const d = pos.distanceTo(_v2);
+        if (d >= R + 1.4) continue;
+        const t = clamp(d / R, 0, 1);
+        // 直撃機は満額、それ以外は距離減衰(縁 40%)
+        const dmg = (c === hitRobot) ? CONFIG.PWR_NUKE_DMG
+          : Math.round(CONFIG.PWR_NUKE_DMG * (1 - t * 0.6));
+        this.game.dmgTexts.show(_v2, String(dmg), c === this.game.player);
+        this.game.dealDamage(c, dmg, pos, m.shooter);
+      }
+      return;
+    }
     // 火球(高輝度でブルームに乗せる)
     this.game.particles.spawn(pos, 11, { color: 0xffa040, speed: 10, life: 0.5, gravity: -7, scale: 1.8, boost: 1.8 });
     // 衝撃波リング
@@ -4144,6 +4672,178 @@ class MinePool {
 }
 
 // ============================================================
+// V7.7: PowerupPool — 時間限定パワーアップ(プレイヤー専用)
+//   - 12〜20 秒間隔で出現し 7 秒で消滅(同時最大 2 個)
+//   - ビーコン光柱 + 出現 SFX + レーダーの金パルスリングで遠くから視認
+//   - SPEED は「プレイヤーから遠い敵」寄りに湧く(移動を促す)
+//   - クレート(金色キューブ)と区別するため色付き多面体 + 光柱
+// ============================================================
+const PWR_TYPES = [
+  { key: 'REPAIR', color: 0x44ff88, icon: '🔧' }, // 即時 +60 HP
+  { key: 'POWER', color: 0xff5040, icon: '💥' },  // 15s 与ダメ +30%
+  { key: 'SPEED', color: 0x55ccff, icon: '💨' },  // 10s 速度 +50%
+  { key: 'NUKE', color: 0xffe24a, icon: '☢' },   // 次の 1 発が特殊ミサイル化
+];
+class PowerupPool {
+  constructor(scene, game) {
+    this.game = game;
+    this.items = [];
+    const coreGeo = new THREE.IcosahedronGeometry(0.55, 0);
+    const pillarGeo = new THREE.CylinderGeometry(0.25, 0.45, 32, 8, 1, true);
+    for (let i = 0; i < CONFIG.PWR_MAX; i++) {
+      const group = new THREE.Group();
+      const coreMat = new THREE.MeshStandardMaterial({
+        color: 0x202428, emissive: 0xffffff, emissiveIntensity: 1.8,
+        metalness: 0.4, roughness: 0.3,
+      });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+      core.castShadow = true;
+      group.add(core);
+      // ビーコン光柱(加算合成・遠距離から視認)
+      const pillarMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff, transparent: true, opacity: 0.26,
+        depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+      });
+      const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+      pillar.position.y = 16;
+      group.add(pillar);
+      group.visible = false;
+      scene.add(group);
+      this.items.push({
+        group, core, coreMat, pillarMat,
+        type: PWR_TYPES[0], life: 0, baseY: 0, phase: rng() * Math.PI * 2,
+      });
+    }
+    this.timer = this.nextInterval();
+  }
+
+  nextInterval() {
+    return CONFIG.PWR_INTERVAL_MIN + rng() * (CONFIG.PWR_INTERVAL_MAX - CONFIG.PWR_INTERVAL_MIN);
+  }
+
+  /** 開けた場所(spawnPoints + crateSpots)から出現地点を選ぶ。地形内には湧かない */
+  pickSpot(type) {
+    const cands = (STAGE.spawnPoints || []).concat(STAGE.crateSpots || []);
+    if (!cands.length) return null;
+    const p = this.game.player;
+    // SPEED: プレイヤーから最も遠い生存敵の近くに寄せる(取りに行かせる)
+    if (type.key === 'SPEED') {
+      let far = null, fd = -1;
+      for (const r of this.game.robots) {
+        if (r === p || !r.alive) continue;
+        const d = r.position.distanceTo(p.position);
+        if (d > fd) { fd = d; far = r; }
+      }
+      if (far) {
+        let best = null, bd = Infinity;
+        for (const c of cands) {
+          const dx = c[0] - far.position.x, dz = c[1] - far.position.z;
+          const d2 = dx * dx + dz * dz;
+          if (d2 < bd) { bd = d2; best = c; }
+        }
+        if (best) return best;
+      }
+    }
+    // それ以外: プレイヤーから 18 以上離れた候補からランダム(全滅時は完全ランダム)
+    const ok = cands.filter((c) => {
+      const dx = c[0] - p.position.x, dz = c[1] - p.position.z;
+      return dx * dx + dz * dz > 18 * 18;
+    });
+    const list = ok.length ? ok : cands;
+    return list[Math.floor(rng() * list.length)];
+  }
+
+  spawnOne() {
+    const slot = this.items.find((it) => it.life <= 0);
+    if (!slot) return;
+    const type = PWR_TYPES[Math.floor(rng() * PWR_TYPES.length)];
+    const spot = this.pickSpot(type);
+    if (!spot) return;
+    const x = spot[0] + (rng() - 0.5) * 5, z = spot[1] + (rng() - 0.5) * 5;
+    slot.type = type;
+    slot.life = CONFIG.PWR_LIFE;
+    slot.baseY = getSupportHeight(x, z, 5) + 1.15; // 橋上ならデッキ基準
+    slot.group.position.set(x, slot.baseY, z);
+    slot.coreMat.emissive.setHex(type.color);
+    slot.pillarMat.color.setHex(type.color);
+    slot.group.visible = true;
+    slot.core.scale.setScalar(1);
+    // 出現演出: SFX(全域に聞こえる) + リング + ライト
+    this.game.sound.play('pwrspawn', 0.65);
+    this.game.rings.spawn(slot.group.position, { mode: 'ground', scale: 6, life: 0.7, color: type.color, boost: 1.6, y: slot.baseY - 0.8 });
+    this.game.lights.spawn(slot.group.position, type.color, 30);
+  }
+
+  update(dt) {
+    const game = this.game, p = game.player;
+    // 出現タイマー
+    this.timer -= dt;
+    if (this.timer <= 0) {
+      this.timer = this.nextInterval();
+      this.spawnOne();
+    }
+    for (const it of this.items) {
+      if (it.life <= 0) continue;
+      it.life -= dt;
+      // 消滅(静かに霧散)
+      if (it.life <= 0) {
+        it.group.visible = false;
+        game.particles.spawn(it.group.position, 5, { color: it.type.color, speed: 2.5, life: 0.4, gravity: 1, boost: 1.5 });
+        continue;
+      }
+      // 浮遊 + 回転 + 残り 2 秒は明滅して消滅を予告
+      it.core.rotation.y += dt * 2.2;
+      it.core.rotation.x += dt * 0.9;
+      it.group.position.y = it.baseY + Math.sin(game.elapsed * 2.4 + it.phase) * 0.22;
+      const blink = it.life < 2 ? (Math.sin(game.elapsed * 14) > 0 ? 1 : 0.25) : 1;
+      it.coreMat.emissiveIntensity = 1.8 * blink;
+      it.pillarMat.opacity = (0.2 + 0.1 * Math.sin(game.elapsed * 3 + it.phase)) * blink;
+      // 取得判定(プレイヤーのみ。AI は取らない)
+      if (!p.alive || game.gameOver) continue;
+      const dx = p.position.x - it.group.position.x;
+      const dz = p.position.z - it.group.position.z;
+      if (dx * dx + dz * dz < CONFIG.PWR_PICK_RADIUS * CONFIG.PWR_PICK_RADIUS
+        && Math.abs(p.position.y - it.baseY) < 3.2) {
+        it.life = 0;
+        it.group.visible = false;
+        this.apply(it.type, it.group.position);
+      }
+    }
+  }
+
+  /** 取得時の即時効果(プレイヤー専用) */
+  apply(type, pos) {
+    const game = this.game, p = game.player;
+    game.particles.spawn(pos, 10, { color: type.color, speed: 5, life: 0.5, gravity: -3, scale: 1.3, boost: 2 });
+    game.lights.spawn(pos, type.color, 26);
+    switch (type.key) {
+      case 'REPAIR':
+        p.hp = Math.min(p.maxHp, p.hp + CONFIG.PWR_REPAIR_HP);
+        game.dmgTexts.show(pos, `+${CONFIG.PWR_REPAIR_HP}`, true);
+        game.sound.play('repair', 0.9);
+        break;
+      case 'POWER':
+        p.dmgBoostT = CONFIG.PWR_POWER_TIME;
+        game.sound.play('pwrpick', 0.9);
+        break;
+      case 'SPEED':
+        p.spdBoostT = CONFIG.PWR_SPEED_TIME;
+        game.sound.play('pwrpick', 0.9);
+        break;
+      case 'NUKE':
+        p.nukeReady = true;
+        game.sound.play('pwrpick', 0.9);
+        break;
+    }
+  }
+
+  clear() {
+    for (const it of this.items) { it.life = 0; it.group.visible = false; }
+    this.timer = this.nextInterval();
+  }
+}
+
+// ============================================================
 // SoundManager: Web Audio プロシージャル SFX(外部ファイルなし)
 //   - 初回 pointerdown で init/resume(iOS 対策)
 //   - 同時発音数 MAX_VOICES に制限 / 距離減衰は playAt(1/d)
@@ -4346,6 +5046,18 @@ class SoundManager {
         if (!this._voice(0.6)) return;
         this._noise({ dur: 0.5, f0: 2000, f1: 5000, type: 'highpass', vol: 0.3 * vol });
         this._osc({ type: 'sawtooth', f0: 300, f1: 900, dur: 0.4, vol: 0.22 * vol });
+        break;
+      case 'pwrspawn': // V7.7: パワーアップ出現: 遠くまで届く 2 音ベルチャイム
+        if (!this._voice(0.6)) return;
+        this._osc({ type: 'sine', f0: 587, dur: 0.3, vol: 0.3 * vol });
+        this._osc({ type: 'sine', f0: 880, dur: 0.45, vol: 0.3 * vol, delay: 0.16 });
+        this._osc({ type: 'triangle', f0: 1760, dur: 0.3, vol: 0.16 * vol, delay: 0.16 });
+        break;
+      case 'pwrpick': // V7.7: パワーアップ取得: 上昇ジング(クレートより派手)
+        if (!this._voice(0.4)) return;
+        this._osc({ type: 'sine', f0: 523, f1: 1046, dur: 0.16, vol: 0.3 * vol });
+        this._osc({ type: 'sine', f0: 784, f1: 1568, dur: 0.18, vol: 0.26 * vol, delay: 0.08 });
+        this._osc({ type: 'triangle', f0: 1046, f1: 2093, dur: 0.22, vol: 0.2 * vol, delay: 0.16 });
         break;
       case 'repair': // V7.0: 撃破時 HP 回復(残量 2 倍): 短い上昇音(きらめき)
         if (!this._voice(0.3)) return;
@@ -4650,6 +5362,7 @@ class InputManager {
     this.jumpQueued = false;
     this.abilityQueued = false; // アビリティ(B / 専用ボタン)
     this.targetCycleQueued = false; // ターゲット切替(Tab / 専用ボタン)
+    this.camCycleQueued = false;    // V7.7: カメラプリセット切替(F / 📐 ボタン)
     this.lookDX = 0;
     this.lookDY = 0;
 
@@ -4671,6 +5384,7 @@ class InputManager {
     const jumpBtn = document.getElementById('jump-btn');
     const abilityBtn = document.getElementById('ability-btn');
     const targetBtn = document.getElementById('target-btn');
+    const camBtn = document.getElementById('cam-btn'); // V7.7
 
     // ---- キーボード(PC はキーボード完結のシンプル操作) ----
     //   カーソル: 移動 / Shift+←→: 方向転換 / Space: 攻撃1 / B: 攻撃2 / V: ジャンプ
@@ -4679,6 +5393,7 @@ class InputManager {
       if (e.code === 'KeyV' && !e.repeat) this.jumpQueued = true;
       if (e.code === 'KeyB' && !e.repeat) this.abilityQueued = true;
       if (e.code === 'Tab' && !e.repeat) this.targetCycleQueued = true; // ターゲット切替
+      if (e.code === 'KeyF' && !e.repeat) this.camCycleQueued = true; // V7.7: カメラ切替
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
     });
     window.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
@@ -4715,6 +5430,7 @@ class InputManager {
     press(jumpBtn, () => { this.jumpQueued = true; }, () => {});
     press(abilityBtn, () => { this.abilityQueued = true; }, () => {});
     press(targetBtn, () => { this.targetCycleQueued = true; }, () => {});
+    if (camBtn) press(camBtn, () => { this.camCycleQueued = true; }, () => {}); // V7.7
     this._press = press; // V7.1: 動的セグメントの結線に再利用
 
     // ---- タッチ: 左半分=ジョイスティック / 右半分=機体旋回スワイプ ----
@@ -4858,6 +5574,13 @@ class InputManager {
     this.targetCycleQueued = false;
     return t;
   }
+
+  /** V7.7: カメラプリセット切替の消費(F / 📐 ボタン) */
+  consumeCamCycle() {
+    const c = this.camCycleQueued;
+    this.camCycleQueued = false;
+    return c;
+  }
 }
 // V7.1: スロット順の発射キー(ハードポイント数 2〜4 に対応)
 InputManager.FIRE_KEYS = ['Space', 'KeyZ', 'KeyX', 'KeyC'];
@@ -4884,6 +5607,7 @@ class EnemyAI {
     this.strafeDir = rng() < 0.5 ? 1 : -1;
     this.strafeTimer = 0;
     this.jumpTimer = 3 + rng() * 4;
+    this.evadeJumpT = 0;               // V7.7: 回避ジャンプの判定間引き
     this.missileTimer = 5 + rng() * 7; // 初弾は少し待つ
     this.coverPoint = new THREE.Vector3();
     this.coverWait = 0;
@@ -5084,6 +5808,26 @@ class EnemyAI {
       }
     }
 
+    // ---- V7.7: 回避ジャンプ(被弾直後 / 長チャージ予兆を向けられている時に確率) ----
+    this.evadeJumpT = (this.evadeJumpT || 0) - dt;
+    if (this.evadeJumpT <= 0 && bot.grounded && bot.jumpCd <= 0) {
+      this.evadeJumpT = 0.3; // 判定の間引き(0.3s ごと)
+      let threat = false;
+      // 直近 0.4s 以内に被弾 → 25% で跳ぶ
+      if (this.game.elapsed - bot.lastAttackT < 0.4 && rng() < 0.25) threat = true;
+      // 近く(70 以内)の機体が RAILGUN/BRUTE/TEMPEST/ANNIHILATOR をチャージ中 → 30%
+      if (!threat) {
+        for (const r of this.game.robots) {
+          if (r === bot || !r.alive || r.chargeSlot < 0) continue;
+          const cw3 = CONFIG.WEAPONS[r.slots[r.chargeSlot]];
+          if (!cw3 || (cw3.chargeTime || 0) < 0.5) continue;
+          if (bot.position.distanceTo(r.position) > 70) continue;
+          if (rng() < 0.3) { threat = true; break; }
+        }
+      }
+      if (threat && bot.jump()) this.game.spawnBoost(bot);
+    }
+
     // ---- アビリティ(クラス由来) ----
     if (bot.abilityCd <= 0) {
       if (bot.ability === 'sprint') {
@@ -5189,6 +5933,7 @@ class EnemyAI {
         const lead = CONFIG.AI_LEAD_MIN + rng() * (CONFIG.AI_LEAD_MAX - CONFIG.AI_LEAD_MIN);
         _v5.x += tgt.velX * tof * lead;
         _v5.z += tgt.velZ * tof * lead;
+        if (!tgt.grounded) _v5.y += tgt.velY * tof * lead * 0.7; // V7.7: 空中目標の垂直リード
       }
       const miss = rng() > CONFIG.ENEMY_ACCURACY;
       const s = miss ? 3.0 : 0.4;
@@ -5253,7 +5998,10 @@ class Game {
     // カメラ状態(camYaw = 機体の照準方向と一体)
     this.camYaw = Math.PI;       // 初期: 敵陣(-z)方向
     this.camYawTarget = Math.PI; // 旋回の慣性: 入力は目標値を動かし camYaw が追従
-    this.camPitch = 0.12;
+    // V7.7: カメラプリセット(セーブから復元。pitch/距離は updateCamera が lerp)
+    this.camPreset = CONFIG.CAM_PRESETS.find((p) => p.key === SAVE.camMode) || CONFIG.CAM_PRESETS[1];
+    this.camPitch = this.camPreset.pitch;
+    this.camDist = this.camPreset.dist;
     this.camPos = new THREE.Vector3();
     this.recoil = 0;
     this.shakeAmp = 0;           // 着地シェイク
@@ -6145,6 +6893,7 @@ class Game {
     this.artillery = new ArtilleryPool(this.scene, this); // V7.1: 長距離爆撃 + 着弾予報
     this.tempestFx = new TempestFX(this.scene);           // V7.1: 持続稲妻ビーム描画
     this.mines = new MinePool(this.scene, this);          // V7.3: 地雷(MINELAYER)
+    this.powerups = new PowerupPool(this.scene, this);    // V7.7: 時間限定パワーアップ
     this.initCrates();
   }
 
@@ -6243,7 +6992,10 @@ class Game {
       timer: $('timer'),
       lockFlash: $('lock-flash'),
       overlayStats: $('overlay-stats'),
+      camLabel: $('cam-label'),   // V7.7: カメラプリセット表示
+      pwrHud: $('pwr-hud'),       // V7.7: パワーアップ効果の残時間表示
     };
+    if (this.ui.camLabel) this.ui.camLabel.textContent = SAVE.camMode; // 保存値を反映
     this.dmgTexts = new DamageTextPool($('damage-layer'));
 
     // ---- ミニレーダー(2D canvas) ----
@@ -6376,6 +7128,8 @@ class Game {
    */
   dealDamage(target, dmg, sourcePos, attacker = null) {
     if (!target.alive) return false;
+    // V7.7: POWER パワーアップ(攻撃者の与ダメ +30%)
+    if (attacker && attacker.dmgBoostT > 0) dmg = Math.round(dmg * CONFIG.PWR_POWER_MUL);
     const died = target.takeDamage(dmg);
     // FFA ヘイト: 撃たれた相手を記憶(AI のターゲット選択が反応する)
     if (attacker && attacker !== target) {
@@ -6907,6 +7661,32 @@ class Game {
     const p = this.player;
     const w = CONFIG.WEAPONS[p.slots[i]];
     if (!w || !p.alive) return;
+
+    // ---- V7.7: NUKE パワーアップ — 次のミサイル/ロケット系 1 発を特殊ミサイル化 ----
+    // ランチャー非装備の機体は Space(スロット 0)の次弾を置き換える
+    if (p.nukeReady) {
+      const isLauncher = (k) => {
+        const ww = CONFIG.WEAPONS[k];
+        return !!ww && (ww.kind === 'missile' || ww.kind === 'rocket' || ww.kind === 'swarm');
+      };
+      const hasLauncher = p.slots.some(isLauncher);
+      if ((hasLauncher && isLauncher(p.slots[i])) || (!hasLauncher && i === 0)) {
+        if (p.slotCd[i] > 0) return;       // 元武器の CD を尊重
+        p.slotCd[i] = w.cd || w.interval || 1;
+        p.nukeReady = false;
+        // 誘導先: ロック対象 > 照準コーン内の最寄り敵 > 無誘導
+        let ntgt = (this.locked && this.lockTarget && this.lockTarget.alive) ? this.lockTarget : null;
+        if (!ntgt) ntgt = this._swarmAutoTarget(110);
+        this.missiles.fireSalvo(p, ntgt, i, {
+          count: 1, speed: 34, turn: 4.5, armTime: 0.25,
+          dmgMin: CONFIG.PWR_NUKE_DMG, dmgMax: CONFIG.PWR_NUKE_DMG,
+          sfx: 'missile', nuke: true,
+        });
+        this.recoil = Math.min(0.15, this.recoil + 0.08);
+        return;
+      }
+    }
+
     if (w.kind === 'bolt') { // V7.0: エネルギーボルト(実体弾)
       if (!p.canFireSlot(i)) return;
       const range = w.range || CONFIG.WEAPON_RANGE;
@@ -7068,6 +7848,8 @@ class Game {
     const lead = CONFIG.AI_LEAD_MIN + rng() * (CONFIG.AI_LEAD_MAX - CONFIG.AI_LEAD_MIN);
     _v5.x += target.velX * tof * lead;
     _v5.z += target.velZ * tof * lead;
+    // V7.7: 空中の目標は垂直方向もリード(ジャンプ回避を追える)
+    if (!target.grounded) _v5.y += target.velY * tof * lead * 0.7;
     // 距離に応じた角度ばらつき(近距離はほぼ当たる / 遠距離は散る)
     const jitter = CONFIG.AI_LEAD_MISS_SPREAD * (dist / 60) * (1 - CONFIG.ENEMY_ACCURACY * 0.6);
     _v5.x += (rng() - 0.5) * jitter;
@@ -7221,7 +8003,18 @@ class Game {
     const earned = ptKill + ptDmg + ptSurv + ptWin + ptCrates;
     const walletBefore = SAVE.wallet;
     SAVE.wallet += earned;
+
+    // ---- V7.8: XP 精算(与ダメ×0.5 + 撃破×100 + 勝利 200 / 参加 30)----
+    const xpDmg = Math.round(this.stats.ptDamage * CONFIG.XP_PER_DMG);
+    const xpKill = this.stats.kills * CONFIG.XP_KILL;
+    const xpBonus = win ? CONFIG.XP_WIN : CONFIG.XP_PLAY;
+    const xpGain = xpDmg + xpKill + xpBonus;
+    const lvBefore = levelFromXp(SAVE.xp);
+    SAVE.xp += xpGain;
+    const lvAfter = levelFromXp(SAVE.xp);
     saveSave(SAVE);
+    cloudAutoBackup(); // V7.8: syncCode 取得済みなら裏でクラウドへ(失敗は無視)
+    const lvldUp = lvAfter > lvBefore;
     this.ui.resultBreakdown.innerHTML = `
       <div class="rb-row"><span>${T('rbKills', this.stats.kills)}</span><b>+${ptKill.toLocaleString()}</b></div>
       <div class="rb-row"><span>${T('rbDamage')}</span><b>+${ptDmg.toLocaleString()}</b></div>
@@ -7229,7 +8022,14 @@ class Game {
       <div class="rb-row"><span>${T('rbCrates')}</span><b>+${ptCrates.toLocaleString()}</b></div>
       ${win ? `<div class="rb-row rb-win"><span>${T('rbWinBonus')}</span><b>+${ptWin.toLocaleString()}</b></div>` : ''}
       <div class="rb-row rb-total"><span>${T('rbTotal')}</span><b id="rb-earned">+0</b></div>
-      <div class="rb-row rb-wallet"><span>${T('rbWallet')}</span><b id="rb-wallet">${walletBefore.toLocaleString()}</b></div>`;
+      <div class="rb-row rb-wallet"><span>${T('rbWallet')}</span><b id="rb-wallet">${walletBefore.toLocaleString()}</b></div>
+      <div class="rb-row rb-xp"><span>${T('rbXp', T(win ? 'rbXpWin' : 'rbXpPlay'))}</span><b>+${xpGain.toLocaleString()} XP</b></div>
+      ${lvldUp
+    ? `<div class="rb-levelup">⬆ ${T('levelUp', lvAfter)}<small>${T('levelUpDesc')}</small></div>`
+    : `<div class="rb-row rb-lv"><span>Lv.${lvAfter}</span><b>${SAVE.xp.toLocaleString()} / ${
+      lvAfter >= CONFIG.LVL_MAX ? 'MAX' : xpForLevel(lvAfter + 1).toLocaleString()} XP</b></div>`}`;
+    // レベルアップ・ファンファーレ(既存 SFX 流用。勝敗スティングの後に重ねる)
+    if (lvldUp) setTimeout(() => this.sound.play('win', 0.8), 900);
     // カウントアップ(0.9 秒)
     const earnedEl = document.getElementById('rb-earned');
     const walletEl = document.getElementById('rb-wallet');
@@ -7345,6 +8145,22 @@ class Game {
   restart() {
     // V7.5.2: リザルトの縦パン許可を解除(戦闘中は touch-action:none に戻す)
     document.body.classList.remove('result-open');
+
+    // ---- V7.8: レベル適用(reset() より先に。reset は hp = maxHp で開始する) ----
+    // プレイヤー = 累計 XP 由来 / 敵 = プレイヤー Lv ± ENEMY_LVL_SPREAD(最低 1)
+    const plv = levelFromXp(SAVE.xp);
+    this.player.applyLevel(plv);
+    for (const e of this.enemies) {
+      const spread = CONFIG.ENEMY_LVL_SPREAD;
+      const lv = Math.max(1, Math.min(CONFIG.LVL_MAX,
+        plv + Math.floor(rng() * (spread * 2 + 1)) - spread));
+      e.applyLevel(lv);
+      // 敵装備はレベル帯で再抽選(Lv1-5 は安価帯 = クラス既定のまま)
+      const lo = aiTierLoadout(e.cls, lv);
+      e.slots = lo;
+      e.slotCd = new Array(lo.length).fill(0);
+      e.model.mountWeapons(lo);
+    }
     // V7.0: ランダム出現(SPAWN_RANDOM)。無効なら旧固定配置
     let spawnsList;
     if (CONFIG.SPAWN_RANDOM) {
@@ -7378,6 +8194,7 @@ class Game {
     this.artillery.clear(); // V7.1: 砲弾 + 着弾予報
     this.tempestFx.clear(); // V7.1: 稲妻ビーム
     this.mines.clear();     // V7.3: 地雷
+    this.powerups.clear();  // V7.7: パワーアップ
     this.dmgTexts.clear();
     this.fxQueue.length = 0;        // 未消化の多段爆発を破棄
     this.restoreDestructibles();    // ドラム缶/遮蔽を復元
@@ -7389,7 +8206,7 @@ class Game {
     this.slowmoTimer = 0;
     this.pendingResult = null;
     // camYaw/camYawTarget は assignSpawns 由来の初期向き(上で設定済み)を維持
-    this.camPitch = 0.12;
+    this.camPitch = this.camPreset ? this.camPreset.pitch : 0.38; // V7.7: プリセット準拠
     this.recoil = 0;
     this.shakeAmp = 0;
     // V6.4: 戦績 / HUD 演出のリセット
@@ -7587,13 +8404,23 @@ class Game {
     this._acquireLock(next);
   }
 
+  /** V7.7: カメラプリセットを LOW → MID → HIGH で巡回(セーブに保存 + HUD ラベル更新) */
+  cycleCamPreset() {
+    const idx = CONFIG.CAM_PRESETS.findIndex((p) => p.key === (this.camPreset ? this.camPreset.key : 'MID'));
+    this.camPreset = CONFIG.CAM_PRESETS[(idx + 1) % CONFIG.CAM_PRESETS.length];
+    SAVE.camMode = this.camPreset.key;
+    saveSave(SAVE);
+    if (this.ui && this.ui.camLabel) this.ui.camLabel.textContent = this.camPreset.key;
+    this.sound.play('ui', 0.7);
+  }
+
   updateCamera(dt, snap = false) {
     // ---- 旋回入力 = 機体(照準)ごと回す。自動復帰なし(WR 方式) ----
     //   入力は camYawTarget を動かし、camYaw が慣性付きで追従(重量感)
+    //   V7.7: 縦スワイプの pitch 操作は廃止(プリセット LOW/MID/HIGH をボタン/F で巡回)
     this.input.consumeLook(this.lookDelta);
-    if (Math.abs(this.lookDelta.x) > 0.01 || Math.abs(this.lookDelta.y) > 0.01) {
+    if (Math.abs(this.lookDelta.x) > 0.01) {
       this.camYawTarget -= this.lookDelta.x * CONFIG.CAM_SENS;
-      this.camPitch = clamp(this.camPitch + this.lookDelta.y * CONFIG.CAM_SENS, CONFIG.CAM_PITCH_MIN, CONFIG.CAM_PITCH_MAX);
     }
     // キーボード旋回(Shift + ←→)
     const tk = this.input.turnKey;
@@ -7601,6 +8428,18 @@ class Game {
     // 旋回の慣性
     if (snap) this.camYaw = this.camYawTarget;
     else this.camYaw = lerpAngle(this.camYaw, this.camYawTarget, 1 - Math.exp(-CONFIG.TURN_INERTIA * dt));
+
+    // ---- V7.7: カメラプリセット切替(F / 📐 ボタン)→ pitch/距離を smooth lerp ----
+    if (this.input.consumeCamCycle && this.input.consumeCamCycle()) this.cycleCamPreset();
+    const preset = this.camPreset || CONFIG.CAM_PRESETS[1];
+    if (snap) {
+      this.camPitch = preset.pitch;
+      this.camDist = preset.dist;
+    } else {
+      const k = 1 - Math.exp(-CONFIG.CAM_PRESET_LERP * dt);
+      this.camPitch += (preset.pitch - this.camPitch) * k;
+      this.camDist = (this.camDist || preset.dist) + (preset.dist - (this.camDist || preset.dist)) * k;
+    }
 
     // 注視点(プレイヤー + 肩越しオフセット)
     const sy = Math.sin(this.camYaw), cy = Math.cos(this.camYaw);
@@ -7610,11 +8449,11 @@ class Game {
       this.player.position.z + sy * CONFIG.CAM_SHOULDER,
     );
 
-    // 理想カメラ位置(後方 + 上方、ピッチ反映)
-    const hd = CONFIG.CAM_DIST * Math.cos(this.camPitch);
+    // 理想カメラ位置(後方 + 上方、ピッチ/プリセット距離反映)
+    const hd = this.camDist * Math.cos(this.camPitch);
     _v2.set(
       _v1.x - sy * hd,
-      _v1.y + (CONFIG.CAM_HEIGHT - CONFIG.CAM_LOOK_HEIGHT) + CONFIG.CAM_DIST * Math.sin(this.camPitch),
+      _v1.y + (CONFIG.CAM_HEIGHT - CONFIG.CAM_LOOK_HEIGHT) + this.camDist * Math.sin(this.camPitch),
       _v1.z - cy * hd,
     );
 
@@ -7773,6 +8612,18 @@ class Game {
     ui.abilityCd.style.setProperty('--cd', (player.abilityCd / abCdMax).toFixed(3));
     ui.abilityBtn.classList.toggle('ready', player.abilityCd <= 0);
     ui.abilityBtn.classList.toggle('on', player.sprintT > 0 || player.shieldT > 0);
+
+    // ---- V7.7: パワーアップ効果の残時間表示(アイコン + 秒) ----
+    if (ui.pwrHud) {
+      let pw = '';
+      if (player.dmgBoostT > 0) pw += `<span class="pwr-fx" style="color:#ff7a66">💥 ${Math.ceil(player.dmgBoostT)}s</span>`;
+      if (player.spdBoostT > 0) pw += `<span class="pwr-fx" style="color:#7adcff">💨 ${Math.ceil(player.spdBoostT)}s</span>`;
+      if (player.nukeReady) pw += '<span class="pwr-fx" style="color:#ffe24a">☢ READY</span>';
+      if (pw !== this._prevPwrHud) {
+        ui.pwrHud.innerHTML = pw;
+        this._prevPwrHud = pw;
+      }
+    }
 
     // ---- オーバーヒート警告音(遷移時に 1 回) ----
     if (player.overheated && !this._prevOverheated) this.sound.play('overheat');
@@ -7956,6 +8807,26 @@ class Game {
       if (Math.hypot(pxc, pyc) > R - 5) continue; // レンジ外は表示しない
       ctx.beginPath();
       ctx.arc(c + pxc, c + pyc, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ---- V7.7: パワーアップ(金色のパルスリング。レンジ外は縁にクランプして方向を示す) ----
+    for (const pu of this.powerups.items) {
+      if (pu.life <= 0) continue;
+      const dxp = pu.group.position.x - p.x, dzp = pu.group.position.z - p.z;
+      let pxp = (dxp * (-cy) + dzp * sy) * k;
+      let pyp = -(dxp * sy + dzp * cy) * k;
+      const dd = Math.hypot(pxp, pyp);
+      if (dd > R - 5) { pxp *= (R - 5) / dd; pyp *= (R - 5) / dd; } // 縁にクランプ
+      const pulse = 2.5 + 2.5 * (0.5 + 0.5 * Math.sin(this.elapsed * 5 + pu.phase));
+      ctx.strokeStyle = 'rgba(255,210,74,0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(c + pxp, c + pyp, pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#ffd24a';
+      ctx.beginPath();
+      ctx.arc(c + pxp, c + pyp, 1.6, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -8161,6 +9032,24 @@ class Game {
     this.artillery.update(dt); // V7.1: 爆撃砲弾 + 着弾予報サークル
     this.updateTempests(dt);   // V7.1: 持続稲妻ビーム(tick + 描画)
     this.mines.update(dt);     // V7.3: 地雷(投射・明滅・接触起爆)
+    this.powerups.update(dt);  // V7.7: パワーアップ(出現・消滅・取得)
+
+    // V7.7: パワーアップ中の見た目(POWER = 武器が赤熱 / SPEED = 青いトレイル)
+    const pp = this.player;
+    if (pp.alive) {
+      if (pp.dmgBoostT > 0 && rng() < dt * 14) {
+        const si = Math.floor(rng() * pp.slots.length);
+        if (pp.slots[si]) {
+          pp.model.getMuzzleWorld(si, _v1);
+          this.particles.spawn(_v1, 1, { color: 0xff4030, speed: 1.2, life: 0.3, gravity: 2, scale: 1.1, boost: 1.8 });
+        }
+      }
+      if (pp.spdBoostT > 0 && rng() < dt * 22) {
+        _v1.copy(pp.position);
+        _v1.y += 0.5 + rng() * 0.8;
+        this.particles.spawn(_v1, 1, { color: 0x55ccff, speed: 0.8, life: 0.35, gravity: 0.5, scale: 1.2, boost: 1.7 });
+      }
+    }
 
     // V7.1: ノックバック(REPULSOR)の適用と指数減衰
     for (const r of this.allRobots) {
@@ -8532,6 +9421,19 @@ function thumbHTML(key, cssClass) {
 function refreshHangarWallet() {
   // V7.5: コンパクト表記(💰 + 桁区切りのみ。モバイル/PC 共通)
   $id('hangar-wallet').textContent = `💰 ${fmtPt(SAVE.wallet)}`;
+  // V7.8: レベル + XP プログレスバー
+  const lv = levelFromXp(SAVE.xp);
+  const lvEl = $id('hangar-level');
+  if (lvEl) {
+    const cur = xpForLevel(lv);
+    const next = xpForLevel(lv + 1);
+    const pct = lv >= CONFIG.LVL_MAX ? 100
+      : Math.max(0, Math.min(100, Math.round(((SAVE.xp - cur) / Math.max(1, next - cur)) * 100)));
+    $id('lv-num').textContent = `Lv.${lv}`;
+    $id('xp-fill').style.width = `${pct}%`;
+    lvEl.title = lv >= CONFIG.LVL_MAX ? `${SAVE.xp.toLocaleString()} XP (MAX)`
+      : `${SAVE.xp.toLocaleString()} / ${next.toLocaleString()} XP`;
+  }
 }
 
 /** UI 操作音(AudioContext はユーザー操作で解禁) */
@@ -9410,6 +10312,109 @@ function buildBootSetup(playerClass) {
       setLang(LANG === 'ja' ? 'en' : 'ja');
       uiSfx();
     });
+
+    // ---- V7.7: セーブ移行モーダル(💾 エクスポート/インポート) ----
+    {
+      const modal = $id('save-modal');
+      const status = $id('save-io-status');
+      const out = $id('save-code-out');
+      const input = $id('save-code-in');
+      const openModal = () => {
+        status.textContent = '';
+        out.value = exportSaveCode(); // 開いた時点の最新セーブを常に表示
+        input.value = '';
+        // V7.8: 取得済みの同期コードがあれば常に表示
+        const disp = $id('cloud-code-display');
+        if (SAVE.syncCode) {
+          disp.textContent = SAVE.syncCode;
+          disp.classList.remove('hidden');
+        } else {
+          disp.classList.add('hidden');
+        }
+        modal.classList.remove('hidden');
+      };
+      const closeModal = () => modal.classList.add('hidden');
+      $id('saveio-btn').addEventListener('click', () => { uiSfx(); openModal(); });
+      $id('save-modal-close').addEventListener('click', () => { uiSfx(); closeModal(); });
+      $id('save-modal-backdrop').addEventListener('click', () => { uiSfx(); closeModal(); });
+      // コードをコピー(clipboard API → 失敗時はテキスト選択にフォールバック)
+      $id('save-copy-btn').addEventListener('click', () => {
+        uiSfx();
+        const code = exportSaveCode();
+        out.value = code;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(
+            () => { status.textContent = T('saveCopied'); },
+            () => { status.textContent = T('saveCopyFail'); out.focus(); out.select(); },
+          );
+        } else {
+          status.textContent = T('saveCopyFail');
+          out.focus();
+          out.select();
+        }
+      });
+      // コードを貼り付けて復元(検証 → localStorage 上書き → リロード)
+      $id('save-restore-btn').addEventListener('click', () => {
+        uiSfx();
+        const r = importSaveCode(input.value);
+        if (r === 'ok') {
+          status.textContent = T('saveRestored');
+          setTimeout(() => location.reload(), 700);
+        } else {
+          status.textContent = T(
+            r === 'format' ? 'saveBadFormat'
+              : r === 'checksum' ? 'saveBadChecksum'
+                : r === 'storage' ? 'saveStorageFail' : 'saveBadData',
+          );
+        }
+      });
+
+      // ---- V7.8: クラウド保存(☁️。初回は同期コードを生成して大きく表示) ----
+      const cloudBtn = $id('cloud-save-btn');
+      cloudBtn.addEventListener('click', async () => {
+        uiSfx();
+        cloudBtn.disabled = true;
+        status.textContent = T('cloudSaving');
+        try {
+          const r = await cloudSave();
+          if (r.ok) {
+            status.textContent = T('cloudSaved');
+            const disp = $id('cloud-code-display');
+            disp.textContent = r.code;
+            disp.classList.remove('hidden');
+          } else {
+            status.textContent = T(r.reason === 'offline' ? 'cloudOffline' : 'cloudSaveFail');
+          }
+        } catch (e) {
+          status.textContent = T('cloudSaveFail');
+        }
+        cloudBtn.disabled = false;
+      });
+
+      // ---- V7.8: クラウド読込(同期コード → RB1 検証フロー → リロード) ----
+      const cloudLoadBtn = $id('cloud-load-btn');
+      cloudLoadBtn.addEventListener('click', async () => {
+        uiSfx();
+        cloudLoadBtn.disabled = true;
+        status.textContent = T('cloudLoading');
+        try {
+          const r = await cloudLoad($id('cloud-code-in').value);
+          if (r === 'ok') {
+            status.textContent = T('saveRestored');
+            setTimeout(() => location.reload(), 700);
+          } else {
+            status.textContent = T(
+              r === 'badcode' ? 'cloudBadCode'
+                : r === 'notfound' ? 'cloudNotFound'
+                  : r === 'offline' ? 'cloudOffline' : 'cloudLoadFail',
+            );
+          }
+        } catch (e) {
+          status.textContent = T('cloudLoadFail');
+        }
+        cloudLoadBtn.disabled = false;
+      });
+    }
 
     // V7.5: 詳細シートのトグル(ⓘ。モバイルのみ表示 — PC は常時展開)
     $id('cs-toggle').addEventListener('click', () => {
