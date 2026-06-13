@@ -1,6 +1,14 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.5.2)
+// ROBO BATTLE 3D - Prototype (V8.6)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.6 変更点(ハンガーで機体 3D の全景を見られるように):
+//   機体選択画面で UI(タイトル/機体チップ/HP・SPD バー/武器パネル/START 等)が
+//   3D 機体に重なって見にくい問題に対応。👁 ボタンのタップ ON/OFF、または
+//   回転台(中央 3D エリア)の長押し(350ms・押している間)で、ハンガー UI を
+//   0.2s フェードアウトして背後のロボだけ全景表示する。display は変えず opacity
+//   のみ操作するためレイアウトは保持(再表示で崩れない)。回転台の回転は継続。
+//   出撃/ハンガー復帰で全景は自動解除。戦闘 HUD には影響なし
 //
 // V8.5.2 変更点(カスタム rigged T 字バグ: 真因特定 + スキニング堅牢化):
 //   ◆真因(実 glb 解析で確定): カスタム機体 image_8c9506 の歩行 glb は
@@ -11415,6 +11423,7 @@ function returnToHangar() {
   HANGAR.pendingMech = null; // V7.2: 機体売買の確認状態もリセット
   closeWeaponModal(false);   // V7.3: 武器モーダルも閉じる
   refreshHangarUI();
+  $id('hangar').classList.remove('peek'); // V8.6: 戻ってきたら全景は解除(UI を出す)
   $id('hangar').classList.remove('hidden');
   if (HANGAR.game) {
     HANGAR.game.enterHangar(); // ドック描画へ切替 + BGM title
@@ -11513,6 +11522,43 @@ function buildBootSetup(playerClass) {
       setLang(LANG === 'ja' ? 'en' : 'ja');
       uiSfx();
     });
+
+    // ---- V8.6: 機体全景プレビュー(👁 トグル + 回転台の長押し) ----
+    //   ハンガー UI を一時フェードアウトして背後の 3D 機体だけ見せる。
+    //   display は変えず opacity のみ → 再表示でレイアウトが崩れない。
+    {
+      const hangarEl = $id('hangar');
+      const peekBtn = $id('hangar-peek-btn');
+      const center = $id('hangar-center');
+      const setPeek = (on) => hangarEl.classList.toggle('peek', on);
+      // 👁 タップで ON/OFF(モバイルで長押しが使いにくい場合の保険)
+      peekBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        uiSfx();
+        setPeek(!hangarEl.classList.contains('peek'));
+      });
+      // 中央 3D エリアの長押し(押している間だけ全景。離すと戻る)
+      let lpTimer = null;
+      let heldPeek = false; // この長押しで peek を立てたか(離すときに戻す対象)
+      const startLP = () => {
+        clearTimeout(lpTimer);
+        lpTimer = setTimeout(() => {
+          if (!hangarEl.classList.contains('peek')) { setPeek(true); heldPeek = true; }
+        }, 350);
+      };
+      const endLP = () => {
+        clearTimeout(lpTimer);
+        if (heldPeek) { setPeek(false); heldPeek = false; } // 長押し由来のみ戻す(トグルONは維持)
+      };
+      center.addEventListener('touchstart', startLP, { passive: true });
+      center.addEventListener('touchend', endLP);
+      center.addEventListener('touchcancel', endLP);
+      center.addEventListener('mousedown', startLP);
+      center.addEventListener('mouseup', endLP);
+      center.addEventListener('mouseleave', endLP);
+      // ハンガーを離れる(出撃)際は必ず全景を解除(戦闘 HUD へ持ち越さない)
+      $id('launch-btn').addEventListener('click', () => setPeek(false));
+    }
 
     // ---- V7.7: セーブ移行モーダル(💾 エクスポート/インポート) ----
     {

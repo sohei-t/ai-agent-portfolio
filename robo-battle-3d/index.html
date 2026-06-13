@@ -680,6 +680,46 @@
     justify-content: flex-start;
     overflow: hidden;
   }
+  /* ============================================================
+     V8.6: 機体全景プレビュー(👁 トグル / 回転台の長押し)。
+     ハンガー UI(タイトル/チップ/ステータス/武器/START 等)を一時フェードアウトし、
+     背後の 3D 機体だけを見せる。display は変えない(レイアウト保持 → 再表示で崩れない)。
+     👁 ボタンと中央 3D エリアは隠さない(操作で戻せるように)
+     ============================================================ */
+  #hangar.peek > *:not(#hangar-main):not(#hangar-toast),
+  #hangar.peek #hangar-top > *:not(#hangar-top-right),
+  #hangar.peek #hangar-top-right > *:not(#hangar-peek-btn),
+  #hangar.peek #hangar-left,
+  #hangar.peek #hangar-right {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  /* 通常時のフェード戻り(両方向 0.2s スムーズ) */
+  #hangar #hangar-top > *, #hangar #hangar-top-right > *,
+  #hangar #hangar-left, #hangar #hangar-right,
+  #hangar #hangar-status, #hangar #stage-select, #hangar #launch-btn, #hangar #hangar-help {
+    transition: opacity 0.2s ease;
+  }
+  #hangar.peek #hangar-main {
+    /* 全景中は左右パネルの幅予約だけ残し、機体を中央に広く見せる(中央 flex は維持) */
+    pointer-events: none;
+  }
+  #hangar.peek #hangar-center { pointer-events: auto; } /* 長押し継続のため中央は反応 */
+  /* 👁 全景トグルボタン(右上・🌐 の隣) */
+  #hangar-peek-btn {
+    padding: 4px 9px;
+    background: rgba(110, 243, 255, 0.08);
+    border: 1px solid rgba(110, 243, 255, 0.45);
+    color: var(--hud-cyan);
+    font-family: inherit; font-size: 13px; font-weight: 900;
+    cursor: pointer; line-height: 1;
+  }
+  #hangar-peek-btn:hover { background: rgba(110, 243, 255, 0.2); }
+  #hangar.peek #hangar-peek-btn {
+    color: var(--hud-amber); border-color: var(--hud-amber);
+    background: rgba(255, 176, 46, 0.15);
+  }
   #hangar-top {
     width: 100%;
     display: flex; justify-content: space-between; align-items: center;
@@ -1538,10 +1578,12 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V8.5.2 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V8.6 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.8: レベル + XP プログレス(値は refreshHangarWallet が更新) -->
       <div id="hangar-level"><span id="lv-num">Lv.1</span><div id="xp-bar"><div id="xp-fill"></div></div></div>
+      <!-- V8.6: 機体全景プレビュー(タップで ON/OFF。回転台の長押しでも一時表示) -->
+      <button id="hangar-peek-btn" type="button" title="機体の全景を見る">👁</button>
       <!-- V7.7: セーブのエクスポート/インポート(機種変更・ブラウザ移行用) -->
       <button id="saveio-btn" type="button">💾</button>
       <!-- V7.3: 言語トグル(JA/EN。セーブに保存) -->
@@ -1640,6 +1682,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=89"></script>
+<script type="module" src="./game3d.js?v=90"></script>
 </body>
 </html>

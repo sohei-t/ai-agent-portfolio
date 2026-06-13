@@ -6,11 +6,11 @@
     "model": "image_8c9506b",
     "modelType": "rigged",
     "hp": 360,
-    "speed": 7.0,
-    "hardpoints": ["medium"],
+    "speed": 5.0,
+    "hardpoints": ["heavy", "medium", "medium"],
     "yaw": 0.0012,
     "scale": 1.0,
     "ability": "shield",
-    "price": 3000
+    "price": 5000
   }
 ]
