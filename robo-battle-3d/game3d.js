@@ -1,6 +1,28 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.0.1)
+// ROBO BATTLE 3D - Prototype (V8.1)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.1 変更点(新メカ 5 体の組み込み = プレイヤー 3 + 敵 2):
+//  A. 購入可の新機体 3 種(リグあり = GlbMechModel 経路・既存 24 ボーン Meshy リグ):
+//     LEVIATHAN(mech_amphib・中量バランス・中×2+軽×2・spd4.6/HP215/3,200pt)
+//     OVERLORD(mech_dreadnought・重量砲撃・重×2+中×2・spd3.4/HP305/5,200pt)
+//     RIPPER(mech_claw・重量近接・重×2+軽×2・spd4.2/HP285/4,600pt)
+//     いずれも既存プレイヤー機(spd3.2-7.0 / HP110-320 / 1.5k-5.5k)のレンジ内
+//  B. 敵専用の新機体 2 種(static 経路・購入不可・遅延ロード):
+//     SCYLLA(mech_crab・quad 演出・strafe = 中距離砲台・spd4.2/HP270)
+//     GOBLIN(mech_round・walk 演出(新 kind)・新 AI rush = 直進速攻・spd6.2/HP165)
+//  C. 静的モデルの前方軸(頂点分布 + サムネ目視。逆なら MODEL_STATIC.yaw 1 行修正):
+//     mech_crab = +Z(鉤爪が +Z 突出・モノアイ面手前)/ mech_round = +Z(鼻センサー
+//     高さの上半身バンドが +Z 偏り 76-79%)→ 両者 yaw 0
+//  D. レベル帯編成: 早期帯(Lv6+)= ARACHNE/SCYLLA/GOBLIN / 中盤(Lv13+)= 全 5 種。
+//     同一クラス上限 2・glb DL 種類数上限は維持
+//  E.【追加】敵編成にプレイヤー機体クラスも混成(自機と同型に敵として遭遇)。
+//     レベル帯で重量を配分(Lv1-5 軽量 / Lv6-12 軽〜中 / Lv13+ 重量も)。
+//     装備は aiTierLoadout(ティア抽選)。種類数 ≤ AI_CLASS_VARIETY+1(=5)
+//  F.【追加】敵インジケーターを赤 → 青(#29b6ff。赤は視認しづらいとの実機報告)。
+//     対象: 端の方向矢印 / 敵マーカー(名・HP・▼)/ ロック枠・距離・名・HP・装備枠 /
+//     ENEMY カウンター / レーダーの敵ドット・最寄り距離。自機系(◎/ARMOR/HEAT)・
+//     被ダメ赤(hit-arc/低HP/敗北)・キルログ・PU 金リングは不変
 //
 // V8.0.1 変更点(戦闘 HUD の配置修正 — 実機フィードバック対応。CSS/DOM のみ・JS ロジック変更なし):
 //  1. 📐 カメラ切替が MG セグメントと重なる実機報告 → 設定系ボタンのため
@@ -387,7 +409,38 @@ const CONFIG = {
       colors: { primary: 0x6f7a4a, secondary: 0xb8b89a, dark: 0x2a2e22 },
       desc: '履帯駆動の重戦車。最大の HP を誇る',
     },
-    // ---------------- V8.0: 敵専用クラス 3 種(購入不可 = PLAYER_CLASSES 外) ----------------
+    // ---------------- V8.1 新機体(リグあり = GlbMechModel 経路。購入可) ----------------
+    LEVIATHAN: { // 中量級バランス型(近接寄りだが汎用): 中×2 + 軽×2
+      name: 'LEVIATHAN', speed: 4.6, hp: 215, price: 4200,
+      hardpoints: ['medium', 'medium', 'light', 'light'],
+      weapons: ['spread', 'arc', 'mg', 'pulse'],
+      aiWeapons: ['spread', 'arc', 'mg', 'pulse'], // 中×2 + 軽×2(サイズ整合)
+      ability: 'shield',
+      model: 'mech_amphib', scale: 0.92,
+      colors: { primary: 0x2f7d8e, secondary: 0x8fd8e0, dark: 0x1c3038 },
+      desc: '水陸両用の中量バランス機。近接寄りだが汎用に戦える',
+    },
+    OVERLORD: { // 重量級・高HP砲撃型: 重×2 + 中×2
+      name: 'OVERLORD', speed: 3.4, hp: 305, price: 5200,
+      hardpoints: ['heavy', 'heavy', 'medium', 'medium'],
+      weapons: ['bazooka', 'rail', 'missile', 'arc'],
+      aiWeapons: ['artillery', 'rail', 'missile', 'arc'],
+      ability: 'shield',
+      model: 'mech_dreadnought', scale: 1.18,
+      colors: { primary: 0x575f74, secondary: 0xa8b0c4, dark: 0x21262f },
+      desc: '重装の砲撃機。スカートアーマーで火点を支える主砲台',
+    },
+    RIPPER: { // 重量級・近接格闘型: 重×2 + 軽×2
+      name: 'RIPPER', speed: 4.2, hp: 285, price: 4800,
+      hardpoints: ['heavy', 'heavy', 'light', 'light'],
+      weapons: ['havoc', 'devastator', 'mg', 'blazer'],
+      aiWeapons: ['havoc', 'devastator', 'mg', 'blazer'], // 重×2 + 軽×2(サイズ整合)
+      ability: 'sprint',
+      model: 'mech_claw', scale: 1.1,
+      colors: { primary: 0x8a4a2e, secondary: 0xd89a6a, dark: 0x2e1d14 },
+      desc: '鉤爪の近接格闘機。重火力で踏み込み至近を制圧する',
+    },
+    // ---------------- V8.0/V8.1: 敵専用クラス(購入不可 = PLAYER_CLASSES 外) ----------------
     ARACHNE: { // 4 脚スパイダー: 中距離ストレイフ砲台
       name: 'ARACHNE', speed: 4.4, hp: 240, price: 0, enemyOnly: true,
       hardpoints: ['medium', 'medium'],
@@ -422,6 +475,30 @@ const CONFIG = {
       aiStyle: 'brawl',
       colors: { primary: 0xb8682a, secondary: 0xe0a868, dark: 0x3a2a1a },
       desc: '重装の格闘型。遮蔽伝いに直進し、至近で火力を集中する',
+    },
+    SCYLLA: { // V8.1: カニ型砲台(背中の連装砲): 中距離ストレイフ(ARACHNE 同系)
+      name: 'SCYLLA', speed: 4.2, hp: 270, price: 0, enemyOnly: true,
+      hardpoints: ['medium', 'medium'],
+      weapons: ['lance', 'arc'],
+      aiWeapons: ['lance', 'arc'], // 背中の連装砲 = 中距離の精密 + 電撃
+      ability: 'shield',
+      model: 'mech_crab', scale: 0.9, // 低く幅広い四つ這い
+      staticModel: true,
+      aiStyle: 'strafe',
+      colors: { primary: 0xe4eef0, secondary: 0xff3ea0, dark: 0x2a3236 },
+      desc: '甲殻の中距離砲台。横歩きで間合いを保ち撃ち続ける',
+    },
+    GOBLIN: { // V8.1: ずんぐり高速接近型: 直進して至近で撃つ(brawl 系の軽量版)
+      name: 'GOBLIN', speed: 6.2, hp: 165, price: 0, enemyOnly: true,
+      hardpoints: ['light', 'light'],
+      weapons: ['mg', 'pulse'],
+      aiWeapons: ['mg', 'pulse'], // 軽武器の連射 + ボルトで至近を荒らす(サイズ整合)
+      ability: 'sprint',
+      model: 'mech_round', scale: 1.0,
+      staticModel: true,
+      aiStyle: 'rush',
+      colors: { primary: 0xb8542a, secondary: 0xe8c060, dark: 0x3a241a },
+      desc: 'ずんぐりした速攻機。一気に間合いを詰めて至近で撃つ',
     },
   },
 
@@ -471,6 +548,23 @@ const CONFIG = {
       bobAmp: 0.22, bobHz: 1.2, tiltMax: 0.22, // 大きめの浮遊ボブ
       glowY: 2.2, glowX: 0.5, glowColor: 0xaaeeff, // 肩部ブースターの噴射
     },
+    // ---------------- V8.1: 新敵機体(static 経路) ----------------
+    mech_crab: { // SCYLLA カニ型砲台(四つ這い・幅広・低い)
+      // 前方 +Z 判定の根拠: 鉤爪の +Z 極値(z +0.85/+0.90)が前方へ突出し、
+      // 胴体質量は -Z(band2 = z平均 -0.124・+側 26.1% の後部寄り胴体)。
+      // サムネのピンクのモノアイ面が手前(+Z)向き = 前方。tank(+Z)と同パターン
+      kind: 'quad', scale: 2.0, yaw: 0,
+      yCenter: 1.18, restY: 0.6,               // 接地(脚下端 0.58×2.0)/ KO で沈む
+      bobAmp: 0.07, bobHz: 2.4, rollAmp: 0.09, // 低い姿勢のカニ歩き(ロール強め)
+    },
+    mech_round: { // GOBLIN ずんぐり高速接近型(脚あり・薄い前後)
+      // 前方 +Z 判定の根拠: 上半身バンド(顔/鼻センサー高さ)が +Z へ強く偏る
+      // (band3 z平均 +0.067・+側 76.4% / band4 +0.118・+側 79.1%)= ピンクの鼻
+      // センサー面 = +Z。サムネでその面が手前向き。確度: 高
+      kind: 'walk', scale: 1.7, yaw: 0,
+      yCenter: 1.42, restY: 1.42,              // 接地(下端 0.83×1.7)
+      bobAmp: 0.11, bobHz: 2.0,                // 歩行ボブ(脚あり・ホバーなし)
+    },
   },
 
   // V7.2: 静的機体の武器ハードポイント(ボーンなし → 機体ローカルの固定位置)
@@ -481,6 +575,8 @@ const CONFIG = {
     mech_tank_heavy: [[0.95, 3.0, 0.3], [-0.95, 3.0, 0.3], [0, 3.5, -0.2]], // 両肩 + 砲塔上
     mech_quad: [[0.95, 2.1, 0.35], [-0.95, 2.1, 0.35]],   // V8.0: 両肩の連装砲ポッド
     mech_winged: [[0.75, 3.1, 0.2], [-0.75, 3.1, 0.2]],   // V8.0: 肩部ブースター脇
+    mech_crab: [[0.85, 2.2, -0.1], [-0.85, 2.2, -0.1]],   // V8.1: 背中の連装砲(やや後方)
+    mech_round: [[0.7, 2.2, 0.2], [-0.7, 2.2, 0.2]],      // V8.1: 両腕(手)付近
   },
 
   // V7.2: ホバー機の移動特性(回避の主役)
@@ -1113,7 +1209,8 @@ const CONFIG = {
 //   - v3 / v2 / v1 からは自動マイグレーション
 // ============================================================
 // V7.2: 全購入可能クラス(在庫・ロードアウトの管理対象)
-const PLAYER_CLASSES = ['LIGHT', 'MEDIUM', 'HEAVY', 'ASSAULT', 'WASP', 'GLIDER', 'JUGGERNAUT'];
+const PLAYER_CLASSES = ['LIGHT', 'MEDIUM', 'HEAVY', 'ASSAULT', 'WASP', 'GLIDER', 'JUGGERNAUT',
+  'LEVIATHAN', 'OVERLORD', 'RIPPER']; // V8.1: 購入可の新機体 3 種を追加
 const LEGACY_TRIO = ['LIGHT', 'MEDIUM', 'HEAVY']; // v3 以前のプレイヤー所有(移行時に付与)
 
 /** クラスのハードポイント配列(スロットサイズ) */
@@ -1469,14 +1566,26 @@ function aiTierLoadout(cls, lv) {
 }
 
 // ============================================================
-// V8.0: レベル帯別の敵編成(6 機・同一クラス上限 2)
-//   Lv1-5:   基本クラスのみ(現状維持)
-//   Lv6-12:  ARACHNE が 1〜2 機加わる
-//   Lv13-20: SERAPH / GOLIATH も解禁(新型は合計 1〜3 機)
-//   Lv21+:   同上の全クラス混成(装備は aiTierLoadout が高額帯まで抽選)
-//   glb ダウンロード抑制のため基本クラスの種類数も絞る(従来の AI_CLASS_VARIETY 相当)
+// V8.0/V8.1: レベル帯別の敵編成(6 機・同一クラス上限 2)
+//   - 敵専用クラス: Lv1-5 なし / Lv6-12 = ARACHNE/SCYLLA/GOBLIN を 1〜2 /
+//     Lv13+ = 全 5 種を 1〜3
+//   - 残りは「プレイヤーが乗れる機体クラス」から(= 自機と同型に敵としても遭遇する。
+//     V8.1 追加: バトルロイヤルらしい多様性)。レベル帯で軽量/重量を配分:
+//       Lv1-5 軽量寄り / Lv6-12 軽〜中 / Lv13-20 中〜重 / Lv21+ 全機種
+//   - glb DL 抑制: 1 バトルで使う機体「種類数 ≤ AI_CLASS_VARIETY+1(=5)」に抽選段階で制限。
+//     同一クラス上限 2 / プレイヤー機体クラスの装備は aiTierLoadout(ティア抽選)
 // ============================================================
-const ENEMY_ONLY_CLASSES = ['ARACHNE', 'SERAPH', 'GOLIATH'];
+const ENEMY_ONLY_CLASSES = ['ARACHNE', 'SERAPH', 'GOLIATH', 'SCYLLA', 'GOBLIN']; // V8.1: +SCYLLA/GOBLIN
+// V8.1: Lv6+ の早期帯で出る砲台/速攻枠(ARACHNE と同じ序盤プール = 序盤の変化を増やす)
+const ENEMY_EARLY_CLASSES = ['ARACHNE', 'SCYLLA', 'GOBLIN'];
+// V8.1: プレイヤー機体クラスを「重量級」で帯分け(下ほど低 Lv で出る軽量機)
+//   3 段: 軽量 / 中量 / 重量。各帯で許可する重量段を広げていく
+const PLAYER_WEIGHT_TIER = {
+  LIGHT: 0, WASP: 0, SCOUT: 0,           // 軽量(2 スロット軽)
+  MEDIUM: 1, ASSAULT: 1, GLIDER: 1, RAIDER: 1, // 中量
+  HEAVY: 2, JUGGERNAUT: 2, LEVIATHAN: 1, OVERLORD: 2, RIPPER: 2, // 中〜重量(LEVIATHAN は中量扱い)
+};
+function playerTierOf(k) { return PLAYER_WEIGHT_TIER[k] !== undefined ? PLAYER_WEIGHT_TIER[k] : 1; }
 
 function rosterForLevel(plv, playerClass) {
   const cap = 2; // 同一クラス上限
@@ -1486,19 +1595,23 @@ function rosterForLevel(plv, playerClass) {
     counts[k] = (counts[k] || 0) + 1;
     out.push(k);
   };
+  const kindCount = () => Object.keys(counts).length;
+  const KIND_MAX = CONFIG.AI_CLASS_VARIETY + 1; // V8.1: 1 バトルの機体種類数上限(=5)
+  // cap + 種類数上限の両方を満たす候補からランダム選択
   const pickCapped = (cands) => {
-    const ok = cands.filter((k) => (counts[k] || 0) < cap);
+    const ok = cands.filter((k) => (counts[k] || 0) < cap
+      && (counts[k] !== undefined || kindCount() < KIND_MAX));
     return ok.length ? ok[Math.floor(rng() * ok.length)] : null;
   };
 
-  // ---- 新型の出現数(帯で決定) ----
+  // ---- 敵専用新型の出現数(帯で決定) ----
   let newPool = [];
   let newCount = 0;
   if (plv >= 13) {
-    newPool = ENEMY_ONLY_CLASSES;          // ARACHNE / SERAPH / GOLIATH
-    newCount = 1 + Math.floor(rng() * 3);  // 1〜3(新型最大 3)
+    newPool = ENEMY_ONLY_CLASSES;          // 全 5 種
+    newCount = 1 + Math.floor(rng() * 3);  // 1〜3
   } else if (plv >= 6) {
-    newPool = ['ARACHNE'];
+    newPool = ENEMY_EARLY_CLASSES;         // ARACHNE/SCYLLA/GOBLIN
     newCount = 1 + Math.floor(rng() * 2);  // 1〜2
   }
   for (let i = 0; i < newCount; i++) {
@@ -1506,18 +1619,32 @@ function rosterForLevel(plv, playerClass) {
     if (k) push(k);
   }
 
-  // ---- 残りは基本クラスから(DL 抑制: 種類数 = AI_CLASS_VARIETY − 新型種類数、最低 2) ----
-  const base = PLAYER_CLASSES.filter((k) => k !== playerClass);
+  // ---- 残りは「プレイヤーが乗れる機体クラス」から(レベル帯で重量を配分) ----
+  // 許可する重量段: Lv1-5=軽のみ / Lv6-12=軽+中 / Lv13-20=軽+中+重 / Lv21+=全段。
+  // cap2 で 6 機を埋めるには ≥3 クラス必要 → 足りなければ重量段を 1 つ広げる
+  let maxTier = plv >= 13 ? 2 : plv >= 6 ? 1 : 0;
+  const remain = CONFIG.ENEMY_COUNT - out.length;
+  const minKindsNeeded = Math.ceil(remain / cap); // cap2 → 残り 6 なら 3 種以上
+  let base;
+  do {
+    base = PLAYER_CLASSES.filter((k) => k !== playerClass && playerTierOf(k) <= maxTier);
+    if (base.length >= Math.max(2, minKindsNeeded)) break;
+    maxTier++;
+  } while (maxTier <= 2);
+  if (base.length < 2) base = PLAYER_CLASSES.filter((k) => k !== playerClass); // 最終保険
+  // シャッフル
   for (let i = base.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [base[i], base[j]] = [base[j], base[i]];
   }
-  const newKinds = Object.keys(counts).length;
-  const baseRoster = base.slice(0, Math.max(2, CONFIG.AI_CLASS_VARIETY - newKinds));
-  while (out.length < CONFIG.ENEMY_COUNT) {
-    const k = pickCapped(baseRoster);
-    if (k) push(k);
-    else push(baseRoster[Math.floor(rng() * baseRoster.length)]); // 保険(cap 飽和時)
+  // 残り枠が埋まるまで(種類数上限・同型上限を pickCapped が担保)
+  let guard = 0;
+  while (out.length < CONFIG.ENEMY_COUNT && guard++ < 200) {
+    const k = pickCapped(base);
+    if (k) { push(k); continue; }
+    // 候補が尽きた(種類数上限到達)→ 既出クラスから cap 未満を埋める
+    const filler = out.find((c) => counts[c] < cap);
+    push(filler || base[0]);
   }
 
   // シャッフル(出現位置の偏り防止)
@@ -1798,10 +1925,17 @@ const I18N = {
     cdesc_LIGHT: '高速・軽装甲の偵察機', cdesc_MEDIUM: 'バランス型の主力機', cdesc_HEAVY: '重装甲の砲撃機',
     cdesc_ASSAULT: '突撃型の強襲機', cdesc_WASP: '最速のホバードローン。紙装甲を機動で補う',
     cdesc_GLIDER: '双発ホバーの武器プラットフォーム', cdesc_JUGGERNAUT: '履帯駆動の重戦車。最大の HP を誇る',
+    // V8.1: 購入可の新機体
+    cdesc_LEVIATHAN: '水陸両用の中量バランス機。近接寄りだが汎用に戦える',
+    cdesc_OVERLORD: '重装の砲撃機。スカートアーマーで火点を支える主砲台',
+    cdesc_RIPPER: '鉤爪の近接格闘機。重火力で踏み込み至近を制圧する',
     // V8.0: 敵専用クラス(名称はキルログ/インジケータ共通。説明は図鑑的表示用)
     cdesc_ARACHNE: '4 脚の中距離砲台。横移動しながら撃ち続ける',
     cdesc_SERAPH: '低空を舞う高機動機。接近して撃ち、すぐ離脱する',
     cdesc_GOLIATH: '重装の格闘型。遮蔽伝いに直進し、至近で火力を集中する',
+    // V8.1: 敵専用クラス
+    cdesc_SCYLLA: '甲殻の中距離砲台。横歩きで間合いを保ち撃ち続ける',
+    cdesc_GOBLIN: 'ずんぐりした速攻機。一気に間合いを詰めて至近で撃つ',
   },
   en: {
     owned: 'OWNED', ownedMark: '✅ OWNED', notOwned: 'NOT OWNED',
@@ -1910,10 +2044,17 @@ const I18N = {
     cdesc_LIGHT: 'Fast, lightly armored scout', cdesc_MEDIUM: 'Balanced mainline mech', cdesc_HEAVY: 'Heavily armored artillery platform',
     cdesc_ASSAULT: 'Aggressive assault raider', cdesc_WASP: 'Fastest hover drone — paper armor, pure agility',
     cdesc_GLIDER: 'Twin-engine hover weapons platform', cdesc_JUGGERNAUT: 'Tracked super-heavy — highest HP in the game',
+    // V8.1: purchasable new mechs
+    cdesc_LEVIATHAN: 'Amphibious mid-weight all-rounder — close-leaning but versatile',
+    cdesc_OVERLORD: 'Heavy artillery mech — a skirted main battery that anchors a firebase',
+    cdesc_RIPPER: 'Clawed brawler — heavy firepower that pushes in and dominates point-blank',
     // V8.0: enemy-only classes
     cdesc_ARACHNE: 'Quad-leg mid-range turret — strafes while it fires',
     cdesc_SERAPH: 'Low-flying skirmisher — darts in, shoots, and breaks away',
     cdesc_GOLIATH: 'Armored brawler — pushes through cover and unloads point-blank',
+    // V8.1: enemy-only classes
+    cdesc_SCYLLA: 'Carapace mid-range turret — side-steps to hold range and keeps firing',
+    cdesc_GOBLIN: 'Stubby rusher — closes the gap fast and fires point-blank',
   },
 };
 let LANG = SAVE.lang || 'en';
@@ -3487,7 +3628,7 @@ class StaticMechModel {
         g.position.y = (cfg.glowY || 1.2) + Math.sin(this.bobPhase) * (cfg.bobAmp || 0.1);
       }
     } else if (cfg.kind === 'quad') {
-      // ---- V8.0 4 脚(ARACHNE): 歩行ボブ(上下動)+ わずかな左右ロール ----
+      // ---- V8.0 4 脚(ARACHNE/SCYLLA): 歩行ボブ(上下動)+ わずかな左右ロール ----
       //  脚アニメなしの代替表現。速度に応じて歩様が強まる
       this.bobPhase += dt * (cfg.bobHz || 2.2) * Math.PI * 2 * (0.25 + 0.75 * speed01);
       const gait = 0.25 + 0.75 * speed01;
@@ -3495,6 +3636,13 @@ class StaticMechModel {
         + Math.abs(Math.sin(this.bobPhase)) * (cfg.bobAmp || 0.09) * gait;
       this.meshRoot.rotation.z = Math.sin(this.bobPhase * 0.5) * (cfg.rollAmp || 0.06) * speed01;
       this.meshRoot.rotation.x = 0;
+    } else if (cfg.kind === 'walk') {
+      // ---- V8.1 二足歩行ボブ(GOBLIN): 上下動のみ(ロールなし。脚はあるが固定) ----
+      this.bobPhase += dt * (cfg.bobHz || 2.0) * Math.PI * 2 * (0.25 + 0.75 * speed01);
+      const gait = 0.2 + 0.8 * speed01;
+      this.meshRoot.position.y = cfg.yCenter
+        + Math.abs(Math.sin(this.bobPhase)) * (cfg.bobAmp || 0.11) * gait;
+      this.meshRoot.rotation.set(0, 0, 0);
     } else {
       // ---- 履帯: 接地 + 走行中の微振動 ----
       const vib = speed01 > 0.1 ? Math.sin(time * (cfg.vibHz || 38)) * (cfg.vibAmp || 0.015) * speed01 : 0;
@@ -6044,6 +6192,8 @@ const AI_STYLES = {
   strafe: { far: 44, near: 30, strafeMin: 0.8, strafeRng: 1.0, evadeHit: 0.2, evadeChg: 0.3 },   // ARACHNE: 中距離砲台
   hitrun: { far: 50, near: 9, strafeMin: 0.7, strafeRng: 1.0, evadeHit: 0.45, evadeChg: 0.5, hitrun: true }, // SERAPH
   brawl: { far: 16, near: 6, strafeMin: 1.6, strafeRng: 2.0, evadeHit: 0, evadeChg: 0, noHold: true },       // GOLIATH
+  // V8.1 GOBLIN: 直進接近して至近で撃つ速攻枠。brawl より射程が短く忙しなく動く
+  rush: { far: 14, near: 5, strafeMin: 0.9, strafeRng: 1.2, evadeHit: 0.15, evadeChg: 0.1, noHold: true },
 };
 
 class EnemyAI {
@@ -9365,10 +9515,10 @@ class Game {
         ctx.arc(c + px, c + py, rad + 3, 0, Math.PI * 2);
         ctx.stroke();
       } else if (losVis) {
-        ctx.fillStyle = '#ff4040'; // 視認中: 明るい赤●
+        ctx.fillStyle = '#29b6ff'; // V8.1: 視認中の敵 = 鮮やかな青●(旧 赤は視認しづらい)
         ctx.fill();
       } else {
-        ctx.strokeStyle = 'rgba(190,60,60,0.85)'; // 遮蔽中: 暗い赤○
+        ctx.strokeStyle = 'rgba(41,150,220,0.85)'; // V8.1: 遮蔽中の敵 = 暗めの青○
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
