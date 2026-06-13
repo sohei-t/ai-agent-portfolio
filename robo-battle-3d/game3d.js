@@ -1,6 +1,20 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.1)
+// ROBO BATTLE 3D - Prototype (V8.2)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.2 変更点(視認性・迷いにくさ + アイテム挙動。実機フィードバック対応):
+//  1. NEO TOKYO を「夜景 → 薄暮」に明るく(暗くて道/敵が見えない報告)。
+//     sun 0.55→1.7 / hemi 0.55→1.35 / fog near55→90・far330→460 / 地面・ビル明度UP。
+//     ネオン発光は維持(視認性 > ムード)
+//  2. 迷路緩和: CANYON extraOpen 16→34 + 袋小路除去パス(開放辺 1 のセルをもう 1 本開通)。
+//     RUINS は霧を near35→70・far240→360 に緩め + 街路張り出し瓦礫 0.55→0.3。
+//     遮蔽は維持(LOS は緩和後を再測定して報告)
+//  3. レーダーにミニマップ追加【全ステージ】: buildArena 時に障害物 AABB を
+//     オフスクリーン canvas へ 1 回プリレンダ → 毎フレームは drawImage(回転/平行移動のみ)。
+//     既存の地形ヒント変換に重ね、敵ドット(青)/自機/金リングはその上に描画
+//  4. パワーアップ刷新: 寿命 7→60s・常に 2 個維持(消えたら即補充)・
+//     プレイヤー/敵 双方が取得可(敵 AI は SEEK_RANGE 40m 内を 50% で寄り道)。
+//     敵の NUKE 取得は POWER 相当へ読み替え(専用フラグ未所持のため)
 //
 // V8.1 変更点(新メカ 5 体の組み込み = プレイヤー 3 + 敵 2):
 //  A. 購入可の新機体 3 種(リグあり = GlbMechModel 経路・既存 24 ボーン Meshy リグ):
@@ -821,11 +835,11 @@ const CONFIG = {
   // ============================================================
   // V7.7: 時間限定パワーアップ(プレイヤー専用・7 秒で消える)
   // ============================================================
-  PWR_MAX: 2,             // 同時出現の上限
-  PWR_LIFE: 7,            // 出現から消滅まで(s)
-  PWR_INTERVAL_MIN: 12,   // 次の出現までの間隔(ランダム)
-  PWR_INTERVAL_MAX: 20,
+  PWR_MAX: 2,             // V8.2: 常に 2 個をフィールドに維持(1 個消えたら即補充)
+  PWR_LIFE: 60,           // V8.2: 寿命 7→60s(短くて取れない報告)。残り 4s で明滅
   PWR_PICK_RADIUS: 2.2,   // 取得判定距離
+  PWR_AI_SEEK_RANGE: 40,  // V8.2: 敵 AI がアイテムへ寄り道する最大距離
+  PWR_AI_SEEK_CHANCE: 0.5, // V8.2: 範囲内のとき寄り道する確率(過度に賢くしない)
   PWR_REPAIR_HP: 60,      // REPAIR: 即時回復量
   PWR_POWER_TIME: 15,     // POWER: 持続(s)
   PWR_POWER_MUL: 1.3,     // POWER: 与ダメージ倍率(+30%)
@@ -1093,7 +1107,9 @@ const CONFIG = {
         bridges: [],
       },
       structures: 'canyon',
-      canyon: { cells: 9, pitch: 36, wallT: 26, extraOpen: 16, plazaR: 20, boulders: 10 },
+      // V8.2: 迷いにくく(extraOpen 16→34 でループ大幅増 + 袋小路除去パス)。
+      //   遮蔽は維持(LOS ≤35% 目標)。boulders で見通しを適度に残す
+      canyon: { cells: 9, pitch: 36, wallT: 26, extraOpen: 34, plazaR: 20, boulders: 8 },
       props: 10, barrels: 8,
       crateSpots: [[0, 0], [14, 0], [-14, 0], [0, 14], [72, -72], [-72, 72]],
       spawnPoints: [ // すべて迷路セル中心(岩壁は必ずエッジ上 → 埋まらないことを構造的に保証)
@@ -1102,8 +1118,10 @@ const CONFIG = {
         [-72, -72], [72, -72], [-72, 72], [72, 72],
       ],
     },
-    RUINS: { // 廃墟の街: 壊れかけビル密集 + 瓦礫 + 倒壊ビル。濃いめの薄霧で遠距離視認も低下
-      fog: 0xa0a09a, fogNear: 35, fogFar: 240, // 煤けた灰の薄霧(濃いめ)
+    RUINS: { // 廃墟の街: 壊れかけビル密集 + 瓦礫 + 倒壊ビル。薄霧は残すが見通しは確保
+      // V8.2: 「迷ってたどり着けない」報告 → 霧を緩め(near 35→70 / far 240→360)、
+      //   通りの先・敵のシルエットが見える距離まで。瓦礫の街路封鎖も低減(gen 側)
+      fog: 0xa6a69e, fogNear: 70, fogFar: 360,
       light: {
         sun: { color: 0xcfd0d4, intensity: 1.7 },
         hemi: { sky: 0x9aa0a8, ground: 0x55534e, intensity: 0.75 },
@@ -1134,14 +1152,16 @@ const CONFIG = {
         [76, -76], [-76, 76], [0, 57], [0, -57],
       ],
     },
-    TOKYO: { // 東京風の夜の街: 幅 8〜10m の碁盤の目 + 中低層ビル密集 + ネオン + 高架道路 1 本
-      fog: 0x10182c, fogNear: 55, fogFar: 330, // 夜霞
+    TOKYO: { // 東京風の薄暮の街: 幅 8〜10m の碁盤の目 + 中低層ビル密集 + ネオン + 高架道路 1 本
+      // V8.2: 「暗くて道も敵も見えない」実機報告 → 夜景を薄暮(やや明るい)へ。
+      //   視認性最優先(プレイアビリティ > ムード)。fog を緩め・地面/ビルの明度を上げる
+      fog: 0x3a4768, fogNear: 90, fogFar: 460, // 薄暮の青霞(near 55→90 / far 330→460 で見通し改善)
       light: {
-        sun: { color: 0x8090c0, intensity: 0.55 }, // 月光
-        hemi: { sky: 0x32406a, ground: 0x1a2030, intensity: 0.55 },
-        sky: { top: 0x070d1f, horizon: 0x25304e },
+        sun: { color: 0xaeb8e0, intensity: 1.7 },  // 薄暮光(0.55→1.7 = 道/障害物がはっきり)
+        hemi: { sky: 0x6a7cb0, ground: 0x3a4250, intensity: 1.35 }, // 0.55→1.35(黒つぶれ解消)
+        sky: { top: 0x1c2748, horizon: 0x5a6890 },
       },
-      ground: { base: '#23262d', noiseMin: 40, noiseRange: 30, drawRoads: true, roadColor: '#191b21', lineColor: 'rgba(140,160,190,0.45)', cracks: false, ripples: false, canalBank: '#1a1d24', canalFloor: '#14161c' },
+      ground: { base: '#3e424d', noiseMin: 70, noiseRange: 38, drawRoads: true, roadColor: '#2c2f38', lineColor: 'rgba(170,190,220,0.6)', cracks: false, ripples: false, canalBank: '#2a2e38', canalFloor: '#22252e' },
       roads: {
         vRoads: [{ c: 0, w: 10 }, { c: -42, w: 8 }, { c: 42, w: 8 }, { c: -84, w: 8 }, { c: 84, w: 8 }, { c: -126, w: 8 }, { c: 126, w: 8 }],
         hRoads: [{ c: 0, w: 10 }, { c: -42, w: 8 }, { c: 42, w: 8 }, { c: -84, w: 8 }, { c: 84, w: 8 }, { c: -126, w: 8 }, { c: 126, w: 8 }],
@@ -2269,6 +2289,30 @@ function genCanyonLayout() {
     if (rng() < 0.5) hOpen[(rng() * n) | 0][(rng() * (n - 1)) | 0] = true;
     else vOpen[(rng() * (n - 1)) | 0][(rng() * n) | 0] = true;
   }
+  // V8.2: セル (i,j) の開いた隣接辺の数(行き止まり検出用)
+  const openDegree = (i, j) => {
+    let d = 0;
+    if (i > 0 && hOpen[j][i - 1]) d++;
+    if (i < n - 1 && hOpen[j][i]) d++;
+    if (j > 0 && vOpen[j - 1][i]) d++;
+    if (j < n - 1 && vOpen[j][i]) d++;
+    return d;
+  };
+  // V8.2: 袋小路除去 — 開放辺が 1 本だけのセルに、もう 1 本ランダムに開通(2 パス)。
+  //   「どの方向に進んでも迂回で到達できる」連結性に近づける(遮蔽は壁スラブで維持)
+  for (let pass = 0; pass < 2; pass++) {
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
+        if (openDegree(i, j) > 1) continue;
+        const closed = [];
+        if (i > 0 && !hOpen[j][i - 1]) closed.push(() => { hOpen[j][i - 1] = true; });
+        if (i < n - 1 && !hOpen[j][i]) closed.push(() => { hOpen[j][i] = true; });
+        if (j > 0 && !vOpen[j - 1][i]) closed.push(() => { vOpen[j - 1][i] = true; });
+        if (j < n - 1 && !vOpen[j][i]) closed.push(() => { vOpen[j][i] = true; });
+        if (closed.length) closed[(rng() * closed.length) | 0]();
+      }
+    }
+  }
   const boxes = [];
   const addWall = (x, z, alongX) => {
     if (Math.hypot(x, z) < cy.plazaR) return; // 中央アリーナ広場(開所)
@@ -2347,8 +2391,8 @@ function genRuinsLayout() {
         });
       }
       // 街路への張り出し瓦礫(+x/+z 側のみ → 同じ街路に両側から張り出さない =
-      // 最小通行幅 7−2.4 = 4.6m を構造的に保証)
-      if (rng() < 0.55) {
+      // 最小通行幅 7−2.4 = 4.6m を構造的に保証)。V8.2: 0.55→0.3 で主要動線を塞ぎにくく
+      if (rng() < 0.3) {
         const pw = 3 + rng() * 3;
         const px = rng() < 0.5 ? xb + 1.2 : x, pz = px === x ? zb + 1.2 : z;
         const w2 = px === x ? pw : 2.4, d2 = px === x ? 2.4 : pw;
@@ -5258,11 +5302,13 @@ class MinePool {
 }
 
 // ============================================================
-// V7.7: PowerupPool — 時間限定パワーアップ(プレイヤー専用)
-//   - 12〜20 秒間隔で出現し 7 秒で消滅(同時最大 2 個)
-//   - ビーコン光柱 + 出現 SFX + レーダーの金パルスリングで遠くから視認
-//   - SPEED は「プレイヤーから遠い敵」寄りに湧く(移動を促す)
-//   - クレート(金色キューブ)と区別するため色付き多面体 + 光柱
+// PowerupPool — 時間限定パワーアップ
+//   V8.2 変更:
+//   - 寿命 60s(短くて取れない報告)・常に 2 個をフィールドに維持
+//     (取得 or 寿命切れで 1 個消えたら即座に別の場所へ補充)
+//   - プレイヤー/敵 双方が取得可能(敵 AI は近くにあれば確率で寄り道)
+//   - レーダーの金パルスリングで全アイテム(最大 2)を表示
+//   - ビーコン光柱 + 出現 SFX。SPEED は遠い敵寄りに湧き移動を促す
 // ============================================================
 const PWR_TYPES = [
   { key: 'REPAIR', color: 0x44ff88, icon: '🔧' }, // 即時 +60 HP
@@ -5300,18 +5346,16 @@ class PowerupPool {
         type: PWR_TYPES[0], life: 0, baseY: 0, phase: rng() * Math.PI * 2,
       });
     }
-    this.timer = this.nextInterval();
   }
 
-  nextInterval() {
-    return CONFIG.PWR_INTERVAL_MIN + rng() * (CONFIG.PWR_INTERVAL_MAX - CONFIG.PWR_INTERVAL_MIN);
-  }
-
-  /** 開けた場所(spawnPoints + crateSpots)から出現地点を選ぶ。地形内には湧かない */
+  /** 開けた場所(spawnPoints + crateSpots)から出現地点を選ぶ。地形内には湧かない。
+   *  V8.2: 既存アイテムから離れた候補を優先(2 個が密集しないように) */
   pickSpot(type) {
     const cands = (STAGE.spawnPoints || []).concat(STAGE.crateSpots || []);
     if (!cands.length) return null;
     const p = this.game.player;
+    const live = this.items.filter((it) => it.life > 0);
+    const farFromLive = (c) => live.every((it) => Math.hypot(c[0] - it.group.position.x, c[1] - it.group.position.z) > 30);
     // SPEED: プレイヤーから最も遠い生存敵の近くに寄せる(取りに行かせる)
     if (type.key === 'SPEED') {
       let far = null, fd = -1;
@@ -5323,6 +5367,7 @@ class PowerupPool {
       if (far) {
         let best = null, bd = Infinity;
         for (const c of cands) {
+          if (!farFromLive(c)) continue;
           const dx = c[0] - far.position.x, dz = c[1] - far.position.z;
           const d2 = dx * dx + dz * dz;
           if (d2 < bd) { bd = d2; best = c; }
@@ -5330,11 +5375,12 @@ class PowerupPool {
         if (best) return best;
       }
     }
-    // それ以外: プレイヤーから 18 以上離れた候補からランダム(全滅時は完全ランダム)
-    const ok = cands.filter((c) => {
+    // それ以外: プレイヤーから 18 以上 + 既存アイテムから離れた候補を優先
+    let ok = cands.filter((c) => {
       const dx = c[0] - p.position.x, dz = c[1] - p.position.z;
-      return dx * dx + dz * dz > 18 * 18;
+      return dx * dx + dz * dz > 18 * 18 && farFromLive(c);
     });
+    if (!ok.length) ok = cands.filter(farFromLive);
     const list = ok.length ? ok : cands;
     return list[Math.floor(rng() * list.length)];
   }
@@ -5360,72 +5406,97 @@ class PowerupPool {
     this.game.lights.spawn(slot.group.position, type.color, 30);
   }
 
-  update(dt) {
-    const game = this.game, p = game.player;
-    // 出現タイマー
-    this.timer -= dt;
-    if (this.timer <= 0) {
-      this.timer = this.nextInterval();
+  /** V8.2: 常に PWR_MAX 個を維持(空きスロットがあれば即補充) */
+  topUp() {
+    let guard = 0;
+    while (this.items.some((it) => it.life <= 0) && guard++ < CONFIG.PWR_MAX) {
+      const before = this.items.filter((it) => it.life > 0).length;
       this.spawnOne();
+      if (this.items.filter((it) => it.life > 0).length === before) break; // 候補なし
     }
+  }
+
+  update(dt) {
+    const game = this.game;
+    // V8.2: 常時 PWR_MAX 個を維持(消えたら即補充。間を空けない)
+    this.topUp();
     for (const it of this.items) {
       if (it.life <= 0) continue;
       it.life -= dt;
-      // 消滅(静かに霧散)
+      // 消滅(静かに霧散)→ topUp が次フレームで補充
       if (it.life <= 0) {
         it.group.visible = false;
         game.particles.spawn(it.group.position, 5, { color: it.type.color, speed: 2.5, life: 0.4, gravity: 1, boost: 1.5 });
         continue;
       }
-      // 浮遊 + 回転 + 残り 2 秒は明滅して消滅を予告
+      // 浮遊 + 回転 + 残り 4 秒は明滅して消滅を予告
       it.core.rotation.y += dt * 2.2;
       it.core.rotation.x += dt * 0.9;
       it.group.position.y = it.baseY + Math.sin(game.elapsed * 2.4 + it.phase) * 0.22;
-      const blink = it.life < 2 ? (Math.sin(game.elapsed * 14) > 0 ? 1 : 0.25) : 1;
+      const blink = it.life < 4 ? (Math.sin(game.elapsed * 14) > 0 ? 1 : 0.25) : 1;
       it.coreMat.emissiveIntensity = 1.8 * blink;
       it.pillarMat.opacity = (0.2 + 0.1 * Math.sin(game.elapsed * 3 + it.phase)) * blink;
-      // 取得判定(プレイヤーのみ。AI は取らない)
-      if (!p.alive || game.gameOver) continue;
-      const dx = p.position.x - it.group.position.x;
-      const dz = p.position.z - it.group.position.z;
-      if (dx * dx + dz * dz < CONFIG.PWR_PICK_RADIUS * CONFIG.PWR_PICK_RADIUS
-        && Math.abs(p.position.y - it.baseY) < 3.2) {
-        it.life = 0;
-        it.group.visible = false;
-        this.apply(it.type, it.group.position);
+      // V8.2: 取得判定(プレイヤー + 敵の双方)
+      if (game.gameOver) continue;
+      const ix = it.group.position.x, iz = it.group.position.z;
+      const r2 = CONFIG.PWR_PICK_RADIUS * CONFIG.PWR_PICK_RADIUS;
+      for (const rb of game.robots) {
+        if (!rb.alive) continue;
+        const dx = rb.position.x - ix, dz = rb.position.z - iz;
+        if (dx * dx + dz * dz < r2 && Math.abs(rb.position.y - it.baseY) < 3.2) {
+          it.life = 0;
+          it.group.visible = false;
+          this.apply(it.type, it.group.position, rb);
+          break;
+        }
       }
     }
   }
 
-  /** 取得時の即時効果(プレイヤー専用) */
-  apply(type, pos) {
-    const game = this.game, p = game.player;
+  /** V8.2: 取得時の即時効果(取得者 rb = プレイヤー or 敵) */
+  apply(type, pos, rb) {
+    const game = this.game;
+    const isPlayer = rb === game.player;
     game.particles.spawn(pos, 10, { color: type.color, speed: 5, life: 0.5, gravity: -3, scale: 1.3, boost: 2 });
     game.lights.spawn(pos, type.color, 26);
     switch (type.key) {
       case 'REPAIR':
-        p.hp = Math.min(p.maxHp, p.hp + CONFIG.PWR_REPAIR_HP);
-        game.dmgTexts.show(pos, `+${CONFIG.PWR_REPAIR_HP}`, true);
-        game.sound.play('repair', 0.9);
+        rb.hp = Math.min(rb.maxHp, rb.hp + CONFIG.PWR_REPAIR_HP);
+        game.dmgTexts.show(pos, `+${CONFIG.PWR_REPAIR_HP}`, isPlayer);
+        if (isPlayer) game.sound.play('repair', 0.9);
         break;
       case 'POWER':
-        p.dmgBoostT = CONFIG.PWR_POWER_TIME;
-        game.sound.play('pwrpick', 0.9);
+        rb.dmgBoostT = CONFIG.PWR_POWER_TIME;
+        if (isPlayer) game.sound.play('pwrpick', 0.9);
         break;
       case 'SPEED':
-        p.spdBoostT = CONFIG.PWR_SPEED_TIME;
-        game.sound.play('pwrpick', 0.9);
+        rb.spdBoostT = CONFIG.PWR_SPEED_TIME;
+        if (isPlayer) game.sound.play('pwrpick', 0.9);
         break;
       case 'NUKE':
-        p.nukeReady = true;
-        game.sound.play('pwrpick', 0.9);
+        // NUKE: プレイヤーは「次の 1 発が特殊ミサイル」。敵は専用フラグを持たないため
+        //   不都合のない POWER 相当(強化)へ読み替える(報告に明記)
+        if (isPlayer) { rb.nukeReady = true; game.sound.play('pwrpick', 0.9); }
+        else { rb.dmgBoostT = CONFIG.PWR_POWER_TIME; }
         break;
     }
   }
 
+  /** V8.2: 敵 AI 用 — bot から SEEK_RANGE 内の最寄りアイテム位置(なければ null) */
+  nearestItemFor(bot) {
+    let best = null, bd = CONFIG.PWR_AI_SEEK_RANGE * CONFIG.PWR_AI_SEEK_RANGE;
+    for (const it of this.items) {
+      if (it.life <= 0) continue;
+      const dx = it.group.position.x - bot.position.x;
+      const dz = it.group.position.z - bot.position.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < bd) { bd = d2; best = it; }
+    }
+    return best;
+  }
+
   clear() {
     for (const it of this.items) { it.life = 0; it.group.visible = false; }
-    this.timer = this.nextInterval();
   }
 }
 
@@ -6215,6 +6286,7 @@ class EnemyAI {
     this.strafeTimer = 0;
     this.jumpTimer = 3 + rng() * 4;
     this.evadeJumpT = 0;               // V7.7: 回避ジャンプの判定間引き
+    this.seekItem = null;              // V8.2: 寄り道中のパワーアップ
     this.missileTimer = 5 + rng() * 7; // 初弾は少し待つ
     this.coverPoint = new THREE.Vector3();
     this.coverWait = 0;
@@ -6319,11 +6391,23 @@ class EnemyAI {
     if (this.thinkTimer <= 0) {
       this.thinkTimer = 0.25;
       this.decide(dist, hasLOS);
+      // ---- V8.2: パワーアップへの寄り道判断(過度に賢くしない: 距離 + 確率) ----
+      //   退避中/瀕死でなく、近く(SEEK_RANGE)にアイテムがあれば確率で取りに行く
+      this.seekItem = null;
+      if (this.state !== 'COVER' && bot.hp > CONFIG.ENEMY_RETREAT_HP && this.game.powerups) {
+        const it = this.game.powerups.nearestItemFor(bot);
+        if (it && rng() < CONFIG.PWR_AI_SEEK_CHANCE) this.seekItem = it;
+      }
     }
 
     // ---- 状態ごとの移動方向を決定 ----
     let mx = 0, mz = 0;
-    if (this.state === 'COVER') {
+    // V8.2: アイテム寄り道(まだ存在していれば最優先で向かう。他は従来どおり)
+    if (this.seekItem && this.seekItem.life > 0 && this.state !== 'COVER') {
+      _v2.set(this.seekItem.group.position.x - bot.position.x, 0,
+        this.seekItem.group.position.z - bot.position.z);
+      if (_v2.length() > 2) { _v2.normalize(); mx = _v2.x; mz = _v2.z; }
+    } else if (this.state === 'COVER') {
       _v2.subVectors(this.coverPoint, bot.position);
       _v2.y = 0;
       if (_v2.length() > 2.5) {
@@ -7164,6 +7248,47 @@ class Game {
     });
     lamps.instanceMatrix.needsUpdate = true;
     root.add(lamps);
+
+    // V8.2: レーダー用ミニマップを 1 回だけプリレンダ(毎フレームは回転/平行移動のみ)
+    this.buildMinimap();
+  }
+
+  /**
+   * V8.2: 障害物レイアウトをワールド座標のオフスクリーン canvas へプリレンダ。
+   *   レーダーの「地形ヒント」と同じ変換(rotate(camYaw)/scale(k)/translate(-p))で
+   *   毎フレーム重ねる。行き止まりが事前に見え、敵への経路を判断できる。
+   *   座標系: canvas 中心 = ワールド原点、1 ワールド単位 = MINIMAP_PPU px(下記)。
+   */
+  buildMinimap() {
+    const PPU = 1; // 1 ワールド単位 = 1px(±170 → 340px)。レーダー描画時に k 倍へ
+    const half = (CONFIG.MOVE_LIMIT + 8);
+    const sz = Math.ceil(half * 2 * PPU);
+    if (!this.minimapCanvas || this.minimapCanvas.width !== sz) {
+      this.minimapCanvas = document.createElement('canvas');
+      this.minimapCanvas.width = sz;
+      this.minimapCanvas.height = sz;
+    }
+    this.minimapPPU = PPU;
+    this.minimapHalf = half;
+    const mctx = this.minimapCanvas.getContext('2d');
+    mctx.clearRect(0, 0, sz, sz);
+    mctx.save();
+    mctx.translate(sz / 2, sz / 2);       // 中心 = ワールド原点
+    mctx.scale(PPU, PPU);
+    // 障害物 AABB を薄い塗りで(外周フェンスは除外 = マップ縁と重複するため)
+    mctx.fillStyle = 'rgba(150,180,210,0.30)';
+    mctx.strokeStyle = 'rgba(180,210,240,0.22)';
+    mctx.lineWidth = 0.6;
+    const L = CONFIG.MOVE_LIMIT + 4;
+    for (const o of this.obstacles) {
+      const w = o.maxX - o.minX, d = o.maxZ - o.minZ;
+      // 外周フェンス(極端に細長い縁)はスキップ
+      const cx = (o.minX + o.maxX) / 2, cz = (o.minZ + o.maxZ) / 2;
+      if (Math.abs(cx) > L - 2 || Math.abs(cz) > L - 2) continue;
+      mctx.fillRect(o.minX, o.minZ, w, d);
+      mctx.strokeRect(o.minX, o.minZ, w, d);
+    }
+    mctx.restore();
   }
 
   /**
@@ -7289,8 +7414,8 @@ class Game {
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     const bldgMat = new THREE.MeshStandardMaterial({
-      map: tex, color: 0x7a8290, roughness: 0.85, metalness: 0.15,
-      emissive: 0x55648a, emissiveIntensity: 0.32, emissiveMap: tex, // 夜の点灯窓
+      map: tex, color: 0x99a2b2, roughness: 0.85, metalness: 0.15, // V8.2: 0x7a8290→明るく
+      emissive: 0x6678a0, emissiveIntensity: 0.4, emissiveMap: tex, // 薄暮の点灯窓(やや強め)
     });
     const neonColors = [0x00e5ff, 0xff2bd6, 0xffa028]; // シアン / マゼンタ / オレンジ
     const neonGeos = [[], [], []];
@@ -9429,6 +9554,14 @@ class Game {
     ctx.rotate(this.camYaw + Math.PI); // 上 = カメラ(機体)の向き
     ctx.scale(k, k);
     ctx.translate(-p.x, -p.z);
+    // ---- V8.2: ミニマップ(障害物レイアウト)を地形ヒントとして重ねる ----
+    //   minimapCanvas は中心 = ワールド原点・1px = 1/PPU ワールド単位。
+    //   現在の変換はワールド座標系なので、原点合わせで drawImage すれば整合する
+    if (this.minimapCanvas) {
+      const mh = this.minimapHalf, ppu = this.minimapPPU;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(this.minimapCanvas, -mh, -mh, mh * 2, mh * 2); // px(=mh*2*ppu) → ワールド(mh*2)
+    }
     const ca = TERRAIN.canal;
     ctx.fillStyle = 'rgba(90,120,150,0.4)'; // 運河の帯
     ctx.fillRect(-CONFIG.MOVE_LIMIT, ca.z - ca.halfW, CONFIG.MOVE_LIMIT * 2, ca.halfW * 2);
