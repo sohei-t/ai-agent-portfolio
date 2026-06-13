@@ -333,18 +333,23 @@
   body.result-open { touch-action: pan-y; }
 
   /* --- War Robots 風 円形武器ランチャー(右下) --- */
-  /* V7.5: FIRE を約 2/3 に縮小 + パネル全体を一回り小さく(赤色で視認性は維持) */
+  /* V8.0.1: 実機フィードバック対応の再配置。
+     - FIRE 70 → 92px(+31%。ブラインド操作で外さない大きさを優先)
+     - 武器セグメントは FIRE の左に縦アーク(レーダー帯へ届かない高さに制限)
+     - ◎ / JUMP / シールドは右縁の縦列(親指の上下スライドで届く)
+     - 📐 は設定系のため左上(🔊 の隣)へ移設 → 右クラスタの過密を解消
+     - 全要素ペアの矩形間隔 ≥ 8px を 4 ビューポートで機械検証済み */
   #weapon-cluster {
     position: absolute;
     right: calc(14px + env(safe-area-inset-right));
     bottom: calc(18px + env(safe-area-inset-bottom));
-    width: 170px; height: 196px;
+    width: 224px; height: 200px;
     pointer-events: none;
   }
   #fire-main {
     right: 6px; bottom: 6px;
-    width: 70px; height: 70px; /* V7.5: 106 → 70(約 2/3) */
-    font-size: 11px; letter-spacing: 2px;
+    width: 92px; height: 92px; /* V8.0.1: 70 → 92(+31%) */
+    font-size: 13px; letter-spacing: 2px;
     color: #fff;
     border: 2px solid rgba(255, 130, 110, 0.85);
     background: radial-gradient(circle at 35% 30%, #ff8a72, #cc2418 60%, #7e120c);
@@ -359,29 +364,37 @@
   }
   .wpn-seg .seg-label { position: relative; }
   .wpn-seg .seg-key { position: relative; font-size: 6px; color: #7fa0b4; letter-spacing: 1px; }
-  /* 中央 FIRE の周囲に弧状配置(V7.5: 縮小に合わせて再配置) */
-  .seg-pos-0 { right: 94px; bottom: 0; }     /* スロット1(左) */
-  .seg-pos-1 { right: 86px; bottom: 50px; }  /* スロット2(左上) */
-  .seg-pos-2 { right: 60px; bottom: 100px; } /* スロット3(上左) */
-  .seg-pos-3 { right: 10px; bottom: 138px; } /* スロット4(上) */
-  /* ターゲット切替(◎): FIRE の直上(V7.5: 48 → 38) */
+  /* V8.0.1: FIRE 左の縦アーク(スロット 1→3 が下から上)。
+     スロット 4(BASTION のみ)は最下段の左隣 = アークが上のレーダー帯に届かない */
+  .seg-pos-0 { right: 114px; bottom: 0; }     /* スロット1(左下) */
+  .seg-pos-1 { right: 118px; bottom: 56px; }  /* スロット2(左) */
+  .seg-pos-2 { right: 114px; bottom: 112px; } /* スロット3(左上) */
+  .seg-pos-3 { right: 170px; bottom: 0; }     /* スロット4(最下段の左隣) */
+  /* ターゲット切替(◎): FIRE の直上・右縁列(V8.0.1: FIRE 拡大に合わせて上へ) */
   #target-btn {
-    right: 22px; bottom: 84px;
+    right: 2px; bottom: 108px;
     width: 38px; height: 38px;
     font-size: 15px;
     color: var(--hud-amber);
     border-color: rgba(255, 176, 46, 0.55);
   }
   #target-btn:active { color: #fff; }
-  /* V7.7: カメラプリセット切替(📐 LOW/MID/HIGH。◎ の左隣・F キーでも巡回) */
+  /* V8.0.1: カメラプリセット切替(📐 LOW/MID/HIGH)。
+     戦闘中に頻繁に押さない設定系のため一等地(右下親指ゾーン)から外し、
+     左上 🔊 ミュートの隣へ移設(MG セグメントとの重なり実機報告の恒久対策)。
+     DOM も #weapon-cluster の外(#controls 直下)= ハンガー中の一括非表示は維持 */
   #cam-btn {
-    right: 66px; bottom: 84px;
-    width: 38px; height: 38px;
+    top: calc(10px + env(safe-area-inset-top));
+    left: calc(50px + env(safe-area-inset-left));
+    width: 34px; height: 34px;
     flex-direction: column;
     font-size: 12px;
     color: #9fe0ff;
+    border-width: 1px;
     border-color: rgba(110, 200, 255, 0.5);
+    opacity: 0.6;
   }
+  #cam-btn:active { opacity: 1; }
   #cam-btn #cam-label {
     font-size: 6.5px; font-weight: 900; letter-spacing: 1px;
     color: #7fc8e8;
@@ -406,10 +419,10 @@
     pointer-events: none;
     background: conic-gradient(rgba(6, 10, 16, 0.78) calc(var(--cd, 0) * 1turn), rgba(0, 0, 0, 0) 0);
   }
-  /* JUMP は武器パネルの上(WR 準拠)。V7.5: 60 → 48(~80%) */
+  /* V8.0.1: JUMP は右縁の縦列(◎ の直上)。FIRE から親指を上へスライドで届く */
   #jump-btn {
-    right: calc(96px + env(safe-area-inset-right));
-    bottom: calc(186px + env(safe-area-inset-bottom));
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(172px + env(safe-area-inset-bottom));
     width: 48px; height: 48px;
     font-size: 8.5px;
     overflow: hidden;
@@ -431,6 +444,9 @@
     border: 1px solid var(--hud-line);
     box-shadow: 0 0 12px rgba(110, 243, 255, 0.18);
     display: block;
+    /* V8.0.1: 表示のみ 128 → 108px に縮小(canvas 解像度は 128 のまま)。
+       右縁列(JUMP/シールド)とレーダー帯の縦間隔 ≥8px を確保するため */
+    width: 108px; height: 108px;
   }
   #radar-dist {
     margin-top: 3px;
@@ -1096,6 +1112,8 @@
     right: calc(18px + env(safe-area-inset-right));
     bottom: calc(78px + env(safe-area-inset-bottom));
     display: flex; align-items: center; gap: 5px;
+    /* V7.9: 5 ボタン(CITY/CANYON/RUINS/TOKYO/RANDOM)でも収まるよう折返し許可 */
+    flex-wrap: wrap; justify-content: flex-end; max-width: 430px;
   }
   #stage-select .ss-label {
     font-size: 9px; font-weight: 900; letter-spacing: 2px; color: #7fa0b4;
@@ -1386,9 +1404,10 @@
   }
 
   /* --- アビリティボタン(JUMP の左 / CD 扇形 + 発動中グロー)。V7.5: 60 → 48 --- */
+  /* V8.0.1: シールド/スプリントは JUMP の左隣(右縁列の 2 列目) */
   #ability-btn {
-    right: calc(156px + env(safe-area-inset-right));
-    bottom: calc(186px + env(safe-area-inset-bottom));
+    right: calc(72px + env(safe-area-inset-right));
+    bottom: calc(172px + env(safe-area-inset-bottom));
     width: 48px; height: 48px;
     font-size: 16px;
     overflow: hidden;
@@ -1473,12 +1492,13 @@
     <button id="fire-main" class="ctl-btn" type="button"><span>FIRE</span></button>
     <!-- ターゲット切替(Tab / WR の中央下配置) -->
     <button id="target-btn" class="ctl-btn" type="button">◎</button>
-    <!-- V7.7: カメラプリセット切替(LOW/MID/HIGH 巡回。PC: F キー) -->
-    <button id="cam-btn" class="ctl-btn" type="button">📐<span id="cam-label">MID</span></button>
   </div>
 
   <!-- ミュートトグル -->
   <button id="mute-btn" type="button">🔊</button>
+  <!-- V8.0.1: カメラプリセット切替(LOW/MID/HIGH 巡回。PC: F キー)。
+       設定系のため 🔊 の隣へ移設(右クラスタの武器セグメントとの重なり対策) -->
+  <button id="cam-btn" class="ctl-btn" type="button">📐<span id="cam-label">MID</span></button>
 </div>
 
 <!-- ===== 勝敗オーバーレイ(V6.7: ポイント精算 + ハンガー循環) ===== -->
@@ -1496,7 +1516,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V7.8 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V8.0.1 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.8: レベル + XP プログレス(値は refreshHangarWallet が更新) -->
       <div id="hangar-level"><span id="lv-num">Lv.1</span><div id="xp-bar"><div id="xp-fill"></div></div></div>
@@ -1598,6 +1618,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=78"></script>
+<script type="module" src="./game3d.js?v=81"></script>
 </body>
 </html>
