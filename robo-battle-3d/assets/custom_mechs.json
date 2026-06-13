@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "image_8c9506",
+    "name": { "ja": "ドム", "en": "DOM" },
+    "role": "player",
+    "model": "image_8c9506b",
+    "modelType": "rigged",
+    "hp": 360,
+    "speed": 7.0,
+    "hardpoints": ["medium"],
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 3000
+  }
+]
