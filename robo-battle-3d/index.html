@@ -433,6 +433,19 @@
     font-size: 8.5px;
     overflow: hidden;
   }
+  /* V8.4: ブースト移動(🚀 押下中だけ ×3)。左下隅(左Ctrl 相当・左手側)。
+     右クラスタ(武器/JUMP/◎)・レーダー帯と干渉しない移動ゾーン端に固定。
+     ジョイスティックはタッチ点に出るため固定ボタンと重なっても押下は別管理 */
+  #boost-btn {
+    left: calc(14px + env(safe-area-inset-left));
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    width: 54px; height: 54px;
+    font-size: 8px;
+    overflow: hidden;
+    color: #7adcff;
+    border-color: rgba(110, 200, 255, 0.6);
+  }
+  #boost-btn.pressed { color: #fff; border-color: #aef0ff; box-shadow: 0 0 12px rgba(110, 200, 255, 0.55); }
   /* PCではタッチボタンを薄く表示(タッチデバイスで濃く) */
   @media (hover: hover) and (pointer: fine) {
     #weapon-cluster, #jump-btn, #ability-btn { opacity: 0.55; }
@@ -1487,8 +1500,11 @@
 <div id="controls">
   <div id="joystick-base"><div id="joystick-knob"></div></div>
 
-  <!-- JUMP(武器パネルの上 / クールダウン付き) -->
+  <!-- JUMP(武器パネルの上 / V8.4: クールダウン撤廃 = 連続ジャンプ可) -->
   <button id="jump-btn" class="ctl-btn" type="button">JUMP<div class="cd-overlay" id="jump-cd"></div></button>
+
+  <!-- V8.4: ブースト移動(🚀 押下中だけ ×3。PC: 左Ctrl) -->
+  <button id="boost-btn" class="ctl-btn" type="button">🚀<br>BOOST</button>
 
   <!-- アビリティ(B キー / クラス由来。⚡スプリント or 🛡シールド) -->
   <button id="ability-btn" class="ctl-btn" type="button"><span id="ability-icon">⚡</span><div class="cd-overlay" id="ability-cd"></div></button>
@@ -1522,7 +1538,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V8.2 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V8.4.1 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.8: レベル + XP プログレス(値は refreshHangarWallet が更新) -->
       <div id="hangar-level"><span id="lv-num">Lv.1</span><div id="xp-bar"><div id="xp-fill"></div></div></div>
@@ -1624,6 +1640,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=83"></script>
+<script type="module" src="./game3d.js?v=86"></script>
 </body>
 </html>
