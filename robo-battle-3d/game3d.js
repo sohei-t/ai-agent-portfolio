@@ -1,6 +1,45 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.4.1)
+// ROBO BATTLE 3D - Prototype (V8.5.2)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.5.2 変更点(カスタム rigged T 字バグ: 真因特定 + スキニング堅牢化):
+//   ◆真因(実 glb 解析で確定): カスタム機体 image_8c9506 の歩行 glb は
+//     アニメ clip のキーフレームが「1 個だけ」(builtin は 32 個)= 補間値が無く
+//     ポーズ 1 枚に焼かれた不良エクスポート。ゲーム側で動かせる動画データが無い。
+//     ※ scale/skinning/binding は無関係(全スケール条件で同一挙動を実機 glb で確認)。
+//   ◆対応:
+//   (1) 不良検出: アニメ clip の最大キーフレーム数 < 2 なら「静的 glb・歩行不可」を
+//       明示 console.warn(GUI/ユーザーへ「アニメ付き glb を再生成」を通知)。
+//       this.animated フラグで状態を保持
+//   (2) スキニング堅牢化(three.js ベストプラクティス・将来の不良を予防):
+//       表示スケールを SkinnedMesh を含む gltf.scene に直接かけるのを廃止し、
+//       必ずラッパー this.root にかける。ビルトインも本方式に統一。
+//       数値検証で root スケール == 旧 scene スケールのボーン/マズル/表示高が
+//       完全一致(差 0.000000)= 非回帰。bind 後の scene スケール変更や
+//       skeleton への副作用を排除
+//   (3) measureSceneHeight は非破壊(測定で scale を一時 1 にして必ず復元)維持
+//   → 正常なアニメ付き custom glb は歩く(node 実証: builtin glb を custom 登録 →
+//     animated=true・歩行・3.60m)。DOM(1 キーフレーム)は警告 + 静止が正しい挙動
+//
+// V8.5.1 変更点(バグ修正: カスタム rigged 機体が T 字のまま歩かない):
+//   原因 = V8.5 の正規化が GlbMechModel 内で scene.scale を 0→正規化値へいじってから
+//   AnimationMixer を作る順序だったため、カスタム rigged 機体だけ初フレームが
+//   バインド前(T 字)で固まり得た。修正:
+//   (1) measureSceneHeight() は bbox を「非破壊」で測る(scale を一時 1 にして必ず復元)
+//   (2) AnimationMixer 作成 → clipAction.reset().play() → mixer.update(0) で即時バインド
+//       を最優先で実行し、その後に最終スケールを一度だけ適用
+//   → サイズ正規化(V8.5)と歩行アニメ再生を両立。ビルトインは経路不変
+//
+// V8.5 変更点(カスタム機体のサイズ自動正規化):
+//   外部ツール(Meshy 等)で作った glb は実寸がバラバラで「圧倒的に小さく/大きく」
+//   表示される問題に対応。カスタム機体(custom_mechs.json 由来 = cls.custom)のみ、
+//   モデルロード時に scene の bounding box 高さを測り、目標表示高さ
+//   CUSTOM_TARGET_HEIGHT(3.6m = ビルトイン標準)へ自動スケール正規化する。
+//   最終スケール = 正規化倍率(target/生高)× cls.scale(微調整係数・既定 1.0)。
+//   rigged(GlbMechModel)/ static(StaticMechModel)双方に適用。ビルトインは一切不変。
+//   static の接地高 yCenter/restY は正規化後の高さ基準で生成。胸高/衝突半径は
+//   cls.scale 基準のまま(正規化後は標準機 = cls.scale 1.0 相当なので整合)。
+//   glb ロード失敗時のプリミティブフォールバックは正規化対象外(従来どおり)
 //
 // V8.4.1 変更点(ブーストの操作性改善・実機フィードバック):
 //   ブーストを「押下中だけスティック入力に関係なく機体の正面(camYaw)へ自動 ×3 前進」へ。
@@ -370,6 +409,13 @@ const CONFIG = {
 
   // glb 機体モデル(V6.3)
   MECH_SCALE: 0.9,         // glb 高さ 4.0 → 3.6(胸高 ~2.6 = CHEST_OFFSET と整合)
+  // V8.5: カスタム機体のサイズ自動正規化の目標表示高さ(m)。
+  //   ビルトインの標準機体 = 生 glb 高 4.0 × MECH_SCALE 0.9 = 3.6m に合わせる。
+  //   外部ツール(Meshy 等)の glb は実寸がバラバラなので、bbox 高さからこの値へ
+  //   自動スケール(最終 = 正規化倍率 × cls.scale)。ビルトインには一切適用しない
+  CUSTOM_TARGET_HEIGHT: 3.6,
+  CUSTOM_NORM_MIN: 0.02,   // 正規化倍率の下限(極端な glb の暴走防止)
+  CUSTOM_NORM_MAX: 50,     // 正規化倍率の上限
   WALK_CYCLE_SPEED: 3.1,   // スケール1の歩行1サイクル移動量(timeScale 同期の基準)
   IDLE_ANIM_SPEED: 0.12,   // 待機時の微動 timeScale(機体が生きている感)
   TORSO_BONE_CLAMP: 0.8,   // Spine ボーンへ分配する上半身旋回のクランプ(rad。V6.5: 捻れ過ぎ防止で縮小)
@@ -1880,12 +1926,14 @@ function registerCustomMech(e) {
   if (isStatic && !CONFIG.MODEL_STATIC[e.model]) {
     // ビルトインの MODEL_STATIC は上書きしない(共有モデルの整合を保つ)
     const kind = e.staticKind || 'walk';
-    // bbox 不明 → 安全な既定(接地高はスケール基準)。GUI 側で実測すれば yaw/scale で調整
+    // V8.5: 自動正規化後の表示高 = CUSTOM_TARGET_HEIGHT × scale(原点中心の Meshy 想定)。
+    //   接地高はその半分基準(half = TARGET/2 × scale)。生 bbox に依らず一定の見た目に
+    const half = CONFIG.CUSTOM_TARGET_HEIGHT / 2 * scale;
     CONFIG.MODEL_STATIC[e.model] = {
       kind, scale, yaw,
-      yCenter: 1.4 * scale * 0.7, restY: 1.0 * scale * 0.6,
+      yCenter: half, restY: half * 0.55, // KO で半分弱まで沈む
       bobAmp: 0.1, bobHz: 2.0, rollAmp: 0.06, tiltMax: 0.18,
-      glowY: 1.4, glowX: 0.55, glowColor: 0x66d8ff,
+      glowY: half, glowX: 0.55, glowColor: 0x66d8ff,
     };
   }
   // ハードポイント(static は固定位置・rigged はボーンフォロワーが既定で動くため任意)
@@ -3562,6 +3610,42 @@ class MechModel {
 }
 
 // ============================================================
+// V8.5: カスタム機体のサイズ自動正規化
+//   外部ツール(Meshy 等)の glb は実寸がバラバラ(cm/m スケール・リグ高さ・T-pose)。
+//   ロード済み scene の bounding box 高さ(Y サイズ)を測り、目標表示高さ
+//   CUSTOM_TARGET_HEIGHT へ合わせる scene スケールを返す(純関数)。
+//   ビルトイン機体は呼ばない(cls.custom のときだけ適用)。
+// ============================================================
+const _normBox = new THREE.Box3();
+const _normSize = new THREE.Vector3();
+
+/** 生 bbox 高さ → 目標高さへ合わせる正規化倍率(暴走防止のクランプ付き)。純粋計算 */
+function customNormFactor(rawHeight, clsScale) {
+  if (!(rawHeight > 1e-6)) return clsScale; // 高さ不明 → 微調整係数のみ(従来挙動)
+  let f = CONFIG.CUSTOM_TARGET_HEIGHT / rawHeight;
+  f = Math.max(CONFIG.CUSTOM_NORM_MIN, Math.min(CONFIG.CUSTOM_NORM_MAX, f));
+  return f * clsScale;
+}
+
+/**
+ * V8.5.1: scene の生 bbox 高さ(Y サイズ)を「非破壊」で測る。
+ *   測定のため一時的に scale=1 にして測り、元の scale/行列状態へ必ず復元する。
+ *   呼び出し側(GlbMechModel/StaticMechModel)が mixer バインドや最終スケール適用と
+ *   干渉しないよう、scene の状態を変えずに高さだけ返すのが目的。
+ * @returns {number} rawHeight(測れない場合 0)
+ */
+function measureSceneHeight(scene) {
+  const sx = scene.scale.x, sy = scene.scale.y, sz = scene.scale.z;
+  scene.scale.set(1, 1, 1);
+  scene.updateMatrixWorld(true);
+  _normBox.setFromObject(scene);
+  const rawHeight = _normBox.isEmpty() ? 0 : _normBox.getSize(_normSize).y;
+  scene.scale.set(sx, sy, sz); // 元へ復元
+  scene.updateMatrixWorld(true);
+  return rawHeight;
+}
+
+// ============================================================
 // GlbMechModel: Meshy 製 glb 機体(スキンメッシュ + 歩行アニメ)
 //   MechModel と同一インターフェース:
 //     root / torso / update(dt, time, speed01, grounded)
@@ -3575,12 +3659,25 @@ class GlbMechModel {
    *                      敵 3 機は同じ glb を機体数ぶん parse して渡す
    *                      (スキンメッシュの自前クローンより確実なため)。
    */
-  constructor(gltf, scaleMul = 1) {
+  constructor(gltf, cls = {}) {
     this.root = new THREE.Group();
     const scene = gltf.scene; // root は 'Armature'
-    this.totalScale = CONFIG.MECH_SCALE * scaleMul; // 基準 0.9 × クラススケール
-    scene.scale.setScalar(this.totalScale);
-    this.root.add(scene);
+    const scaleMul = (typeof cls === 'number') ? cls : (cls.scale || 1); // 後方互換(旧: 数値)
+
+    // V8.5.2【スキニング堅牢化】表示スケールは SkinnedMesh を含む gltf.scene に直接
+    //   かけず、必ずラッパー this.root にかける(three.js のベストプラクティス:
+    //   SkinnedMesh を直接スケールしない / bind 後にスケール変更しない / skeleton に
+    //   副作用を与えない)。ビルトインも本方式に統一。数値検証で root スケール ==
+    //   旧 scene スケールのボーン/マズル/表示高が完全一致(非回帰)であることを確認済み。
+    if (cls && cls.custom) {
+      // 正規化倍率は bbox から「計算するだけ」(measureSceneHeight は非破壊)
+      const rawHeight = measureSceneHeight(scene);
+      this.totalScale = customNormFactor(rawHeight, scaleMul);
+      console.info(`[V8.5.2] カスタム機体(rigged)自動正規化: ${cls.model || '?'} 生高 ${rawHeight.toFixed(2)} → scale ${this.totalScale.toFixed(3)}`);
+    } else {
+      this.totalScale = CONFIG.MECH_SCALE * scaleMul; // 基準 0.9 × クラススケール(ビルトイン不変)
+    }
+    this.root.add(scene); // scene.scale は glb 既定のまま据え置き(setScalar しない)
 
     // Robot が rotation.y を書き込むダミー(実际の反映は update 内で Spine へ)
     this.torso = new THREE.Object3D();
@@ -3617,17 +3714,36 @@ class GlbMechModel {
     this.root.add(this.fallbackMuzzle);
     this.muzzles = [];
 
-    // 歩行クリップを常時再生(timeScale で速度同期)
-    // 注: トラック名が 'Armature|...' 形式でも解決できるよう、
-    //     mixer は Armature を含む gltf.scene を root にして作る
+    // 歩行クリップを常時再生(timeScale で速度同期)。mixer の root は gltf.scene
+    //   (トラック名 'Armature|...' / 'Hips.quaternion' 等を解決するため)。
     this.mixer = new THREE.AnimationMixer(scene);
     this.clipDuration = 1;
+    this.animated = false; // V8.5.2: 実際にアニメ可能か(キーフレーム ≥ 2)
     if (gltf.animations && gltf.animations.length > 0) {
       const clip = gltf.animations[0]; // 'Armature|walking_man|baselayer'
       this.clipDuration = clip.duration || 1;
-      this.mixer.clipAction(clip).play();
+      // V8.5.2: 「キーフレーム 1 個だけ = 静的ポーズ glb」を検出。
+      //   Meshy 等の不良エクスポートで歩行クリップが 1 フレームに焼かれていると、
+      //   補間する値が無く T 字/ポーズのまま固まる(本件 image_8c9506 の真因)。
+      //   これはゲーム側で動かせない glb 不良なので、明示ログで GUI/ユーザーへ通知。
+      const maxKeys = clip.tracks.reduce((m, t) => Math.max(m, t.times ? t.times.length : 0), 0);
+      if (maxKeys >= 2) {
+        const action = this.mixer.clipAction(clip);
+        action.reset();
+        action.play();
+        this.mixer.update(0); // 即時バインド(初フレームの T 字残りを防ぐ)
+        this.animated = true;
+      } else {
+        console.warn(`[V8.5.2] ${cls.model || '?'}: アニメ clip がキーフレーム ${maxKeys} 個のみ(静的 glb)→ 歩行不可。GUI/エクスポート設定で「アニメ付き glb」を再生成してください`);
+      }
+    } else {
+      console.warn(`[V8.5.2] rigged 機体にアニメ clip なし → 静止: ${cls.model || '?'}`);
     }
     this.timeScale = CONFIG.IDLE_ANIM_SPEED;
+
+    // V8.5.2: 表示スケールは this.root にのみ適用(SkinnedMesh の scene には触れない)。
+    //   this.root(0.9) × scene(glb 既定 1.0)= 従来 scene 0.9 と数値的に等価(検証済み)。
+    this.root.scale.setScalar(this.totalScale);
   }
 
   /**
@@ -3815,8 +3931,18 @@ class StaticMechModel {
     // メッシュ(原点中心・正規化済み)→ スケール + 前面補正 + 静止高
     this.meshRoot = new THREE.Group();
     const scene = gltf.scene;
-    scene.scale.setScalar(this.cfg.scale);
     scene.rotation.y = this.cfg.yaw || 0;
+    if (cls.custom) {
+      // V8.5/V8.5.1: カスタム機体は bbox から目標高さへ自動正規化(cfg.scale は微調整係数)。
+      //   非破壊測定 → 倍率計算 → 最終スケール一度だけ適用(static はアニメ無しだが順序統一)。
+      //   接地高 yCenter/restY は registerCustomMech が「正規化後 ~3.6m」前提で生成済み
+      const rawHeight = measureSceneHeight(scene);
+      this._appliedScale = customNormFactor(rawHeight, this.cfg.scale);
+      console.info(`[V8.5.1] カスタム機体(static)自動正規化: ${cls.model || '?'} 生高 ${rawHeight.toFixed(2)} → scale ${this._appliedScale.toFixed(3)}`);
+    } else {
+      this._appliedScale = this.cfg.scale; // ビルトイン不変
+    }
+    scene.scale.setScalar(this._appliedScale);
     this.meshRoot.add(scene);
     this.meshRoot.position.y = this.cfg.yCenter;
     this.root.add(this.meshRoot);
@@ -4026,7 +4152,7 @@ class Robot {
     this.isPlayer = isPlayer;
     // V7.2: 静的 glb(ホバー/履帯)は StaticMechModel / リグ付きは GlbMechModel
     this.model = gltf
-      ? (cls.staticModel ? new StaticMechModel(gltf, cls) : new GlbMechModel(gltf, cls.scale))
+      ? (cls.staticModel ? new StaticMechModel(gltf, cls) : new GlbMechModel(gltf, cls))
       : new MechModel({ ...cls.colors, eye: isPlayer ? 0x66ddff : 0xff5544 });
     if (!gltf) this.model.root.scale.setScalar(cls.scale); // プリミティブもクラスでスケール
     this.group = new THREE.Group();
@@ -10416,7 +10542,7 @@ async function updateDockMech(classKey) {
     if (DOCK.mech) DOCK.turntable.remove(DOCK.mech.root);
     // V7.2: 静的 glb は StaticMechModel(ドックでも浮遊/履帯の見た目)
     DOCK.mech = gltf
-      ? (cls.staticModel ? new StaticMechModel(gltf, cls) : new GlbMechModel(gltf, cls.scale))
+      ? (cls.staticModel ? new StaticMechModel(gltf, cls) : new GlbMechModel(gltf, cls))
       : new MechModel({ ...cls.colors, eye: 0x66ddff });
     if (!gltf) DOCK.mech.root.scale.setScalar(cls.scale);
     DOCK.turntable.add(DOCK.mech.root);
