@@ -11,8 +11,14 @@
 <style>
   :root {
     --hud-cyan: #6ef3ff;
-    --hud-red: #ff3b3b;
+    --hud-red: #ff3b3b;     /* 自機の被ダメ/敗北など「自分側の危険」表示に限定(V8.1) */
     --hud-amber: #ffb02e;
+    /* V8.1: 敵インジケーター = 鮮やかな青(赤は視認しづらいとの実機報告)。
+       自機系のティール #6ef3ff より彩度高め・青寄りで自他を識別。NEO TOKYO の
+       ネオン(シアン/マゼンタ)とも明度で区別 */
+    --hud-enemy: #29b6ff;
+    --hud-enemy-soft: rgba(41, 182, 255, 0.7);
+    --hud-enemy-glow: rgba(41, 182, 255, 0.85);
     --hud-bg: rgba(8, 14, 22, 0.55);
     --hud-line: rgba(110, 243, 255, 0.45);
   }
@@ -71,8 +77,8 @@
   #lockon.active { display: block; }
   #lockon .corner {
     position: absolute; width: 22px; height: 22px;
-    border: 3px solid var(--hud-red);
-    filter: drop-shadow(0 0 5px rgba(255, 59, 59, 0.9));
+    border: 3px solid var(--hud-enemy);
+    filter: drop-shadow(0 0 5px var(--hud-enemy-glow));
   }
   #lockon .c-tl { left: 0; top: 0; border-right: none; border-bottom: none; }
   #lockon .c-tr { right: 0; top: 0; border-left: none; border-bottom: none; }
@@ -86,9 +92,9 @@
     position: absolute; left: 50%; top: 100%;
     transform: translateX(-50%);
     margin-top: 6px;
-    color: var(--hud-red);
+    color: var(--hud-enemy);
     font-size: 14px; font-weight: 700; letter-spacing: 2px;
-    text-shadow: 0 0 6px rgba(255, 59, 59, 0.8);
+    text-shadow: 0 0 6px var(--hud-enemy-glow);
     white-space: nowrap;
   }
   /* V6.7 ターゲットボックス: 機体名(上)+ HP バー(枠の下辺) */
@@ -96,20 +102,20 @@
     position: absolute; left: 50%; bottom: 100%;
     transform: translateX(-50%);
     margin-bottom: 5px;
-    color: var(--hud-red);
+    color: var(--hud-enemy);
     font-size: 11px; font-weight: 900; letter-spacing: 3px;
-    text-shadow: 0 0 6px rgba(255, 59, 59, 0.8);
+    text-shadow: 0 0 6px var(--hud-enemy-glow);
     white-space: nowrap;
   }
   #lockon-hp {
     position: absolute; left: 8px; right: 8px; bottom: -4px;
     height: 4px;
     background: rgba(0, 0, 0, 0.55);
-    border: 1px solid rgba(255, 80, 80, 0.7);
+    border: 1px solid var(--hud-enemy-soft);
   }
   #lockon-hp-fill {
     height: 100%; width: 100%;
-    background: linear-gradient(90deg, #ff5c5c, #ff2222);
+    background: linear-gradient(90deg, #7fd4ff, #1f9eff); /* V8.1: 敵HP=青 */
     transition: width 0.12s linear;
   }
   @keyframes lockPulse {
@@ -130,7 +136,7 @@
     display: inline-flex; align-items: center; justify-content: center;
     width: 18px; height: 18px;
     background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 80, 80, 0.65);
+    border: 1px solid var(--hud-enemy-soft); /* V8.1: ロック対象の装備枠 = 青 */
     border-radius: 2px;
   }
   #lockon-loadout .lk-wpn img { width: 16px; height: 16px; object-fit: contain; display: block; }
@@ -138,9 +144,9 @@
   #lockon-loadout .lk-wpn.thumb-fb { font-size: 11px; }
   #lockon-hpnum {
     margin-left: 4px;
-    color: var(--hud-red);
+    color: var(--hud-enemy);
     font-size: 11px; font-weight: 700; letter-spacing: 1px;
-    text-shadow: 0 0 5px rgba(255, 59, 59, 0.7);
+    text-shadow: 0 0 5px var(--hud-enemy-soft);
   }
   #lockon.fading #lockon-hpnum { color: var(--hud-amber); }
   #lockon.fading #lockon-loadout .lk-wpn { border-color: rgba(255, 176, 46, 0.7); }
@@ -152,21 +158,21 @@
     transform: translate(-50%, -50%);
     display: none;
     flex-direction: column; align-items: center;
-    filter: drop-shadow(0 0 4px rgba(255, 59, 59, 0.8));
+    filter: drop-shadow(0 0 4px var(--hud-enemy-glow));
   }
   .edge-arrow .ea-tri {
     font-size: 16px; line-height: 1;
-    color: var(--hud-red);
+    color: var(--hud-enemy);
   }
   .edge-arrow .ea-hp {
     width: 22px; height: 3px;
     margin-top: 2px;
     background: rgba(0, 0, 0, 0.55);
-    border: 1px solid rgba(255, 80, 80, 0.7);
+    border: 1px solid var(--hud-enemy-soft);
   }
   .edge-arrow .ea-hp-fill {
     height: 100%; width: 100%;
-    background: linear-gradient(90deg, #ff5c5c, #ff2222);
+    background: linear-gradient(90deg, #7fd4ff, #1f9eff);
   }
 
   /* --- 敵マーカー(▼ + 機体名 + HPバー / 3D追従) --- */
@@ -181,7 +187,7 @@
   }
   .enemy-marker .em-name {
     font-size: 9px; font-weight: 700; letter-spacing: 2px;
-    color: #ffb6b6;
+    color: #aadcff; /* V8.1: 敵名 = 淡い青 */
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
     white-space: nowrap;
   }
@@ -189,17 +195,17 @@
     width: 56px; height: 5px;
     margin: 2px auto;
     background: rgba(0, 0, 0, 0.55);
-    border: 1px solid rgba(255, 80, 80, 0.7);
+    border: 1px solid var(--hud-enemy-soft);
   }
   .enemy-marker .em-hp-fill {
     height: 100%; width: 100%;
-    background: linear-gradient(90deg, #ff5c5c, #ff2222);
+    background: linear-gradient(90deg, #7fd4ff, #1f9eff);
     transition: width 0.12s linear;
   }
   .enemy-marker .em-tri {
-    color: var(--hud-red);
+    color: var(--hud-enemy);
     font-size: 13px; line-height: 1;
-    text-shadow: 0 0 6px rgba(255, 59, 59, 0.85);
+    text-shadow: 0 0 6px var(--hud-enemy-glow);
   }
   .enemy-marker.target .em-tri { color: var(--hud-amber); text-shadow: 0 0 6px rgba(255, 176, 46, 0.85); }
 
@@ -210,17 +216,17 @@
     left: 50%; transform: translateX(-50%);
     display: flex; gap: 10px; align-items: center;
     background: var(--hud-bg);
-    border: 1px solid rgba(255, 80, 80, 0.45);
+    border: 1px solid var(--hud-enemy-soft);
     padding: 5px 16px;
     clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
   }
   #enemy-counter .ec-label {
     font-size: 9px; font-weight: 700; letter-spacing: 3px;
-    color: #ff9b9b;
+    color: #aadcff; /* V8.1: ENEMY ラベル = 淡い青 */
   }
   #enemy-counter .ec-icon {
-    color: var(--hud-red); font-size: 15px; line-height: 1;
-    text-shadow: 0 0 6px rgba(255, 59, 59, 0.8);
+    color: var(--hud-enemy); font-size: 15px; line-height: 1;
+    text-shadow: 0 0 6px var(--hud-enemy-glow);
   }
   #enemy-counter .ec-icon.dead { color: rgba(120, 120, 130, 0.45); text-shadow: none; }
 
@@ -451,8 +457,8 @@
   #radar-dist {
     margin-top: 3px;
     font-size: 11px; font-weight: 700; letter-spacing: 2px;
-    color: var(--hud-red);
-    text-shadow: 0 0 6px rgba(255, 59, 59, 0.6);
+    color: var(--hud-enemy); /* V8.1: 最寄り敵までの距離 = 青 */
+    text-shadow: 0 0 6px var(--hud-enemy-soft);
   }
   #radar-dist.locked { color: var(--hud-amber); text-shadow: 0 0 6px rgba(255, 176, 46, 0.7); }
 
@@ -1516,7 +1522,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V8.0.1 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V8.1 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.8: レベル + XP プログレス(値は refreshHangarWallet が更新) -->
       <div id="hangar-level"><span id="lv-num">Lv.1</span><div id="xp-bar"><div id="xp-fill"></div></div></div>
@@ -1618,6 +1624,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=81"></script>
+<script type="module" src="./game3d.js?v=82"></script>
 </body>
 </html>
