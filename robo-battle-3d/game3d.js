@@ -1,6 +1,44 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.2)
+// ROBO BATTLE 3D - Prototype (V8.4.1)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.4.1 変更点(ブーストの操作性改善・実機フィードバック):
+//   ブーストを「押下中だけスティック入力に関係なく機体の正面(camYaw)へ自動 ×3 前進」へ。
+//   旋回(スワイプ / Shift+←→)で進行方向が変わる = ブースト中に曲がれる。左手の
+//   同時操作(スティック+ボタン)が不要になった。射撃/旋回併用・青トレイルは不変。
+//
+// V8.4 変更点(移動拡張 + 連続ジャンプ + AI 積極化。実機フィードバック対応):
+//  1. ジャンプで障害物の上に乗れる: getSupportHeight が障害物 AABB の上面も
+//     支持面候補にする(ARENA_OBSTACLES = buildArena の obstacles)。
+//     足が上面付近以上(yRef ≥ top − OBSTACLE_LAND_TOL)のときだけ着地 →
+//     真横の壁には吸着せず(横は moveWithCollision が押し戻す)、ジャンプで
+//     上面より高く来て落下接触したときだけ乗れる。端から外れたら落下。
+//     敵 AI も同じ物理を共有(特別な賢さなし)
+//  2. ブースト移動: 押下中だけ effectiveSpeed ×BOOST_MUL(3.0)。
+//     キー = 左/右 Ctrl、ボタン = 🚀 BOOST(右縁列・JUMP 直上)。
+//     ゲージ/CD なし。青いホバートレイル。旋回・射撃と併用可
+//  3. SPEED パワーアップ廃止: 抽選候補は REPAIR/POWER/NUKE の 3 種。
+//     spdBoostT/PWR_SPEED_* と HUD の 💨 表示を除去
+//  4. ジャンプのクールダウン撤廃(JUMP_COOLDOWN 3.5→0): 接地していれば
+//     いつでも連続ジャンプ可(プレイヤー/AI 共通)。空中多段はなし
+//  5. AI 積極化: ENEMY_COMBAT_RANGE 55→70 / ENEMY_RETREAT_HP 25→18 /
+//     TARGET_REEVAL 1-2→0.6-1.4 / coverWait 2.2→1.4。APPROACH の牽制を
+//     「詰めながら回り込む」へ変更(近すぎ時のみ後退)。AI 個性・回避・遮蔽は維持
+//
+// V8.3 変更点(カスタム機体ローダー = データ駆動で機体を追加できる基盤):
+//   コード本体を書き換えず、assets/custom_mechs.json + glb を足すだけで機体が増える。
+//   設計を 2 層に分離(将来ほかの 3D キャラゲームへ横展開する共通規約のため):
+//    (1) ゲーム非依存「モデル扱い + ローダー機構」:
+//        CUSTOM_MECH_SCHEMA(スキーマ定数・GUI 参照用)/ fetchCustomMechs(相対パス・
+//        graceful degradation)/ validateCustomEntry(エントリ単位の検証・スキップ)/
+//        registerModelEntry 相当(rigged/static・staticKind・yaw・scale の登録口)
+//    (2) このゲーム固有「ステータス定義」: registerCustomMech が role/hp/speed/
+//        hardpoints/price/aiStyle/aiWeapons/spawnBand を MECH_CLASSES/PLAYER_CLASSES/
+//        敵編成プール/MODEL_HARDPOINTS へ反映(値域はゲームレンジへクランプ)
+//   - 起動時 fetch → 検証 → 登録 → reloadSaveInPlace。JSON 不在/破損/空でも完全動作。
+//     不正エントリは 1 体だけスキップ。ビルトイン ID と衝突したらカスタムをスキップ。
+//   - セーブ互換: 未知 ID は sanitizeSave が従来どおりフォールバック吸収(定義消失でも壊れない)
+//   - 実出荷の custom_mechs.json は空配列 []。検証用 custom_mechs.sample.json を同梱
 //
 // V8.2 変更点(視認性・迷いにくさ + アイテム挙動。実機フィードバック対応):
 //  1. NEO TOKYO を「夜景 → 薄暮」に明るく(暗くて道/敵が見えない報告)。
@@ -317,7 +355,9 @@ const CONFIG = {
   TURN_INERTIA: 7,        // 旋回の慣性(camYaw が目標値を追う速度)
   GRAVITY: -26,
   JUMP_VELOCITY: 14,      // V7.7: 9→14(滞空 ~1.1s・高度 ~3.7 = ボルトを飛び越える回避手段)
-  JUMP_COOLDOWN: 3.5,     // V7.7: 3→3.5(強化に合わせて CD 微増)
+  JUMP_COOLDOWN: 0,       // V8.4: クールダウン撤廃(接地していればいつでも連続ジャンプ可)
+  OBSTACLE_LAND_TOL: 1.0, // V8.4: 障害物上面に「乗れる」と判定する足元の許容(上面 − これ 以上で着地)
+  BOOST_MUL: 3.0,         // V8.4: ブースト移動(押下中)の速度倍率
   AIR_ACCEL_MUL: 0.6,     // V7.7: 空中の移動加速倍率(空中でも進路を変えられる)
   LAND_SHAKE: 0.25,       // 着地時の画面シェイク量
 
@@ -614,8 +654,8 @@ const CONFIG = {
   SHIELD_FRONT_DOT: 0.25, // 攻撃元がこの dot 以上「前方」なら遮断
 
   // FFA ターゲティング(V6.6 バトルロイヤル)
-  TARGET_REEVAL_MIN: 1,   // 再評価間隔(s)
-  TARGET_REEVAL_MAX: 2,
+  TARGET_REEVAL_MIN: 0.6, // V8.4: 1→0.6(より素早く敵を捉え直す = アイドルを減らす)
+  TARGET_REEVAL_MAX: 1.4, // V8.4: 2→1.4
   HATE_TIME: 6,           // 直近この秒数内に攻撃してきた相手へのヘイト持続
   HATE_BONUS: 30,         // ヘイト加点
   LOS_BONUS: 25,          // 視線が通る相手への加点
@@ -843,8 +883,7 @@ const CONFIG = {
   PWR_REPAIR_HP: 60,      // REPAIR: 即時回復量
   PWR_POWER_TIME: 15,     // POWER: 持続(s)
   PWR_POWER_MUL: 1.3,     // POWER: 与ダメージ倍率(+30%)
-  PWR_SPEED_TIME: 10,     // SPEED: 持続(s)
-  PWR_SPEED_MUL: 1.5,     // SPEED: 速度倍率(+50%)
+  // V8.4: SPEED パワーアップは廃止(ブースト移動 BOOST_MUL に置換)
   PWR_NUKE_DMG: 60,       // NUKE: 直撃ダメージ
   PWR_NUKE_BLAST: 8,      // NUKE: 爆風半径
 
@@ -1009,8 +1048,8 @@ const CONFIG = {
   EDGE_ARROW_MAX: 4,      // V7.4: 画面外矢印は最寄り 4 機まで(混雑回避)
   AI_SHADOW_MAX_MOBILE: 3, // V7.4: モバイルで影を落とす AI 機体数の上限(性能)
   ENEMY_ACCURACY: 0.60,   // 命中率
-  ENEMY_COMBAT_RANGE: 55,
-  ENEMY_RETREAT_HP: 25,   // この HP 以下で遮蔽へ退避
+  ENEMY_COMBAT_RANGE: 70, // V8.4: 55→70(より遠くから交戦開始 = 自分から詰める)
+  ENEMY_RETREAT_HP: 18,   // V8.4: 25→18(退避を減らし積極化。瀕死のみ遮蔽へ)
 
   // スポーン地点(V6 旧固定配置。V7.0 ランダム出現が無効な場合のフォールバック)
   PLAYER_SPAWN: [0, 140],
@@ -1233,13 +1272,23 @@ const PLAYER_CLASSES = ['LIGHT', 'MEDIUM', 'HEAVY', 'ASSAULT', 'WASP', 'GLIDER',
   'LEVIATHAN', 'OVERLORD', 'RIPPER']; // V8.1: 購入可の新機体 3 種を追加
 const LEGACY_TRIO = ['LIGHT', 'MEDIUM', 'HEAVY']; // v3 以前のプレイヤー所有(移行時に付与)
 
+// V8.3: カスタム機体ローダーの登録先(定義は後段の登録処理。ここで宣言だけ先出し =
+//   defaultInventory/defaultSave が起動時に参照する TDZ を避ける)
+const CUSTOM_MECH_NAMES = {};      // id → { ja, en }(cls.name は英名固定。GUI/将来用)
+const DEFAULT_INVENTORY_ADD = {};  // カスタム player の初期装備ぶんの在庫加算
+
 /** クラスのハードポイント配列(スロットサイズ) */
 function hardpointsOf(clsKey) { return CONFIG.MECH_CLASSES[clsKey].hardpoints; }
 
 /** 初期在庫: 旧 3 機体の既定装備が同時成立する構成(V7.1 から据置) */
 function defaultInventory() {
   // SCOUT [mg,pulse] + VANGUARD [missile,pulse,mg] + BASTION [bazooka,bazooka,pulse,mg]
-  return { pulse: 3, mg: 3, missile: 1, bazooka: 2 };
+  const inv = { pulse: 3, mg: 3, missile: 1, bazooka: 2 };
+  // V8.3: カスタム player 機体の初期装備ぶんを加算(購入直後に装備できる体験)
+  for (const w of Object.keys(DEFAULT_INVENTORY_ADD)) {
+    inv[w] = (inv[w] || 0) + DEFAULT_INVENTORY_ADD[w];
+  }
+  return inv;
 }
 /**
  * V7.2 新規プレイヤー: VANGUARD 1 台 + wallet 3,000(V7.5.2 増額。SCOUT/RAIDER がすぐ視野に入る)。
@@ -1676,6 +1725,221 @@ function rosterForLevel(plv, playerClass) {
 }
 
 // ============================================================
+// V8.3: カスタム機体ローダー(データ駆動の機体追加基盤)
+// ─────────────────────────────────────────────
+// 設計は 2 層に分離(将来ほかの 3D キャラゲームへ横展開する共通規約のため):
+//
+//  (1) ゲーム非依存「モデル扱い + ローダー機構」= CUSTOM_LOADER:
+//      - JSON fetch(相対パス・graceful degradation)
+//      - エントリ単位の検証/スキップ・ID 衝突回避・スキーマ定数公開
+//      - モデル経路(rigged/static・staticKind・yaw・scale)の登録口
+//      ※ このゲーム固有の語彙(hp/price/aiStyle 等)を一切知らない
+//
+//  (2) このゲーム固有「ステータス定義」= registerCustomMech():
+//      - role/hp/speed/hardpoints/price/aiStyle/aiWeapons/spawnBand を
+//        MECH_CLASSES / PLAYER_CLASSES / 敵編成プール / MODEL_HARDPOINTS へ反映
+//      - 値域は本ゲームのレンジへクランプ
+//
+//  → (1) のみ別ファイル/別ゲームへ抽出すれば共通ローダーになる。
+// ============================================================
+
+// ---- (1) 汎用層: スキーマ定数(GUI がそのまま参照できる形でエクスポート) ----
+//   型: 'string'|'int'|'float'|'enum'|'i18n'|'array'|'object'
+//   enumVals は実行時のゲーム定数から動的に算出(下の getter で公開)
+const CUSTOM_MECH_SCHEMA = {
+  version: 1,
+  jsonPath: './assets/custom_mechs.json', // 相対パス(GitHub Pages 対応)
+  // 各フィールドの仕様(GUI のフォーム生成に使う)
+  fields: {
+    id: { type: 'string', required: true, pattern: '^[A-Za-z0-9_]{1,32}$', note: '一意・英数とアンダースコア・1〜32 文字。ビルトインと衝突したらスキップ' },
+    name: { type: 'i18n', required: true, note: '{ ja, en } 表示名。片方のみでも可(他方へフォールバック)' },
+    desc: { type: 'i18n', required: false, note: '{ ja, en } 説明(任意)' },
+    role: { type: 'enum', required: true, enum: ['player', 'enemy'], note: 'player=購入可 / enemy=敵専用' },
+    model: { type: 'string', required: true, note: 'assets/models/ 配下のモデルキー(拡張子なし)。例 mech_amphib' },
+    modelType: { type: 'enum', required: true, enum: ['rigged', 'static'], note: 'rigged=歩行アニメ glb(_walking_glb_url.glb)/ static=_static.glb' },
+    staticKind: { type: 'enum', required: false, enum: ['walk', 'hover', 'quad', 'track'], default: 'walk', note: 'static 時の演出種別(modelType=static のみ)' },
+    yaw: { type: 'float', required: false, default: 0, min: -Math.PI, max: Math.PI, note: '前方を +Z に向ける回転補正(rad)。0 / 1.5708 / 3.1416 など' },
+    scale: { type: 'float', required: false, default: 1.0, min: 0.4, max: 2.5, note: '表示スケール' },
+    hp: { type: 'int', required: true, min: 100, max: 360, note: '最大 HP(ゲームレンジへクランプ)' },
+    speed: { type: 'float', required: true, min: 3.0, max: 7.2, note: '移動速度(ゲームレンジへクランプ)' },
+    hardpoints: { type: 'array', required: true, itemEnum: ['light', 'medium', 'heavy'], minLen: 1, maxLen: 4, note: '武器スロットのサイズ配列' },
+    ability: { type: 'enum', required: false, enum: ['sprint', 'shield'], default: 'shield', note: 'アビリティ' },
+    colors: { type: 'object', required: false, note: '{ primary, secondary, dark } 各 0xRRGGBB(プリミティブ代替・敵の目に使用)' },
+    // --- player 専用 ---
+    price: { type: 'int', required: false, requiredWhen: { role: 'player' }, min: 1500, max: 5500, note: 'player の購入価格(ゲームレンジへクランプ)' },
+    weapons: { type: 'array', required: false, itemRef: 'WEAPONS', note: 'player の初期装備(hardpoints とサイズ整合・在庫に加算)。省略時は自動補完' },
+    // --- enemy 専用 ---
+    aiStyle: { type: 'enum', required: false, requiredWhen: { role: 'enemy' }, enumRef: 'AI_STYLES', note: 'enemy の AI 個性キー' },
+    aiWeapons: { type: 'array', required: false, itemRef: 'WEAPONS', note: 'enemy の装備(hardpoints とサイズ整合)。省略時は自動補完' },
+    spawnBand: { type: 'object', required: false, note: 'enemy の出現帯 { minLevel:int } 。既定 13(中盤プール)。6〜12 は早期プール' },
+  },
+  // 実行時の列挙値(GUI が「選べる武器/AI スタイル一覧」を取得する用)
+  get enums() {
+    return {
+      weapons: Object.keys(CONFIG.WEAPONS),
+      aiStyles: Object.keys(AI_STYLES),
+      staticKinds: ['walk', 'hover', 'quad', 'track'],
+      abilities: ['sprint', 'shield'],
+      sizes: ['light', 'medium', 'heavy'],
+      builtinIds: Object.keys(CONFIG.MECH_CLASSES),
+    };
+  },
+};
+
+// ---- (1) 汎用層: JSON 取得(相対パス・失敗は console.warn のみで [] を返す) ----
+async function fetchCustomMechs() {
+  try {
+    const r = await fetch(CUSTOM_MECH_SCHEMA.jsonPath, { cache: 'no-cache' });
+    if (!r.ok) { console.warn(`[V8.3] custom_mechs.json HTTP ${r.status} → カスタム機体なしで続行`); return []; }
+    const data = await r.json();
+    if (!Array.isArray(data)) { console.warn('[V8.3] custom_mechs.json は配列でない → 無視'); return []; }
+    return data;
+  } catch (err) {
+    console.warn('[V8.3] custom_mechs.json 取得失敗 → カスタム機体なしで続行:', err && err.message);
+    return [];
+  }
+}
+
+// ---- (1) 汎用層: エントリ検証(不正は理由文字列を返す。OK なら null) ----
+//   ゲーム固有の値域(hp/price/speed)もここで参照するが、判定ロジック自体は
+//   スキーマ駆動なので (1) に置く(スキーマを差し替えれば別ゲームへ流用可能)
+function validateCustomEntry(e) {
+  if (!e || typeof e !== 'object') return 'エントリがオブジェクトでない';
+  const F = CUSTOM_MECH_SCHEMA.fields;
+  if (typeof e.id !== 'string' || !new RegExp(F.id.pattern).test(e.id)) return 'id 不正(英数_・1〜32 文字)';
+  if (!e.name || (typeof e.name.ja !== 'string' && typeof e.name.en !== 'string')) return 'name {ja|en} が必要';
+  if (!F.role.enum.includes(e.role)) return `role は ${F.role.enum.join('/')}`;
+  if (typeof e.model !== 'string' || !e.model) return 'model 必須';
+  if (!F.modelType.enum.includes(e.modelType)) return `modelType は ${F.modelType.enum.join('/')}`;
+  if (e.modelType === 'static' && e.staticKind !== undefined && !F.staticKind.enum.includes(e.staticKind)) return `staticKind は ${F.staticKind.enum.join('/')}`;
+  if (!Number.isFinite(e.hp)) return 'hp 必須(数値)';
+  if (!Number.isFinite(e.speed)) return 'speed 必須(数値)';
+  if (!Array.isArray(e.hardpoints) || e.hardpoints.length < F.hardpoints.minLen || e.hardpoints.length > F.hardpoints.maxLen) return `hardpoints は ${F.hardpoints.minLen}〜${F.hardpoints.maxLen} 要素`;
+  if (!e.hardpoints.every((h) => F.hardpoints.itemEnum.includes(h))) return 'hardpoints は light/medium/heavy のみ';
+  if (e.ability !== undefined && !F.ability.enum.includes(e.ability)) return `ability は ${F.ability.enum.join('/')}`;
+  if (e.role === 'player' && !Number.isFinite(e.price)) return 'player は price 必須(数値)';
+  if (e.role === 'enemy') {
+    if (typeof e.aiStyle !== 'string' || !AI_STYLES[e.aiStyle]) return `aiStyle は ${Object.keys(AI_STYLES).join('/')} のいずれか`;
+  }
+  // 装備のサイズ整合(指定がある場合のみ。実在武器 + サイズ一致)
+  const checkLoadout = (arr, label) => {
+    if (arr === undefined) return null;
+    if (!Array.isArray(arr) || arr.length !== e.hardpoints.length) return `${label} は hardpoints と同数`;
+    for (let i = 0; i < arr.length; i++) {
+      const w = CONFIG.WEAPONS[arr[i]];
+      if (!w) return `${label}[${i}] = 未知の武器 ${arr[i]}`;
+      if (w.size !== e.hardpoints[i]) return `${label}[${i}] のサイズが hardpoints[${i}] と不一致`;
+    }
+    return null;
+  };
+  const lw = checkLoadout(e.weapons, 'weapons'); if (lw) return lw;
+  const la = checkLoadout(e.aiWeapons, 'aiWeapons'); if (la) return la;
+  return null;
+}
+
+// ---- (1) 汎用層: hardpoints から「サイズ一致の最安武器」で装備を自動補完 ----
+function autoLoadout(hardpoints) {
+  return hardpoints.map((size) => {
+    const cands = Object.keys(CONFIG.WEAPONS)
+      .filter((k) => CONFIG.WEAPONS[k].size === size)
+      .sort((a, b) => CONFIG.WEAPONS[a].price - CONFIG.WEAPONS[b].price);
+    return cands[0] || 'mg';
+  });
+}
+
+// ---- (2) ゲーム固有層: 検証済みエントリ 1 件を本ゲームの機体システムへ登録 ----
+//   返り値: { ok:true, id } または { ok:false, reason }
+function registerCustomMech(e) {
+  const reason = validateCustomEntry(e);
+  if (reason) return { ok: false, reason };
+  // ID 衝突(ビルトイン優先 → カスタムをスキップ)
+  if (CONFIG.MECH_CLASSES[e.id]) return { ok: false, reason: `id 衝突(ビルトイン優先): ${e.id}` };
+
+  const F = CUSTOM_MECH_SCHEMA.fields;
+  const clampF = (v, f) => Math.max(f.min, Math.min(f.max, v));
+  const hp = Math.round(clampF(e.hp, F.hp));
+  const speed = clampF(e.speed, F.speed);
+  const scale = e.scale !== undefined ? clampF(e.scale, F.scale) : F.scale.default;
+  const yaw = e.yaw !== undefined ? clampF(e.yaw, F.yaw) : F.yaw.default;
+  const ability = e.ability || F.ability.default;
+  const colors = (e.colors && typeof e.colors === 'object')
+    ? { primary: e.colors.primary >>> 0, secondary: e.colors.secondary >>> 0, dark: e.colors.dark >>> 0 }
+    : { primary: 0x6a7a8a, secondary: 0xb8c4d0, dark: 0x232b33 };
+  const weapons = e.weapons || autoLoadout(e.hardpoints);
+  const aiWeapons = e.aiWeapons || weapons;
+
+  // i18n 名称・説明を登録(片方欠落は他方へフォールバック)
+  const nm = { ja: e.name.ja || e.name.en, en: e.name.en || e.name.ja };
+  const ds = e.desc ? { ja: e.desc.ja || e.desc.en || '', en: e.desc.en || e.desc.ja || '' } : { ja: nm.ja, en: nm.en };
+  I18N.ja[`cdesc_${e.id}`] = ds.ja;
+  I18N.en[`cdesc_${e.id}`] = ds.en;
+  CUSTOM_MECH_NAMES[e.id] = nm; // 機体名の i18n(cls.name は英名固定。GUI/将来のローカライズ用)
+
+  // ---- (1) モデル経路の登録(static のみ MODEL_STATIC へ。rigged は GlbMechModel 既定経路) ----
+  const isStatic = e.modelType === 'static';
+  if (isStatic && !CONFIG.MODEL_STATIC[e.model]) {
+    // ビルトインの MODEL_STATIC は上書きしない(共有モデルの整合を保つ)
+    const kind = e.staticKind || 'walk';
+    // bbox 不明 → 安全な既定(接地高はスケール基準)。GUI 側で実測すれば yaw/scale で調整
+    CONFIG.MODEL_STATIC[e.model] = {
+      kind, scale, yaw,
+      yCenter: 1.4 * scale * 0.7, restY: 1.0 * scale * 0.6,
+      bobAmp: 0.1, bobHz: 2.0, rollAmp: 0.06, tiltMax: 0.18,
+      glowY: 1.4, glowX: 0.55, glowColor: 0x66d8ff,
+    };
+  }
+  // ハードポイント(static は固定位置・rigged はボーンフォロワーが既定で動くため任意)
+  if (!CONFIG.MODEL_HARDPOINTS[e.model]) {
+    CONFIG.MODEL_HARDPOINTS[e.model] = e.hardpoints.map((_, i) =>
+      [i % 2 === 0 ? 0.85 : -0.85, 2.2 + Math.floor(i / 2) * 0.4, 0.2]);
+  }
+
+  // ---- (2) ゲーム固有のクラス定義 ----
+  const cls = {
+    name: nm.en.toUpperCase().slice(0, 16) || e.id, // キルログ/ロック表示(言語非依存の英名)
+    speed, hp,
+    hardpoints: [...e.hardpoints],
+    weapons, aiWeapons,
+    ability,
+    model: e.model, scale,
+    staticModel: isStatic,
+    colors,
+    desc: ds.ja,
+    custom: true, // V8.3: カスタム機体マーカー
+  };
+
+  if (e.role === 'player') {
+    cls.price = Math.round(clampF(e.price, F.price));
+    CONFIG.MECH_CLASSES[e.id] = cls;
+    if (!PLAYER_CLASSES.includes(e.id)) PLAYER_CLASSES.push(e.id);
+    PLAYER_WEIGHT_TIER[e.id] = e.hardpoints.includes('heavy') ? 2 : e.hardpoints.includes('medium') ? 1 : 0;
+    // 初期装備が同時成立するよう在庫を加算(購入後すぐ装備できる体験のため)
+    for (const w of weapons) DEFAULT_INVENTORY_ADD[w] = (DEFAULT_INVENTORY_ADD[w] || 0) + 1;
+  } else { // enemy
+    cls.price = 0;
+    cls.enemyOnly = true;
+    cls.aiStyle = e.aiStyle;
+    CONFIG.MECH_CLASSES[e.id] = cls;
+    if (!ENEMY_ONLY_CLASSES.includes(e.id)) ENEMY_ONLY_CLASSES.push(e.id);
+    const minLevel = (e.spawnBand && Number.isFinite(e.spawnBand.minLevel)) ? e.spawnBand.minLevel : 13;
+    if (minLevel <= 12 && !ENEMY_EARLY_CLASSES.includes(e.id)) ENEMY_EARLY_CLASSES.push(e.id);
+  }
+  return { ok: true, id: e.id, role: e.role };
+}
+
+// ---- (1)+(2): 全エントリを処理(配列 → 登録)。結果サマリを返す ----
+function registerAllCustomMechs(list) {
+  const res = { added: [], skipped: [] };
+  if (!Array.isArray(list)) return res;
+  for (const e of list) {
+    const r = registerCustomMech(e);
+    if (r.ok) { res.added.push(r.id); console.info(`[V8.3] カスタム機体登録: ${r.id} (${r.role})`); }
+    else { res.skipped.push({ id: (e && e.id) || '?', reason: r.reason }); console.warn(`[V8.3] カスタム機体スキップ: ${(e && e.id) || '?'} — ${r.reason}`); }
+  }
+  return res;
+}
+
+// ============================================================
 // V7.8: Firebase クラウドセーブ(同期コード方式)
 //   - localStorage が主。Firebase は自動バックアップ + 端末間同期のみ
 //   - SDK は CDN から動的 import。失敗してもゲームは完全動作(graceful degradation)
@@ -1789,6 +2053,15 @@ function cloudAutoBackup() {
     .catch((e) => console.warn('[V7.8] 自動バックアップ例外:', e && e.message));
 }
 const SAVE = loadSave(); // boot(ハンガー)と Game(リザルト加算)で共有
+
+// V8.3: カスタム機体登録後に SAVE を再構築(const のため in-place で差し替え)。
+//   登録で PLAYER_CLASSES / MECH_CLASSES が増えるため、ロードアウト配列や
+//   所有カスタム機体を sanitizeSave で取り込み直す。SAVE 参照は維持される。
+function reloadSaveInPlace() {
+  const fresh = loadSave();
+  for (const k of Object.keys(SAVE)) delete SAVE[k];
+  Object.assign(SAVE, fresh);
+}
 
 // ---- 在庫ヘルパー(V6.9 / V7.1 スロット数可変) ----
 /** 武器の所持数 */
@@ -1912,7 +2185,7 @@ const I18N = {
     rbWinBonus: '勝利ボーナス', rbTotal: '獲得合計', rbWallet: 'WALLET',
     returnToHangar: 'ハンガーへ戻る', rematch: 'リマッチ',
     // ---- 操作ヒント(ハンガー下部) ----
-    help1: 'カーソルキー: 移動 ・ Shift+←→: 旋回 ・ Space/Z/X/C: 武器(スロット順)・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ',
+    help1: 'カーソルキー: 移動 ・ Shift+←→: 旋回 ・ Ctrl/🚀: ブースト(正面に3倍速前進) ・ Space/Z/X/C: 武器(スロット順)・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ',
     help2: '機体は購入制・最大 3 台所有(売却 60%)。スロットには同サイズ(軽/中/重)の武器のみ装備可',
     help3: '出現はランダム ・ 実体弾は横移動で回避可 ・ 撃破で HP 回復(残量2倍)・ 砲撃/チャージ武器には予兆がある',
     // ---- 武器タグ(固有名は英語のまま) ----
@@ -2033,7 +2306,7 @@ const I18N = {
     rbKills: 'KILLS ×{0}', rbDamage: 'DAMAGE', rbSurvival: 'SURVIVAL', rbCrates: 'CRATES',
     rbWinBonus: 'VICTORY BONUS', rbTotal: 'TOTAL EARNED', rbWallet: 'WALLET',
     returnToHangar: 'RETURN TO HANGAR', rematch: 'REMATCH',
-    help1: 'Arrows: move ・ Shift+←→: turn ・ Space/Z/X/C: weapons (slot order) ・ Tab/◎: cycle target ・ B: ability ・ V: jump',
+    help1: 'Arrows: move ・ Shift+←→: turn ・ Ctrl/🚀: boost (auto-dash forward x3) ・ Space/Z/X/C: weapons (slot order) ・ Tab/◎: cycle target ・ B: ability ・ V: jump',
     help2: 'Mechs are purchasable, own up to 3 (sell at 60%). Slots accept matching size (L/M/H) weapons only',
     help3: 'Random spawns ・ dodge projectiles by strafing ・ kills repair HP (×2) ・ artillery & charge weapons telegraph',
     wtag_mg: 'Light ・ close-range rapid fire', wtag_pulse: 'Light ・ energy bolt', wtag_needle: 'Light ・ long-range precision',
@@ -2208,6 +2481,9 @@ let STAGE_KEY = 'CITY';
 let STAGE = CONFIG.STAGES.CITY;
 let CITY = CONFIG.STAGES.CITY.roads;
 let TERRAIN = CONFIG.STAGES.CITY.terrain;
+// V8.4: 障害物 AABB の参照(getSupportHeight が「上面着地」に使う)。
+//   buildArena() が現ステージの obstacles を差し込む(地形バインディングと同じ流儀)。
+let ARENA_OBSTACLES = [];
 
 /** ステージを適用(地形参照を差し替え)。'RANDOM' は STAGE_KEYS から抽選 */
 function applyStage(stageKey) {
@@ -2472,9 +2748,9 @@ function getGroundHeight(x, z) {
 }
 
 /**
- * 足元の支持面高さ(地面 + 橋デッキ)。
- * yRef: 現在の足の高さ。デッキ上面付近以上にいる時だけ橋に支持される
- *       (運河内 = デッキ下を通るときは地面に落ちる)
+ * 足元の支持面高さ(地面 + 橋デッキ + V8.4 障害物の上面)。
+ * yRef: 現在の足の高さ。上面付近以上にいる時だけその面に支持される
+ *       (運河内 = デッキ下 / 壁の真横 = 上面より下、では支持されず地面に落ちる)
  */
 function getSupportHeight(x, z, yRef) {
   let sup = getGroundHeight(x, z);
@@ -2485,6 +2761,15 @@ function getSupportHeight(x, z, yRef) {
     else if (z >= b.zMin - b.ramp && z < b.zMin) h = b.top * (1 - (b.zMin - z) / b.ramp);
     else if (z > b.zMax && z <= b.zMax + b.ramp) h = b.top * (1 - (z - b.zMax) / b.ramp);
     if (h !== null && h > sup && yRef >= h - 0.35) sup = h;
+  }
+  // V8.4: 障害物(ビル/岩/コンテナ/瓦礫…)の上面に乗れる。
+  //   水平 footprint 内 + 足が上面付近以上(yRef >= top - LAND_TOL)なら上面が床。
+  //   この guard により「真横の壁」には吸着せず(横は moveWithCollision が押し戻す)、
+  //   ジャンプで上面より高く来て落下接触したときだけ乗れる。
+  for (const o of ARENA_OBSTACLES) {
+    if (o.minY !== undefined) continue;           // 頭上型(橋の欄干など)は床にしない
+    if (x < o.minX || x > o.maxX || z < o.minZ || z > o.maxZ) continue;
+    if (o.height > sup && yRef >= o.height - CONFIG.OBSTACLE_LAND_TOL) sup = o.height;
   }
   return sup;
 }
@@ -3764,8 +4049,8 @@ class Robot {
     this.sprintT = 0;
     this.shieldT = 0;
     this.dmgBoostT = 0;     // V7.7: POWER パワーアップ(与ダメ +30%)
-    this.spdBoostT = 0;     // V7.7: SPEED パワーアップ(速度 +50%)
     this.nukeReady = false; // V7.7: NUKE パワーアップ(次の 1 発が特殊ミサイル)
+    this.boosting = false;  // V8.4: ブースト移動(押下中だけ ×BOOST_MUL。プレイヤーのみ使用)
     this.lastAttacker = null;  // FFA ヘイト用
     this.lastAttackT = -99;
 
@@ -3841,7 +4126,7 @@ class Robot {
   /** スプリント込みの現在の目標最高速(V7.1: TEMPEST 照射中は減速) */
   get effectiveSpeed() {
     let s = this.maxSpeed * (this.sprintT > 0 ? CONFIG.SPRINT_MUL : 1);
-    if (this.spdBoostT > 0) s *= CONFIG.PWR_SPEED_MUL; // V7.7: SPEED パワーアップ
+    if (this.boosting) s *= CONFIG.BOOST_MUL; // V8.4: ブースト移動(押下中 ×3)
     if (this.beamT > 0) {
       const w = CONFIG.WEAPONS[this.slots[this.beamSlot]];
       s *= (w && w.slowMul) || 0.7;
@@ -3916,12 +4201,12 @@ class Robot {
     p.z = clamp(p.z, -CONFIG.MOVE_LIMIT, CONFIG.MOVE_LIMIT);
   }
 
-  /** ジャンプ(クールダウン付き。成功したら true) */
+  /** V8.4: ジャンプ(クールダウンなし = 接地していればいつでも連続ジャンプ可)。成功で true */
   jump() {
-    if (!this.grounded || !this.alive || this.jumpCd > 0) return false;
+    if (!this.grounded || !this.alive) return false;
     this.velY = CONFIG.JUMP_VELOCITY;
     this.grounded = false;
-    this.jumpCd = CONFIG.JUMP_COOLDOWN;
+    this.jumpCd = CONFIG.JUMP_COOLDOWN; // 0(HUD の CD 扇形は常に空 = 即再ジャンプ可を示す)
     return true;
   }
 
@@ -3998,7 +4283,6 @@ class Robot {
     this.sprintT = Math.max(0, this.sprintT - dt);
     this.shieldT = Math.max(0, this.shieldT - dt);
     this.dmgBoostT = Math.max(0, this.dmgBoostT - dt); // V7.7
-    this.spdBoostT = Math.max(0, this.spdBoostT - dt); // V7.7
     if (this.shieldMesh) {
       const on = this.shieldT > 0 && this.alive;
       this.shieldMesh.visible = on;
@@ -4072,8 +4356,8 @@ class Robot {
     this.sprintT = 0;
     this.shieldT = 0;
     this.dmgBoostT = 0;     // V7.7
-    this.spdBoostT = 0;     // V7.7
     this.nukeReady = false; // V7.7
+    this.boosting = false;  // V8.4
     this.lastAttacker = null;
     this.lastAttackT = -99;
     this.chargeT.fill(0);
@@ -5310,10 +5594,10 @@ class MinePool {
 //   - レーダーの金パルスリングで全アイテム(最大 2)を表示
 //   - ビーコン光柱 + 出現 SFX。SPEED は遠い敵寄りに湧き移動を促す
 // ============================================================
+// V8.4: SPEED(💨)を廃止(ブースト移動が常時使えるため)。抽選候補は REPAIR/POWER/NUKE
 const PWR_TYPES = [
   { key: 'REPAIR', color: 0x44ff88, icon: '🔧' }, // 即時 +60 HP
   { key: 'POWER', color: 0xff5040, icon: '💥' },  // 15s 与ダメ +30%
-  { key: 'SPEED', color: 0x55ccff, icon: '💨' },  // 10s 速度 +50%
   { key: 'NUKE', color: 0xffe24a, icon: '☢' },   // 次の 1 発が特殊ミサイル化
 ];
 class PowerupPool {
@@ -5356,26 +5640,7 @@ class PowerupPool {
     const p = this.game.player;
     const live = this.items.filter((it) => it.life > 0);
     const farFromLive = (c) => live.every((it) => Math.hypot(c[0] - it.group.position.x, c[1] - it.group.position.z) > 30);
-    // SPEED: プレイヤーから最も遠い生存敵の近くに寄せる(取りに行かせる)
-    if (type.key === 'SPEED') {
-      let far = null, fd = -1;
-      for (const r of this.game.robots) {
-        if (r === p || !r.alive) continue;
-        const d = r.position.distanceTo(p.position);
-        if (d > fd) { fd = d; far = r; }
-      }
-      if (far) {
-        let best = null, bd = Infinity;
-        for (const c of cands) {
-          if (!farFromLive(c)) continue;
-          const dx = c[0] - far.position.x, dz = c[1] - far.position.z;
-          const d2 = dx * dx + dz * dz;
-          if (d2 < bd) { bd = d2; best = c; }
-        }
-        if (best) return best;
-      }
-    }
-    // それ以外: プレイヤーから 18 以上 + 既存アイテムから離れた候補を優先
+    // V8.4: SPEED は廃止 → 種別による特別配置なし。プレイヤーから 18 以上 + 既存アイテムから離れた候補を優先
     let ok = cands.filter((c) => {
       const dx = c[0] - p.position.x, dz = c[1] - p.position.z;
       return dx * dx + dz * dz > 18 * 18 && farFromLive(c);
@@ -5467,10 +5732,6 @@ class PowerupPool {
         break;
       case 'POWER':
         rb.dmgBoostT = CONFIG.PWR_POWER_TIME;
-        if (isPlayer) game.sound.play('pwrpick', 0.9);
-        break;
-      case 'SPEED':
-        rb.spdBoostT = CONFIG.PWR_SPEED_TIME;
         if (isPlayer) game.sound.play('pwrpick', 0.9);
         break;
       case 'NUKE':
@@ -6020,6 +6281,7 @@ class InputManager {
     this.abilityQueued = false; // アビリティ(B / 専用ボタン)
     this.targetCycleQueued = false; // ターゲット切替(Tab / 専用ボタン)
     this.camCycleQueued = false;    // V7.7: カメラプリセット切替(F / 📐 ボタン)
+    this.boostHeld = false;         // V8.4: ブースト移動(押下中だけ ×3。左Ctrl / 🚀 ボタン)
     this.lookDX = 0;
     this.lookDY = 0;
 
@@ -6042,18 +6304,23 @@ class InputManager {
     const abilityBtn = document.getElementById('ability-btn');
     const targetBtn = document.getElementById('target-btn');
     const camBtn = document.getElementById('cam-btn'); // V7.7
+    const boostBtn = document.getElementById('boost-btn'); // V8.4
 
     // ---- キーボード(PC はキーボード完結のシンプル操作) ----
-    //   カーソル: 移動 / Shift+←→: 方向転換 / Space: 攻撃1 / B: 攻撃2 / V: ジャンプ
+    //   カーソル: 移動 / Shift+←→: 方向転換 / Space: 攻撃1 / B: 攻撃2 / V: ジャンプ / Ctrl: ブースト
     window.addEventListener('keydown', (e) => {
       this.keys[e.code] = true;
       if (e.code === 'KeyV' && !e.repeat) this.jumpQueued = true;
       if (e.code === 'KeyB' && !e.repeat) this.abilityQueued = true;
       if (e.code === 'Tab' && !e.repeat) this.targetCycleQueued = true; // ターゲット切替
       if (e.code === 'KeyF' && !e.repeat) this.camCycleQueued = true; // V7.7: カメラ切替
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
+      if (e.code === 'ControlLeft' || e.code === 'ControlRight') this.boostHeld = true; // V8.4: ブースト
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'ControlLeft', 'ControlRight'].includes(e.code)) e.preventDefault();
     });
-    window.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
+    window.addEventListener('keyup', (e) => {
+      this.keys[e.code] = false;
+      if (e.code === 'ControlLeft' || e.code === 'ControlRight') this.boostHeld = false; // V8.4
+    });
 
     // ---- マウス(任意操作: クリック = 攻撃 / ドラッグ = 視点微調整) ----
     window.addEventListener('mousedown', (e) => {
@@ -6088,6 +6355,8 @@ class InputManager {
     press(abilityBtn, () => { this.abilityQueued = true; }, () => {});
     press(targetBtn, () => { this.targetCycleQueued = true; }, () => {});
     if (camBtn) press(camBtn, () => { this.camCycleQueued = true; }, () => {}); // V7.7
+    // V8.4: ブースト移動(押下中だけ true。離す/touchcancel で false)
+    if (boostBtn) press(boostBtn, () => { this.boostHeld = true; }, () => { this.boostHeld = false; });
     this._press = press; // V7.1: 動的セグメントの結線に再利用
 
     // ---- タッチ: 左半分=ジョイスティック / 右半分=機体旋回スワイプ ----
@@ -6338,7 +6607,7 @@ class EnemyAI {
     // 退避条件: オーバーヒート中 or HP 低下(クールダウン付き)
     if (bot.overheated || (bot.hp <= CONFIG.ENEMY_RETREAT_HP && this.retreatCooldown <= 0)) {
       this.state = 'COVER';
-      this.coverWait = 2.2;
+      this.coverWait = 1.4; // V8.4: 2.2→1.4(遮蔽での待機を短く = すぐ再交戦)
       this.pickCover();
       return;
     }
@@ -6423,12 +6692,14 @@ class EnemyAI {
         mx = _v2.x * cos - _v2.z * sin;
         mz = _v2.x * sin + _v2.z * cos;
       } else if (dist < 45 && !this.style.noHold) {
-        // 牽制: 交戦距離の外縁 → 距離を保って旋回(撃たない)。
-        // V8.0 brawl(noHold)は牽制せず直進する
+        // V8.4: 「詰めながら回り込む」へ変更(従来は距離を保って旋回 = 消極的だった)。
+        //   自分の交戦帯(style.near)より遠ければ前進成分を強め、近すぎる時だけ下がる。
+        //   横成分(flank)は残すので一直線の無謀突撃にはならない(駆け引きは維持)。
         _v3.set(-_v2.z, 0, _v2.x).multiplyScalar(this.flankSign);
-        const radial = dist < 28 ? -0.7 : 0.2;
-        mx = _v3.x + _v2.x * radial;
-        mz = _v3.z + _v2.z * radial;
+        const near = this.style.near || 22;
+        const radial = dist < near ? -0.6 : 0.7; // 近すぎ → 下がる / それ以外 → 詰める
+        mx = _v3.x * 0.7 + _v2.x * radial;
+        mz = _v3.z * 0.7 + _v2.z * radial;
         const l = Math.hypot(mx, mz);
         if (l > 1e-4) { mx /= l; mz /= l; }
       } else {
@@ -7248,6 +7519,9 @@ class Game {
     });
     lamps.instanceMatrix.needsUpdate = true;
     root.add(lamps);
+
+    // V8.4: 障害物上面着地用に obstacles をグローバルへ公開(getSupportHeight が参照)
+    ARENA_OBSTACLES = this.obstacles;
 
     // V8.2: レーダー用ミニマップを 1 回だけプリレンダ(毎フレームは回転/平行移動のみ)
     this.buildMinimap();
@@ -9009,14 +9283,23 @@ class Game {
   // ---------------- 更新 ----------------
   updatePlayer(dt) {
     const player = this.player;
-    if (!player.alive) { player.speed01 = 0; return; }
+    if (!player.alive) { player.boosting = false; player.speed01 = 0; return; }
+
+    // V8.4: ブースト移動(押下中だけ effectiveSpeed が ×BOOST_MUL になる)
+    player.boosting = this.input.boostHeld;
 
     // ---- 移動: カメラ向き基準の全方位ストレイフ + 加速度モデル(重量感) ----
     //   移動しても照準(camYaw)は変わらない。後退はさらに減速
     this.input.getMove(this.moveInput);
     const { x: ix, y: iy } = this.moveInput;
     const mag = Math.hypot(ix, iy);
-    if (mag > 0.05) {
+    if (player.boosting) {
+      // V8.4.1: ブースト中はスティック入力に関係なく「機体の正面(camYaw)」へ自動前進。
+      //   旋回(スワイプ / Shift+←→)で camYaw が変われば進行方向も変わる = 曲がれる。
+      //   正面 = (sin camYaw, cos camYaw)。常に前方なので後退減速は掛からない
+      const wx = Math.sin(this.camYaw), wz = Math.cos(this.camYaw);
+      player.applyMove(wx, wz, player.effectiveSpeed, dt, this.obstacles);
+    } else if (mag > 0.05) {
       const sy = Math.sin(this.camYaw), cy = Math.cos(this.camYaw);
       // forward=(sy,cy), right=(-cy,sy) ※ y-up 右手系
       let wx = sy * iy + (-cy) * ix;
@@ -9384,7 +9667,9 @@ class Game {
       seg.classList.toggle('ready',
         w.heat ? !player.overheated : (player.slotCd[i] <= 0 && (!w.needLock || this.locked)));
     }
-    ui.jumpCd.style.setProperty('--cd', (player.jumpCd / CONFIG.JUMP_COOLDOWN).toFixed(3));
+    // V8.4: クールダウン 0 のときは扇形を常に空(連続ジャンプ可を示す)。0 除算回避
+    ui.jumpCd.style.setProperty('--cd',
+      CONFIG.JUMP_COOLDOWN > 0 ? (player.jumpCd / CONFIG.JUMP_COOLDOWN).toFixed(3) : '0');
 
     // ---- アビリティ(CD 扇形 + 発動中ハイライト) ----
     const abCdMax = player.ability === 'sprint' ? CONFIG.SPRINT_CD : CONFIG.SHIELD_CD;
@@ -9396,7 +9681,6 @@ class Game {
     if (ui.pwrHud) {
       let pw = '';
       if (player.dmgBoostT > 0) pw += `<span class="pwr-fx" style="color:#ff7a66">💥 ${Math.ceil(player.dmgBoostT)}s</span>`;
-      if (player.spdBoostT > 0) pw += `<span class="pwr-fx" style="color:#7adcff">💨 ${Math.ceil(player.spdBoostT)}s</span>`;
       if (player.nukeReady) pw += '<span class="pwr-fx" style="color:#ffe24a">☢ READY</span>';
       if (pw !== this._prevPwrHud) {
         ui.pwrHud.innerHTML = pw;
@@ -9821,7 +10105,7 @@ class Game {
     this.mines.update(dt);     // V7.3: 地雷(投射・明滅・接触起爆)
     this.powerups.update(dt);  // V7.7: パワーアップ(出現・消滅・取得)
 
-    // V7.7: パワーアップ中の見た目(POWER = 武器が赤熱 / SPEED = 青いトレイル)
+    // 見た目: POWER パワーアップ = 武器が赤熱 / V8.4 ブースト移動 = 青いトレイル
     const pp = this.player;
     if (pp.alive) {
       if (pp.dmgBoostT > 0 && rng() < dt * 14) {
@@ -9831,10 +10115,11 @@ class Game {
           this.particles.spawn(_v1, 1, { color: 0xff4030, speed: 1.2, life: 0.3, gravity: 2, scale: 1.1, boost: 1.8 });
         }
       }
-      if (pp.spdBoostT > 0 && rng() < dt * 22) {
+      // V8.4: ブースト中(押下中・移動中)はホバー感の青トレイル
+      if (pp.boosting && pp.speedAbs > 0.5 && rng() < dt * 40) {
         _v1.copy(pp.position);
-        _v1.y += 0.5 + rng() * 0.8;
-        this.particles.spawn(_v1, 1, { color: 0x55ccff, speed: 0.8, life: 0.35, gravity: 0.5, scale: 1.2, boost: 1.7 });
+        _v1.y += 0.4 + rng() * 0.7;
+        this.particles.spawn(_v1, 1, { color: 0x55ccff, speed: 0.7, life: 0.35, gravity: 0.4, scale: 1.2, boost: 1.7 });
       }
     }
 
@@ -11041,6 +11326,22 @@ function buildBootSetup(playerClass) {
   const statusEl = $id('hangar-status');
   if (statusEl) statusEl.textContent = 'LOADING...';
   try {
+    // ---- V8.3: カスタム機体の読み込み・登録(失敗しても既存ゲームは正常動作) ----
+    //   SAVE 生成 → 登録 → reloadSaveInPlace の順。登録は applyStaticI18n より前
+    //   (新クラスの cdesc/PLAYER_CLASSES を i18n・ハンガーが参照するため)
+    try {
+      const customList = await fetchCustomMechs();
+      if (customList.length) {
+        const summary = registerAllCustomMechs(customList);
+        if (summary.added.length) {
+          reloadSaveInPlace(); // 増えたクラスを取り込んで SAVE を再正規化
+          console.info(`[V8.3] カスタム機体 ${summary.added.length} 体を登録(スキップ ${summary.skipped.length})`);
+        }
+      }
+    } catch (err) {
+      console.warn('[V8.3] カスタム機体ローダーで例外 → カスタムなしで続行:', err && err.message);
+    }
+
     // V7.2: glb の一括プリロードは廃止。起動はゼロフェッチ + ドックの 1 体だけ遅延ロード
     // V7.3: 静的テキストへ i18n を適用(初期言語 = SAVE.lang)
     applyStaticI18n();
