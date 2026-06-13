@@ -1,6 +1,15 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.6)
+// ROBO BATTLE 3D - Prototype (V8.6.1)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.6.1 変更点(実機フィードバックの小改修):
+//   1. ハンガー全景(peek): 残っていた UI も確実に消す。「ブランケット + 例外」方式へ
+//      変更(#hangar.peek > * を一律フェード → 👁 ボタンと中央 3D エリアだけ復帰)。
+//      モバイルの reparent / position:absolute(SLOT パネル・🤖 ラベル・ⓘ・タイトル・
+//      HP/SPD ステータス)でも漏れなくフェード。トースト/武器モーダルは維持
+//   2. カスタム機体サイズ約 1.3 倍: CUSTOM_TARGET_HEIGHT 3.6 → 4.7m(ビルトインと
+//      並べて同等〜やや大きい見た目)。胸高・衝突半径・被弾判定半径も mechSizeK で
+//      新サイズへ追従(ロックオン/被弾が実寸とズレない)。ビルトインは非影響
 //
 // V8.6 変更点(ハンガーで機体 3D の全景を見られるように):
 //   機体選択画面で UI(タイトル/機体チップ/HP・SPD バー/武器パネル/START 等)が
@@ -417,11 +426,12 @@ const CONFIG = {
 
   // glb 機体モデル(V6.3)
   MECH_SCALE: 0.9,         // glb 高さ 4.0 → 3.6(胸高 ~2.6 = CHEST_OFFSET と整合)
-  // V8.5: カスタム機体のサイズ自動正規化の目標表示高さ(m)。
-  //   ビルトインの標準機体 = 生 glb 高 4.0 × MECH_SCALE 0.9 = 3.6m に合わせる。
-  //   外部ツール(Meshy 等)の glb は実寸がバラバラなので、bbox 高さからこの値へ
-  //   自動スケール(最終 = 正規化倍率 × cls.scale)。ビルトインには一切適用しない
-  CUSTOM_TARGET_HEIGHT: 3.6,
+  // V8.5/V8.6.1: カスタム機体のサイズ自動正規化の目標表示高さ(m)。
+  //   ビルトイン標準機 = 生 glb 高 4.0 × MECH_SCALE 0.9 = 3.6m。
+  //   V8.6.1: 実機で「カスタムが小さく見える」報告 → 3.6 → 4.7(約 1.3 倍)。
+  //   ビルトインと並べて同等〜やや大きい見た目に。bbox 高さからこの値へ自動スケール
+  //   (最終 = 正規化倍率 × cls.scale)。ビルトインには一切適用しない
+  CUSTOM_TARGET_HEIGHT: 4.7,
   CUSTOM_NORM_MIN: 0.02,   // 正規化倍率の下限(極端な glb の暴走防止)
   CUSTOM_NORM_MAX: 50,     // 正規化倍率の上限
   WALK_CYCLE_SPEED: 3.1,   // スケール1の歩行1サイクル移動量(timeScale 同期の基準)
@@ -4146,6 +4156,9 @@ class StaticMechModel {
 //   (将来の P2P 複数参加でも robots[] に追加するだけで成立する構造)
 // ============================================================
 const CHEST_Y_BASE = 2.7; // 基準胸高(クラス scale で伸縮)
+// V8.6.1: カスタム機体のサイズ倍率(正規化目標高 / ビルトイン標準 3.6)。
+//   胸高・衝突半径・被弾判定半径を実寸に追従させる。ビルトインは 1
+function mechSizeK(cls) { return (cls && cls.custom) ? (CONFIG.CUSTOM_TARGET_HEIGHT / 3.6) : 1; }
 
 class Robot {
   /**
@@ -4171,8 +4184,12 @@ class Robot {
     this.level = 1;          // V7.8: レベル(applyLevel で HP/速度に反映)
     this.maxHp = cls.hp;
     this.maxSpeed = cls.speed;
-    this.radius = CONFIG.MECH_RADIUS * cls.scale;   // 衝突半径
-    this.chestY = CHEST_Y_BASE * cls.scale;         // 胸高(照準/被弾点)
+    // V8.6.1: カスタム機体は正規化目標高(CUSTOM_TARGET_HEIGHT)/ ビルトイン標準 3.6 の
+    //   比ぶん大きい → 胸高(照準点)・衝突半径もその比で追従(ロックオン/被弾判定が
+    //   実寸とズレないように)。ビルトインは比 1 で従来どおり
+    const sizeK = mechSizeK(cls);
+    this.radius = CONFIG.MECH_RADIUS * cls.scale * sizeK;   // 衝突半径
+    this.chestY = CHEST_Y_BASE * cls.scale * sizeK;         // 胸高(照準/被弾点)
     // 武器スロット(V7.1: ハードポイント制。スロット数 = cls.hardpoints.length)
     const slotCount = cls.hardpoints.length;
     this.slots = (slots && slots.length === slotCount) ? [...slots] : [...cls.weapons];
@@ -5249,7 +5266,7 @@ class BoltPool {
       for (const c of game.robots) {
         if (c === b.shooter || !c.alive) continue;
         c.chest(_v2);
-        const r = 1.7 * c.cls.scale + CONFIG.BOLT_HIT_PAD;
+        const r = 1.7 * c.cls.scale * mechSizeK(c.cls) + CONFIG.BOLT_HIT_PAD;
         const d = raySphereDist(b.prev, _v3, _v2, r, _v4);
         if (d >= 0 && d <= stepLen && d < hitDist) { hitDist = d; hitTarget = c; }
       }
@@ -8598,7 +8615,7 @@ class Game {
       for (const c of this.robots) {
         if (c === r || !c.alive) continue;
         c.chest(_v3);
-        const d = raySphereDist(_muzzle, _v2, _v3, 1.9 * c.cls.scale, _v4);
+        const d = raySphereDist(_muzzle, _v2, _v3, 1.9 * c.cls.scale * mechSizeK(c.cls), _v4);
         if (d >= 0 && d < hitDist) { hitDist = d; hitTarget = c; }
       }
       let endDist = Math.min(range, wallDist);
@@ -8754,7 +8771,7 @@ class Game {
       for (const t of this.robots) {
         if (t === shooter || !t.alive) continue;
         t.chest(_v3);
-        const d = raySphereDist(_muzzle, _v2, _v3, 1.7 * t.cls.scale, _v4);
+        const d = raySphereDist(_muzzle, _v2, _v3, 1.7 * t.cls.scale * mechSizeK(t.cls), _v4);
         if (d >= 0 && d < hitDist) { hitDist = d; hitTarget = t; }
       }
 
