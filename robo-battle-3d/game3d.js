@@ -1,6 +1,52 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V7.8)
+// ROBO BATTLE 3D - Prototype (V8.0.1)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.0.1 変更点(戦闘 HUD の配置修正 — 実機フィードバック対応。CSS/DOM のみ・JS ロジック変更なし):
+//  1. 📐 カメラ切替が MG セグメントと重なる実機報告 → 設定系ボタンのため
+//     右下の一等地から外し、左上 🔊 ミュートの隣(34px・半透明)へ移設。
+//     DOM も #weapon-cluster の外(#controls 直下)へ = ハンガー時の一括非表示は維持
+//  2. FIRE 70 → 92px(+31%): ブラインド操作で外れる報告への対応
+//  3. 右クラスタ再編成: 武器セグメント = FIRE 左の縦アーク(slot4 は最下段左)/
+//     ◎・JUMP・シールド = 右縁の縦列 / レーダー表示 128 → 108px(canvas 解像度不変)。
+//     全要素ペアの矩形間隔 ≥ 8px を 667×375 / 844×390 / 932×430 / 736×414 で機械検証
+//
+// V8.0 変更点(新敵機体 3 種 + レベル帯別敵編成):
+//  1. 敵専用クラス 3 種(PLAYER_CLASSES 外 = 購入/ハンガー表示なし・起動時ロード増ゼロ):
+//     ARACHNE(mech_quad 4 脚・static + 歩行ボブ/ロールのプロシージャル演出。
+//       中速 4.4 / HP240 / repeater+lance = 中距離ストレイフ砲台)
+//     SERAPH(mech_winged・static + 高め浮遊 yCenter2.6 + 大ボブ + 噴射グロー。
+//       高速 6.8 / HP125 / mg+blazer = ヒット&アウェイ・回避ジャンプ率 0.45/0.5)
+//     GOLIATH(mech_brawler・リグあり = GlbMechModel 歩行アニメ(既存 Meshy リグと
+//       同一ボーン構成を実測確認)。低速 3.4 / HP350 / havoc+spread = 直進接近・
+//       近距離火力集中・チャージ予兆でも怯まない evade 0/0)
+//  2. 前方軸の機械判定(頂点分布解析・既知の tank=+Z でキャリブレーション):
+//     mech_quad = +Z(肩ポッドが +Z へ張出し)/ mech_winged = +Z(つま先 +Z 突出・
+//     バックパック質量 -Z)→ いずれも yaw 0
+//  3. AI 個性システム(AI_STYLES): COMBAT の距離帯/ストレイフ周期/回避ジャンプ率/
+//     hitrun(接近⇄離脱の周期往復)/ noHold(牽制せず直進)をクラス別に定義
+//  4. レベル帯別編成(rosterForLevel・同一クラス上限 2):
+//     Lv1-5 基本のみ / Lv6-12 ARACHNE 1〜2 / Lv13+ 新型 1〜3(SERAPH/GOLIATH 解禁)/
+//     Lv21+ は装備も高額帯(V7.8 aiTierLoadout が自動適用)。
+//     glb DL 抑制のため基本クラス種類数 = AI_CLASS_VARIETY − 新型種類数(最低 2)
+//
+// V7.9 変更点(高遮蔽ステージ 3 種 — 旧 砂漠/港湾 を置換):
+//  背景: 「砂漠と港は開けすぎ」とのフィードバック。本作の核 =「遮蔽でロックを
+//  切る」駆け引きのため、ランダム 2 点間(≥40m)の LOS 通過率 ≤30% を設計目標化。
+//  1. CANYON MAZE(岩場の迷路): 9×9 迷路グリッド(再帰バックトラッカー +
+//     ループ 16 本)。通路幅 10m・岩壁 8〜18m・中央に広場(クレーター 1)。
+//     通路ボルダーで長い直線の視線を切る。夕暮れの暖色ライト
+//  2. RUINED CITY(廃墟の街): 壊れかけビル(下層 + 欠けた上層)密集 +
+//     瓦礫の山 + 街路への張り出し(+x/+z 側のみ = 最小通行幅 4.6m 保証)+
+//     倒壊ビル 2 本(通行不可遮蔽)。濃いめの薄霧(near35/far240)。ドラム缶/
+//     コンテナ流用。グレー+煤け
+//  3. NEO TOKYO(東京風の夜の街): 幅 8〜10m の碁盤の目 + 中低層ビル
+//     (窓発光)+ ネオン看板(色別結合の板ポリ・Bloom 映え)+
+//     高架道路 1 本(下を潜れる・ランプで上れる)。夜景ライト
+//  共通: レイアウトは純関数(genCanyonLayout 等)で生成し node の LOS
+//  モンテカルロ検証と共用 / 静的ジオメトリはチャンク結合(mergeGeometries)/
+//  スポーンは構造的に埋まらない位置(セル中心・街路上)/ 旧ステージを指す
+//  セーブは CITY へフォールバック / ステージ選択ボタンに一言説明(title)
 //
 // V7.8 変更点(クラウドセーブ/レベル制/高額武器ティア):
 //  1. Firebase クラウドセーブ(同期コード方式): localStorage が主、Firebase は
@@ -85,9 +131,9 @@
 //     さらに自動修復 — 新規デフォルト相当なのに旧キーが残っている場合は
 //     旧データから再移行 + 補償 +500pt(repairDone フラグで 1 回だけ)。セーブ v5
 //  1. ステージ 3 種: 都市生成を CONFIG.STAGES にパラメータ化。
-//     DESERT(砂漠の遺跡: 岩塊+遺跡壁・涸れ谷・クレーター多め = 遠距離戦)/
-//     HARBOR(港湾: 積層コンテナ・クレーン柱・岸壁水路 = 近接戦)。
-//     ハンガーにステージセレクタ(CITY/DESERT/HARBOR/RANDOM・セーブ保存)
+//     砂漠の遺跡(遠距離戦)/ 港湾(近接戦)の 2 種を追加
+//     (※ V7.9 で「開けすぎ」のため高遮蔽 3 種 CANYON/RUINS/TOKYO に置換済み)。
+//     ハンガーにステージセレクタ(セーブ保存)
 //  2. 敵 6 機(計 7 機の本格乱戦): AI は最大 4 クラスから重複あり編成(DL 抑制)。
 //     SPAWN_MIN_DIST 60→45 / CROWD_PENALTY 40→50 / エッジ矢印は最寄り 4 機 /
 //     モバイルは AI の影を 3 機まで(性能)
@@ -207,6 +253,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { GLTFLoader } from './lib/loaders/GLTFLoader.js';
+import { mergeGeometries } from './lib/utils/BufferGeometryUtils.js'; // V7.9: 静的ジオメトリ結合
 import { EffectComposer } from './lib/postprocessing/EffectComposer.js';
 import { RenderPass } from './lib/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from './lib/postprocessing/UnrealBloomPass.js';
@@ -340,6 +387,42 @@ const CONFIG = {
       colors: { primary: 0x6f7a4a, secondary: 0xb8b89a, dark: 0x2a2e22 },
       desc: '履帯駆動の重戦車。最大の HP を誇る',
     },
+    // ---------------- V8.0: 敵専用クラス 3 種(購入不可 = PLAYER_CLASSES 外) ----------------
+    ARACHNE: { // 4 脚スパイダー: 中距離ストレイフ砲台
+      name: 'ARACHNE', speed: 4.4, hp: 240, price: 0, enemyOnly: true,
+      hardpoints: ['medium', 'medium'],
+      weapons: ['repeater', 'lance'],
+      aiWeapons: ['repeater', 'lance'], // 両肩連装砲(連射 + 精密)で中距離を制圧
+      ability: 'shield',
+      model: 'mech_quad', scale: 0.85, // 胸高 2.30(低い胴体に照準を合わせる)
+      staticModel: true,
+      aiStyle: 'strafe',
+      colors: { primary: 0x7a4a8e, secondary: 0xb89ac8, dark: 0x2e2336 },
+      desc: '4 脚の中距離砲台。横移動しながら撃ち続ける',
+    },
+    SERAPH: { // 低空飛行の高機動人型: ヒット&アウェイ
+      name: 'SERAPH', speed: 6.8, hp: 125, price: 0, enemyOnly: true,
+      hardpoints: ['light', 'light'],
+      weapons: ['mg', 'blazer'],
+      aiWeapons: ['mg', 'blazer'], // 軽武器の連射(当て続けて離脱)
+      ability: 'sprint',
+      model: 'mech_winged', scale: 1.0,
+      staticModel: true, hover: true,
+      aiStyle: 'hitrun',
+      colors: { primary: 0xe8e8f0, secondary: 0x9ab0c8, dark: 0x3a4250 },
+      desc: '低空を舞う高機動機。接近して撃ち、すぐ離脱する',
+    },
+    GOLIATH: { // 重装格闘型: 直進接近 → 近距離で火力集中
+      name: 'GOLIATH', speed: 3.4, hp: 350, price: 0, enemyOnly: true,
+      hardpoints: ['heavy', 'medium'],
+      weapons: ['havoc', 'spread'],
+      aiWeapons: ['havoc', 'spread'], // 回転連射 + 散弾(近距離帯の圧力)
+      ability: 'shield',
+      model: 'mech_brawler', scale: 1.15, // リグあり(歩行アニメ)
+      aiStyle: 'brawl',
+      colors: { primary: 0xb8682a, secondary: 0xe0a868, dark: 0x3a2a1a },
+      desc: '重装の格闘型。遮蔽伝いに直進し、至近で火力を集中する',
+    },
   },
 
   // ============================================================
@@ -371,6 +454,23 @@ const CONFIG = {
       twistClamp: 0.4,                         // 上半身ひねりは浅く(車体ごと旋回)
       vibAmp: 0.015, vibHz: 38,                // 走行中の微振動
     },
+    // ---------------- V8.0: 新敵機体(static 経路) ----------------
+    mech_quad: { // ARACHNE 4 脚スパイダー
+      // 前方 +Z 判定の根拠: 上段バンド(肩ポッド高さ)の頂点が +Z へ強く張出し
+      // (z平均 +0.253 / +側 70.6% / +極値 +0.74)= サムネで前方へ突き出す連装砲ポッド。
+      // 既知の tank(front=+Z)は「胴体質量が -Z(後部)」パターンでこれと整合
+      kind: 'quad', scale: 1.9, yaw: 0,
+      yCenter: 1.25, restY: 0.62,              // 接地(脚下端 0.66×1.9)/ KO で半分沈む
+      bobAmp: 0.09, bobHz: 2.2, rollAmp: 0.06, // 歩行ボブ + わずかな左右ロール(脚アニメ代替)
+    },
+    mech_winged: { // SERAPH 高機動人型(低空飛行)
+      // 前方 +Z 判定の根拠: 足先バンドの頂点が +Z へ突出(+0.36 vs -0.19 = つま先)、
+      // 上半身質量は -Z(バックパック/肩部ブースター)。人型の定石どおり
+      kind: 'hover', scale: 1.6, yaw: 0,
+      yCenter: 2.6, restY: 1.6,                // 浮遊高め(足元 ~1.1m・KO で接地)
+      bobAmp: 0.22, bobHz: 1.2, tiltMax: 0.22, // 大きめの浮遊ボブ
+      glowY: 2.2, glowX: 0.5, glowColor: 0xaaeeff, // 肩部ブースターの噴射
+    },
   },
 
   // V7.2: 静的機体の武器ハードポイント(ボーンなし → 機体ローカルの固定位置)
@@ -379,6 +479,8 @@ const CONFIG = {
     mech_hover_light2: [[0.95, 2.15, 0.3], [-0.95, 2.15, 0.3]],            // 左右ローター下ポッド
     mech_hover_med: [[0.8, 2.5, 0.1], [-0.8, 2.5, 0.1]],                   // 上部デッキ両舷
     mech_tank_heavy: [[0.95, 3.0, 0.3], [-0.95, 3.0, 0.3], [0, 3.5, -0.2]], // 両肩 + 砲塔上
+    mech_quad: [[0.95, 2.1, 0.35], [-0.95, 2.1, 0.35]],   // V8.0: 両肩の連装砲ポッド
+    mech_winged: [[0.75, 3.1, 0.2], [-0.75, 3.1, 0.2]],   // V8.0: 肩部ブースター脇
   },
 
   // V7.2: ホバー機の移動特性(回避の主役)
@@ -833,7 +935,7 @@ const CONFIG = {
   //   terrain: getGroundHeight / getSupportHeight が参照(craters/canal/bridges)
   //   roads:   街路網(空なら道路なし。地面テクスチャ・props/barrels の配置に使用)
   //   ground:  地面テクスチャの配色(drawRoads / cracks / 砂の風紋)
-  //   structures: 'city'(街区ビル充填)| 'scatter'(岩塊+遺跡壁)| 'harbor'(コンテナ+クレーン)
+  //   structures: 'city'(街区ビル充填)| 'canyon'(迷路岩壁)| 'ruins'(廃墟)| 'tokyo'(夜の碁盤の目)
   //   fog: 霧色(空/ライト/BGM は共通 — 色味の変化のみ)
   //   spawnPoints: 12 候補 / crateSpots: ポイントクレート 6 箇所
   // ============================================================
@@ -874,51 +976,99 @@ const CONFIG = {
         [-63, 80], [84, 80], [-126, 0], [126, 0], [-40, 27], [50, 27],
       ],
     },
-    DESERT: { // 砂漠の遺跡: 低い岩塊と遺跡壁がまばら = 長い射線(遠距離戦寄り)
-      fog: 0xe6cf9f, // 砂色の霧
-      ground: { base: '#c2a878', noiseMin: 150, noiseRange: 70, drawRoads: false, cracks: false, ripples: true, canalBank: '#a08a60', canalFloor: '#8a7550' },
+    // ============================================================
+    // V7.9: 高遮蔽ステージ 3 種(旧 2 ステージ(砂漠/港湾)は「開けすぎ」のため廃止)。
+    // このゲームの核 =「遮蔽物でロックを切る」駆け引きを成立させるため、
+    // ランダム 2 点間(≥40m)の LOS 通過率 ≤30% を設計目標にしている。
+    // light/sky/fogNear/fogFar はステージごとの空気感(省略時は従来既定値)
+    // ============================================================
+    CANYON: { // 岩場の迷路: 9×9 迷路グリッド(通路 ~10m・岩壁 8〜18m)+ 中央アリーナ広場
+      fog: 0xddae84, fogNear: 70, fogFar: 400, // 夕暮れの暖色霞
+      light: {
+        sun: { color: 0xffb070, intensity: 2.3 },
+        hemi: { sky: 0xe8c090, ground: 0x7a5536, intensity: 0.85 },
+        sky: { top: 0x6a5a9a, horizon: 0xff9a58 },
+      },
+      ground: { base: '#b8916a', noiseMin: 140, noiseRange: 70, drawRoads: false, cracks: false, ripples: true, canalBank: '#8a6a48', canalFloor: '#7a5c3e' },
       roads: { vRoads: [], hRoads: [] },
       terrain: {
-        craters: [ // クレーター多め
-          { x: -40, z: 30, r: 16, d: 3.2 },
-          { x: 60, z: -10, r: 13, d: 2.8 },
-          { x: -90, z: -80, r: 15, d: 3.0 },
-          { x: 90, z: 90, r: 14, d: 2.6 },
-          { x: 0, z: -120, r: 12, d: 2.4 },
-          { x: 120, z: -60, r: 11, d: 2.2 },
-        ],
-        canal: { z: -40, halfW: 7, depth: 3.5, wall: 6, fadeStart: 120, fadeEnd: 150 }, // 涸れ谷(橋なし・勾配で出入り)
+        craters: [{ x: 0, z: 0, r: 10, d: 2.0 }], // 広場中央の窪み(開所の唯一の遮蔽)
+        canal: { z: 500, halfW: 1, depth: 0, wall: 1, fadeStart: 500, fadeEnd: 501 }, // 溝なし(範囲外に退避)
         bridges: [],
       },
-      structures: 'scatter',
-      scatter: { rocks: 16, walls: 10 },
-      props: 8, barrels: 8,
-      crateSpots: [[0, -40], [-60, -40], [60, -40], [-40, 30], [60, -10], [0, 80]],
-      spawnPoints: [
-        [0, 150], [0, -150], [-130, 130], [130, 130], [-130, -130], [130, -130],
-        [-150, 0], [150, 0], [-70, 60], [70, 60], [-70, -95], [70, -95],
+      structures: 'canyon',
+      canyon: { cells: 9, pitch: 36, wallT: 26, extraOpen: 16, plazaR: 20, boulders: 10 },
+      props: 10, barrels: 8,
+      crateSpots: [[0, 0], [14, 0], [-14, 0], [0, 14], [72, -72], [-72, 72]],
+      spawnPoints: [ // すべて迷路セル中心(岩壁は必ずエッジ上 → 埋まらないことを構造的に保証)
+        [-144, -144], [144, -144], [-144, 144], [144, 144],
+        [-144, 0], [144, 0], [0, -144], [0, 144],
+        [-72, -72], [72, -72], [-72, 72], [72, 72],
       ],
     },
-    HARBOR: { // 港湾: 積層コンテナ密集(破壊可能多め)= 近接戦寄り。中央に岸壁水路
-      fog: 0x9fb2c4, // 青灰の霧
-      ground: { base: '#7e8288', noiseMin: 100, noiseRange: 45, drawRoads: false, cracks: true, ripples: false, canalBank: '#4a5662', canalFloor: '#39434e' },
-      roads: { vRoads: [], hRoads: [] },
-      terrain: {
-        craters: [{ x: 80, z: -70, r: 12, d: 2.2 }],
-        canal: { z: 0, halfW: 7, depth: 4.5, wall: 3, fadeStart: 140, fadeEnd: 155 }, // 深い岸壁水路(壁急勾配)
-        bridges: [{ x: -30, halfW: 4, top: 1.0, zMin: -10.5, zMax: 10.5, ramp: 6 }], // 橋 1 本
+    RUINS: { // 廃墟の街: 壊れかけビル密集 + 瓦礫 + 倒壊ビル。濃いめの薄霧で遠距離視認も低下
+      fog: 0xa0a09a, fogNear: 35, fogFar: 240, // 煤けた灰の薄霧(濃いめ)
+      light: {
+        sun: { color: 0xcfd0d4, intensity: 1.7 },
+        hemi: { sky: 0x9aa0a8, ground: 0x55534e, intensity: 0.75 },
+        sky: { top: 0x55606c, horizon: 0x9a9a94 },
       },
-      structures: 'harbor',
-      harbor: { clusters: 11, stackChance: 0.5, cranes: 4 },
-      props: 10, barrels: 12,
-      crateSpots: [[-30, 0], [30, 0], [0, 25], [0, -25], [100, 60], [-100, -60]],
-      spawnPoints: [
-        [-130, 45], [0, 50], [130, 45], [-130, -45], [0, -50], [130, -45],
-        [-150, 105], [150, 105], [-150, -105], [150, -105], [60, 95], [-60, -95],
+      ground: { base: '#73716c', noiseMin: 95, noiseRange: 55, drawRoads: true, lineColor: 'rgba(180,180,175,0.3)', cracks: true, ripples: false, canalBank: '#5a564e', canalFloor: '#4a463e' },
+      roads: {
+        vRoads: [{ c: 0, w: 9 }, { c: -38, w: 7 }, { c: 38, w: 7 }, { c: -76, w: 7 }, { c: 76, w: 7 }, { c: -114, w: 7 }, { c: 114, w: 7 }],
+        hRoads: [{ c: 0, w: 9 }, { c: -38, w: 7 }, { c: 38, w: 7 }, { c: -76, w: 7 }, { c: 76, w: 7 }, { c: -114, w: 7 }, { c: 114, w: 7 }],
+      },
+      terrain: {
+        craters: [{ x: -19, z: -95, r: 11, d: 2.4 }, { x: 95, z: 19, r: 12, d: 2.6 }], // 爆心地跡
+        canal: { z: 500, halfW: 1, depth: 0, wall: 1, fadeStart: 500, fadeEnd: 501 },
+        bridges: [],
+      },
+      structures: 'ruins',
+      ruins: {
+        fallen: [ // 倒壊ビル(斜めに倒れた塔 = 通行不可の長い遮蔽。該当街区は建物なし)
+          { x: -57, z: 19, vertical: false },
+          { x: 57, z: -57, vertical: true },
+        ],
+      },
+      props: 18, barrels: 12,
+      crateSpots: [[0, 0], [38, 38], [-38, -38], [0, 100], [-100, 0], [114, -114]],
+      spawnPoints: [ // すべて街路上(建物は街路に立たない → 埋まらない)
+        [0, 150], [0, -150], [150, 0], [-150, 0],
+        [76, 138], [-76, -138], [138, 76], [-138, -76],
+        [76, -76], [-76, 76], [0, 57], [0, -57],
+      ],
+    },
+    TOKYO: { // 東京風の夜の街: 幅 8〜10m の碁盤の目 + 中低層ビル密集 + ネオン + 高架道路 1 本
+      fog: 0x10182c, fogNear: 55, fogFar: 330, // 夜霞
+      light: {
+        sun: { color: 0x8090c0, intensity: 0.55 }, // 月光
+        hemi: { sky: 0x32406a, ground: 0x1a2030, intensity: 0.55 },
+        sky: { top: 0x070d1f, horizon: 0x25304e },
+      },
+      ground: { base: '#23262d', noiseMin: 40, noiseRange: 30, drawRoads: true, roadColor: '#191b21', lineColor: 'rgba(140,160,190,0.45)', cracks: false, ripples: false, canalBank: '#1a1d24', canalFloor: '#14161c' },
+      roads: {
+        vRoads: [{ c: 0, w: 10 }, { c: -42, w: 8 }, { c: 42, w: 8 }, { c: -84, w: 8 }, { c: 84, w: 8 }, { c: -126, w: 8 }, { c: 126, w: 8 }],
+        hRoads: [{ c: 0, w: 10 }, { c: -42, w: 8 }, { c: 42, w: 8 }, { c: -84, w: 8 }, { c: 84, w: 8 }, { c: -126, w: 8 }, { c: 126, w: 8 }],
+      },
+      terrain: {
+        craters: [],
+        canal: { z: 500, halfW: 1, depth: 0, wall: 1, fadeStart: 500, fadeEnd: 501 },
+        bridges: [ // 高架道路(中央南北の大通り上空。下を潜れる・ランプで上れる = 立体戦)
+          { x: 0, halfW: 5, top: 4.6, zMin: -70, zMax: 70, ramp: 20 },
+        ],
+      },
+      structures: 'tokyo',
+      tokyo: { neonPerBldg: 2 }, // 街路に面したネオン看板(ブルーム映え・視覚のみ)
+      props: 12, barrels: 10,
+      crateSpots: [[0, 0], [42, 42], [-42, -42], [84, -84], [-84, 84], [0, 64]],
+      spawnPoints: [ // すべて街路/交差点上
+        [0, 150], [0, -150], [150, 0], [-150, 0],
+        [126, 126], [-126, -126], [126, -126], [-126, 126],
+        [0, 64], [0, -64], [84, 0], [-84, 0],
       ],
     },
   },
-  STAGE_KEYS: ['CITY', 'DESERT', 'HARBOR'], // RANDOM はこの中から抽選
+  STAGE_KEYS: ['CITY', 'CANYON', 'RUINS', 'TOKYO'], // RANDOM はこの中から抽選
 
   // ============================================================
   // V7.0: 撃破時 HP 回復(残量 2 倍ルール)
@@ -994,7 +1144,7 @@ function defaultSave() {
     loadouts,
     // V7.3: UI 言語(初期値はブラウザ言語。ja 以外は en)
     lang: (typeof navigator !== 'undefined' && (navigator.language || '').startsWith('ja')) ? 'ja' : 'en',
-    stage: 'CITY',      // V7.4: 選択ステージ(CITY/DESERT/HARBOR/RANDOM)
+    stage: 'CITY',      // V7.4/V7.9: 選択ステージ(CITY/CANYON/RUINS/TOKYO/RANDOM)
     repairDone: false,  // V7.4: 旧データ自動修復を実施/判定済みか(再移行は 1 回だけ)
     balanceBonus75: true, // V7.5.2: 新規は初期ポイント側で対応済み(付与済み扱い)
     camMode: 'MID',     // V7.7: カメラプリセット(LOW/MID/HIGH)
@@ -1034,7 +1184,8 @@ function sanitizeSave(s) {
   // V7.3: UI 言語('ja' | 'en' のみ許可。それ以外は既定値 = ブラウザ言語)
   if (s.lang === 'ja' || s.lang === 'en') out.lang = s.lang;
   // V7.4: ステージ選択 + 修復済みフラグ
-  if (['CITY', 'DESERT', 'HARBOR', 'RANDOM'].includes(s.stage)) out.stage = s.stage;
+  // V7.9: 旧 2 ステージ(砂漠/港湾)は廃止 → 旧セーブの該当値は既定(CITY)へフォールバック
+  if (['CITY', 'CANYON', 'RUINS', 'TOKYO', 'RANDOM'].includes(s.stage)) out.stage = s.stage;
   out.repairDone = s.repairDone === true;
   // V7.5.2: バランス調整ボーナスの付与済みフラグ(未付与セーブは loadSave が 1 回だけ付与)
   out.balanceBonus75 = s.balanceBonus75 === true;
@@ -1318,6 +1469,66 @@ function aiTierLoadout(cls, lv) {
 }
 
 // ============================================================
+// V8.0: レベル帯別の敵編成(6 機・同一クラス上限 2)
+//   Lv1-5:   基本クラスのみ(現状維持)
+//   Lv6-12:  ARACHNE が 1〜2 機加わる
+//   Lv13-20: SERAPH / GOLIATH も解禁(新型は合計 1〜3 機)
+//   Lv21+:   同上の全クラス混成(装備は aiTierLoadout が高額帯まで抽選)
+//   glb ダウンロード抑制のため基本クラスの種類数も絞る(従来の AI_CLASS_VARIETY 相当)
+// ============================================================
+const ENEMY_ONLY_CLASSES = ['ARACHNE', 'SERAPH', 'GOLIATH'];
+
+function rosterForLevel(plv, playerClass) {
+  const cap = 2; // 同一クラス上限
+  const counts = Object.create(null);
+  const out = [];
+  const push = (k) => {
+    counts[k] = (counts[k] || 0) + 1;
+    out.push(k);
+  };
+  const pickCapped = (cands) => {
+    const ok = cands.filter((k) => (counts[k] || 0) < cap);
+    return ok.length ? ok[Math.floor(rng() * ok.length)] : null;
+  };
+
+  // ---- 新型の出現数(帯で決定) ----
+  let newPool = [];
+  let newCount = 0;
+  if (plv >= 13) {
+    newPool = ENEMY_ONLY_CLASSES;          // ARACHNE / SERAPH / GOLIATH
+    newCount = 1 + Math.floor(rng() * 3);  // 1〜3(新型最大 3)
+  } else if (plv >= 6) {
+    newPool = ['ARACHNE'];
+    newCount = 1 + Math.floor(rng() * 2);  // 1〜2
+  }
+  for (let i = 0; i < newCount; i++) {
+    const k = pickCapped(newPool);
+    if (k) push(k);
+  }
+
+  // ---- 残りは基本クラスから(DL 抑制: 種類数 = AI_CLASS_VARIETY − 新型種類数、最低 2) ----
+  const base = PLAYER_CLASSES.filter((k) => k !== playerClass);
+  for (let i = base.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [base[i], base[j]] = [base[j], base[i]];
+  }
+  const newKinds = Object.keys(counts).length;
+  const baseRoster = base.slice(0, Math.max(2, CONFIG.AI_CLASS_VARIETY - newKinds));
+  while (out.length < CONFIG.ENEMY_COUNT) {
+    const k = pickCapped(baseRoster);
+    if (k) push(k);
+    else push(baseRoster[Math.floor(rng() * baseRoster.length)]); // 保険(cap 飽和時)
+  }
+
+  // シャッフル(出現位置の偏り防止)
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// ============================================================
 // V7.8: Firebase クラウドセーブ(同期コード方式)
 //   - localStorage が主。Firebase は自動バックアップ + 端末間同期のみ
 //   - SDK は CDN から動的 import。失敗してもゲームは完全動作(graceful degradation)
@@ -1513,7 +1724,14 @@ const I18N = {
     bootError: '起動に失敗しました — ページを再読み込みしてください',
     saveRepaired: '⚠ セーブを以前のデータから復元しました(補償 +{0} pt)',
     // ---- V7.4: ステージ ----
-    stageLabel: 'STAGE', st_CITY: '都市', st_DESERT: '砂漠の遺跡', st_HARBOR: '港湾', st_RANDOM: 'ランダム',
+    stageLabel: 'STAGE', st_CITY: '都市', st_RANDOM: 'ランダム',
+    // V7.9: 高遮蔽ステージ(名称 + 一言説明はボタンの title に表示)
+    st_CANYON: '岩場の迷路', st_RUINS: '廃墟の街', st_TOKYO: 'ネオトウキョウ',
+    ssd_CITY: '大通りと運河の市街戦。バランス型',
+    ssd_CANYON: '渓谷の迷路。曲がり角ごとに視線が切れる近接戦',
+    ssd_RUINS: '崩れたビルと瓦礫の街。薄霧で遠くは見えない',
+    ssd_TOKYO: 'ネオン輝く夜の碁盤の目。交差点だけ視線が通る',
+    ssd_RANDOM: '毎試合ランダムに抽選',
     sellFirst: '先に機体を売却してください({0}/{1})',
     details: '詳細', // V7.5: ⓘ 詳細シート
     secMech: '機体', secWeapons: '武器', // V7.5.2: セクションラベル
@@ -1580,6 +1798,10 @@ const I18N = {
     cdesc_LIGHT: '高速・軽装甲の偵察機', cdesc_MEDIUM: 'バランス型の主力機', cdesc_HEAVY: '重装甲の砲撃機',
     cdesc_ASSAULT: '突撃型の強襲機', cdesc_WASP: '最速のホバードローン。紙装甲を機動で補う',
     cdesc_GLIDER: '双発ホバーの武器プラットフォーム', cdesc_JUGGERNAUT: '履帯駆動の重戦車。最大の HP を誇る',
+    // V8.0: 敵専用クラス(名称はキルログ/インジケータ共通。説明は図鑑的表示用)
+    cdesc_ARACHNE: '4 脚の中距離砲台。横移動しながら撃ち続ける',
+    cdesc_SERAPH: '低空を舞う高機動機。接近して撃ち、すぐ離脱する',
+    cdesc_GOLIATH: '重装の格闘型。遮蔽伝いに直進し、至近で火力を集中する',
   },
   en: {
     owned: 'OWNED', ownedMark: '✅ OWNED', notOwned: 'NOT OWNED',
@@ -1618,7 +1840,14 @@ const I18N = {
     bootError: 'Boot failed — please reload the page',
     saveRepaired: '⚠ Save restored from previous data (+{0} pt compensation)',
     // ---- V7.4: stages ----
-    stageLabel: 'STAGE', st_CITY: 'CITY', st_DESERT: 'DESERT RUINS', st_HARBOR: 'HARBOR', st_RANDOM: 'RANDOM',
+    stageLabel: 'STAGE', st_CITY: 'CITY', st_RANDOM: 'RANDOM',
+    // V7.9: high-cover stages
+    st_CANYON: 'CANYON MAZE', st_RUINS: 'RUINED CITY', st_TOKYO: 'NEO TOKYO',
+    ssd_CITY: 'Avenues and a canal. Balanced urban combat',
+    ssd_CANYON: 'A maze of gorges — every corner breaks line of sight',
+    ssd_RUINS: 'Collapsed blocks and rubble in a thick haze',
+    ssd_TOKYO: 'Neon-lit night grid — sightlines only at crossings',
+    ssd_RANDOM: 'Random stage every match',
     sellFirst: 'Sell a mech first ({0}/{1})',
     details: 'Details', // V7.5: ⓘ detail sheet
     secMech: 'MECH', secWeapons: 'WEAPONS', // V7.5.2: section labels
@@ -1681,6 +1910,10 @@ const I18N = {
     cdesc_LIGHT: 'Fast, lightly armored scout', cdesc_MEDIUM: 'Balanced mainline mech', cdesc_HEAVY: 'Heavily armored artillery platform',
     cdesc_ASSAULT: 'Aggressive assault raider', cdesc_WASP: 'Fastest hover drone — paper armor, pure agility',
     cdesc_GLIDER: 'Twin-engine hover weapons platform', cdesc_JUGGERNAUT: 'Tracked super-heavy — highest HP in the game',
+    // V8.0: enemy-only classes
+    cdesc_ARACHNE: 'Quad-leg mid-range turret — strafes while it fires',
+    cdesc_SERAPH: 'Low-flying skirmisher — darts in, shoots, and breaks away',
+    cdesc_GOLIATH: 'Armored brawler — pushes through cover and unloads point-blank',
   },
 };
 let LANG = SAVE.lang || 'en';
@@ -1828,6 +2061,202 @@ function applyStage(stageKey) {
   return key;
 }
 
+// ============================================================
+// V7.9: ステージレイアウト生成(純関数)
+//   buildArena のジオメトリ生成と node 上の LOS 検証(モンテカルロ)で共用する。
+//   戻り値は軸平行ボックスの配列 { x, z, w, d, h, y?, kind }(y は底面高・省略 = 接地)。
+//   依存は CONFIG と rng のみ(THREE / document に依存しない)
+// === V7.9 LAYOUT GEN START ===
+
+/** 道路リスト → 道路間の街区インターバル [[a,b],...](CITY/RUINS/TOKYO 共用) */
+function roadIntervals(roads, limit) {
+  const sorted = [...roads].sort((a, b) => a.c - b.c);
+  const iv = [];
+  let prev = -limit + 2;
+  for (const r of sorted) {
+    const a = r.c - r.w / 2, b = r.c + r.w / 2;
+    if (a - prev >= 8) iv.push([prev, a]);
+    prev = Math.max(prev, b);
+  }
+  if (limit - 2 - prev >= 8) iv.push([prev, limit - 2]);
+  return iv;
+}
+
+/**
+ * 迷路生成(再帰バックトラッカー)。n×n セルの「開いた内部エッジ」を返す。
+ *   hOpen[j][i] = セル (i,j)-(i+1,j) 間が通行可 / vOpen[j][i] = (i,j)-(i,j+1) 間
+ */
+function genMazeEdges(n) {
+  const hOpen = [], vOpen = [], seen = [];
+  for (let j = 0; j < n; j++) {
+    hOpen.push(new Array(n - 1).fill(false));
+    seen.push(new Array(n).fill(false));
+  }
+  for (let j = 0; j < n - 1; j++) vOpen.push(new Array(n).fill(false));
+  const stack = [[Math.floor(rng() * n), Math.floor(rng() * n)]];
+  seen[stack[0][1]][stack[0][0]] = true;
+  while (stack.length) {
+    const [i, j] = stack[stack.length - 1];
+    const nb = [];
+    if (i > 0 && !seen[j][i - 1]) nb.push([i - 1, j]);
+    if (i < n - 1 && !seen[j][i + 1]) nb.push([i + 1, j]);
+    if (j > 0 && !seen[j - 1][i]) nb.push([i, j - 1]);
+    if (j < n - 1 && !seen[j + 1][i]) nb.push([i, j + 1]);
+    if (!nb.length) { stack.pop(); continue; }
+    const [ni, nj] = nb[Math.floor(rng() * nb.length)];
+    if (ni !== i) hOpen[j][Math.min(i, ni)] = true;
+    else vOpen[Math.min(j, nj)][i] = true;
+    seen[nj][ni] = true;
+    stack.push([ni, nj]);
+  }
+  return { hOpen, vOpen };
+}
+
+/**
+ * CANYON MAZE: 9×9 迷路(通路 = pitch−wallT = 10m)+ 中央広場 + 通路ボルダー。
+ * スポーンは全てセル中心(壁はエッジ上にしか立たない → 埋まらないことを構造的に保証)。
+ * 全域の連結性はスパニングツリー(バックトラッカー)が保証し、extraOpen 本の
+ * 追加開通でループを作る(袋小路を減らし AI の回遊性を確保)
+ */
+function genCanyonLayout() {
+  const cy = CONFIG.STAGES.CANYON.canyon;
+  const n = cy.cells, P = cy.pitch, T = cy.wallT;
+  const half = n * P / 2;
+  const cc = (i) => -half + P / 2 + i * P; // セル中心座標
+  const { hOpen, vOpen } = genMazeEdges(n);
+  for (let k = 0; k < cy.extraOpen; k++) { // ループ追加
+    if (rng() < 0.5) hOpen[(rng() * n) | 0][(rng() * (n - 1)) | 0] = true;
+    else vOpen[(rng() * (n - 1)) | 0][(rng() * n) | 0] = true;
+  }
+  const boxes = [];
+  const addWall = (x, z, alongX) => {
+    if (Math.hypot(x, z) < cy.plazaR) return; // 中央アリーナ広場(開所)
+    boxes.push({
+      x, z,
+      w: alongX ? P + 1 : T, d: alongX ? T : P + 1,
+      h: 8 + rng() * 10, kind: 'rock',
+    });
+  };
+  // 閉じた内部エッジ → 岩壁スラブ(エッジ線上に中心)
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n - 1; i++) {
+      if (!hOpen[j][i]) addWall(-half + (i + 1) * P, cc(j), false);
+    }
+  }
+  for (let j = 0; j < n - 1; j++) {
+    for (let i = 0; i < n; i++) {
+      if (!vOpen[j][i]) addWall(cc(i), -half + (j + 1) * P, true);
+    }
+  }
+  // 通路ボルダー(長い直線の視線を切る。片側 4m 以上の通行ギャップを残す)
+  const spawns = CONFIG.STAGES.CANYON.spawnPoints;
+  let placed = 0, tries = 0;
+  while (placed < cy.boulders && tries < 150) {
+    tries++;
+    const x = cc((rng() * n) | 0), z = cc((rng() * n) | 0);
+    if (Math.hypot(x, z) < cy.plazaR + 10) continue;
+    if (spawns.some(([sx, sz]) => Math.hypot(x - sx, z - sz) < 20)) continue;
+    const s = 3.2 + rng() * 1.8;
+    const ox = (rng() < 0.5 ? -1 : 1) * 2.2; // 片側へ寄せる
+    boxes.push({ x: x + ox, z: z + (rng() - 0.5) * 4, w: s, d: s, h: 3 + rng() * 2.5, kind: 'boulder' });
+    placed++;
+  }
+  return boxes;
+}
+
+/**
+ * RUINED CITY: 壊れかけビル(下層 + 欠けた上層)・瓦礫の山・街路への張り出し・
+ * 倒壊ビル 2 本。spawnPoints は全て街路上(街区は道路に立たない)
+ */
+function genRuinsLayout() {
+  const st = CONFIG.STAGES.RUINS;
+  const boxes = [];
+  const xSpans = roadIntervals(st.roads.vRoads, CONFIG.MOVE_LIMIT);
+  const zSpans = roadIntervals(st.roads.hRoads, CONFIG.MOVE_LIMIT);
+  for (const [za0, zb0] of zSpans) {
+    for (const [xa0, xb0] of xSpans) {
+      const m = 1.2 + rng() * 1.2; // セットバック
+      const xa = xa0 + m, xb = xb0 - m, za = za0 + m, zb = zb0 - m;
+      const bw = xb - xa, bd = zb - za;
+      if (bw < 6 || bd < 6) continue;
+      const x = (xa + xb) / 2, z = (za + zb) / 2;
+      if (st.spawnPoints.some(([sx, sz]) => Math.hypot(x - sx, z - sz) < 16)) continue;
+      // 倒壊ビルの街区は更地(瓦礫原)にする
+      if (st.ruins.fallen.some((f) => Math.hypot(x - f.x, z - f.z) < 22)) continue;
+      // 爆心地クレーターと重なる街区は広場
+      if (st.terrain.craters.some((cr) => {
+        const nx = Math.max(xa, Math.min(cr.x, xb)), nz = Math.max(za, Math.min(cr.z, zb));
+        return Math.hypot(cr.x - nx, cr.z - nz) < cr.r + 1.5;
+      })) continue;
+      const roll = rng();
+      if (roll < 0.12) continue; // 空き地
+      if (roll < 0.32) {         // 瓦礫の山(乗り越え不可の低い遮蔽)
+        boxes.push({ x, z, w: bw * 0.8, d: bd * 0.8, h: 2.6 + rng() * 1.6, kind: 'mound' });
+        continue;
+      }
+      // 壊れかけビル: 下層(全面)+ 欠けた上層(段差。視覚 + 高所レイキャストのみ)
+      const h1 = 6 + rng() * 8;
+      boxes.push({ x, z, w: bw, d: bd, h: h1, kind: 'ruinLow' });
+      if (rng() < 0.75) {
+        const uw = bw * (0.45 + rng() * 0.25), ud = bd * (0.45 + rng() * 0.25);
+        boxes.push({
+          x: x + (rng() < 0.5 ? -1 : 1) * (bw - uw) / 2,
+          z: z + (rng() < 0.5 ? -1 : 1) * (bd - ud) / 2,
+          w: uw, d: ud, h: 4 + rng() * 6, y: h1, kind: 'ruinUp',
+        });
+      }
+      // 街路への張り出し瓦礫(+x/+z 側のみ → 同じ街路に両側から張り出さない =
+      // 最小通行幅 7−2.4 = 4.6m を構造的に保証)
+      if (rng() < 0.55) {
+        const pw = 3 + rng() * 3;
+        const px = rng() < 0.5 ? xb + 1.2 : x, pz = px === x ? zb + 1.2 : z;
+        const w2 = px === x ? pw : 2.4, d2 = px === x ? 2.4 : pw;
+        if (!st.spawnPoints.some(([sx, sz]) => Math.hypot(px - sx, pz - sz) < 14)) {
+          boxes.push({ x: px, z: pz, w: w2, d: d2, h: 3 + rng() * 2, kind: 'mound' });
+        }
+      }
+    }
+  }
+  // 倒壊ビル(視覚は斜め倒し・衝突は AABB 全体 = 通行不可の長い遮蔽)
+  for (const f of st.ruins.fallen) {
+    boxes.push({
+      x: f.x, z: f.z,
+      w: f.vertical ? 7 : 30, d: f.vertical ? 30 : 7,
+      h: 5.5, kind: 'fallen', vertical: f.vertical,
+    });
+  }
+  return boxes;
+}
+
+/** NEO TOKYO: 碁盤の目の中低層ビル充填(縦長街区は 2 棟 + 路地)。看板は builder 側 */
+function genTokyoLayout() {
+  const st = CONFIG.STAGES.TOKYO;
+  const boxes = [];
+  const xSpans = roadIntervals(st.roads.vRoads, CONFIG.MOVE_LIMIT);
+  const zSpans = roadIntervals(st.roads.hRoads, CONFIG.MOVE_LIMIT);
+  const mk = (xa, xb, za, zb) => {
+    if (xb - xa < 6 || zb - za < 6) return;
+    const x = (xa + xb) / 2, z = (za + zb) / 2;
+    if (st.spawnPoints.some(([sx, sz]) => Math.hypot(x - sx, z - sz) < 15)) return;
+    boxes.push({ x, z, w: xb - xa, d: zb - za, h: 10 + rng() * 14, kind: 'bldg' });
+  };
+  for (const [za0, zb0] of zSpans) {
+    for (const [xa0, xb0] of xSpans) {
+      const m = 1.0 + rng() * 1.0;
+      const xa = xa0 + m, xb = xb0 - m, za = za0 + m, zb = zb0 - m;
+      if (zb - za > 26 && rng() < 0.5) { // 縦長街区 → 2 棟 + 路地(幅 4.4)
+        const mid = (za + zb) / 2;
+        mk(xa, xb, za, mid - 2.2);
+        mk(xa, xb, mid + 2.2, zb);
+      } else {
+        mk(xa, xb, za, zb);
+      }
+    }
+  }
+  return boxes;
+}
+// === V7.9 LAYOUT GEN END ===
+
 /** 0..1 の smoothstep */
 function smooth01(t) {
   t = clamp(t, 0, 1);
@@ -1907,11 +2336,11 @@ function makeGroundTexture() {
   if (gs.drawRoads) {
     const drawRoad = (cc, w, vertical) => {
       const a = u(cc - w / 2), b = u(cc + w / 2);
-      g.fillStyle = '#54534e'; // アスファルト
+      g.fillStyle = gs.roadColor || '#54534e'; // アスファルト(V7.9: ステージで上書き可)
       if (vertical) g.fillRect(a, 0, b - a, size);
       else g.fillRect(0, a, size, b - a);
       // 端の白線
-      g.fillStyle = 'rgba(207,207,200,0.85)';
+      g.fillStyle = gs.lineColor || 'rgba(207,207,200,0.85)';
       const lw = Math.max(2, su(0.5));
       if (vertical) { g.fillRect(a + 2, 0, lw, size); g.fillRect(b - 2 - lw, 0, lw, size); }
       else { g.fillRect(0, a + 2, size, lw); g.fillRect(0, b - 2 - lw, size, lw); }
@@ -3057,6 +3486,15 @@ class StaticMechModel {
         g.material.opacity = (0.35 + 0.2 * Math.sin(time * 9 + this.bobPhase)) * (0.7 + 0.5 * speed01);
         g.position.y = (cfg.glowY || 1.2) + Math.sin(this.bobPhase) * (cfg.bobAmp || 0.1);
       }
+    } else if (cfg.kind === 'quad') {
+      // ---- V8.0 4 脚(ARACHNE): 歩行ボブ(上下動)+ わずかな左右ロール ----
+      //  脚アニメなしの代替表現。速度に応じて歩様が強まる
+      this.bobPhase += dt * (cfg.bobHz || 2.2) * Math.PI * 2 * (0.25 + 0.75 * speed01);
+      const gait = 0.25 + 0.75 * speed01;
+      this.meshRoot.position.y = cfg.yCenter
+        + Math.abs(Math.sin(this.bobPhase)) * (cfg.bobAmp || 0.09) * gait;
+      this.meshRoot.rotation.z = Math.sin(this.bobPhase * 0.5) * (cfg.rollAmp || 0.06) * speed01;
+      this.meshRoot.rotation.x = 0;
     } else {
       // ---- 履帯: 接地 + 走行中の微振動 ----
       const vib = speed01 > 0.1 ? Math.sin(time * (cfg.vibHz || 38)) * (cfg.vibAmp || 0.015) * speed01 : 0;
@@ -5592,15 +6030,34 @@ InputManager.FIRE_KEYS = ['Space', 'KeyZ', 'KeyX', 'KeyC'];
 //   - 既に 2 機から狙われている相手への減点(過集中の自然分散)。
 //   武器/アビリティは機体クラス(robot.cls)由来。
 // ============================================================
+// ============================================================
+// V8.0: AI 個性パラメータ(MECH_CLASSES[*].aiStyle で選択)
+//   far/near:   COMBAT で保つ距離帯(far より遠いと前進・near より近いと後退)
+//   strafe*:    横移動の切替周期(短いほど忙しなく動く)
+//   evadeHit:   被弾直後の回避ジャンプ率(V7.7)
+//   evadeChg:   チャージ予兆視認時の回避ジャンプ率(0 = 怯まない)
+//   hitrun:     true = 接近(engage)と離脱(disengage)を周期的に往復
+//   noHold:     true = APPROACH の牽制旋回(距離維持)を行わず直進
+// ============================================================
+const AI_STYLES = {
+  std: { far: 45, near: 22, strafeMin: 1.2, strafeRng: 1.8, evadeHit: 0.25, evadeChg: 0.3 },
+  strafe: { far: 44, near: 30, strafeMin: 0.8, strafeRng: 1.0, evadeHit: 0.2, evadeChg: 0.3 },   // ARACHNE: 中距離砲台
+  hitrun: { far: 50, near: 9, strafeMin: 0.7, strafeRng: 1.0, evadeHit: 0.45, evadeChg: 0.5, hitrun: true }, // SERAPH
+  brawl: { far: 16, near: 6, strafeMin: 1.6, strafeRng: 2.0, evadeHit: 0, evadeChg: 0, noHold: true },       // GOLIATH
+};
+
 class EnemyAI {
   constructor(robot, game) {
     this.bot = robot;
     this.game = game;
+    this.style = AI_STYLES[robot.cls.aiStyle] || AI_STYLES.std; // V8.0: クラスの AI 個性
     this.reset();
   }
 
   reset() {
     this.state = 'APPROACH';
+    this.hitrunIn = true;            // V8.0 hitrun: 接近フェーズから開始
+    this.hitrunT = 2 + rng() * 1.5;  // フェーズ切替タイマー
     this.target = null;             // FFA: 現在のターゲット(Robot)
     this.retargetT = rng() * 0.5;   // 再評価タイマー(機体ごとにずらす)
     this.thinkTimer = rng() * 0.25; // 思考タイミングを機体ごとにずらす
@@ -5731,8 +6188,9 @@ class EnemyAI {
         const cos = Math.cos(a), sin = Math.sin(a);
         mx = _v2.x * cos - _v2.z * sin;
         mz = _v2.x * sin + _v2.z * cos;
-      } else if (dist < 45) {
-        // 牽制: 交戦距離の外縁 → 距離を保って旋回(撃たない)
+      } else if (dist < 45 && !this.style.noHold) {
+        // 牽制: 交戦距離の外縁 → 距離を保って旋回(撃たない)。
+        // V8.0 brawl(noHold)は牽制せず直進する
         _v3.set(-_v2.z, 0, _v2.x).multiplyScalar(this.flankSign);
         const radial = dist < 28 ? -0.7 : 0.2;
         mx = _v3.x + _v2.x * radial;
@@ -5743,17 +6201,29 @@ class EnemyAI {
         mx = _v2.x; mz = _v2.z;
       }
     } else if (this.state === 'COMBAT') {
-      // ストレイフ(横移動)+ 距離調整
+      // ストレイフ(横移動)+ 距離調整(V8.0: 距離帯/周期は AI 個性 = style で変わる)
+      const st = this.style;
       this.strafeTimer -= dt;
       if (this.strafeTimer <= 0) {
-        this.strafeTimer = 1.2 + rng() * 1.8;
+        this.strafeTimer = st.strafeMin + rng() * st.strafeRng;
         this.strafeDir *= -1;
       }
       _v2.copy(_v1).normalize();                       // 前(プレイヤー方向)
       _v3.set(-_v2.z, 0, _v2.x).multiplyScalar(this.strafeDir); // 横
       let radial = 0;
-      if (dist > 45) radial = 0.8;
-      else if (dist < 22) radial = -0.8;
+      if (st.hitrun) {
+        // V8.0 SERAPH: 接近(engage)と離脱(disengage)を周期的に往復
+        this.hitrunT -= dt;
+        if (this.hitrunT <= 0) {
+          this.hitrunIn = !this.hitrunIn;
+          this.hitrunT = this.hitrunIn ? 2.2 + rng() * 1.2 : 1.8 + rng() * 1.0;
+        }
+        radial = this.hitrunIn ? (dist > 14 ? 0.9 : 0) : -0.9;
+      } else if (dist > st.far) {
+        radial = 0.8;
+      } else if (dist < st.near) {
+        radial = -0.8;
+      }
       mx = _v3.x + _v2.x * radial;
       mz = _v3.z + _v2.z * radial;
       const l = Math.hypot(mx, mz);
@@ -5808,21 +6278,22 @@ class EnemyAI {
       }
     }
 
-    // ---- V7.7: 回避ジャンプ(被弾直後 / 長チャージ予兆を向けられている時に確率) ----
+    // ---- V7.7: 回避ジャンプ(被弾直後 / 長チャージ予兆を向けられている時に確率)。
+    //      V8.0: 率は AI 個性(style)で変わる。brawl = 0(チャージ予兆でも怯まない)----
     this.evadeJumpT = (this.evadeJumpT || 0) - dt;
     if (this.evadeJumpT <= 0 && bot.grounded && bot.jumpCd <= 0) {
       this.evadeJumpT = 0.3; // 判定の間引き(0.3s ごと)
       let threat = false;
-      // 直近 0.4s 以内に被弾 → 25% で跳ぶ
-      if (this.game.elapsed - bot.lastAttackT < 0.4 && rng() < 0.25) threat = true;
-      // 近く(70 以内)の機体が RAILGUN/BRUTE/TEMPEST/ANNIHILATOR をチャージ中 → 30%
-      if (!threat) {
+      // 直近 0.4s 以内に被弾 → style.evadeHit で跳ぶ
+      if (this.game.elapsed - bot.lastAttackT < 0.4 && rng() < this.style.evadeHit) threat = true;
+      // 近く(70 以内)の機体が RAILGUN/BRUTE/TEMPEST/ANNIHILATOR をチャージ中 → style.evadeChg
+      if (!threat && this.style.evadeChg > 0) {
         for (const r of this.game.robots) {
           if (r === bot || !r.alive || r.chargeSlot < 0) continue;
           const cw3 = CONFIG.WEAPONS[r.slots[r.chargeSlot]];
           if (!cw3 || (cw3.chargeTime || 0) < 0.5) continue;
           if (bot.position.distanceTo(r.position) > 70) continue;
-          if (rng() < 0.3) { threat = true; break; }
+          if (rng() < this.style.evadeChg) { threat = true; break; }
         }
       }
       if (threat && bot.jump()) this.game.spawnBoost(bot);
@@ -6104,7 +6575,7 @@ class Game {
     });
     this.scene.add(new THREE.Mesh(skyGeo, skyMat));
 
-    // 太陽光(影あり・暖色の自然光)
+    // 太陽光(影あり・暖色の自然光)。V7.9: ステージごとに色/強度を変えるため参照を保持
     const sun = new THREE.DirectionalLight(0xffe6bb, 2.6);
     sun.position.set(90, 130, 60);
     sun.castShadow = true;
@@ -6117,9 +6588,12 @@ class Game {
     sun.shadow.camera.far = 450;
     sun.shadow.bias = -0.0004;
     this.scene.add(sun);
+    this.sunLight = sun;       // V7.9
+    this.skyMat = skyMat;      // V7.9
 
     // 環境光(空色 / 地面色)
-    this.scene.add(new THREE.HemisphereLight(0xbdd6ee, 0x8a7f66, 1.0));
+    this.hemiLight = new THREE.HemisphereLight(0xbdd6ee, 0x8a7f66, 1.0); // V7.9: 参照保持
+    this.scene.add(this.hemiLight);
   }
 
   /** 都市型アリーナ生成 */
@@ -6135,7 +6609,27 @@ class Game {
     this.arenaRoot = new THREE.Group(); // V7.4: ステージ一式の親(差し替え用)
     this.scene.add(this.arenaRoot);
     const root = this.arenaRoot;
-    if (this.scene.fog) this.scene.fog.color.setHex(STAGE.fog); // ステージの霧色
+
+    // ---- V7.9: ステージの空気感(霧の色・距離 / 太陽光 / 環境光 / 空)。省略時は既定値 ----
+    if (this.scene.fog) {
+      this.scene.fog.color.setHex(STAGE.fog);
+      this.scene.fog.near = STAGE.fogNear !== undefined ? STAGE.fogNear : CONFIG.FOG_NEAR;
+      this.scene.fog.far = STAGE.fogFar !== undefined ? STAGE.fogFar : CONFIG.FOG_FAR;
+    }
+    const lt = STAGE.light || {};
+    if (this.sunLight) {
+      this.sunLight.color.setHex(lt.sun ? lt.sun.color : 0xffe6bb);
+      this.sunLight.intensity = lt.sun ? lt.sun.intensity : 2.6;
+    }
+    if (this.hemiLight) {
+      this.hemiLight.color.setHex(lt.hemi ? lt.hemi.sky : 0xbdd6ee);
+      this.hemiLight.groundColor.setHex(lt.hemi ? lt.hemi.ground : 0x8a7f66);
+      this.hemiLight.intensity = lt.hemi ? lt.hemi.intensity : 1.0;
+    }
+    if (this.skyMat) {
+      this.skyMat.uniforms.topColor.value.setHex(lt.sky ? lt.sky.top : 0x4a82c4);
+      this.skyMat.uniforms.horizonColor.value.setHex(lt.sky ? lt.sky.horizon : 0xe8d6ae);
+    }
 
     // ---- 地面(128×128 セグメント。getGroundHeight で頂点を変位し視覚と物理を一致) ----
     const groundGeo = new THREE.PlaneGeometry(CONFIG.ARENA_SIZE, CONFIG.ARENA_SIZE, 128, 128);
@@ -6167,8 +6661,9 @@ class Game {
     // ================================================================
     // 構造物(V7.4: ステージごとのモード)
     //   city    = 街区ビル充填(従来の都市生成)
-    //   scatter = 岩塊 + 遺跡壁(低め・まばら = 遠距離戦)
-    //   harbor  = 積層コンテナ + クレーン柱(破壊可能多め = 近接戦)
+    //   canyon  = 迷路状の岩壁(V7.9。通路 ~10m・必ず曲がり角で視線が切れる)
+    //   ruins   = 廃墟の街(V7.9。壊れかけビル + 瓦礫 + 倒壊ビル)
+    //   tokyo   = 夜の碁盤の目(V7.9。中低層ビル + ネオン + 高架)
     // ================================================================
     const ca = TERRAIN.canal;
     if (STAGE.structures === 'city') {
@@ -6233,23 +6728,11 @@ class Game {
         this.buildings.push({ cx: x, cz: z, radius: Math.hypot(bw, bd) / 2 });
       };
 
-      // 道路リストから街区のインターバル(道路間の帯)を計算
-      const computeIntervals = (roads, limit) => {
-        const sorted = [...roads].sort((a, b) => a.c - b.c);
-        const iv = [];
-        let prev = -limit + 2;
-        for (const r of sorted) {
-          const a = r.c - r.w / 2, b = r.c + r.w / 2;
-          if (a - prev >= 8) iv.push([prev, a]);
-          prev = Math.max(prev, b);
-        }
-        if (limit - 2 - prev >= 8) iv.push([prev, limit - 2]);
-        return iv;
-      };
+      // 道路リストから街区のインターバル(道路間の帯)を計算(V7.9: 共用純関数へ)
       // 運河帯も擬似道路として z 方向の街区を分断(運河内にビルが立たないように)
       const hRoadsAndCanal = [...CITY.hRoads, { c: ca.z, w: (ca.halfW + ca.wall) * 2 }];
-      const xSpans = computeIntervals(CITY.vRoads, CONFIG.MOVE_LIMIT);
-      const zSpans = computeIntervals(hRoadsAndCanal, CONFIG.MOVE_LIMIT);
+      const xSpans = roadIntervals(CITY.vRoads, CONFIG.MOVE_LIMIT);
+      const zSpans = roadIntervals(hRoadsAndCanal, CONFIG.MOVE_LIMIT);
 
       // 各街区にビルを充填(縦長街区は確率で 2 棟に分割 → 間に小路地)
       for (const [za0, zb0] of zSpans) {
@@ -6268,10 +6751,12 @@ class Game {
           }
         }
       }
-    } else if (STAGE.structures === 'scatter') {
-      this.buildScatter(root, spawnSafe);
-    } else if (STAGE.structures === 'harbor') {
-      this.buildHarbor(root, spawnSafe);
+    } else if (STAGE.structures === 'canyon') {
+      this.buildCanyon(root); // V7.9: 岩場の迷路
+    } else if (STAGE.structures === 'ruins') {
+      this.buildRuins(root);  // V7.9: 廃墟の街
+    } else if (STAGE.structures === 'tokyo') {
+      this.buildTokyo(root);  // V7.9: 東京風の夜の街
     }
 
     // ================================================================
@@ -6319,8 +6804,8 @@ class Game {
         if (this.obstacles.some((o) => x > o.minX - 3 && x < o.maxX + 3 && z > o.minZ - 3 && z < o.maxZ + 3)) continue;
       }
 
-      // 砂漠は瓦礫のみ(遺跡の残骸)/ その他は 3 種ミックス
-      const type = (STAGE.structures === 'scatter') ? 2 : (wide ? Math.floor(rng() * 3) : 2);
+      // V7.9: 岩場は瓦礫のみ(岩の崩落)/ その他は 3 種ミックス(狭い路地は瓦礫)
+      const type = (STAGE.structures === 'canyon') ? 2 : (wide ? Math.floor(rng() * 3) : 2);
       let hw, hd, h, mesh;
       if (type === 0) {
         // コンテナ
@@ -6532,157 +7017,176 @@ class Game {
   }
 
   /**
-   * V7.4 DESERT: 岩塊 + 遺跡壁の散布(低め・まばら = 長い射線の遠距離戦)。
-   * いずれも破壊不可(ビル扱い)。buildings[] に登録され AI の遮蔽候補になる
+   * V7.9 共通: 同一マテリアルのジオメトリ群を ~chunk 個ずつ結合してメッシュ化。
+   * - ドローコール削減(数百ボックス → 数メッシュ)
+   * - レイキャストはチャンク単位の境界球で早期棄却が効く(1 枚巨大結合より速い)
    */
-  buildScatter(root, spawnSafe) {
-    const sc = STAGE.scatter || { rocks: 16, walls: 10 };
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0xa8916c, roughness: 0.95, metalness: 0 });
-    const ruinMat = new THREE.MeshStandardMaterial({ color: 0xc4ad84, roughness: 0.9, metalness: 0.02 });
-    const ca = TERRAIN.canal;
-    const placeOk = (x, z, rad) => {
-      if (spawnSafe.some(([sx, sz]) => Math.hypot(x - sx, z - sz) < 16)) return false;
-      if (TERRAIN.craters.some((cr) => Math.hypot(x - cr.x, z - cr.z) < cr.r + rad + 2)) return false;
-      if (Math.abs(z - ca.z) < ca.halfW + ca.wall + rad + 2) return false; // 涸れ谷内は避ける
-      if (this.obstacles.some((o) => x + rad > o.minX - 2 && x - rad < o.maxX + 2 && z + rad > o.minZ - 2 && z - rad < o.maxZ + 2)) return false;
-      return Math.abs(x) < CONFIG.MOVE_LIMIT - 10 && Math.abs(z) < CONFIG.MOVE_LIMIT - 10;
-    };
-    const addBlock = (x, z, w, d, h, mat) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-      const gy = getGroundHeight(x, z);
-      mesh.position.set(x, gy + h / 2, z);
+  addMergedChunks(root, geos, mat, chunk = 12) {
+    for (let i = 0; i < geos.length; i += chunk) {
+      const part = geos.slice(i, i + chunk);
+      const merged = mergeGeometries(part);
+      part.forEach((g) => g.dispose());
+      const mesh = new THREE.Mesh(merged, mat);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       root.add(mesh);
       this.solidMeshes.push(mesh);
-      this.obstacles.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, height: gy + h });
-      this.buildings.push({ cx: x, cz: z, radius: Math.hypot(w, d) / 2 });
-    };
-    // 岩塊(上に小さな段を重ねてゴツゴツ感)
-    let placed = 0, tries = 0;
-    while (placed < sc.rocks && tries < 300) {
-      tries++;
-      const x = (rng() - 0.5) * 2 * (CONFIG.MOVE_LIMIT - 14);
-      const z = (rng() - 0.5) * 2 * (CONFIG.MOVE_LIMIT - 14);
-      const w = 5 + rng() * 6, d = 5 + rng() * 6, h = 3 + rng() * 4;
-      if (!placeOk(x, z, Math.max(w, d) / 2)) continue;
-      addBlock(x, z, w, d, h, rockMat);
-      // 上段(視覚のみ・小さめ。衝突は下段の AABB が担う)
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.55, h * 0.5, d * 0.55), rockMat);
-      const gy = getGroundHeight(x, z);
-      cap.position.set(x + (rng() - 0.5) * w * 0.2, gy + h + h * 0.22, z + (rng() - 0.5) * d * 0.2);
-      cap.rotation.y = rng() * 0.6;
-      cap.castShadow = true;
-      root.add(cap);
-      placed++;
-    }
-    // 遺跡の壁(長く低い直線壁。軸平行で衝突 AABB と一致)
-    placed = 0; tries = 0;
-    while (placed < sc.walls && tries < 300) {
-      tries++;
-      const x = (rng() - 0.5) * 2 * (CONFIG.MOVE_LIMIT - 16);
-      const z = (rng() - 0.5) * 2 * (CONFIG.MOVE_LIMIT - 16);
-      const along = 10 + rng() * 7, h = 4 + rng() * 1.5;
-      const vertical = rng() < 0.5;
-      const w = vertical ? 1.3 : along, d = vertical ? along : 1.3;
-      if (!placeOk(x, z, Math.max(w, d) / 2)) continue;
-      addBlock(x, z, w, d, h, ruinMat);
-      placed++;
     }
   }
 
   /**
-   * V7.4 HARBOR: 積層コンテナ集積(破壊可能多め = 近接戦)+ クレーン柱。
-   * コンテナのスタック(1〜2 段)は 1 つの破壊可能物として扱う
-   * (基部だけ壊れて宙に浮く見た目を避けるため。HP は段数で増加)
+   * V7.9 CANYON MAZE: genCanyonLayout()(迷路スラブ + ボルダー)を岩らしく分割造形。
+   * 衝突 AABB はスラブ全体・視覚の小块はスラブ内に収める(物理と見た目の不一致なし)
    */
-  buildHarbor(root, spawnSafe) {
-    const hb = STAGE.harbor || { clusters: 11, stackChance: 0.5, cranes: 4 };
-    const ca = TERRAIN.canal;
-    const containerColors = ['#b5552e', '#3e6e8e', '#6e8e3e', '#8e3e5e', '#8e7a3e'];
-    const texCache2 = containerColors.map((col) => makeContainerTexture(col));
-    const placeOk = (x, z, rad) => {
-      if (spawnSafe.some(([sx, sz]) => Math.hypot(x - sx, z - sz) < 14)) return false;
-      if (TERRAIN.craters.some((cr) => Math.hypot(x - cr.x, z - cr.z) < cr.r + rad + 2)) return false;
-      if (Math.abs(z - ca.z) < ca.halfW + ca.wall + rad + 2) return false; // 水路内は避ける
-      if (this.obstacles.some((o) => x + rad > o.minX - 1.5 && x - rad < o.maxX + 1.5 && z + rad > o.minZ - 1.5 && z - rad < o.maxZ + 1.5)) return false;
-      return Math.abs(x) < CONFIG.MOVE_LIMIT - 10 && Math.abs(z) < CONFIG.MOVE_LIMIT - 10;
-    };
-    // コンテナスタック 1 基(1〜2 段 = group で 1 destructible)
-    const addStack = (x, z, vertical, tiers) => {
-      const cw = 5.5, ch = 2.6, cd = 2.6;
-      const group = new THREE.Group();
-      for (let t = 0; t < tiers; t++) {
-        const mat = new THREE.MeshStandardMaterial({
-          map: texCache2[Math.floor(rng() * texCache2.length)],
-          roughness: 0.8, metalness: 0.35,
-        });
-        const box = new THREE.Mesh(new THREE.BoxGeometry(cw, ch, cd), mat);
-        box.position.y = ch / 2 + t * ch;
-        box.castShadow = true;
-        box.receiveShadow = true;
-        group.add(box);
+  buildCanyon(root) {
+    const boxes = genCanyonLayout();
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x9a5f3e, roughness: 0.95, metalness: 0 });
+    const geos = [];
+    for (const b of boxes) {
+      this.obstacles.push({
+        minX: b.x - b.w / 2, maxX: b.x + b.w / 2,
+        minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2, height: b.h,
+      });
+      if (b.kind === 'rock') {
+        // メイン块(スラブ)
+        const g1 = new THREE.BoxGeometry(b.w, b.h, b.d);
+        g1.translate(b.x, b.h / 2, b.z);
+        geos.push(g1);
+        // 上段(内側に窄めた段 = メサ状。視覚 + 高所レイキャスト)
+        const g2 = new THREE.BoxGeometry(b.w * 0.68, b.h * 0.45, b.d * 0.68);
+        g2.translate(
+          b.x + (rng() - 0.5) * b.w * 0.12,
+          b.h + b.h * 0.2,
+          b.z + (rng() - 0.5) * b.d * 0.12,
+        );
+        geos.push(g2);
+        // 裾の張り出し块(スラブ内に収まる小块でゴツゴツ感)
+        const g3 = new THREE.BoxGeometry(b.w * 0.4, b.h * 0.35, b.d * 0.4);
+        g3.translate(
+          b.x + (rng() - 0.5) * b.w * 0.35,
+          b.h * 0.18,
+          b.z + (rng() - 0.5) * b.d * 0.35,
+        );
+        geos.push(g3);
+        this.buildings.push({ cx: b.x, cz: b.z, radius: Math.hypot(b.w, b.d) / 2 });
+      } else { // boulder: 箱 + 上に錐(岩塊)
+        const g1 = new THREE.BoxGeometry(b.w, b.h, b.d);
+        g1.translate(b.x, b.h / 2, b.z);
+        geos.push(g1);
+        const g2 = new THREE.ConeGeometry(b.w * 0.5, b.h * 0.8, 5);
+        g2.translate(b.x, b.h + b.h * 0.3, b.z);
+        geos.push(g2);
       }
-      group.rotation.y = vertical ? Math.PI / 2 : 0;
-      const hw = vertical ? cd / 2 : cw / 2;
-      const hd = vertical ? cw / 2 : cd / 2;
-      const h = ch * tiers;
-      if (!placeOk(x, z, Math.max(hw, hd))) return false;
-      const gy = getGroundHeight(x, z);
-      group.position.set(x, gy, z);
-      root.add(group);
-      const obstacle = { minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd, height: gy + h };
-      this.obstacles.push(obstacle);
-      const d = {
-        mesh: group, hitMesh: group.children[0], hitMeshes: [...group.children], obstacle,
-        hp: CONFIG.PROP_HP * (tiers > 1 ? 1.5 : 1), maxHp: CONFIG.PROP_HP * (tiers > 1 ? 1.5 : 1),
-        type: 'prop', dead: false,
-        pos: new THREE.Vector3(x, gy + h / 2, z),
-      };
-      // raycast は mesh 単位 → スタックの各段を solidMeshes に登録(同じ destructible を共有)
-      for (const child of group.children) {
-        child.userData.destructible = d;
-        this.solidMeshes.push(child);
-      }
-      this.destructibles.push(d);
-      // 2 段スタックは AI の遮蔽候補にもなる
-      if (tiers > 1) this.buildings.push({ cx: x, cz: z, radius: Math.hypot(hw, hd) + 1 });
-      return true;
-    };
-    // クラスタ(2〜4 基を行儀よく並べる = 集積場の見た目)
-    let placedClusters = 0, tries = 0;
-    while (placedClusters < hb.clusters && tries < 200) {
-      tries++;
-      const cx = (rng() - 0.5) * 2 * (CONFIG.MOVE_LIMIT - 24);
-      const cz = (rng() - 0.5) * 2 * (CONFIG.MOVE_LIMIT - 24);
-      if (Math.abs(cz - ca.z) < ca.halfW + ca.wall + 8) continue;
-      const vertical = rng() < 0.5;
-      const n = 2 + Math.floor(rng() * 3);
-      let ok = 0;
-      for (let i = 0; i < n; i++) {
-        const ox = vertical ? (rng() - 0.5) * 2 : i * 3.4 - (n - 1) * 1.7;
-        const oz = vertical ? i * 3.4 - (n - 1) * 1.7 : (rng() - 0.5) * 2;
-        const tiers = rng() < hb.stackChance ? 2 : 1;
-        if (addStack(cx + ox, cz + oz, vertical, tiers)) ok++;
-      }
-      if (ok > 0) placedClusters++;
     }
-    // クレーン柱(破壊不可の太い柱 + 視覚のみの水平アーム)
-    const craneMat = new THREE.MeshStandardMaterial({ color: 0xc8a13a, roughness: 0.6, metalness: 0.5 });
-    const craneSpots = [[-60, 22], [60, 22], [-60, -22], [60, -22]].slice(0, hb.cranes);
-    for (const [x, z] of craneSpots) {
-      const gy = getGroundHeight(x, z);
-      const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.6, 15, 1.6), craneMat);
-      pillar.position.set(x, gy + 7.5, z);
-      pillar.castShadow = true;
-      root.add(pillar);
-      this.solidMeshes.push(pillar);
-      this.obstacles.push({ minX: x - 0.8, maxX: x + 0.8, minZ: z - 0.8, maxZ: z + 0.8, height: gy + 15 });
-      // アーム(水路の上へ張り出す。高所なので衝突なし・視覚のみ)
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 22), craneMat);
-      arm.position.set(x, gy + 14.2, z - Math.sign(z) * 9);
-      arm.castShadow = true;
-      root.add(arm);
+    this.addMergedChunks(root, geos, rockMat, 18);
+  }
+
+  /**
+   * V7.9 RUINED CITY: genRuinsLayout() を造形。壊れかけビル(煤けテクスチャ)は
+   * 結合チャンク、瓦礫は別マテリアルの結合チャンク、倒壊ビルは回転メッシュ
+   * (衝突は AABB 全体 = 通行不可の遮蔽)
+   */
+  buildRuins(root) {
+    const boxes = genRuinsLayout();
+    const tex = makeBuildingTexture('#5e5e5c', '#4a4d50'); // 煤けた外壁(窓は撃ち抜けない)
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    const ruinMat = new THREE.MeshStandardMaterial({ map: tex, color: 0x9a9a96, roughness: 0.92, metalness: 0.04 });
+    const moundMat = new THREE.MeshStandardMaterial({ color: 0x6e6a62, roughness: 0.98, metalness: 0 });
+    const ruinGeos = [], moundGeos = [];
+    for (const b of boxes) {
+      if (b.kind === 'fallen') {
+        // 倒壊ビル: 細長い塔を ~80° 倒して横たえる(視覚)。衝突は AABB 全体
+        const fw = 6.2, flen = Math.max(b.w, b.d) + 4;
+        const g = new THREE.BoxGeometry(fw, flen, fw);
+        g.rotateX(b.vertical ? Math.PI / 2 - 0.1 : 0);
+        g.rotateZ(b.vertical ? 0 : Math.PI / 2 - 0.1);
+        g.translate(b.x, fw / 2 + 0.8, b.z);
+        ruinGeos.push(g);
+        this.obstacles.push({
+          minX: b.x - b.w / 2, maxX: b.x + b.w / 2,
+          minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2, height: b.h,
+        });
+        this.buildings.push({ cx: b.x, cz: b.z, radius: Math.hypot(b.w, b.d) / 2 });
+        continue;
+      }
+      const g = new THREE.BoxGeometry(b.w, b.h, b.d);
+      g.translate(b.x, (b.y || 0) + b.h / 2, b.z);
+      if (b.kind === 'mound') moundGeos.push(g);
+      else ruinGeos.push(g);
+      // ruinUp(欠けた上層)は視覚 + 高所レイキャストのみ(機体は届かない)
+      if (b.kind !== 'ruinUp') {
+        this.obstacles.push({
+          minX: b.x - b.w / 2, maxX: b.x + b.w / 2,
+          minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2, height: b.h,
+        });
+      }
+      if (b.kind === 'ruinLow') {
+        this.buildings.push({ cx: b.x, cz: b.z, radius: Math.hypot(b.w, b.d) / 2 });
+      }
+    }
+    this.addMergedChunks(root, ruinGeos, ruinMat, 14);
+    this.addMergedChunks(root, moundGeos, moundMat, 14);
+  }
+
+  /**
+   * V7.9 NEO TOKYO: genTokyoLayout() を夜ビル(窓発光)として造形 +
+   * 街路に面したネオン看板(色別に結合した板ポリ・視覚のみ = レイキャスト負荷ゼロ)
+   */
+  buildTokyo(root) {
+    const boxes = genTokyoLayout();
+    const tex = makeBuildingTexture('#3a3f4a', '#2a2e3a');
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    const bldgMat = new THREE.MeshStandardMaterial({
+      map: tex, color: 0x7a8290, roughness: 0.85, metalness: 0.15,
+      emissive: 0x55648a, emissiveIntensity: 0.32, emissiveMap: tex, // 夜の点灯窓
+    });
+    const neonColors = [0x00e5ff, 0xff2bd6, 0xffa028]; // シアン / マゼンタ / オレンジ
+    const neonGeos = [[], [], []];
+    const bldgGeos = [];
+    const perBldg = (STAGE.tokyo && STAGE.tokyo.neonPerBldg) || 2;
+    for (const b of boxes) {
+      const g = new THREE.BoxGeometry(b.w, b.h, b.d);
+      g.translate(b.x, b.h / 2, b.z);
+      bldgGeos.push(g);
+      this.obstacles.push({
+        minX: b.x - b.w / 2, maxX: b.x + b.w / 2,
+        minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2, height: b.h,
+      });
+      this.buildings.push({ cx: b.x, cz: b.z, radius: Math.hypot(b.w, b.d) / 2 });
+      // ネオン看板(各ビル 1〜perBldg+1 枚。壁面に貼る板ポリ・Bloom で光る)
+      const n = 1 + Math.floor(rng() * (perBldg + 1));
+      for (let s = 0; s < n; s++) {
+        const vert = rng() < 0.4; // 縦長看板
+        const nw = vert ? 0.9 + rng() * 0.7 : 1.6 + rng() * 2.4;
+        const nh = vert ? 2.4 + rng() * 3.4 : 0.9 + rng() * 1.4;
+        const ng = new THREE.PlaneGeometry(nw, nh);
+        const side = Math.floor(rng() * 4);
+        const y = 3 + rng() * Math.max(2, b.h - 6);
+        if (side === 0) { // +x 面
+          ng.rotateY(Math.PI / 2);
+          ng.translate(b.x + b.w / 2 + 0.06, y, b.z + (rng() - 0.5) * b.d * 0.6);
+        } else if (side === 1) { // -x 面
+          ng.rotateY(-Math.PI / 2);
+          ng.translate(b.x - b.w / 2 - 0.06, y, b.z + (rng() - 0.5) * b.d * 0.6);
+        } else if (side === 2) { // +z 面
+          ng.translate(b.x + (rng() - 0.5) * b.w * 0.6, y, b.z + b.d / 2 + 0.06);
+        } else { // -z 面
+          ng.rotateY(Math.PI);
+          ng.translate(b.x + (rng() - 0.5) * b.w * 0.6, y, b.z - b.d / 2 - 0.06);
+        }
+        neonGeos[Math.floor(rng() * 3)].push(ng);
+      }
+    }
+    this.addMergedChunks(root, bldgGeos, bldgMat, 14);
+    // ネオンは色ごとに 1 メッシュへ結合(視覚のみ → solidMeshes に入れない)
+    for (let i = 0; i < 3; i++) {
+      if (!neonGeos[i].length) continue;
+      const merged = mergeGeometries(neonGeos[i]);
+      neonGeos[i].forEach((g) => g.dispose());
+      const mesh = new THREE.Mesh(merged, new THREE.MeshBasicMaterial({ color: neonColors[i] }));
+      root.add(mesh);
     }
   }
 
@@ -9524,7 +10028,7 @@ function sellMech(clsKey) {
 }
 
 /**
- * V7.4: ステージセレクタ(LAUNCH 付近)。CITY / DESERT / HARBOR / RANDOM。
+ * V7.4/V7.9: ステージセレクタ(LAUNCH 付近)。CITY / CANYON / RUINS / TOKYO / RANDOM。
  * 選択はセーブに保存され、次回 deploy で適用(RANDOM は出撃ごとに抽選)
  */
 function renderStageSelect() {
@@ -9532,12 +10036,13 @@ function renderStageSelect() {
   if (!wrap) return;
   const order = [...CONFIG.STAGE_KEYS, 'RANDOM'];
   wrap.innerHTML = `<span class="ss-label">${T('stageLabel')}</span>`;
-  // PC: 4 ボタン並び
+  // PC: ボタン並び(title に一言説明)
   for (const key of order) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'ss-btn' + (SAVE.stage === key ? ' selected' : '');
     btn.textContent = T(`st_${key}`);
+    btn.title = T(`ssd_${key}`); // V7.9: 一言説明
     btn.addEventListener('click', () => {
       if (SAVE.stage === key) return;
       SAVE.stage = key;
@@ -9547,12 +10052,13 @@ function renderStageSelect() {
     });
     wrap.appendChild(btn);
   }
-  // V7.5 モバイル: 1 つの巡回ボタン(タップで CITY→DESERT→HARBOR→RANDOM)。
+  // V7.5 モバイル: 1 つの巡回ボタン(タップで CITY→CANYON→RUINS→TOKYO→RANDOM)。
   // 表示の出し分けは CSS(@media)が行う
   const cyc = document.createElement('button');
   cyc.type = 'button';
   cyc.id = 'ss-cycle';
   cyc.textContent = `🗺 ${T(`st_${SAVE.stage}`)}`;
+  cyc.title = T(`ssd_${SAVE.stage}`); // V7.9: 一言説明
   cyc.addEventListener('click', () => {
     const i = order.indexOf(SAVE.stage);
     SAVE.stage = order[(i + 1) % order.length];
@@ -10145,26 +10651,11 @@ function renderWeaponModal() {
 
 /**
  * 共通: 出撃セットアップを構築(クラス + 装備 + glb 遅延ロード + parse)。
- * V7.4: AI 6 機 = 最大 AI_CLASS_VARIETY(4)種類のクラスから重複ありで編成
- *   (全 7 種を毎回 DL しない。同クラスは同バッファから parse)
+ * V8.0: 編成はレベル帯別の rosterForLevel()(同一クラス上限 2・新型解禁帯)。
+ *   同クラスは同バッファから parse(全種を毎回 DL しない)
  */
 async function buildSetup(playerClass) {
-  // AI 機体プール: 全クラスからプレイヤー選択を除外してシャッフル → 4 種を選抜
-  const pool = PLAYER_CLASSES.filter((k) => k !== playerClass);
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  const roster = pool.slice(0, CONFIG.AI_CLASS_VARIETY);
-  // 6 機編成: 選抜 4 種を必ず 1 機ずつ + 残り 2 機は 4 種から重複あり → シャッフル
-  const aiClasses = [...roster];
-  while (aiClasses.length < CONFIG.ENEMY_COUNT) {
-    aiClasses.push(roster[Math.floor(rng() * roster.length)]);
-  }
-  for (let i = aiClasses.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [aiClasses[i], aiClasses[j]] = [aiClasses[j], aiClasses[i]];
-  }
+  const aiClasses = rosterForLevel(levelFromXp(SAVE.xp), playerClass);
 
   const loader = new GLTFLoader();
   // glb は必要な機体だけ遅延ロード(V7.2。キャッシュ済みなら即時)。
