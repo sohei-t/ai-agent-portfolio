@@ -284,15 +284,22 @@
 
   /* --- 操作UI(タッチ) --- */
   #controls { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  /* V8.7: 移動ジョイスティックを左下に「常時固定表示」(初見でも操作場所が分かる)。
+     ベース円+ノブを常に見せ、左半分のタッチ/ドラッグで操作。半透明(押下で不透明) */
   #joystick-base {
     position: absolute;
+    left: calc(78px + env(safe-area-inset-left));
+    bottom: calc(78px + env(safe-area-inset-bottom));
     width: 120px; height: 120px;
     border-radius: 50%;
     border: 2px solid rgba(110, 243, 255, 0.4);
     background: radial-gradient(circle, rgba(110,243,255,0.08) 0%, rgba(110,243,255,0.02) 70%);
-    transform: translate(-50%, -50%);
-    display: none;
+    transform: translate(-50%, 50%); /* 中心を (left, 画面下からbottom) に合わせる */
+    display: block;
+    opacity: 0.5;              /* V8.7: 半透明 */
+    transition: opacity 0.12s ease;
   }
+  #joystick-base.active { opacity: 1; } /* 操作中は不透明 */
   #joystick-knob {
     position: absolute; left: 50%; top: 50%;
     width: 52px; height: 52px;
@@ -313,8 +320,11 @@
     backdrop-filter: blur(3px);
     -webkit-user-select: none; user-select: none;
     touch-action: none;
+    opacity: 0.5;                 /* V8.7: 操作ボタンは半透明で視界を広げる */
+    transition: opacity 0.12s ease;
   }
-  .ctl-btn:active, .ctl-btn.pressed { transform: scale(0.93); }
+  /* V8.7: 押下中(active/pressed)だけ不透明にしてフィードバックを明確化 */
+  .ctl-btn:active, .ctl-btn.pressed { transform: scale(0.93); opacity: 1; }
   /* V7.5: タッチ判定を見た目より一回り大きく(疑似要素は要素のヒット領域になる)。
      隣接セグメントとの誤タップを避けるため拡張は ±6px に留める */
   .ctl-btn::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; }
@@ -376,31 +386,27 @@
   .seg-pos-1 { right: 118px; bottom: 56px; }  /* スロット2(左) */
   .seg-pos-2 { right: 114px; bottom: 112px; } /* スロット3(左上) */
   .seg-pos-3 { right: 170px; bottom: 0; }     /* スロット4(最下段の左隣) */
-  /* ターゲット切替(◎): FIRE の直上・右縁列(V8.0.1: FIRE 拡大に合わせて上へ) */
+  /* V8.7: 右下クラスタを 2 カラムに再配置(全要素ペア交差ゼロ・間隔≥8px を機械検証)。
+     下段(bottom124): 🎯(右端) / 📷(その左)  上段(bottom172): JUMP(右端) / シールド(左)
+     FIRE は下(bottom6/92)・武器セグは FIRE 左の縦アーク。レーダー帯にも届かない高さ */
   #target-btn {
-    right: 2px; bottom: 108px;
-    width: 38px; height: 38px;
-    font-size: 15px;
+    right: 2px; bottom: 124px;
+    width: 40px; height: 40px;
+    font-size: 16px;
     color: var(--hud-amber);
     border-color: rgba(255, 176, 46, 0.55);
   }
   #target-btn:active { color: #fff; }
-  /* V8.0.1: カメラプリセット切替(📐 LOW/MID/HIGH)。
-     戦闘中に頻繁に押さない設定系のため一等地(右下親指ゾーン)から外し、
-     左上 🔊 ミュートの隣へ移設(MG セグメントとの重なり実機報告の恒久対策)。
-     DOM も #weapon-cluster の外(#controls 直下)= ハンガー中の一括非表示は維持 */
+  /* V8.7: カメラ視点切替(📷 + LOW/MID/HIGH)を左上から右下クラスタへ移動(🎯 の左) */
   #cam-btn {
-    top: calc(10px + env(safe-area-inset-top));
-    left: calc(50px + env(safe-area-inset-left));
-    width: 34px; height: 34px;
+    right: calc(56px + env(safe-area-inset-right));
+    bottom: calc(124px + env(safe-area-inset-bottom));
+    width: 40px; height: 40px;
     flex-direction: column;
-    font-size: 12px;
+    font-size: 13px;
     color: #9fe0ff;
-    border-width: 1px;
     border-color: rgba(110, 200, 255, 0.5);
-    opacity: 0.6;
   }
-  #cam-btn:active { opacity: 1; }
   #cam-btn #cam-label {
     font-size: 6.5px; font-weight: 900; letter-spacing: 1px;
     color: #7fc8e8;
@@ -425,20 +431,20 @@
     pointer-events: none;
     background: conic-gradient(rgba(6, 10, 16, 0.78) calc(var(--cd, 0) * 1turn), rgba(0, 0, 0, 0) 0);
   }
-  /* V8.0.1: JUMP は右縁の縦列(◎ の直上)。FIRE から親指を上へスライドで届く */
+  /* V8.7: JUMP は右下クラスタ上段の右端(🎯 の直上) */
   #jump-btn {
-    right: calc(16px + env(safe-area-inset-right));
+    right: calc(2px + env(safe-area-inset-right));
     bottom: calc(172px + env(safe-area-inset-bottom));
     width: 48px; height: 48px;
     font-size: 8.5px;
     overflow: hidden;
   }
-  /* V8.4: ブースト移動(🚀 押下中だけ ×3)。左下隅(左Ctrl 相当・左手側)。
-     右クラスタ(武器/JUMP/◎)・レーダー帯と干渉しない移動ゾーン端に固定。
-     ジョイスティックはタッチ点に出るため固定ボタンと重なっても押下は別管理 */
+  /* V8.7: ブースト移動(🚀 押下中だけ ×3)。移動スティックの「上」に配置。
+     スティック(中心 bottom 78・半径 60 → 上端 bottom 138)から十分離す(誤操作防止)。
+     BOOST 中心を left 78 / bottom 186 に置く → 下端 bottom 159 でスティック上端と 21px 空く */
   #boost-btn {
-    left: calc(14px + env(safe-area-inset-left));
-    bottom: calc(18px + env(safe-area-inset-bottom));
+    left: calc(54px + env(safe-area-inset-left));
+    bottom: calc(159px + env(safe-area-inset-bottom));
     width: 54px; height: 54px;
     font-size: 8px;
     overflow: hidden;
@@ -446,10 +452,6 @@
     border-color: rgba(110, 200, 255, 0.6);
   }
   #boost-btn.pressed { color: #fff; border-color: #aef0ff; box-shadow: 0 0 12px rgba(110, 200, 255, 0.55); }
-  /* PCではタッチボタンを薄く表示(タッチデバイスで濃く) */
-  @media (hover: hover) and (pointer: fine) {
-    #weapon-cluster, #jump-btn, #ability-btn { opacity: 0.55; }
-  }
 
   /* --- ミニレーダー(右上・WR風) --- */
   #radar-wrap {
@@ -600,6 +602,36 @@
     pointer-events: auto;
   }
   .overlay.hidden { display: none; }
+
+  /* ============================================================
+     V8.7: START 後の処理中オーバーレイ(連打防止・遅延ロード待機)。
+     半透明の赤背景でパルス点滅 + スピナー + 「出撃準備中…」。
+     初期化完了/最初の描画で .hidden を付けて消す
+     ============================================================ */
+  #deploy-overlay {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px;
+    background: rgba(120, 20, 16, 0.45);
+    backdrop-filter: blur(2px);
+    pointer-events: auto; /* 背後のハンガーへのタップを遮断(連打防止) */
+    animation: deployPulse 1.0s ease-in-out infinite;
+  }
+  #deploy-overlay.hidden { display: none; }
+  @keyframes deployPulse { 0%,100% { background: rgba(120,20,16,0.40); } 50% { background: rgba(170,34,24,0.58); } }
+  #deploy-spinner {
+    width: 54px; height: 54px;
+    border: 5px solid rgba(255, 180, 160, 0.3);
+    border-top-color: #ff8a72;
+    border-radius: 50%;
+    animation: deploySpin 0.8s linear infinite;
+  }
+  @keyframes deploySpin { to { transform: rotate(360deg); } }
+  #deploy-text {
+    font-size: 18px; font-weight: 900; letter-spacing: 4px;
+    color: #ffd9cf;
+    text-shadow: 0 0 16px rgba(255, 90, 60, 0.8);
+  }
   #overlay-title {
     font-size: clamp(40px, 9vw, 84px);
     font-weight: 900; letter-spacing: 0.18em;
@@ -686,29 +718,36 @@
      背後の 3D 機体だけを見せる。display は変えない(レイアウト保持 → 再表示で崩れない)。
      👁 ボタンと中央 3D エリアは隠さない(操作で戻せるように)
      ============================================================ */
-  /* V8.6.1: 全 UI を確実に消す「ブランケット + 例外」方式へ変更。
-     直下要素を一律フェード(モバイルの reparent/position:absolute でも漏れない)し、
-     👁 ボタンと中央 3D エリアだけを opacity 1 で復帰させる(operate-to-restore)。
-     display は変えない(レイアウト保持 → 解除で崩れない) */
-  #hangar.peek > * {
-    opacity: 0;
-    pointer-events: none;
+  /* V8.6.1/V8.7.1: 全 UI を確実に消す「ブランケット + 例外」方式。
+     V8.7.1: 縦画面(ポートレート)で status/タイトル/チップが残る報告 → モバイル
+     media クエリの特異度に負けないよう、全 UI を一律フェードする規則を
+     !important で確実に勝たせる。display は変えない(レイアウト保持)。
+     方針: #hangar の「全子孫」を一旦 0 にし、👁 ボタン・中央 3D エリア・トースト・
+     武器モーダル(とその子孫)だけ 1 へ復帰(operate-to-restore) */
+  #hangar.peek * {
+    opacity: 0 !important;
+    pointer-events: none !important;
     transition: opacity 0.2s ease;
   }
-  /* トースト通知 + 武器モーダルは全景中も出す(モーダルが開いていれば隠さない) */
-  #hangar.peek > #hangar-toast, #hangar.peek > #wpn-modal { opacity: 1; pointer-events: auto; }
-  /* 上段は枠ごと残し、中身は 👁 以外を消す(👁 で戻せるように) */
-  #hangar.peek > #hangar-top { opacity: 1; pointer-events: none; }
-  #hangar.peek #hangar-top * { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
-  #hangar.peek #hangar-peek-btn { opacity: 1; pointer-events: auto; }
-  /* 中央 3D エリアは枠ごと残す(長押し継続のため反応も維持) */
-  #hangar.peek > #hangar-main { opacity: 1; pointer-events: none; }
-  #hangar.peek #hangar-main > *:not(#hangar-center) { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
-  #hangar.peek #hangar-center { opacity: 1; pointer-events: auto; }
+  /* 復帰させる「枠」: 上段/メイン/中央(枠ごと残し中身は上の規則で消える)。
+     これらは子孫を見せるための器なので opacity 1(中身の可視は下の個別指定で制御) */
+  #hangar.peek > #hangar-top,
+  #hangar.peek > #hangar-main,
+  #hangar.peek #hangar-top-right,
+  #hangar.peek #hangar-center,
+  #hangar.peek > #hangar-toast, #hangar.peek > #wpn-modal {
+    opacity: 1 !important;
+  }
+  /* 操作可能にする要素(👁 で戻す・中央で長押し継続・トースト/モーダルは通知) */
+  #hangar.peek #hangar-center,
+  #hangar.peek > #hangar-toast, #hangar.peek > #wpn-modal,
+  #hangar.peek #hangar-peek-btn { pointer-events: auto !important; }
+  /* 👁 ボタンとその中身(絵文字)は見せる */
+  #hangar.peek #hangar-peek-btn, #hangar.peek #hangar-peek-btn * { opacity: 1 !important; }
+  /* トースト/武器モーダルの中身も見せる(開いていれば操作できる) */
+  #hangar.peek #hangar-toast *, #hangar.peek #wpn-modal * { opacity: 1 !important; }
   /* 通常時のフェード戻り(両方向 0.2s スムーズ) */
-  #hangar > *, #hangar #hangar-top *, #hangar #hangar-main > * {
-    transition: opacity 0.2s ease;
-  }
+  #hangar *, #hangar > * { transition: opacity 0.2s ease; }
   /* 👁 全景トグルボタン(右上・🌐 の隣) */
   #hangar-peek-btn {
     padding: 4px 9px;
@@ -1467,8 +1506,9 @@
 
   /* --- アビリティボタン(JUMP の左 / CD 扇形 + 発動中グロー)。V7.5: 60 → 48 --- */
   /* V8.0.1: シールド/スプリントは JUMP の左隣(右縁列の 2 列目) */
+  /* V8.7: シールド/スプリントは JUMP の左隣(上段の左) */
   #ability-btn {
-    right: calc(72px + env(safe-area-inset-right));
+    right: calc(58px + env(safe-area-inset-right));
     bottom: calc(172px + env(safe-area-inset-bottom));
     width: 48px; height: 48px;
     font-size: 16px;
@@ -1555,15 +1595,15 @@
   <!-- War Robots 風 円形武器ランチャー(V7.1: セグメントはスロット数ぶん JS が動的生成) -->
   <div id="weapon-cluster">
     <button id="fire-main" class="ctl-btn" type="button"><span>FIRE</span></button>
-    <!-- ターゲット切替(Tab / WR の中央下配置) -->
-    <button id="target-btn" class="ctl-btn" type="button">◎</button>
   </div>
 
+  <!-- V8.7: ターゲット切替(🎯。Tab キー)。#weapon-cluster の外 = 画面アンカーで
+       右下クラスタの 2 カラム配置に整列(交差ゼロ検証済み) -->
+  <button id="target-btn" class="ctl-btn" type="button">🎯</button>
   <!-- ミュートトグル -->
   <button id="mute-btn" type="button">🔊</button>
-  <!-- V8.0.1: カメラプリセット切替(LOW/MID/HIGH 巡回。PC: F キー)。
-       設定系のため 🔊 の隣へ移設(右クラスタの武器セグメントとの重なり対策) -->
-  <button id="cam-btn" class="ctl-btn" type="button">📐<span id="cam-label">MID</span></button>
+  <!-- V8.7: カメラ視点切替(📷 LOW/MID/HIGH 巡回。PC: F キー)。右下クラスタへ移動 -->
+  <button id="cam-btn" class="ctl-btn" type="button">📷<span id="cam-label">MID</span></button>
 </div>
 
 <!-- ===== 勝敗オーバーレイ(V6.7: ポイント精算 + ハンガー循環) ===== -->
@@ -1581,7 +1621,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V8.6.1 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V8.7.1 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.8: レベル + XP プログレス(値は refreshHangarWallet が更新) -->
       <div id="hangar-level"><span id="lv-num">Lv.1</span><div id="xp-bar"><div id="xp-fill"></div></div></div>
@@ -1648,6 +1688,12 @@
   </div>
 </div>
 
+<!-- ===== V8.7: START 後の処理中オーバーレイ(連打防止・遅延ロード中の待機表示) ===== -->
+<div id="deploy-overlay" class="hidden">
+  <div id="deploy-spinner"></div>
+  <div id="deploy-text">⚔ 出撃準備中…</div>
+</div>
+
 <!-- ===== V7.7: セーブ移行モーダル(💾 コードのコピー / 貼り付けて復元) ===== -->
 <div id="save-modal" class="hidden">
   <div id="save-modal-backdrop"></div>
@@ -1685,6 +1731,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=91"></script>
+<script type="module" src="./game3d.js?v=93"></script>
 </body>
 </html>
