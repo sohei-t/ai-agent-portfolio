@@ -1,6 +1,29 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.6.1)
+// ROBO BATTLE 3D - Prototype (V8.7.1)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.7.1 変更点(V8.7 のハンガー peek 2 件・実機フィードバック):
+//   1. peek の縦画面漏れ修正: ポートレートで status/タイトル/チップが残る問題 →
+//      ブランケットを #hangar.peek * { opacity:0 !important } にし、モバイル media
+//      クエリの特異度に負けず縦横とも全 UI を確実に消す。枠(#hangar-top/#hangar-main/
+//      #hangar-center)とトースト/武器モーダル/👁 だけ opacity 1 で復帰(operate-to-restore)
+//   2. 中央 3D エリアの左右スワイプで機体切替: 左スワイプ=次 / 右スワイプ=前
+//      (チップ列 PLAYER_CLASSES と同集合・同順、端はループ)。selectMechByIndex が
+//      チップ選択と同じ更新フロー(ステータス/3D/購入状態/武器パネル)を通す。
+//      ジェスチャ競合整理: 横移動 ≥48px かつ 横>縦×1.3 でスワイプ確定 → 長押し(peek)
+//      を発火させない。peek 中はスワイプ無効
+//
+// V8.7 変更点(バトル操作 UX 改善・実機フィードバック):
+//   1. START 後の処理中オーバーレイ(連打防止): START タップ直後に半透明赤の
+//      パルス + スピナー + 「⚔ 出撃準備中…」(i18n)を全画面表示し、START を即無効化。
+//      遅延ロード完了/最初の描画で消す(finally で失敗時も確実に解除)
+//   2. 左下の操作配置: 移動ジョイスティックを左下に「常時固定表示」(ベース円+ノブを
+//      常に見せ操作場所を明示。タッチで固定中心からノブが追従)。🚀BOOST を
+//      スティックの「上」に移し十分離す(同時押し誤操作の防止。間隔 21px)
+//   3. カメラ📷・ターゲット🎯切替を左上から右下クラスタへ集約(親指が届く・分かりやすい
+//      アイコン)。右下 2 カラム配置で全要素ペア交差ゼロ・最小間隔 8px を 4 ビューポート検証
+//   4. 操作ボタンを半透明(opacity 0.5)に → 視界拡大。押下中(active/pressed)だけ
+//      不透明(opacity 1)でフィードバック明確化。情報表示(レーダー/ENEMY/ARMOR/HEAT)は対象外
 //
 // V8.6.1 変更点(実機フィードバックの小改修):
 //   1. ハンガー全景(peek): 残っていた UI も確実に消す。「ブランケット + 例外」方式へ
@@ -2194,6 +2217,7 @@ const I18N = {
     btnBuy2: '+購入 {0}', btnBuy2Confirm: '+1? {0} pt',
     // ---- ステータス / トースト ----
     selectMech: 'SELECT YOUR MECH', deploying: 'DEPLOYING...',
+    deployOverlay: '⚔ 出撃準備中…', // V8.7: START 後の処理中オーバーレイ
     loadingData: 'LOADING MECH DATA {0} / {1} MB', loadingDataNoTotal: 'LOADING MECH DATA {0} MB...',
     loadFailNote: '⚠ {0} は簡易表示(モデル取得失敗)',
     equipAtLeastOne: '武器がありません — 最低 1 つ装備してください',
@@ -2317,6 +2341,7 @@ const I18N = {
     btnBuy: '🔒 BUY {0}', btnBuyConfirm: 'PURCHASE? {0} pt',
     btnBuy2: '+BUY {0}', btnBuy2Confirm: '+1? {0} pt',
     selectMech: 'SELECT YOUR MECH', deploying: 'DEPLOYING...',
+    deployOverlay: '⚔ DEPLOYING…', // V8.7: post-START processing overlay
     loadingData: 'LOADING MECH DATA {0} / {1} MB', loadingDataNoTotal: 'LOADING MECH DATA {0} MB...',
     loadFailNote: '⚠ {0}: simplified model (download failed)',
     equipAtLeastOne: 'No weapons — equip at least one',
@@ -2456,6 +2481,7 @@ function applyStaticI18n() {
   // V7.5.2: セクションラベル(機体列 / 武器列の区別)
   set('lbl-mech', `🤖 ${T('secMech')}`);
   set('lbl-weapons', `🔫 ${T('secWeapons')}`);
+  set('deploy-text', T('deployOverlay')); // V8.7: 出撃オーバーレイ文言
   // V7.7: セーブ移行モーダル
   set('save-export-note', T('saveExportNote'));
   set('save-import-note', T('saveImportNote'));
@@ -6524,14 +6550,19 @@ class InputManager {
       for (const t of e.changedTouches) {
         if (t.target.closest && (t.target.closest('.ctl-btn') || t.target.closest('.overlay') || t.target.closest('#mute-btn') || t.target.closest('#hangar'))) continue;
         if (t.clientX < window.innerWidth / 2 && this.joyId === null) {
-          // フローティングジョイスティック開始(タッチ位置基準)
+          // V8.7: 移動スティックは左下に「固定」(ベースは動かさず CSS 位置のまま)。
+          //   タッチ点に関係なく固定中心を原点にして、ノブが指へ追従する。
           this.joyId = t.identifier;
-          this.joyOrigin.x = t.clientX; this.joyOrigin.y = t.clientY;
+          const c = this.joyCenter();
+          this.joyOrigin.x = c.x; this.joyOrigin.y = c.y;
           this.joyVec.x = 0; this.joyVec.y = 0;
-          this.joyBase.style.display = 'block';
-          this.joyBase.style.left = `${t.clientX}px`;
-          this.joyBase.style.top = `${t.clientY}px`;
-          this.joyKnob.style.transform = 'translate(-50%,-50%)';
+          this.joyBase.classList.add('active'); // 半透明 → 不透明
+          // 初回タッチ点ぶんノブを動かす(押した瞬間から方向が出る)
+          let dx0 = t.clientX - c.x, dy0 = t.clientY - c.y;
+          const l0 = Math.hypot(dx0, dy0), R0 = 50;
+          if (l0 > R0) { dx0 = dx0 / l0 * R0; dy0 = dy0 / l0 * R0; }
+          this.joyVec.x = dx0 / R0; this.joyVec.y = -dy0 / R0;
+          this.joyKnob.style.transform = `translate(-50%,-50%) translate(${dx0}px,${dy0}px)`;
           claimed = true;
         } else if (this.lookId === null) {
           this.lookId = t.identifier;
@@ -6570,9 +6601,11 @@ class InputManager {
     const endTouch = (e) => {
       for (const t of e.changedTouches) {
         if (t.identifier === this.joyId) {
+          // V8.7: 固定スティックは隠さず、ノブを中央へ戻して active を外す
           this.joyId = null;
           this.joyVec.x = 0; this.joyVec.y = 0;
-          this.joyBase.style.display = 'none';
+          this.joyBase.classList.remove('active');
+          this.joyKnob.style.transform = 'translate(-50%,-50%)';
         } else if (t.identifier === this.lookId) {
           this.lookId = null;
         }
@@ -6580,6 +6613,14 @@ class InputManager {
     };
     window.addEventListener('touchend', endTouch);
     window.addEventListener('touchcancel', endTouch);
+  }
+
+  /** V8.7: 固定スティックの中心(画面座標)。CSS の left/bottom + 半径に合わせる */
+  joyCenter() {
+    const r = this.joyBase.getBoundingClientRect();
+    if (r.width > 0) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    // 非表示等で計測不可な場合のフォールバック(CSS 既定値 left78/bottom78)
+    return { x: 78, y: window.innerHeight - 78 };
   }
 
   /** Shift キーが押されているか */
@@ -10830,6 +10871,25 @@ function renderClassTabs() {
   }
 }
 
+/**
+ * V8.7.1: 機体を前後に切り替える(チップ列と同じ集合 PLAYER_CLASSES・同順)。
+ *   dir = +1(次)/ -1(前)。端はループ。チップのタップ選択と同じ更新フローを通す。
+ */
+function selectMechByIndex(dir) {
+  const list = PLAYER_CLASSES;
+  const cur = list.indexOf(HANGAR.selectedClass);
+  const next = list[((cur < 0 ? 0 : cur) + dir + list.length) % list.length];
+  if (next === HANGAR.selectedClass) return;
+  HANGAR.selectedClass = next;
+  HANGAR.activeSlot = -1;
+  HANGAR.pendingBuy = null;
+  HANGAR.pendingMech = null;
+  // 未所持機体に切り替えたら詳細(BUY のある場所)を自動で開く(チップ選択と同挙動)
+  if (!mechOwned(next)) HANGAR.detailOpen = true;
+  uiSfx();
+  refreshHangarUI(); // ステータス更新・3D 差し替え・購入状態・武器パネルを通す
+}
+
 /** ハンガー UI 全体を更新(左パネル / スロットカード / 武器リスト / 3D プレビュー) */
 function refreshHangarUI() {
   refreshHangarWallet();
@@ -11415,20 +11475,32 @@ async function deploy() {
   }
   closeWeaponModal(false); // V7.3: 開いたままの武器モーダルを閉じる
   HANGAR.deploying = true;
+  // ---- V8.7: 処理中オーバーレイ表示 + START ボタン即無効化(連打/二重起動防止) ----
+  const deployOv = $id('deploy-overlay');
+  $id('deploy-text').textContent = T('deployOverlay');
+  deployOv.classList.remove('hidden');
+  const launchBtn = $id('launch-btn');
+  launchBtn.disabled = true;
   $id('hangar-status').textContent = T('deploying');
   SAVE.lastClass = HANGAR.selectedClass;
   saveSave(SAVE);
 
   // V7.2: AI 機体の glb はここでオンデマンドロード(進捗表示つき・失敗時はプリミティブ)
   // getModelBuffer は reject しないため、この await が固まることはない
-  const setup = await buildSetup(HANGAR.selectedClass);
-  HANGAR.game.redeploy(setup);
-  HANGAR.game.exitHangar();
-  $id('hangar').classList.add('hidden');
-  HANGAR.game.sound.init(); // 出撃クリックがユーザー操作 → AudioContext 解禁
-  HANGAR.game.sound.play('ui');
-  HANGAR.deploying = false;
-  $id('hangar-status').textContent = T('selectMech');
+  try {
+    const setup = await buildSetup(HANGAR.selectedClass);
+    HANGAR.game.redeploy(setup);
+    HANGAR.game.exitHangar();
+    $id('hangar').classList.add('hidden');
+    HANGAR.game.sound.init(); // 出撃クリックがユーザー操作 → AudioContext 解禁
+    HANGAR.game.sound.play('ui');
+  } finally {
+    // 初期化完了/最初の描画でオーバーレイを消す(失敗時も確実に解除)
+    deployOv.classList.add('hidden');
+    launchBtn.disabled = false;
+    HANGAR.deploying = false;
+    $id('hangar-status').textContent = T('selectMech');
+  }
 }
 
 /** リザルトからドックへ戻る(装備変更/購入が可能) */
@@ -11554,25 +11626,54 @@ function buildBootSetup(playerClass) {
         uiSfx();
         setPeek(!hangarEl.classList.contains('peek'));
       });
-      // 中央 3D エリアの長押し(押している間だけ全景。離すと戻る)
+      // ---- 中央 3D エリアのジェスチャ: 長押し(peek) / 短タップ / 左右スワイプ(機体切替) ----
+      //   V8.7.1: 横移動が一定距離(SWIPE_DIST)を超え、かつ横 > 縦なら「スワイプ」と判定し
+      //   長押し(peek)を発火させない。peek 中はスワイプ無効(全景の操作を優先)。
+      const SWIPE_DIST = 48;   // この px 以上の横移動でスワイプ確定
+      const SWIPE_RATIO = 1.3; // 横移動が縦移動の倍率以上(誤検出防止)
       let lpTimer = null;
-      let heldPeek = false; // この長押しで peek を立てたか(離すときに戻す対象)
+      let heldPeek = false;     // この長押しで peek を立てたか(離すときに戻す対象)
+      let gx0 = 0, gy0 = 0, swiping = false, swiped = false, gActive = false;
+
       const startLP = () => {
         clearTimeout(lpTimer);
         lpTimer = setTimeout(() => {
-          if (!hangarEl.classList.contains('peek')) { setPeek(true); heldPeek = true; }
+          // スワイプ中・スワイプ確定後は peek を立てない
+          if (!swiping && !swiped && !hangarEl.classList.contains('peek')) { setPeek(true); heldPeek = true; }
         }, 350);
       };
+      const cancelLP = () => clearTimeout(lpTimer);
       const endLP = () => {
         clearTimeout(lpTimer);
         if (heldPeek) { setPeek(false); heldPeek = false; } // 長押し由来のみ戻す(トグルONは維持)
       };
-      center.addEventListener('touchstart', startLP, { passive: true });
-      center.addEventListener('touchend', endLP);
-      center.addEventListener('touchcancel', endLP);
-      center.addEventListener('mousedown', startLP);
-      center.addEventListener('mouseup', endLP);
-      center.addEventListener('mouseleave', endLP);
+
+      // ジェスチャ開始(タッチ/マウス共通)
+      const gStart = (x, y) => {
+        gx0 = x; gy0 = y; swiping = false; swiped = false; gActive = true;
+        startLP();
+      };
+      // 移動: 横スワイプ判定(peek 中は無効)
+      const gMove = (x, y) => {
+        if (!gActive || hangarEl.classList.contains('peek')) return;
+        const dx = x - gx0, dy = y - gy0;
+        if (!swiped && Math.abs(dx) >= SWIPE_DIST && Math.abs(dx) > Math.abs(dy) * SWIPE_RATIO) {
+          // スワイプ確定 → 長押し(peek)をキャンセルして機体切替
+          swiping = true; swiped = true;
+          cancelLP();
+          selectMechByIndex(dx < 0 ? 1 : -1); // 左スワイプ=次 / 右スワイプ=前
+        }
+      };
+      const gEnd = () => { gActive = false; endLP(); };
+
+      center.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; gStart(t.clientX, t.clientY); }, { passive: true });
+      center.addEventListener('touchmove', (e) => { const t = e.changedTouches[0]; gMove(t.clientX, t.clientY); }, { passive: true });
+      center.addEventListener('touchend', gEnd);
+      center.addEventListener('touchcancel', gEnd);
+      center.addEventListener('mousedown', (e) => gStart(e.clientX, e.clientY));
+      center.addEventListener('mousemove', (e) => { if (gActive) gMove(e.clientX, e.clientY); });
+      center.addEventListener('mouseup', gEnd);
+      center.addEventListener('mouseleave', gEnd);
       // ハンガーを離れる(出撃)際は必ず全景を解除(戦闘 HUD へ持ち越さない)
       $id('launch-btn').addEventListener('click', () => setPeek(false));
     }
