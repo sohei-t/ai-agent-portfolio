@@ -1,6 +1,14 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V9.6)
+// ROBO BATTLE 3D - Prototype (V9.7)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V9.7 変更点(セーブ消失バグ修正 + 購入機体の即戦力化):
+//   1. 購入したカスタム機体が再ログインで消える(wallet だけ減る)バグを修正。原因は起動時の
+//      sanitizeSave がカスタム機体(非同期登録のため未登録)を mechsOwned から落として
+//      localStorage を上書きしていたこと。CUSTOM_MECHS_READY 導入で、ロード前は所有/装備を
+//      暫定保持→登録後に確定検証。json 取得失敗時は所有を保持(資産消失防止)。
+//   2. 機体購入時、空きスロットに最安武器を無償スターター付与(equipStarterWeapons)。
+//      point を使い果たしても購入直後から戦える。
 //
 // V9.6 変更点(全機体をウェポンドローン化):
 //   V9.5 のカスタム限定を解除し、全機体(ビルトイン/カスタム・リグ付き/静的/プリミティブ)に
@@ -1505,6 +1513,12 @@ function defaultSave() {
     syncCode: null,     // V7.8: クラウドセーブの同期コード(初回クラウド保存時に生成)
   };
 }
+// V9.7: カスタム機体(custom_mechs.json)は起動の loadSave より後に非同期登録されるため、
+//   起動時の sanitizeSave 時点では PLAYER_CLASSES に未登録。これが false の間は「未知の
+//   mechsOwned / loadouts」を暫定保持し、カスタム登録後の reloadSaveInPlace で確定検証する。
+//   これをしないと、購入したカスタム機体が起動のたびに mechsOwned から消える(wallet だけ減る)。
+let CUSTOM_MECHS_READY = false;
+
 /**
  * v4 セーブの正規化。構造が壊れていたら null(呼び出し側で初期化)。
  * 不変条件の回復:
@@ -1526,9 +1540,10 @@ function sanitizeSave(s) {
   const owned = [];
   if (Array.isArray(s.mechsOwned)) {
     for (const k of s.mechsOwned) {
-      if (PLAYER_CLASSES.includes(k) && !owned.includes(k) && owned.length < CONFIG.MECH_MAX_OWNED) {
-        owned.push(k);
-      }
+      if (typeof k !== 'string' || owned.includes(k) || owned.length >= CONFIG.MECH_MAX_OWNED) continue;
+      // 既知クラスは常に採用。未知でもカスタム機体ロード前は暫定保持(購入したカスタム機体の
+      // 消失防止)。ロード後の reloadSaveInPlace で PLAYER_CLASSES と突合し確定検証する。
+      if (PLAYER_CLASSES.includes(k) || !CUSTOM_MECHS_READY) owned.push(k);
     }
   }
   // V8.9: 隠された機体を所有していたセーブは PLAYER_CLASSES から外れて未知扱い → 除外。
@@ -1566,6 +1581,13 @@ function sanitizeSave(s) {
       if ((used[w] || 0) >= (out.inventory[w] || 0)) continue;
       used[w] = (used[w] || 0) + 1;
       out.loadouts[c][i] = w;
+    }
+  }
+  // V9.7: カスタム機体ロード前は、未知機体(=未登録カスタム)の装備も暫定保持して
+  //   reloadSaveInPlace まで消えないようにする(検証はロード後の再正規化で実施)。
+  if (!CUSTOM_MECHS_READY && s.loadouts) {
+    for (const k of out.mechsOwned) {
+      if (!out.loadouts[k] && Array.isArray(s.loadouts[k])) out.loadouts[k] = s.loadouts[k].slice();
     }
   }
   return out;
@@ -2105,17 +2127,19 @@ const CUSTOM_MECH_SCHEMA = {
   hiddenFile: './assets/hidden_mechs.json',
 };
 
-// ---- (1) 汎用層: JSON 取得(相対パス・失敗は console.warn のみで [] を返す) ----
+// ---- (1) 汎用層: JSON 取得(相対パス)。正常時は配列(空可)、取得失敗/破損時は null。 ----
+//   V9.7: 失敗を null で区別する。失敗時に「カスタム機体なし」と誤認して mechsOwned を厳密
+//   検証すると、所有していたカスタム機体が消える(一時的なネットワーク断で資産消失)ため。
 async function fetchCustomMechs() {
   try {
     const r = await fetch(CUSTOM_MECH_SCHEMA.jsonPath, { cache: 'no-store' }); // V8.10: 登録直後の反映漏れ防止
-    if (!r.ok) { console.warn(`[V8.3] custom_mechs.json HTTP ${r.status} → カスタム機体なしで続行`); return []; }
+    if (!r.ok) { console.warn(`[V8.3] custom_mechs.json HTTP ${r.status} → 取得失敗(所有は保持)`); return null; }
     const data = await r.json();
-    if (!Array.isArray(data)) { console.warn('[V8.3] custom_mechs.json は配列でない → 無視'); return []; }
+    if (!Array.isArray(data)) { console.warn('[V8.3] custom_mechs.json は配列でない → 破損扱い(所有は保持)'); return null; }
     return data;
   } catch (err) {
-    console.warn('[V8.3] custom_mechs.json 取得失敗 → カスタム機体なしで続行:', err && err.message);
-    return [];
+    console.warn('[V8.3] custom_mechs.json 取得失敗 → 所有は保持:', err && err.message);
+    return null;
   }
 }
 
@@ -2471,6 +2495,36 @@ function autoEquipDefaults(clsKey) {
     if (!w || !CONFIG.WEAPONS[w] || CONFIG.WEAPONS[w].size !== hp[i]) continue;
     if (equippedSlots(w).length >= invCount(w)) continue; // 在庫に余りなし
     SAVE.loadouts[clsKey][i] = w;
+  }
+}
+
+/** 指定サイズの最安武器キーを返す(無ければ null)。 */
+function cheapestWeaponOfSize(size) {
+  let best = null, bestPrice = Infinity;
+  for (const k of Object.keys(CONFIG.WEAPONS)) {
+    const w = CONFIG.WEAPONS[k];
+    if (w.size !== size) continue;
+    const p = Number.isFinite(w.price) ? w.price : 0;
+    if (p < bestPrice) { bestPrice = p; best = k; }
+  }
+  return best;
+}
+
+/**
+ * 機体購入時、空きスロットに最安武器を「無償スターター」として付与・装備する。
+ * point を使い果たしても買ったロボがすぐ使えるようにするための救済(V9.7)。
+ * 在庫に余りがあればそれを装備し、無ければ 1 つだけ在庫を補填して装備する。
+ */
+function equipStarterWeapons(clsKey) {
+  const hp = hardpointsOf(clsKey);
+  for (let i = 0; i < hp.length; i++) {
+    if (SAVE.loadouts[clsKey][i]) continue; // 既装備(default 等)はそのまま
+    const best = cheapestWeaponOfSize(hp[i]);
+    if (!best) continue;
+    if (equippedSlots(best).length >= invCount(best)) {
+      SAVE.inventory[best] = (SAVE.inventory[best] || 0) + 1; // 無償スターターを 1 つ付与
+    }
+    SAVE.loadouts[clsKey][i] = best;
   }
 }
 
@@ -11224,7 +11278,8 @@ function buyMech(clsKey) {
   if (SAVE.mechsOwned.length >= CONFIG.MECH_MAX_OWNED) return; // UI 側でも案内済み
   SAVE.wallet -= cls.price;
   SAVE.mechsOwned.push(clsKey);
-  autoEquipDefaults(clsKey); // 在庫の余りから既定武器を自動装備
+  autoEquipDefaults(clsKey);   // 在庫の余りから既定武器を自動装備
+  equipStarterWeapons(clsKey); // V9.7: 空きスロットに最安武器を無償付与(購入直後から使える)
   saveSave(SAVE);
   showToast(T('boughtMech', cls.name, SAVE.mechsOwned.length, CONFIG.MECH_MAX_OWNED));
   DOCK.flashPending = true;
@@ -12067,13 +12122,17 @@ function buildBootSetup(playerClass) {
     //   SAVE 生成 → 登録 → reloadSaveInPlace の順。登録は applyStaticI18n より前
     //   (新クラスの cdesc/PLAYER_CLASSES を i18n・ハンガーが参照するため)
     let mechsChanged = false;
+    let customLoadOk = false; // V9.7: custom_mechs.json を確実に読めたか(失敗時は厳密検証しない)
     try {
-      const customList = await fetchCustomMechs();
-      if (customList.length) {
-        const summary = registerAllCustomMechs(customList);
-        if (summary.added.length) {
-          mechsChanged = true;
-          console.info(`[V8.3] カスタム機体 ${summary.added.length} 体を登録(スキップ ${summary.skipped.length})`);
+      const customList = await fetchCustomMechs(); // 正常=配列(空可)/ 失敗・破損=null
+      if (Array.isArray(customList)) {
+        customLoadOk = true;
+        if (customList.length) {
+          const summary = registerAllCustomMechs(customList);
+          if (summary.added.length) {
+            mechsChanged = true;
+            console.info(`[V8.3] カスタム機体 ${summary.added.length} 体を登録(スキップ ${summary.skipped.length})`);
+          }
         }
       }
     } catch (err) {
@@ -12092,8 +12151,11 @@ function buildBootSetup(playerClass) {
     } catch (err) {
       console.warn('[V8.9] 非表示リスト適用で例外 → 全機体表示で続行:', err && err.message);
     }
-    // custom 追加 or hidden 除外で PLAYER_CLASSES が変化したら SAVE を再正規化(所有/装備の整合)
-    if (mechsChanged) reloadSaveInPlace();
+    // V9.7: custom_mechs.json を確実に読めた場合のみ厳密検証へ切替(暫定保持していた購入済み
+    //   カスタム機体を PLAYER_CLASSES と突合し確定)。読み込み失敗時は READY=false のまま =
+    //   所有を保持(一時的なネットワーク断でカスタム機体資産を失わないため)。
+    if (customLoadOk) CUSTOM_MECHS_READY = true;
+    reloadSaveInPlace(); // 再正規化(成功時=確定検証 / 失敗時=暫定保持のまま localStorage 整合)
 
     // DEV(localhost のみ): コインが無くても全機体・全武器をテストできるよう解放。
     //   PLAYER_CLASSES / CONFIG.WEAPONS が確定したこの位置で実行(本番では no-op)。
