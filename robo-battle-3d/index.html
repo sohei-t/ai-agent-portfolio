@@ -395,6 +395,7 @@
     font-size: 16px;
     color: var(--hud-amber);
     border-color: rgba(255, 176, 46, 0.55);
+    z-index: 5;        /* V8.7.2: タップが隣接ボタンに奪われないよう最前面化 */
   }
   #target-btn:active { color: #fff; }
   /* V8.7: カメラ視点切替(📷 + LOW/MID/HIGH)を左上から右下クラスタへ移動(🎯 の左) */
@@ -406,7 +407,11 @@
     font-size: 13px;
     color: #9fe0ff;
     border-color: rgba(110, 200, 255, 0.5);
+    z-index: 5;        /* V8.7.2: タップが隣接ボタンに奪われないよう最前面化 */
   }
+  /* V8.7.2: カメラ/ターゲットは上に JUMP/ABILITY(bottom172)が近接するため、
+     ::after の上方向ヒット拡張を 0 にして取りこぼし/誤タップを防ぐ(左右下は据え置き) */
+  #target-btn::after, #cam-btn::after { inset: 0 -6px -6px -6px; }
   #cam-btn #cam-label {
     font-size: 6.5px; font-weight: 900; letter-spacing: 1px;
     color: #7fc8e8;
@@ -1207,6 +1212,17 @@
     background: linear-gradient(180deg, #ffd27a, #e8862e);
     box-shadow: 0 0 24px rgba(255, 160, 50, 0.45);
   }
+  /* V8.7.2: 未所持機体選択時は START を購入導線(🔒購入 N pt)に切替 — シアン系で区別 */
+  #hangar #launch-btn.buy-mode {
+    background: linear-gradient(180deg, #7fd6ff, #2e7fd0);
+    box-shadow: 0 0 24px rgba(60, 150, 255, 0.5);
+    letter-spacing: 1px;
+  }
+  /* 2 度押し確認(購入する? N pt)は赤系で警告 */
+  #hangar #launch-btn.buy-mode.confirm {
+    background: linear-gradient(180deg, #ff9b6b, #e8542e);
+    box-shadow: 0 0 24px rgba(255, 90, 40, 0.5);
+  }
   /* V7.4: ステージセレクタ(LAUNCH の直上) */
   #stage-select {
     position: absolute;
@@ -1621,7 +1637,7 @@
 <!-- ===== ハンガー(WR 風ドック / V6.9): 背後に 3D プレビューが透けて見える ===== -->
 <div id="hangar" class="overlay">
   <div id="hangar-top">
-    <div id="hangar-title">ROBO BATTLE 3D<span>V8.7.1 ・ BATTLE ROYALE</span></div>
+    <div id="hangar-title">ROBO BATTLE 3D<span>V8.7.2 ・ BATTLE ROYALE</span></div>
     <div id="hangar-top-right">
       <!-- V7.8: レベル + XP プログレス(値は refreshHangarWallet が更新) -->
       <div id="hangar-level"><span id="lv-num">Lv.1</span><div id="xp-bar"><div id="xp-fill"></div></div></div>
@@ -1731,6 +1747,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=93"></script>
+<script type="module" src="./game3d.js?v=94"></script>
 </body>
 </html>

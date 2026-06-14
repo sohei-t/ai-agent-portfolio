@@ -1,16 +1,43 @@
 [
   {
     "id": "image_8c9506",
-    "name": { "ja": "ドム", "en": "DOM" },
+    "name": {
+      "ja": "ドム",
+      "en": "DOM"
+    },
     "role": "player",
     "model": "image_8c9506b",
     "modelType": "rigged",
     "hp": 305,
     "speed": 3.4,
-    "hardpoints": ["heavy", "heavy", "medium", "medium"],
+    "hardpoints": [
+      "heavy",
+      "heavy",
+      "medium",
+      "medium"
+    ],
     "yaw": 0.0012,
     "scale": 1.0,
     "ability": "shield",
     "price": 5000
+  },
+  {
+    "id": "TEST_001",
+    "name": {
+      "ja": "SOHEI",
+      "en": "SOHEI"
+    },
+    "role": "player",
+    "model": "TEST_001",
+    "modelType": "rigged",
+    "hp": 300,
+    "speed": 7.0,
+    "hardpoints": [
+      "medium"
+    ],
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 3000
   }
 ]
