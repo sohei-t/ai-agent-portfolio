@@ -1,6 +1,48 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.9)
+// ROBO BATTLE 3D - Prototype (V9.5)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V9.5 変更点(カスタム機体の全武器をウェポンドローン化):
+//   サンプル(バズーカ)を全武器へ展開。武器サイズで配置・大きさを分岐 — 重=大型で頭上
+//   (両肩の上)/ 中=肩の高さ / 軽=下半身付近に小さめ(DRONE_TIERS)。武器種ごとに色を変え
+//   (DRONE_THEME)、既存の武器バレル(26種・固有形状)を細身に整形してポッドへ搭載しバラエ
+//   ティを確保(buildWeaponDrone)。ビルトイン機体は従来のボーン密着配置のまま。
+//
+// V9.3 変更点(カスタム武器を細長くスタイリッシュに):
+//   大きくずんぐりしていた武器を、全体縮小(CUSTOM_WPN_SIZE 1.25→0.9)+ 非一様スケール
+//   (太さ x/y ×0.6 / 長さ z ×1.05 = CUSTOM_WPN_SLIM/LONG)で細長く。肩マウントも低め・
+//   外側へ下げ、頭に被らないように。すべてカスタム機体のみ(ビルトインは不変)。
+//
+// V9.2 変更点(glb 機体の武器配置を人型ハードポイントへ作り直し):
+//   従来は手/肩ボーン追従 + 大きなオフセットで、肩武器が頭上に乗り手武器が体から浮いて
+//   いた。GLB_SHOULDER_MOUNTS / GLB_LIMB_MOUNTS で「肩武器=両肩の砲、その他=四肢
+//   (上腕→腿→脹脛)」へ密着配置。off は機体基準のワールドメートルで、syncWeapons が
+//   機体の右/前ベクトルに沿って適用。ボーン欠落時は体幹へフォールバック。
+//
+// V9.1 変更点(ハンガー背景をメカ整備ベイ風に):
+//   真っ黒だったドック背景を、明るめグレー(スチール)の背面壁 + 縦グラデーション +
+//   横パネルライン + 左右の縦サービスライト(シアン発光)+ 床のコーション帯(アンバー)に。
+//   前方フィル光も追加し、機体と武器がはっきり見えるように(makeDockBackground /
+//   buildDockStructure)。V9.1.1: ACES で暗く沈むため壁/床/背景を明るいグレーへ再調整。
+//
+// V9.0 変更点(カスタム機体の武器装着を自然化 — ①装着修正):
+//   カスタム機体は 4.1m へ自動正規化(totalScale 大)するため、子の武器リグも巻き込んで
+//   武器が巨大化し、肩マウントのオフセットも膨らんで頭の高さに上がっていた(「顔に黒い箱・
+//   腕に巨大砲」の原因)。武器の見かけサイズと位置オフセットを機体比へ正規化(_wpnNorm)。
+//   ビルトイン機体は係数 1 で完全に従来通り(非回帰)。係数 CUSTOM_WPN_SIZE で微調整可。
+//   + DEV: localhost のときだけ全機体・全武器・潤沢な軍資金を解放(devUnlockAll)。
+//     GitHub Pages 等の本番では IS_LOCAL_DEV=false で完全に無効(非公開挙動なし)。
+//
+// V8.11 変更点(カスタム機体 glb のキャッシュ回避 — 旧称 V8.5.3):
+//   カスタム機体エントリに assetVersion(3D Studio が登録/更新時に書くタイムスタンプ)が
+//   あれば、modelFileOf が glb URL に ?v={assetVersion} を付与。glb を別名にしなくても、
+//   機体を更新するたびにブラウザが確実に新しい glb を再取得する(T字固着の再発防止)。
+//
+// V8.10 変更点(ハンガー UX + 反映漏れ対策):
+//   1. peek(全UI非表示の全景)中も左右スワイプで機体切替できるように。peek は維持
+//      (長押し由来の peek でもスワイプ確定時に固定し、指を離しても消えない)。
+//   2. custom_mechs.json / hidden_mechs.json の fetch を cache:'no-store' に。
+//      3D Studio で登録・表示切替した直後でも、リロードで確実に最新が反映される。
 //
 // V8.9 変更点(機体の表示/非表示制御の基盤 — 3D Studio 連携):
 //   1. 非表示リスト assets/hidden_mechs.json(機体 ID 配列)を起動時に相対 fetch。
@@ -1824,6 +1866,11 @@ const ROSTER_ORIGINALS = {
 };
 const HIDDEN_MECHS = new Set(); // 現在隠している「内部キー」の集合(エクスポート/デバッグ用)
 
+// V8.5.3: カスタム機体 glb のキャッシュ回避用バージョン。modelKey -> assetVersion(文字列)。
+//   3D Studio が登録/更新時に custom_mechs.json へ assetVersion(タイムスタンプ)を書く。
+//   modelFileOf がこのバージョンを ?v= として付け、glb を別名にしなくても確実に再取得させる。
+const CUSTOM_ASSET_VERSION = {};
+
 // 機体 ID を内部キーへ解決(key そのまま or 表示名 cls.name、大小無視)。未知は null。
 //   hidden_mechs.json は ["SCOUT","ARACHNE"] のように表示名でも内部キーでも書ける。
 function resolveMechId(id) {
@@ -1890,7 +1937,7 @@ function applyHiddenMechs(ids) {
 // hidden_mechs.json を相対 fetch(存在しない/壊れ/空でも正常動作 = [] を返す)。
 async function fetchHiddenMechs() {
   try {
-    const r = await fetch('./assets/hidden_mechs.json', { cache: 'no-cache' });
+    const r = await fetch('./assets/hidden_mechs.json', { cache: 'no-store' }); // V8.10: 登録直後の反映漏れ防止
     if (!r.ok) { console.warn(`[V8.9] hidden_mechs.json HTTP ${r.status} → 全機体表示で続行`); return []; }
     const data = await r.json();
     if (!Array.isArray(data)) { console.warn('[V8.9] hidden_mechs.json は配列でない → 無視(全機体表示)'); return []; }
@@ -2055,7 +2102,7 @@ const CUSTOM_MECH_SCHEMA = {
 // ---- (1) 汎用層: JSON 取得(相対パス・失敗は console.warn のみで [] を返す) ----
 async function fetchCustomMechs() {
   try {
-    const r = await fetch(CUSTOM_MECH_SCHEMA.jsonPath, { cache: 'no-cache' });
+    const r = await fetch(CUSTOM_MECH_SCHEMA.jsonPath, { cache: 'no-store' }); // V8.10: 登録直後の反映漏れ防止
     if (!r.ok) { console.warn(`[V8.3] custom_mechs.json HTTP ${r.status} → カスタム機体なしで続行`); return []; }
     const data = await r.json();
     if (!Array.isArray(data)) { console.warn('[V8.3] custom_mechs.json は配列でない → 無視'); return []; }
@@ -2193,6 +2240,10 @@ function registerCustomMech(e) {
     desc: ds.ja,
     custom: true, // V8.3: カスタム機体マーカー
   };
+  // V8.5.3: glb キャッシュ回避バージョン(あれば modelKey に紐付け。modelFileOf が ?v= で使う)
+  if (e.assetVersion != null && e.assetVersion !== '') {
+    CUSTOM_ASSET_VERSION[e.model] = String(e.assetVersion);
+  }
 
   if (e.role === 'player') {
     cls.price = Math.round(clampF(e.price, F.price));
@@ -2351,6 +2402,37 @@ function reloadSaveInPlace() {
   const fresh = loadSave();
   for (const k of Object.keys(SAVE)) delete SAVE[k];
   Object.assign(SAVE, fresh);
+}
+
+// ============================================================
+// DEV: ローカル開発用の全解放(localhost のみ・本番では完全に無効)
+//   GitHub Pages(sohei-t.github.io 等)では IS_LOCAL_DEV=false になり何もしない。
+//   localStorage はオリジンごとに分離されるため、本番プレイヤーには一切影響しない。
+//   機体テスト(V9.0 武器装着の確認など)でコインが無くても全機体・全武器を試せる。
+// ============================================================
+const IS_LOCAL_DEV = (() => {
+  try {
+    const h = location.hostname;
+    return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '';
+  } catch (_) { return false; }
+})();
+function devUnlockAll() {
+  if (!IS_LOCAL_DEV) return;
+  let changed = false;
+  // 全プレイヤー機体を所有(ビルトイン + 登録済みカスタム)
+  for (const k of PLAYER_CLASSES) {
+    if (!SAVE.mechsOwned.includes(k)) { SAVE.mechsOwned.push(k); changed = true; }
+  }
+  // 全武器を潤沢に在庫(canUse は inventory > 使用数 で判定)
+  for (const k of Object.keys(CONFIG.WEAPONS)) {
+    if ((SAVE.inventory[k] || 0) < 99) { SAVE.inventory[k] = 99; changed = true; }
+  }
+  // 軍資金も潤沢に(購入導線のテスト用)
+  if (SAVE.wallet < 9999999) { SAVE.wallet = 9999999; changed = true; }
+  if (changed) {
+    // 永続化はしない(in-memory の SAVE をハンガーが直接参照。localhost では毎回再適用される)。
+    console.info('[DEV] localhost 検出 → 全機体・全武器・潤沢な軍資金を解放しました(本番には影響しません)');
+  }
 }
 
 // ---- 在庫ヘルパー(V6.9 / V7.1 スロット数可変) ----
@@ -3254,6 +3336,32 @@ function wpnMat(key, params) {
   return WPN_MATS[key];
 }
 
+// V9.0: カスタム機体の武器サイズ係数。カスタム機体は 4.1m へ自動正規化(totalScale 大)する
+//   ため、武器リグも巻き込んで巨大化していた(「顔に黒い箱・腕に巨大砲」の原因)。
+//   武器の世界サイズを「ビルトイン基準サイズ × この係数」へ正規化する。1.0 でビルトインと
+//   同じ世界サイズ、機体が大きいぶん少し大きめにしたいので既定 1.25(見て調整可)。
+const CUSTOM_WPN_SIZE = 0.9;
+// V9.3: カスタム機体の武器を「細長くスタイリッシュ」に。断面(太さ x/y)を細く、長さ(z)は
+//   維持して相対的に長く見せる非一様スケール。ビルトインは 1(uniform・不変)。
+const CUSTOM_WPN_SLIM = 0.6;  // 太さ(銃身の半径方向)を 60% に
+const CUSTOM_WPN_LONG = 1.05; // 長さ(銃身方向)はやや伸ばす
+
+// V9.2: glb 人型リグの武器ハードポイント。off は機体基準のワールドメートル(x=外側 / y=上 /
+//   z=前)。syncWeapons で機体の右/上/前ベクトルに沿って適用し、各部位へ密着させる。
+//   肩武器(mount:'shoulder')は両肩の砲、それ以外は四肢(上腕→腿→脹脛)へ順に割り当て。
+const GLB_SHOULDER_MOUNTS = [
+  { names: ['RightArm', 'RightShoulder'], off: { x: 0.34, y: 0.22, z: -0.06 } }, // 右肩の砲(頭に被らないよう低め・外側)
+  { names: ['LeftArm', 'LeftShoulder'],   off: { x: -0.34, y: 0.22, z: -0.06 } }, // 左肩の砲
+];
+const GLB_LIMB_MOUNTS = [
+  { names: ['RightArm'],    off: { x: 0.22, y: -0.10, z: 0.06 } }, // 右上腕の外側
+  { names: ['LeftArm'],     off: { x: -0.22, y: -0.10, z: 0.06 } }, // 左上腕の外側
+  { names: ['RightUpLeg'],  off: { x: 0.18, y: -0.20, z: 0.14 } }, // 右腿の前
+  { names: ['LeftUpLeg'],   off: { x: -0.18, y: -0.20, z: 0.14 } }, // 左腿の前
+  { names: ['RightLeg'],    off: { x: 0.14, y: -0.12, z: 0.14 } }, // 右脹脛
+  { names: ['LeftLeg'],     off: { x: -0.14, y: -0.12, z: 0.14 } }, // 左脹脛
+];
+
 /** @returns {{group: THREE.Group, muzzle: THREE.Object3D}} */
 function buildWeaponModel(wKey) {
   const g = new THREE.Group();
@@ -3634,6 +3742,77 @@ function buildWeaponModel(wKey) {
 }
 
 // ============================================================
+// V9.5: ウェポンドローン(全武器)。機体に密着させず、周囲に浮遊させて随伴させる方式。
+//   リグのボーンに依存しないため、どの機体でも同じ見た目。重/中/軽で配置・大きさを変え、
+//   武器種ごとに色(テーマ)を変えてバラエティを出す。+z が砲口方向 / muzzle = 砲口先端。
+// ============================================================
+// 武器サイズ(light/medium/heavy)別のティア。slots は機体中心(足元原点)からのワールド m。
+//   重 = 大きく頭上(両肩の上)/ 中 = 肩の高さ(現バズーカ付近)/ 軽 = 下半身付近に小さめ。
+const DRONE_TIERS = {
+  heavy:  { scale: 1.35, pod: 0.42, barrel: 1.05, slots: [{ x: 1.75, y: 3.55, z: 0.05 }, { x: -1.75, y: 3.55, z: 0.05 }] },
+  medium: { scale: 1.00, pod: 0.34, barrel: 0.92, slots: [{ x: 1.95, y: 2.95, z: 0.20 }, { x: -1.95, y: 2.95, z: 0.20 }] },
+  light:  { scale: 0.70, pod: 0.28, barrel: 0.85, slots: [{ x: 1.65, y: 1.40, z: 0.15 }, { x: -1.65, y: 1.40, z: 0.15 }] },
+};
+// 武器種ごとのテーマ色 { hull: ポッド本体色, glow: 発光(アイ/スラスター)色 }。多彩さ重視。
+const DRONE_THEME = {
+  mg: { hull: 0x3a3f47, glow: 0xffd24a },        pulse: { hull: 0x223a4a, glow: 0x66ddff },
+  needle: { hull: 0x254032, glow: 0x66ff9c },    swarm: { hull: 0x3a2e22, glow: 0xff8a3a },
+  blazer: { hull: 0x3a2230, glow: 0xff5ad0 },    vortex: { hull: 0x2a2240, glow: 0xb070ff },
+  quasar: { hull: 0x202a40, glow: 0x6aa8ff },    spread: { hull: 0x3a2e22, glow: 0xffb24a },
+  missile: { hull: 0x3a2424, glow: 0xff5a4a },   arc: { hull: 0x223a40, glow: 0x7af0ff },
+  repulsor: { hull: 0x223040, glow: 0x9fd8ff },  minelayer: { hull: 0x33381f, glow: 0xd0ff4a },
+  brute: { hull: 0x3a342a, glow: 0xffc24a },     lance: { hull: 0x202c3a, glow: 0x6ad0ff },
+  repeater: { hull: 0x363b42, glow: 0xffe07a },  tachyon: { hull: 0x282244, glow: 0xc08aff },
+  helios: { hull: 0x3a3422, glow: 0xffd24a },    bazooka: { hull: 0x2a2e33, glow: 0x33ddff },
+  rail: { hull: 0x223240, glow: 0x9fd8ff },      artillery: { hull: 0x33302a, glow: 0xffae3a },
+  tempest: { hull: 0x223a3a, glow: 0x6affe0 },   devastator: { hull: 0x3a2a2a, glow: 0xff6a4a },
+  havoc: { hull: 0x342236, glow: 0xff6ad0 },     annihilator: { hull: 0x3a2422, glow: 0xff4a2a },
+  inferno: { hull: 0x3a2a20, glow: 0xff7a30 },   titan: { hull: 0x3a2222, glow: 0xff3a20 },
+};
+
+// ドローン生成(汎用)。ポッド(テーマ色)+ 既存武器バレル(武器ごとに固有形状・色)を細身に
+//   整形して前方へ。サイズティアでポッド径・バレル倍率が変わる。muzzle はバレルの砲口を流用。
+function buildWeaponDrone(wKey, size) {
+  const tier = DRONE_TIERS[size] || DRONE_TIERS.medium;
+  const th = DRONE_THEME[wKey] || { hull: 0x2c3138, glow: 0x66ddff };
+  const g = new THREE.Group();
+  const add = (mesh) => { mesh.castShadow = true; g.add(mesh); return mesh; };
+  const pr = tier.pod;
+  const podMat = wpnMat('dh_' + th.hull.toString(16), { color: th.hull, metalness: 0.82, roughness: 0.42 });
+  const glowCol = new THREE.Color(th.glow);
+
+  // ポッド本体(六角 faceted hull を z 方向へ寝かせる)
+  const hull = add(new THREE.Mesh(new THREE.CylinderGeometry(pr * 0.78, pr, pr * 2.6, 6), podMat));
+  hull.rotation.x = Math.PI / 2;
+  hull.position.z = -pr * 0.45;
+  // センサーアイ(テーマ発光)
+  const eyeMat = wpnMat('de_' + th.glow.toString(16), { color: th.glow, emissive: th.glow, emissiveIntensity: 1.9, metalness: 0.3, roughness: 0.3 });
+  const eye = add(new THREE.Mesh(new THREE.SphereGeometry(pr * 0.26, 14, 10), eyeMat));
+  eye.position.set(0, pr * 0.72, pr * 0.35);
+  // 側面フィン×2
+  for (const s of [1, -1]) {
+    const fin = add(new THREE.Mesh(new THREE.BoxGeometry(0.05, pr * 0.85, pr * 1.2), podMat));
+    fin.position.set(s * pr * 0.9, pr * 0.16, -pr * 0.5);
+    fin.rotation.z = s * 0.42;
+  }
+  // スラスター発光(後方・加算 → ブルーム)
+  const thrustMat = new THREE.MeshBasicMaterial({
+    color: glowCol.clone().multiplyScalar(1.7),
+    transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const thrust = add(new THREE.Mesh(new THREE.ConeGeometry(pr * 0.5, pr * 1.3, 14, 1, true), thrustMat));
+  thrust.rotation.x = -Math.PI / 2;
+  thrust.position.z = -pr * 1.95;
+  // 武器バレル(既存デザインを流用 → 武器ごとに固有形状・色。細身に整形して前方へ)
+  const wm = buildWeaponModel(wKey);
+  const bs = tier.barrel;
+  wm.group.scale.set(bs * 0.6, bs * 0.6, bs * 1.0); // 細身
+  wm.group.position.set(0, -pr * 0.45, pr * 0.7);
+  g.add(wm.group);
+  return { group: g, muzzle: wm.muzzle };
+}
+
+// ============================================================
 // MechModel: プリミティブ組み立てメカ
 // (将来 glb に差し替えられるよう見た目をこのクラスに分離)
 // ============================================================
@@ -3924,6 +4103,19 @@ class GlbMechModel {
     } else {
       this.totalScale = CONFIG.MECH_SCALE * scaleMul; // 基準 0.9 × クラススケール(ビルトイン不変)
     }
+    // V9.0: 武器の見かけサイズ/位置オフセットの正規化係数。
+    //   ビルトインは 1(従来通り・完全不変)。カスタムのみ、totalScale で巨大化した
+    //   武器を「ビルトイン基準サイズ × CUSTOM_WPN_SIZE」へ縮める。weaponRig(=root×
+    //   totalScale)の中で group.scale = _wpnNorm を掛けると、世界サイズ = built ×
+    //   totalScale × _wpnNorm = built × MECH_SCALE × CUSTOM_WPN_SIZE になる。
+    this._wpnNorm = (cls && cls.custom)
+      ? (CONFIG.MECH_SCALE * CUSTOM_WPN_SIZE / this.totalScale)
+      : 1;
+    // V9.3: カスタムのみ非一様(細長)スケール。ビルトインは 1(uniform・不変)。
+    this._wpnSlim = (cls && cls.custom) ? CUSTOM_WPN_SLIM : 1;
+    this._wpnLong = (cls && cls.custom) ? CUSTOM_WPN_LONG : 1;
+    this.custom = !!(cls && cls.custom); // V9.4: ドローン適用判定など
+    this._time = 0;                       // V9.4: ドローンのボブ用(update で更新)
     this.root.add(scene); // scene.scale は glb 既定のまま据え置き(setScalar しない)
 
     // Robot が rotation.y を書き込むダミー(実际の反映は update 内で Spine へ)
@@ -4030,32 +4222,54 @@ class GlbMechModel {
     }
     this.weaponGroups = [];
     this.muzzles = [];
-    this.followers = []; // { obj, bone, lift, fwd } — 毎フレーム追従
-    let armN = 0, shoulderN = 0;
-    // V7.1: 最大 4 スロット = 両手 + 両肩。希望マウント満杯時は反対側へオーバーフロー
-    const takeArm = () => {
-      const bone = this.bones[armN === 0 ? 'LeftHand' : 'RightHand'];
-      armN++;
-      return { bone, lift: 0.04, fwd: 0.3 }; // 手の中心 → グリップ上面 / 銃身を少し前へ
+    this.followers = []; // { obj, bone, off:{x,y,z} } — 毎フレーム body 軸に沿って追従
+    this.drones = [];    // V9.4: 浮遊ドローン { obj, slot:{x,y,z}, phase, muzzle }
+    // V9.2: 人型リグへのハードポイント配置。肩武器=両肩の砲、それ以外=四肢(上腕→腿→脹脛)。
+    //   ボーンが欠落していても破綻しないよう、代替名 → 体幹ボーンの順にフォールバック。
+    const resolveBone = (names) => {
+      for (const n of names) if (this.bones[n]) return this.bones[n];
+      return this.bones['Spine02'] || this.bones['Spine01'] || this.bones['Spine'] || this.bones['Hips'] || null;
     };
-    const takeShoulder = () => {
-      const bone = this.bones[shoulderN === 0 ? 'RightShoulder' : 'LeftShoulder'];
-      shoulderN++;
-      return { bone, lift: 0.5, fwd: 0.1 }; // 肩上部マウント
-    };
+    let shoN = 0, limbN = 0;
+    const tierCount = { heavy: 0, medium: 0, light: 0 }; // V9.5: ティア別ドローン数
     slots.forEach((key, i) => {
       const w = CONFIG.WEAPONS[key];
       if (!w) { this.muzzles[i] = this.fallbackMuzzle; return; }
+
+      // V9.5: カスタム機体は全武器を「浮遊ドローン」方式に。サイズ(軽/中/重)で配置と大きさを
+      //   変え、武器種で色を変える。ビルトイン機体は従来のボーン密着配置のまま。
+      if (this.custom) {
+        const size = DRONE_TIERS[w.size] ? w.size : 'medium';
+        const tier = DRONE_TIERS[size];
+        const { group, muzzle } = buildWeaponDrone(key, size);
+        group.scale.setScalar(tier.scale / this.totalScale); // ティアのワールドサイズに正規化
+        const n = tierCount[size]++;
+        const base = tier.slots[n % tier.slots.length];
+        // 同ティアが slots を超えたら手前/奥へずらして重なり回避
+        const dz = Math.floor(n / tier.slots.length) * 0.55;
+        const slot = { x: base.x, y: base.y, z: base.z + dz };
+        this.weaponRig.add(group);
+        this.drones.push({ obj: group, slot, phase: i * 1.7, muzzle });
+        this.weaponGroups.push(group);
+        this.muzzles[i] = muzzle;
+        return;
+      }
+
       const { group, muzzle } = buildWeaponModel(key);
-      const pt = (w.mount === 'arm')
-        ? (armN < 2 ? takeArm() : takeShoulder())
-        : (shoulderN < 2 ? takeShoulder() : takeArm());
-      this.weaponRig.add(group);
-      if (pt.bone) {
-        this.followers.push({ obj: group, bone: pt.bone, lift: pt.lift, fwd: pt.fwd });
+      group.scale.set(this._wpnNorm * this._wpnSlim, this._wpnNorm * this._wpnSlim, this._wpnNorm * this._wpnLong);
+      // ビルトイン: shoulder 武器は両肩、それ以外は四肢へ順番に(満杯時はループ)
+      let mp;
+      if (w.mount === 'shoulder' && shoN < GLB_SHOULDER_MOUNTS.length) {
+        mp = GLB_SHOULDER_MOUNTS[shoN++];
       } else {
-        // ボーン欠落時の保険: 機体ローカルの固定位置
-        group.position.set(armN > 0 ? 0.8 : -0.8, 2.6, 0.5);
+        mp = GLB_LIMB_MOUNTS[limbN % GLB_LIMB_MOUNTS.length]; limbN++;
+      }
+      const bone = resolveBone(mp.names);
+      this.weaponRig.add(group);
+      if (bone) {
+        this.followers.push({ obj: group, bone, off: mp.off });
+      } else {
+        group.position.set(i % 2 ? 0.8 : -0.8, 2.6, 0.5);
       }
       this.weaponGroups.push(group);
       this.muzzles[i] = muzzle;
@@ -4069,19 +4283,44 @@ class GlbMechModel {
    * 向き: 常に上半身の照準方向(Spine に適用した twist と同じ yaw)・水平。
    */
   syncWeapons() {
-    if (!this.followers || this.followers.length === 0) return;
+    const hasFollowers = this.followers && this.followers.length > 0;
+    const hasDrones = this.drones && this.drones.length > 0;
+    if (!hasFollowers && !hasDrones) return;
     const twist = clamp(this.torso.rotation.y, -CONFIG.TORSO_BONE_CLAMP, CONFIG.TORSO_BONE_CLAMP);
     const sinT = Math.sin(twist), cosT = Math.cos(twist);
-    this.weaponRig.updateWorldMatrix(true, false); // worldToLocal 用に最新化
-    for (const f of this.followers) {
-      f.bone.getWorldPosition(_wpnFollow);    // ボーン(0.01 スケール込み)のワールド座標
-      this.weaponRig.worldToLocal(_wpnFollow); // 等倍リグのローカルへ
-      f.obj.position.set(
-        _wpnFollow.x + sinT * f.fwd,
-        _wpnFollow.y + f.lift,
-        _wpnFollow.z + cosT * f.fwd,
-      );
-      f.obj.rotation.set(0, twist, 0); // 照準方向(水平)
+
+    if (hasFollowers) {
+      this.weaponRig.updateWorldMatrix(true, false); // worldToLocal 用に最新化
+      const k = this._wpnNorm; // V9.0: オフセットも武器サイズと同じ基準で正規化(ビルトイン k=1)
+      // V9.2: off を機体の右/前ベクトル(twist 適用後)に沿って適用 → 各部位へ密着配置
+      const rX = cosT, rZ = -sinT; // 機体の右方向
+      const fX = sinT, fZ = cosT;  // 機体の前方向
+      for (const f of this.followers) {
+        f.bone.getWorldPosition(_wpnFollow);    // ボーン(0.01 スケール込み)のワールド座標
+        this.weaponRig.worldToLocal(_wpnFollow); // 等倍リグのローカルへ
+        const o = f.off;
+        f.obj.position.set(
+          _wpnFollow.x + (rX * o.x + fX * o.z) * k,
+          _wpnFollow.y + o.y * k,
+          _wpnFollow.z + (rZ * o.x + fZ * o.z) * k,
+        );
+        f.obj.rotation.set(0, twist, 0); // 照準方向(水平)
+      }
+    }
+
+    // V9.4: 浮遊ドローン。編隊スロット(機体中心からのワールドメートル)+ ボブ。
+    //   weaponRig は totalScale を継承するため、ワールド座標は totalScale で割って与える。
+    if (hasDrones) {
+      const inv = 1 / this.totalScale;
+      const t = this._time || 0;
+      for (const d of this.drones) {
+        const s = d.slot;
+        const bob = Math.sin(t * 1.5 + d.phase) * 0.12;       // 上下のボブ(ワールド m)
+        const sway = Math.sin(t * 0.9 + d.phase * 1.3) * 0.07; // 前後の揺れ
+        d.obj.position.set(s.x * inv, (s.y + bob) * inv, (s.z + sway) * inv);
+        // 照準方向へ向く + ボブに合わせた微小ピッチ/バンク
+        d.obj.rotation.set(Math.sin(t * 1.5 + d.phase) * 0.06, twist, Math.sin(t * 1.1 + d.phase) * 0.05);
+      }
     }
   }
 
@@ -4124,6 +4363,7 @@ class GlbMechModel {
     else if (this.spine1) this.spine1.rotateY(twist * 0.5); // Spine02 が無い場合は全量を Spine01 へ
 
     // ---- 武器のボーン追従(V6.9.1: mixer + Spine ひねり適用後の最終姿勢に同期) ----
+    this._time = time; // V9.4: ドローンのボブ用
     this.syncWeapons();
 
     // ---- フラッシュ(被弾=白 / V7.0 回復=緑。flashColor で着色) ----
@@ -10569,11 +10809,14 @@ class Game {
 // ============================================================
 const MODEL_BASE = './assets/models/';
 
-/** モデルキー → glb ファイル名(静的モデルは _static.glb) */
+/** モデルキー → glb ファイル名(静的モデルは _static.glb)
+ *  V8.5.3: カスタム機体は assetVersion があれば ?v= を付けてキャッシュ回避(別名不要で再取得)。 */
 function modelFileOf(key) {
-  return CONFIG.MODEL_STATIC[key]
+  const base = CONFIG.MODEL_STATIC[key]
     ? `${MODEL_BASE}${key}_static.glb`
     : `${MODEL_BASE}${key}_walking_glb_url.glb`;
+  const ver = CUSTOM_ASSET_VERSION[key];
+  return ver ? `${base}?v=${encodeURIComponent(ver)}` : base;
 }
 
 // ============================================================
@@ -10723,31 +10966,91 @@ const DOCK = {
   flashPending: false, // 装備変更の白フラッシュ予約(次のマウント時に消費)
 };
 
+// V9.1: メカドック背景(縦グラデーション CanvasTexture)。上=暗いスチール → 床際=明るめの鋼青。
+function makeDockBackground() {
+  const cv = document.createElement('canvas');
+  cv.width = 16; cv.height = 256;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  // V9.1.1: ACES トーンマッピングで暗くなるため、明るめのグレー(スチール)に引き上げ
+  g.addColorStop(0.00, '#5a6673'); // 天井側(中グレー)
+  g.addColorStop(0.50, '#6e7a87'); // 中央
+  g.addColorStop(0.85, '#828e9b'); // 床際(明るめグレー)
+  g.addColorStop(1.00, '#76828f');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 16, 256);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// V9.1: ドック整備ベイの構造物(背面壁 + 横パネルライン + 縦サービスライト + 床のコーション帯)。
+//   発光部(MeshBasic 高輝度)はブルームで映え、機体と武器のシルエットを引き立てる。
+function buildDockStructure(sc) {
+  // V9.1.1: 壁が画角の大半を覆う = 実質の背景色。明るめのスチールグレーに引き上げ
+  const steel = new THREE.MeshStandardMaterial({ color: 0x6b7682, roughness: 0.72, metalness: 0.45 });
+  // 背面壁(機体の後ろ。カメラ画角を覆う大きさ)
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 22), steel);
+  wall.position.set(0, 6, -9);
+  sc.add(wall);
+  // 横パネルライン(段差バー)で整備ベイの壁面感(壁より一段暗いグレー)
+  const panelMat = new THREE.MeshStandardMaterial({ color: 0x49535e, roughness: 0.8, metalness: 0.4 });
+  for (const y of [2.2, 5.6, 9.0]) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(38, 0.25, 0.3), panelMat);
+    bar.position.set(0, y, -8.85);
+    sc.add(bar);
+  }
+  // 左右の縦サービスライト(シアン発光)
+  const stripMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x33ccff).multiplyScalar(1.6) });
+  for (const x of [-6.2, 6.2]) {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 9, 0.18), stripMat);
+    strip.position.set(x, 4.6, -7.5);
+    sc.add(strip);
+  }
+  // 床のコーション帯(アンバー・加算)で整備ベイらしさ
+  const cautionMat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(0xffaa22).multiplyScalar(1.1),
+    transparent: true, opacity: 0.45,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+  });
+  const caution = new THREE.Mesh(new THREE.RingGeometry(3.4, 3.7, 56), cautionMat);
+  caution.rotation.x = -Math.PI / 2;
+  caution.position.y = 0.02;
+  sc.add(caution);
+}
+
 function buildDockScene() {
   if (DOCK.built) return;
   DOCK.built = true;
   const sc = new THREE.Scene();
-  sc.background = new THREE.Color(0x05070b); // 暗めのドック
+  // V9.1: メカ整備ベイ風の縦グラデーション背景(真っ黒 → スチールブルー。武器が見やすい)
+  sc.background = makeDockBackground();
 
-  // ライティング(影なしの軽量 3 灯: キー + リム + 環境)
-  sc.add(new THREE.HemisphereLight(0x8fa8c8, 0x181e26, 0.85));
-  const key = new THREE.DirectionalLight(0xcfe4ff, 2.2);
+  // ライティング(影なしの軽量構成: 半球 + キー + リム + 前方フィル)
+  sc.add(new THREE.HemisphereLight(0x9fb6d6, 0x222a34, 1.05));
+  const key = new THREE.DirectionalLight(0xdfeeff, 2.5);
   key.position.set(4, 6, 5);
   sc.add(key);
-  const rim = new THREE.DirectionalLight(0x3a7bd5, 1.0);
+  const rim = new THREE.DirectionalLight(0x4a8be5, 1.2);
   rim.position.set(-5, 3, -5);
   sc.add(rim);
+  const fill = new THREE.DirectionalLight(0xbcd2ee, 0.7); // 前方フィル: 武器の正面を起こす
+  fill.position.set(0, 2.5, 9);
+  sc.add(fill);
 
-  // 床(暗い円盤 + 控えめグリッド)
+  // ドック床(鋼の円盤 + 明るめグリッド) V9.1.1: 床も明るめグレーに
   const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(12, 40),
-    new THREE.MeshStandardMaterial({ color: 0x0b0f15, roughness: 0.85, metalness: 0.25 }),
+    new THREE.CircleGeometry(14, 48),
+    new THREE.MeshStandardMaterial({ color: 0x3c4651, roughness: 0.82, metalness: 0.35 }),
   );
   floor.rotation.x = -Math.PI / 2;
   sc.add(floor);
-  const grid = new THREE.GridHelper(22, 26, 0x1c2c3c, 0x10181f);
+  const grid = new THREE.GridHelper(26, 30, 0x6a8aae, 0x44525f);
   grid.position.y = 0.01;
   sc.add(grid);
+
+  // V9.1: ドック構造物(背面壁 + パネルライン + 左右サービスライト + コーション帯)
+  buildDockStructure(sc);
 
   // 足元の発光リング(加算合成・高輝度 → ブルームで映える)
   DOCK.ring = new THREE.Mesh(
@@ -11845,6 +12148,10 @@ function buildBootSetup(playerClass) {
     // custom 追加 or hidden 除外で PLAYER_CLASSES が変化したら SAVE を再正規化(所有/装備の整合)
     if (mechsChanged) reloadSaveInPlace();
 
+    // DEV(localhost のみ): コインが無くても全機体・全武器をテストできるよう解放。
+    //   PLAYER_CLASSES / CONFIG.WEAPONS が確定したこの位置で実行(本番では no-op)。
+    devUnlockAll();
+
     // V7.2: glb の一括プリロードは廃止。起動はゼロフェッチ + ドックの 1 体だけ遅延ロード
     // V7.3: 静的テキストへ i18n を適用(初期言語 = SAVE.lang)
     applyStaticI18n();
@@ -11932,14 +12239,18 @@ function buildBootSetup(playerClass) {
         gx0 = x; gy0 = y; swiping = false; swiped = false; gActive = true;
         startLP();
       };
-      // 移動: 横スワイプ判定(peek 中は無効)
+      // 移動: 横スワイプ判定(V8.10: peek 中もスワイプで機体切替可。peek は維持)
       const gMove = (x, y) => {
-        if (!gActive || hangarEl.classList.contains('peek')) return;
+        if (!gActive) return;
         const dx = x - gx0, dy = y - gy0;
         if (!swiped && Math.abs(dx) >= SWIPE_DIST && Math.abs(dx) > Math.abs(dy) * SWIPE_RATIO) {
-          // スワイプ確定 → 長押し(peek)をキャンセルして機体切替
+          // スワイプ確定 → 長押し(peek)をキャンセルして機体切替。
+          //   peek 表示中(全UI非表示の全景)でもそのまま次/前の機体へ。peek は維持される
+          //   (#hangar.peek は親に残り、refreshHangarUI は内部のみ再構築するため)。
           swiping = true; swiped = true;
           cancelLP();
+          // peek 中にスワイプしたら peek を固定(長押し由来でも指を離して消えないよう heldPeek 解除)
+          if (hangarEl.classList.contains('peek')) heldPeek = false;
           selectMechByIndex(dx < 0 ? 1 : -1); // 左スワイプ=次 / 右スワイプ=前
         }
       };
