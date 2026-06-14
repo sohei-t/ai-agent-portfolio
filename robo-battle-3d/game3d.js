@@ -1,6 +1,18 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.7.2)
+// ROBO BATTLE 3D - Prototype (V8.8)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.8 変更点(カスタム機体ビルダー連携・実機フィードバック):
+//   1. スロット構成 → 速度の自動計算: customSpeedFromSlots(hardpoints)。
+//      speed = clamp(BASE 7.2 − Σ penalty, 1.5, 7.2)、penalty light0.3/medium0.7/heavy1.3。
+//      重スロットほど大きく減速(軽4=6.0 / 中2軽2=5.2 / 重2中2=3.2 / 重4=2.0)。
+//      custom_mechs.json は speed 明示時はそれを優先(既存エントリ不変)、省略時は
+//      slots から計算。CUSTOM_MECH_SCHEMA.speedRule に式/較正値/preview() をエクスポート
+//      (GUI のリアルタイム速度プレビュー用)。HP はスキーマ範囲(100-360)・スロット最大4 据置。
+//   2. カスタム機体サイズ 4.7m → 4.1m: V8.6.1 の 4.7m はハンガーで頭部が画面上部に
+//      隠れる報告 → CUSTOM_TARGET_HEIGHT を 4.1m に縮小(約 1.14 倍、ビルトイン 3.6m より
+//      少し大きい程度)。自動正規化(V8.5)・mechSizeK の仕組みは不変で定数のみ変更。
+//      mechSizeK = 4.1/3.6 ≈ 1.139 が接地高/武器追従/胸高照準/衝突半径に追従。ビルトイン不変。
 //
 // V8.7.2 変更点(バグ修正 + UX・実機フィードバック):
 //   1. カメラ📷/ターゲット🎯切替が効かない不具合を修正(V8.7 で右下クラスタへ
@@ -463,14 +475,24 @@ const CONFIG = {
 
   // glb 機体モデル(V6.3)
   MECH_SCALE: 0.9,         // glb 高さ 4.0 → 3.6(胸高 ~2.6 = CHEST_OFFSET と整合)
-  // V8.5/V8.6.1: カスタム機体のサイズ自動正規化の目標表示高さ(m)。
+  // V8.5/V8.6.1/V8.8: カスタム機体のサイズ自動正規化の目標表示高さ(m)。
   //   ビルトイン標準機 = 生 glb 高 4.0 × MECH_SCALE 0.9 = 3.6m。
-  //   V8.6.1: 実機で「カスタムが小さく見える」報告 → 3.6 → 4.7(約 1.3 倍)。
-  //   ビルトインと並べて同等〜やや大きい見た目に。bbox 高さからこの値へ自動スケール
-  //   (最終 = 正規化倍率 × cls.scale)。ビルトインには一切適用しない
-  CUSTOM_TARGET_HEIGHT: 4.7,
+  //   V8.6.1: 「カスタムが小さく見える」報告 → 3.6 → 4.7(約 1.3 倍)。
+  //   V8.8: 4.7 は大きすぎてハンガーで頭部が画面上部に隠れる報告 → 4.7 → 4.1m
+  //   (約 1.14 倍。ビルトイン 3.6m より少し大きい程度で頭が隠れない)。bbox 高さから
+  //   この値へ自動スケール(最終 = 正規化倍率 × cls.scale)。ビルトインには適用しない。
+  //   mechSizeK = 4.1/3.6 ≈ 1.139 が接地高/武器追従/胸高照準/衝突半径に追従する
+  CUSTOM_TARGET_HEIGHT: 4.1,
   CUSTOM_NORM_MIN: 0.02,   // 正規化倍率の下限(極端な glb の暴走防止)
   CUSTOM_NORM_MAX: 50,     // 正規化倍率の上限
+  // V8.8: スロット構成 → 速度の自動計算(custom_mechs.json で speed 省略時のみ使用)。
+  //   speed = clamp(BASE − Σ penalty[slot], MIN, MAX)。重スロットほど大きく減速。
+  //   ビルトイン較正: BASE/減点を既存機体の slots→実 speed に近づくよう設定(報告に対応表)。
+  //   GUI のリアルタイム速度プレビューは CUSTOM_MECH_SCHEMA.speedRule から同じ式を参照。
+  CUSTOM_SPEED_BASE: 7.2,
+  CUSTOM_SPEED_PENALTY: { light: 0.3, medium: 0.7, heavy: 1.3 },
+  CUSTOM_SPEED_MIN: 1.5,
+  CUSTOM_SPEED_MAX: 7.2,
   WALK_CYCLE_SPEED: 3.1,   // スケール1の歩行1サイクル移動量(timeScale 同期の基準)
   IDLE_ANIM_SPEED: 0.12,   // 待機時の微動 timeScale(機体が生きている感)
   TORSO_BONE_CLAMP: 0.8,   // Spine ボーンへ分配する上半身旋回のクランプ(rad。V6.5: 捻れ過ぎ防止で縮小)
@@ -1862,7 +1884,7 @@ const CUSTOM_MECH_SCHEMA = {
     yaw: { type: 'float', required: false, default: 0, min: -Math.PI, max: Math.PI, note: '前方を +Z に向ける回転補正(rad)。0 / 1.5708 / 3.1416 など' },
     scale: { type: 'float', required: false, default: 1.0, min: 0.4, max: 2.5, note: '表示スケール' },
     hp: { type: 'int', required: true, min: 100, max: 360, note: '最大 HP(ゲームレンジへクランプ)' },
-    speed: { type: 'float', required: true, min: 3.0, max: 7.2, note: '移動速度(ゲームレンジへクランプ)' },
+    speed: { type: 'float', required: false, min: 3.0, max: 7.2, note: 'V8.8: 任意。明示時はその値をクランプ使用、省略時は hardpoints から speedRule で自動計算' },
     hardpoints: { type: 'array', required: true, itemEnum: ['light', 'medium', 'heavy'], minLen: 1, maxLen: 4, note: '武器スロットのサイズ配列' },
     ability: { type: 'enum', required: false, enum: ['sprint', 'shield'], default: 'shield', note: 'アビリティ' },
     colors: { type: 'object', required: false, note: '{ primary, secondary, dark } 各 0xRRGGBB(プリミティブ代替・敵の目に使用)' },
@@ -1873,6 +1895,20 @@ const CUSTOM_MECH_SCHEMA = {
     aiStyle: { type: 'enum', required: false, requiredWhen: { role: 'enemy' }, enumRef: 'AI_STYLES', note: 'enemy の AI 個性キー' },
     aiWeapons: { type: 'array', required: false, itemRef: 'WEAPONS', note: 'enemy の装備(hardpoints とサイズ整合)。省略時は自動補完' },
     spawnBand: { type: 'object', required: false, note: 'enemy の出現帯 { minLevel:int } 。既定 13(中盤プール)。6〜12 は早期プール' },
+  },
+  // V8.8: スロット構成 → 速度の自動計算ルール(GUI のリアルタイム速度プレビュー用)。
+  //   speed 省略時に registerCustomMech がこの式で speed を決める(明示時はそれを優先)。
+  //   GUI は preview(hardpoints) を呼べば登録時と同じ速度を即時表示できる。
+  get speedRule() {
+    return {
+      base: CONFIG.CUSTOM_SPEED_BASE,
+      penalty: { ...CONFIG.CUSTOM_SPEED_PENALTY }, // { light, medium, heavy }
+      min: CONFIG.CUSTOM_SPEED_MIN,
+      max: CONFIG.CUSTOM_SPEED_MAX,
+      formula: 'speed = clamp(base - Σ penalty[slot], min, max)',
+      // 登録時と同一ロジック(較正値もここから引くので二重定義にならない)
+      preview: (hardpoints) => customSpeedFromSlots(hardpoints),
+    };
   },
   // 実行時の列挙値(GUI が「選べる武器/AI スタイル一覧」を取得する用)
   get enums() {
@@ -1914,7 +1950,8 @@ function validateCustomEntry(e) {
   if (!F.modelType.enum.includes(e.modelType)) return `modelType は ${F.modelType.enum.join('/')}`;
   if (e.modelType === 'static' && e.staticKind !== undefined && !F.staticKind.enum.includes(e.staticKind)) return `staticKind は ${F.staticKind.enum.join('/')}`;
   if (!Number.isFinite(e.hp)) return 'hp 必須(数値)';
-  if (!Number.isFinite(e.speed)) return 'speed 必須(数値)';
+  // V8.8: speed は任意。明示時のみ数値検証(未指定は hardpoints から自動計算)
+  if (e.speed !== undefined && !Number.isFinite(e.speed)) return 'speed は数値(省略時はスロットから自動計算)';
   if (!Array.isArray(e.hardpoints) || e.hardpoints.length < F.hardpoints.minLen || e.hardpoints.length > F.hardpoints.maxLen) return `hardpoints は ${F.hardpoints.minLen}〜${F.hardpoints.maxLen} 要素`;
   if (!e.hardpoints.every((h) => F.hardpoints.itemEnum.includes(h))) return 'hardpoints は light/medium/heavy のみ';
   if (e.ability !== undefined && !F.ability.enum.includes(e.ability)) return `ability は ${F.ability.enum.join('/')}`;
@@ -1938,6 +1975,19 @@ function validateCustomEntry(e) {
   return null;
 }
 
+// ---- (2) ゲーム固有: スロット構成 → 速度の自動計算(V8.8) ----
+//   重スロットほど大きく減速。custom_mechs.json で speed 省略時に使用。
+//   GUI のリアルタイム速度プレビューも CUSTOM_MECH_SCHEMA.speedRule 経由で同式を参照。
+//   例(BASE7.2/light0.3/medium0.7/heavy1.3): 軽4=6.0 / 中2軽2=5.2 / 重2中2=3.2 / 重4=2.0
+function customSpeedFromSlots(hardpoints) {
+  const pen = CONFIG.CUSTOM_SPEED_PENALTY;
+  let s = CONFIG.CUSTOM_SPEED_BASE;
+  if (Array.isArray(hardpoints)) {
+    for (const h of hardpoints) s -= (pen[h] || 0);
+  }
+  return Math.max(CONFIG.CUSTOM_SPEED_MIN, Math.min(CONFIG.CUSTOM_SPEED_MAX, s));
+}
+
 // ---- (1) 汎用層: hardpoints から「サイズ一致の最安武器」で装備を自動補完 ----
 function autoLoadout(hardpoints) {
   return hardpoints.map((size) => {
@@ -1959,7 +2009,11 @@ function registerCustomMech(e) {
   const F = CUSTOM_MECH_SCHEMA.fields;
   const clampF = (v, f) => Math.max(f.min, Math.min(f.max, v));
   const hp = Math.round(clampF(e.hp, F.hp));
-  const speed = clampF(e.speed, F.speed);
+  // V8.8: speed 優先順位 — 明示されていればそれをクランプして使用(既存 DOM/SOHEI は不変)、
+  //   省略時は hardpoints から customSpeedFromSlots() で自動計算。
+  const speed = Number.isFinite(e.speed)
+    ? clampF(e.speed, F.speed)
+    : customSpeedFromSlots(e.hardpoints);
   const scale = e.scale !== undefined ? clampF(e.scale, F.scale) : F.scale.default;
   const yaw = e.yaw !== undefined ? clampF(e.yaw, F.yaw) : F.yaw.default;
   const ability = e.ability || F.ability.default;
