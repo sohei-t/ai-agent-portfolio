@@ -1,6 +1,20 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.8)
+// ROBO BATTLE 3D - Prototype (V8.9)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.9 変更点(機体の表示/非表示制御の基盤 — 3D Studio 連携):
+//   1. 非表示リスト assets/hidden_mechs.json(機体 ID 配列)を起動時に相対 fetch。
+//      存在しない/壊れ/空でも正常動作(空=全表示・console.warn のみ)。ID は表示名
+//      ("SCOUT")でも内部キー("LIGHT")でも可(resolveMechId が両対応)。
+//   2. リストの機体をハンガー(PLAYER_CLASSES)と敵編成(ENEMY_ONLY/EARLY/rosterForLevel
+//      の抽選プール)から除外。ビルトイン・カスタム両対応。データ(MECH_CLASSES)は
+//      消さず、リストから外せば復活(applyHiddenMechs は ROSTER_ORIGINALS から冪等再構築)。
+//   3. 安全策: プレイヤー機体が 0 になるなら最低 1 体を強制表示。敵専用が全滅したら
+//      原本から 1 体復活(バトル成立保証)。隠し機体所有セーブは sanitizeSave が未知扱い
+//      →最低 1 台保証(既存ロジック流用)。defaultSave/フォールバックも表示中機体へ追従。
+//   4. 全機体一覧エクスポート: BUILTIN_MECHS [{id,name,role}] と CUSTOM_MECH_SCHEMA
+//      .builtinMechs / .allMechs() / .hiddenFile を公開(3D Studio のトグル UI 用)。
+//   5. custom_mechs.json と独立(別ファイル)。custom 登録 → hidden 適用の順で最終編成決定。
 //
 // V8.8 変更点(カスタム機体ビルダー連携・実機フィードバック):
 //   1. スロット構成 → 速度の自動計算: customSpeedFromSlots(hardpoints)。
@@ -1418,7 +1432,9 @@ function defaultInventory() {
  * 未所持クラスのロードアウトは全 null(在庫を保持しない)— sanitize と同じ不変条件。
  */
 function defaultSave() {
-  const owned = ['MEDIUM'];
+  // V8.9: 既定機体 MEDIUM が hidden で除外されている場合は表示中の先頭機体へフォールバック
+  const startMech = PLAYER_CLASSES.includes('MEDIUM') ? 'MEDIUM' : (PLAYER_CLASSES[0] || 'MEDIUM');
+  const owned = [startMech];
   const loadouts = {};
   for (const k of PLAYER_CLASSES) {
     loadouts[k] = owned.includes(k)
@@ -1428,7 +1444,7 @@ function defaultSave() {
   return {
     wallet: CONFIG.NEW_PLAYER_WALLET,
     inventory: defaultInventory(),
-    lastClass: 'MEDIUM',
+    lastClass: startMech,
     mechsOwned: owned,
     loadouts,
     // V7.3: UI 言語(初期値はブラウザ言語。ja 以外は en)
@@ -1467,7 +1483,10 @@ function sanitizeSave(s) {
       }
     }
   }
-  out.mechsOwned = owned.length > 0 ? owned : ['MEDIUM'];
+  // V8.9: 隠された機体を所有していたセーブは PLAYER_CLASSES から外れて未知扱い → 除外。
+  //   全滅したら表示中の機体を 1 台保証(MEDIUM が隠されている場合も考慮し先頭へフォールバック)。
+  const fallbackMech = PLAYER_CLASSES.includes('MEDIUM') ? 'MEDIUM' : (PLAYER_CLASSES[0] || 'MEDIUM');
+  out.mechsOwned = owned.length > 0 ? owned : [fallbackMech];
   // 出撃選択は所有機体のみ
   out.lastClass = out.mechsOwned.includes(s.lastClass) ? s.lastClass : out.mechsOwned[0];
   // V7.3: UI 言語('ja' | 'en' のみ許可。それ以外は既定値 = ブラウザ言語)
@@ -1779,6 +1798,109 @@ const PLAYER_WEIGHT_TIER = {
 };
 function playerTierOf(k) { return PLAYER_WEIGHT_TIER[k] !== undefined ? PLAYER_WEIGHT_TIER[k] : 1; }
 
+// ============================================================
+// V8.9: 機体の「表示/非表示」制御の基盤(ビルトインも 3D Studio から隠せる)
+// ─────────────────────────────────────────────
+//   別ファイル assets/hidden_mechs.json(機体 ID の配列)を起動時に相対 fetch し、
+//   該当機体をハンガー(PLAYER_CLASSES)と敵編成(ENEMY_ONLY/EARLY/roster の抽選プール)
+//   から除外する。データ(MECH_CLASSES)は消さない → リストから外せば復活。
+//   カスタムローダー(custom_mechs.json)とは独立。両者を合成して最終出現機体が決まる。
+//   安全策: プレイヤー/敵が 0 になる場合は最低限を残す(全隠し防止・バトル成立保証)。
+// ============================================================
+
+// 隠す対象の解決に使う「全機体一覧」スナップショット(ビルトインのみ。custom 登録前に確定)。
+//   3D Studio が「全機体一覧 + 表示/非表示トグル」を組むためのエクスポート。
+//   id=内部キー(LIGHT 等)・name=表示名(SCOUT 等)・role=player/enemy。
+const BUILTIN_MECHS = Object.keys(CONFIG.MECH_CLASSES).map((id) => {
+  const c = CONFIG.MECH_CLASSES[id];
+  return { id, name: c.name, role: c.enemyOnly ? 'enemy' : 'player' };
+});
+
+// 抽選プールの「元の並び」を保持(再適用で別の hidden リストを与えても復元できるよう)。
+const ROSTER_ORIGINALS = {
+  player: [...PLAYER_CLASSES],
+  enemyOnly: [...ENEMY_ONLY_CLASSES],
+  enemyEarly: [...ENEMY_EARLY_CLASSES],
+};
+const HIDDEN_MECHS = new Set(); // 現在隠している「内部キー」の集合(エクスポート/デバッグ用)
+
+// 機体 ID を内部キーへ解決(key そのまま or 表示名 cls.name、大小無視)。未知は null。
+//   hidden_mechs.json は ["SCOUT","ARACHNE"] のように表示名でも内部キーでも書ける。
+function resolveMechId(id) {
+  if (typeof id !== 'string') return null;
+  if (CONFIG.MECH_CLASSES[id]) return id; // 内部キー一致(ARACHNE 等・カスタム id 含む)
+  const up = id.trim().toUpperCase();
+  if (CONFIG.MECH_CLASSES[up]) return up; // 大文字キー一致
+  for (const k of Object.keys(CONFIG.MECH_CLASSES)) { // 表示名一致(LIGHT の name=SCOUT 等)
+    const nm = CONFIG.MECH_CLASSES[k].name;
+    if (typeof nm === 'string' && nm.toUpperCase() === up) return k;
+  }
+  return null;
+}
+
+// 全機体一覧(ビルトイン + 登録済みカスタム)を id/name/role/custom/hidden 付きで返す。
+//   custom 登録後でも最新を取れるよう CONFIG.MECH_CLASSES を都度走査(BUILTIN_MECHS は静的)。
+function listAllMechs() {
+  return Object.keys(CONFIG.MECH_CLASSES).map((id) => {
+    const c = CONFIG.MECH_CLASSES[id];
+    return { id, name: c.name, role: c.enemyOnly ? 'enemy' : 'player', custom: !!c.custom, hidden: HIDDEN_MECHS.has(id) };
+  });
+}
+
+// hidden リスト(機体 ID 配列)を抽選プールへ適用。原本から再構築するので冪等。
+//   安全策: player は最低 1 体、enemy プールは最低 1 体を必ず残す。返り値は適用サマリ。
+function applyHiddenMechs(ids) {
+  const hide = new Set();
+  if (Array.isArray(ids)) {
+    for (const raw of ids) {
+      const key = resolveMechId(raw);
+      if (key) hide.add(key);
+      else if (raw != null) console.warn(`[V8.9] hidden_mechs: 未知の機体 ID をスキップ: ${raw}`);
+    }
+  }
+  // --- プレイヤー(ハンガー): 原本から hide を除外。0 になるなら最低 1 体残す ---
+  let player = ROSTER_ORIGINALS.player.filter((k) => !hide.has(k));
+  if (player.length === 0) {
+    const keep = ROSTER_ORIGINALS.player[0];
+    player = [keep];
+    hide.delete(keep); // 残した機体は「隠していない」扱いに戻す(セーブ/一覧整合)
+    console.warn(`[V8.9] 全プレイヤー機体が隠される指定 → 最低 1 体(${keep})を強制表示`);
+  }
+  // --- 敵専用プール: hide を除外。全帯が空ならバトル成立しないため最低限を保証 ---
+  let enemyOnly = ROSTER_ORIGINALS.enemyOnly.filter((k) => !hide.has(k));
+  let enemyEarly = ROSTER_ORIGINALS.enemyEarly.filter((k) => !hide.has(k));
+  // roster は敵専用が空でも「プレイヤー機体クラス」から敵を埋める(rosterForLevel 参照)。
+  //   よって敵の成立は player プール非空で担保されるが、敵専用が全滅すると序盤/中盤の
+  //   バリエーションが死ぬため、両帯が空なら敵専用原本から 1 体だけ復活させる。
+  if (enemyOnly.length === 0 && ROSTER_ORIGINALS.enemyOnly.length) {
+    const keep = ROSTER_ORIGINALS.enemyOnly[0];
+    enemyOnly = [keep];
+    hide.delete(keep);
+    if (!enemyEarly.length && ROSTER_ORIGINALS.enemyEarly.includes(keep)) enemyEarly = [keep];
+    console.warn(`[V8.9] 全敵専用機体が隠される指定 → 最低 1 体(${keep})を強制表示`);
+  }
+  // --- 原本を保ったまま「中身だけ」差し替え(他所が配列参照を保持していても追従) ---
+  PLAYER_CLASSES.length = 0; PLAYER_CLASSES.push(...player);
+  ENEMY_ONLY_CLASSES.length = 0; ENEMY_ONLY_CLASSES.push(...enemyOnly);
+  ENEMY_EARLY_CLASSES.length = 0; ENEMY_EARLY_CLASSES.push(...enemyEarly);
+  HIDDEN_MECHS.clear(); for (const k of hide) HIDDEN_MECHS.add(k);
+  return { hidden: [...HIDDEN_MECHS], players: PLAYER_CLASSES.length, enemyOnly: ENEMY_ONLY_CLASSES.length };
+}
+
+// hidden_mechs.json を相対 fetch(存在しない/壊れ/空でも正常動作 = [] を返す)。
+async function fetchHiddenMechs() {
+  try {
+    const r = await fetch('./assets/hidden_mechs.json', { cache: 'no-cache' });
+    if (!r.ok) { console.warn(`[V8.9] hidden_mechs.json HTTP ${r.status} → 全機体表示で続行`); return []; }
+    const data = await r.json();
+    if (!Array.isArray(data)) { console.warn('[V8.9] hidden_mechs.json は配列でない → 無視(全機体表示)'); return []; }
+    return data;
+  } catch (err) {
+    console.warn('[V8.9] hidden_mechs.json 取得失敗 → 全機体表示で続行:', err && err.message);
+    return [];
+  }
+}
+
 function rosterForLevel(plv, playerClass) {
   const cap = 2; // 同一クラス上限
   const counts = Object.create(null);
@@ -1921,6 +2043,13 @@ const CUSTOM_MECH_SCHEMA = {
       builtinIds: Object.keys(CONFIG.MECH_CLASSES),
     };
   },
+  // V8.9: 表示/非表示トグル UI(3D Studio)用の機体一覧と非表示ファイル仕様。
+  //   - builtinMechs: ビルトインのみ [{ id, name, role }](登録前スナップショット)
+  //   - allMechs():   ビルトイン + 登録済みカスタムを [{ id, name, role, custom, hidden }] で
+  //   - hiddenFile:   非表示リストの相対パス(機体 ID 配列。表示名/内部キーどちらでも可)
+  get builtinMechs() { return BUILTIN_MECHS.map((m) => ({ ...m })); },
+  allMechs() { return listAllMechs(); },
+  hiddenFile: './assets/hidden_mechs.json',
 };
 
 // ---- (1) 汎用層: JSON 取得(相対パス・失敗は console.warn のみで [] を返す) ----
@@ -2069,6 +2198,8 @@ function registerCustomMech(e) {
     cls.price = Math.round(clampF(e.price, F.price));
     CONFIG.MECH_CLASSES[e.id] = cls;
     if (!PLAYER_CLASSES.includes(e.id)) PLAYER_CLASSES.push(e.id);
+    // V8.9: hidden 適用は ROSTER_ORIGINALS から再構築するため、custom も原本へ追加
+    if (!ROSTER_ORIGINALS.player.includes(e.id)) ROSTER_ORIGINALS.player.push(e.id);
     PLAYER_WEIGHT_TIER[e.id] = e.hardpoints.includes('heavy') ? 2 : e.hardpoints.includes('medium') ? 1 : 0;
     // 初期装備が同時成立するよう在庫を加算(購入後すぐ装備できる体験のため)
     for (const w of weapons) DEFAULT_INVENTORY_ADD[w] = (DEFAULT_INVENTORY_ADD[w] || 0) + 1;
@@ -2078,8 +2209,10 @@ function registerCustomMech(e) {
     cls.aiStyle = e.aiStyle;
     CONFIG.MECH_CLASSES[e.id] = cls;
     if (!ENEMY_ONLY_CLASSES.includes(e.id)) ENEMY_ONLY_CLASSES.push(e.id);
+    if (!ROSTER_ORIGINALS.enemyOnly.includes(e.id)) ROSTER_ORIGINALS.enemyOnly.push(e.id); // V8.9
     const minLevel = (e.spawnBand && Number.isFinite(e.spawnBand.minLevel)) ? e.spawnBand.minLevel : 13;
     if (minLevel <= 12 && !ENEMY_EARLY_CLASSES.includes(e.id)) ENEMY_EARLY_CLASSES.push(e.id);
+    if (minLevel <= 12 && !ROSTER_ORIGINALS.enemyEarly.includes(e.id)) ROSTER_ORIGINALS.enemyEarly.push(e.id); // V8.9
   }
   return { ok: true, id: e.id, role: e.role };
 }
@@ -11683,18 +11816,34 @@ function buildBootSetup(playerClass) {
     // ---- V8.3: カスタム機体の読み込み・登録(失敗しても既存ゲームは正常動作) ----
     //   SAVE 生成 → 登録 → reloadSaveInPlace の順。登録は applyStaticI18n より前
     //   (新クラスの cdesc/PLAYER_CLASSES を i18n・ハンガーが参照するため)
+    let mechsChanged = false;
     try {
       const customList = await fetchCustomMechs();
       if (customList.length) {
         const summary = registerAllCustomMechs(customList);
         if (summary.added.length) {
-          reloadSaveInPlace(); // 増えたクラスを取り込んで SAVE を再正規化
+          mechsChanged = true;
           console.info(`[V8.3] カスタム機体 ${summary.added.length} 体を登録(スキップ ${summary.skipped.length})`);
         }
       }
     } catch (err) {
       console.warn('[V8.3] カスタム機体ローダーで例外 → カスタムなしで続行:', err && err.message);
     }
+    // ---- V8.9: 非表示リスト適用(custom 登録の後 = custom も隠せる)。失敗しても全表示で続行 ----
+    try {
+      const hiddenList = await fetchHiddenMechs();
+      const before = PLAYER_CLASSES.length + ENEMY_ONLY_CLASSES.length + ENEMY_EARLY_CLASSES.length;
+      const r = applyHiddenMechs(hiddenList); // 空配列でも安全(何も隠さない)
+      const after = PLAYER_CLASSES.length + ENEMY_ONLY_CLASSES.length + ENEMY_EARLY_CLASSES.length;
+      if (r.hidden.length || after !== before) {
+        mechsChanged = true;
+        console.info(`[V8.9] 非表示機体 ${r.hidden.length} 体を編成から除外(player ${r.players} / enemyOnly ${r.enemyOnly})`);
+      }
+    } catch (err) {
+      console.warn('[V8.9] 非表示リスト適用で例外 → 全機体表示で続行:', err && err.message);
+    }
+    // custom 追加 or hidden 除外で PLAYER_CLASSES が変化したら SAVE を再正規化(所有/装備の整合)
+    if (mechsChanged) reloadSaveInPlace();
 
     // V7.2: glb の一括プリロードは廃止。起動はゼロフェッチ + ドックの 1 体だけ遅延ロード
     // V7.3: 静的テキストへ i18n を適用(初期言語 = SAVE.lang)
