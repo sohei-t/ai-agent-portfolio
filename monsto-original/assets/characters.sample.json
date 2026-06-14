@@ -1,0 +1,33 @@
+[
+  {
+    "id": "knight_hunter",
+    "name": { "ja": "鋼の狩人", "en": "Steel Hunter" },
+    "desc": { "ja": "サンプル: プレイヤーハンター(リグ経路)", "en": "Sample player hunter (rigged)" },
+    "role": "hunter",
+    "model": "knight_hunter",
+    "modelType": "rigged",
+    "scale": 1.0,
+    "yaw": 0,
+    "hp": 100,
+    "speed": 6.0,
+    "attack": 36,
+    "weaponType": "greatsword"
+  },
+  {
+    "id": "forest_boar",
+    "name": { "ja": "グランボア", "en": "Granboar" },
+    "desc": { "ja": "サンプル: ★1モンスター(tier 1)。森の大猪。", "en": "Sample tier-1 monster." },
+    "role": "monster",
+    "model": "forest_boar",
+    "modelType": "rigged",
+    "scale": 1.0,
+    "yaw": 0,
+    "hp": 900,
+    "speed": 5.2,
+    "attack": 14,
+    "aggroRange": 26,
+    "tier": 1,
+    "parts": ["tail"],
+    "drops": [["獣の毛皮", 2], ["鋭い牙", 1]]
+  }
+]
