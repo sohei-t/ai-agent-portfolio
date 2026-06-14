@@ -1,6 +1,12 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V9.5)
+// ROBO BATTLE 3D - Prototype (V9.6)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V9.6 変更点(全機体をウェポンドローン化):
+//   V9.5 のカスタム限定を解除し、全機体(ビルトイン/カスタム・リグ付き/静的/プリミティブ)に
+//   適用。共通ヘルパー buildDroneLoadout / animateDrones を 3 クラス(GlbMechModel /
+//   StaticMechModel / MechModel)で共有。武器サイズで配置(重=頭上 / 中=肩 / 軽=下半身)・
+//   大きさを分岐、武器種で色分け。ボーン密着配置は廃止。
 //
 // V9.5 変更点(カスタム機体の全武器をウェポンドローン化):
 //   サンプル(バズーカ)を全武器へ展開。武器サイズで配置・大きさを分岐 — 重=大型で頭上
@@ -3812,6 +3818,43 @@ function buildWeaponDrone(wKey, size) {
   return { group: g, muzzle: wm.muzzle };
 }
 
+// V9.6: 全機体共通のドローン装着/アニメ。リグに依存せず、機体の facing フレーム下の rig に
+//   編隊配置する。worldScale = rig→ワールドの一様スケール(GlbMechModel=totalScale /
+//   Static・MechModel=root.scale.x)。武器サイズ(軽/中/重)で配置・大きさを分岐する。
+function buildDroneLoadout(rig, slots, worldScale, fallbackMuzzle) {
+  const drones = [], muzzles = [], groups = [];
+  const tc = { heavy: 0, medium: 0, light: 0 };
+  const ws = worldScale || 1;
+  slots.forEach((key, i) => {
+    const w = CONFIG.WEAPONS[key];
+    if (!w) { muzzles[i] = fallbackMuzzle || null; return; }
+    const size = DRONE_TIERS[w.size] ? w.size : 'medium';
+    const tier = DRONE_TIERS[size];
+    const { group, muzzle } = buildWeaponDrone(key, size);
+    group.scale.setScalar(tier.scale / ws);
+    const n = tc[size]++;
+    const base = tier.slots[n % tier.slots.length];
+    const dz = Math.floor(n / tier.slots.length) * 0.55; // 同ティア超過分は手前/奥へ
+    rig.add(group);
+    drones.push({ obj: group, slot: { x: base.x, y: base.y, z: base.z + dz }, phase: i * 1.7, muzzle });
+    groups.push(group);
+    muzzles[i] = muzzle;
+  });
+  return { drones, muzzles, groups };
+}
+
+function animateDrones(drones, worldScale, time, twist) {
+  if (!drones || drones.length === 0) return;
+  const inv = 1 / (worldScale || 1), t = time || 0;
+  for (const d of drones) {
+    const s = d.slot;
+    const bob = Math.sin(t * 1.5 + d.phase) * 0.12;       // 上下のボブ(ワールド m)
+    const sway = Math.sin(t * 0.9 + d.phase * 1.3) * 0.07; // 前後の揺れ
+    d.obj.position.set(s.x * inv, (s.y + bob) * inv, (s.z + sway) * inv);
+    d.obj.rotation.set(Math.sin(t * 1.5 + d.phase) * 0.06, twist, Math.sin(t * 1.1 + d.phase) * 0.05);
+  }
+}
+
 // ============================================================
 // MechModel: プリミティブ組み立てメカ
 // (将来 glb に差し替えられるよう見た目をこのクラスに分離)
@@ -3948,32 +3991,13 @@ class MechModel {
     }
     this.weaponGroups = [];
     this.muzzles = [];
-    let armN = 0, shoulderN = 0;
-    const mountArm = (group) => {
-      const arm = armN === 0 ? this.armL : this.armR;
-      armN++;
-      group.position.set(0, 0, 0.35);
-      arm.add(group);
-    };
-    const mountShoulder = (group) => {
-      const sx = shoulderN === 0 ? 0.85 : -0.85;
-      shoulderN++;
-      group.position.set(sx, 1.5, -0.05);
-      this.torso.add(group);
-    };
-    slots.forEach((key, i) => {
-      const w = CONFIG.WEAPONS[key];
-      if (!w) { this.muzzles[i] = this.fallbackMuzzle; return; }
-      const { group, muzzle } = buildWeaponModel(key);
-      // 希望マウントが満杯なら反対側へオーバーフロー(最大 4 スロット = 必ず収まる)
-      if (w.mount === 'arm') {
-        if (armN < 2) mountArm(group); else mountShoulder(group);
-      } else {
-        if (shoulderN < 2) mountShoulder(group); else mountArm(group);
-      }
-      this.weaponGroups.push(group);
-      this.muzzles[i] = muzzle;
-    });
+    // V9.6: プリミティブ機体(ドックのプレースホルダ / glb 取得失敗のフォールバック)も
+    //   浮遊ドローン化して見た目を統一。root.scale は呼び出し側が cls.scale を設定済み。
+    const ws = this.root.scale.x || 1;
+    const r = buildDroneLoadout(this.root, slots, ws, this.fallbackMuzzle);
+    this.drones = r.drones;
+    this.weaponGroups = r.groups;
+    for (let i = 0; i < slots.length; i++) this.muzzles[i] = r.muzzles[i] || this.fallbackMuzzle;
   }
 
   /** フラッシュ開始(V7.0: 色/時間指定可。既定は被弾の白 0.09s) */
@@ -4032,6 +4056,10 @@ class MechModel {
         this.flashOn = false;
       }
     }
+
+    // V9.6: 浮遊ドローン(全武器)。root.scale は呼び出し側設定 → worldScale=root.scale.x。
+    animateDrones(this.drones, this.root.scale.x || 1, time,
+      clamp(this.torso.rotation.y, -CONFIG.TORSO_BONE_CLAMP, CONFIG.TORSO_BONE_CLAMP));
   }
 }
 
@@ -4222,58 +4250,13 @@ class GlbMechModel {
     }
     this.weaponGroups = [];
     this.muzzles = [];
-    this.followers = []; // { obj, bone, off:{x,y,z} } — 毎フレーム body 軸に沿って追従
-    this.drones = [];    // V9.4: 浮遊ドローン { obj, slot:{x,y,z}, phase, muzzle }
-    // V9.2: 人型リグへのハードポイント配置。肩武器=両肩の砲、それ以外=四肢(上腕→腿→脹脛)。
-    //   ボーンが欠落していても破綻しないよう、代替名 → 体幹ボーンの順にフォールバック。
-    const resolveBone = (names) => {
-      for (const n of names) if (this.bones[n]) return this.bones[n];
-      return this.bones['Spine02'] || this.bones['Spine01'] || this.bones['Spine'] || this.bones['Hips'] || null;
-    };
-    let shoN = 0, limbN = 0;
-    const tierCount = { heavy: 0, medium: 0, light: 0 }; // V9.5: ティア別ドローン数
-    slots.forEach((key, i) => {
-      const w = CONFIG.WEAPONS[key];
-      if (!w) { this.muzzles[i] = this.fallbackMuzzle; return; }
-
-      // V9.5: カスタム機体は全武器を「浮遊ドローン」方式に。サイズ(軽/中/重)で配置と大きさを
-      //   変え、武器種で色を変える。ビルトイン機体は従来のボーン密着配置のまま。
-      if (this.custom) {
-        const size = DRONE_TIERS[w.size] ? w.size : 'medium';
-        const tier = DRONE_TIERS[size];
-        const { group, muzzle } = buildWeaponDrone(key, size);
-        group.scale.setScalar(tier.scale / this.totalScale); // ティアのワールドサイズに正規化
-        const n = tierCount[size]++;
-        const base = tier.slots[n % tier.slots.length];
-        // 同ティアが slots を超えたら手前/奥へずらして重なり回避
-        const dz = Math.floor(n / tier.slots.length) * 0.55;
-        const slot = { x: base.x, y: base.y, z: base.z + dz };
-        this.weaponRig.add(group);
-        this.drones.push({ obj: group, slot, phase: i * 1.7, muzzle });
-        this.weaponGroups.push(group);
-        this.muzzles[i] = muzzle;
-        return;
-      }
-
-      const { group, muzzle } = buildWeaponModel(key);
-      group.scale.set(this._wpnNorm * this._wpnSlim, this._wpnNorm * this._wpnSlim, this._wpnNorm * this._wpnLong);
-      // ビルトイン: shoulder 武器は両肩、それ以外は四肢へ順番に(満杯時はループ)
-      let mp;
-      if (w.mount === 'shoulder' && shoN < GLB_SHOULDER_MOUNTS.length) {
-        mp = GLB_SHOULDER_MOUNTS[shoN++];
-      } else {
-        mp = GLB_LIMB_MOUNTS[limbN % GLB_LIMB_MOUNTS.length]; limbN++;
-      }
-      const bone = resolveBone(mp.names);
-      this.weaponRig.add(group);
-      if (bone) {
-        this.followers.push({ obj: group, bone, off: mp.off });
-      } else {
-        group.position.set(i % 2 ? 0.8 : -0.8, 2.6, 0.5);
-      }
-      this.weaponGroups.push(group);
-      this.muzzles[i] = muzzle;
-    });
+    this.followers = []; // 互換のため保持(V9.6 以降は未使用 = 全武器ドローン)
+    // V9.6: 全機体(ビルトイン含む)で武器を浮遊ドローン化。weaponRig は root(totalScale)の子で
+    //   scale 1 なので、worldScale = totalScale。サイズ別(軽/中/重)に配置・大きさを分岐。
+    const r = buildDroneLoadout(this.weaponRig, slots, this.totalScale, this.fallbackMuzzle);
+    this.drones = r.drones;
+    this.weaponGroups = r.groups;
+    for (let i = 0; i < slots.length; i++) this.muzzles[i] = r.muzzles[i] || this.fallbackMuzzle;
     this.syncWeapons(); // 装着直後から正しい位置(ドックの静止プレビュー対応)
   }
 
@@ -4283,45 +4266,10 @@ class GlbMechModel {
    * 向き: 常に上半身の照準方向(Spine に適用した twist と同じ yaw)・水平。
    */
   syncWeapons() {
-    const hasFollowers = this.followers && this.followers.length > 0;
-    const hasDrones = this.drones && this.drones.length > 0;
-    if (!hasFollowers && !hasDrones) return;
+    if (!this.drones || this.drones.length === 0) return;
+    // V9.6: 全武器ドローン。weaponRig は totalScale を継承するため worldScale=totalScale。
     const twist = clamp(this.torso.rotation.y, -CONFIG.TORSO_BONE_CLAMP, CONFIG.TORSO_BONE_CLAMP);
-    const sinT = Math.sin(twist), cosT = Math.cos(twist);
-
-    if (hasFollowers) {
-      this.weaponRig.updateWorldMatrix(true, false); // worldToLocal 用に最新化
-      const k = this._wpnNorm; // V9.0: オフセットも武器サイズと同じ基準で正規化(ビルトイン k=1)
-      // V9.2: off を機体の右/前ベクトル(twist 適用後)に沿って適用 → 各部位へ密着配置
-      const rX = cosT, rZ = -sinT; // 機体の右方向
-      const fX = sinT, fZ = cosT;  // 機体の前方向
-      for (const f of this.followers) {
-        f.bone.getWorldPosition(_wpnFollow);    // ボーン(0.01 スケール込み)のワールド座標
-        this.weaponRig.worldToLocal(_wpnFollow); // 等倍リグのローカルへ
-        const o = f.off;
-        f.obj.position.set(
-          _wpnFollow.x + (rX * o.x + fX * o.z) * k,
-          _wpnFollow.y + o.y * k,
-          _wpnFollow.z + (rZ * o.x + fZ * o.z) * k,
-        );
-        f.obj.rotation.set(0, twist, 0); // 照準方向(水平)
-      }
-    }
-
-    // V9.4: 浮遊ドローン。編隊スロット(機体中心からのワールドメートル)+ ボブ。
-    //   weaponRig は totalScale を継承するため、ワールド座標は totalScale で割って与える。
-    if (hasDrones) {
-      const inv = 1 / this.totalScale;
-      const t = this._time || 0;
-      for (const d of this.drones) {
-        const s = d.slot;
-        const bob = Math.sin(t * 1.5 + d.phase) * 0.12;       // 上下のボブ(ワールド m)
-        const sway = Math.sin(t * 0.9 + d.phase * 1.3) * 0.07; // 前後の揺れ
-        d.obj.position.set(s.x * inv, (s.y + bob) * inv, (s.z + sway) * inv);
-        // 照準方向へ向く + ボブに合わせた微小ピッチ/バンク
-        d.obj.rotation.set(Math.sin(t * 1.5 + d.phase) * 0.06, twist, Math.sin(t * 1.1 + d.phase) * 0.05);
-      }
-    }
+    animateDrones(this.drones, this.totalScale, this._time, twist);
   }
 
   /** フラッシュ開始(V7.0: 色/時間指定可。既定は被弾の白 0.09s) */
@@ -4497,18 +4445,13 @@ class StaticMechModel {
     }
     this.weaponGroups = [];
     this.muzzles = [];
-    slots.forEach((key, i) => {
-      const w = CONFIG.WEAPONS[key];
-      if (!w) { this.muzzles[i] = this.fallbackMuzzle; return; }
-      const { group, muzzle } = buildWeaponModel(key);
-      const hp = this.hardpoints[i % this.hardpoints.length];
-      // ハードポイント不足時は同位置に少しずらして重ね置き(最大 4 スロット)
-      const dup = Math.floor(i / this.hardpoints.length) * 0.35;
-      group.position.set(hp[0], hp[1] + dup, hp[2]);
-      this.torso.add(group); // torso 子 = 照準方向に追従
-      this.weaponGroups.push(group);
-      this.muzzles[i] = muzzle;
-    });
+    // V9.6: 静的機体も全武器を浮遊ドローン化。root は scale 1(メッシュ側を内部スケール)
+    //   なので worldScale = root.scale.x。drone は root(facing フレーム)へ追加し twist で照準。
+    const ws = this.root.scale.x || 1;
+    const r = buildDroneLoadout(this.root, slots, ws, this.fallbackMuzzle);
+    this.drones = r.drones;
+    this.weaponGroups = r.groups;
+    for (let i = 0; i < slots.length; i++) this.muzzles[i] = r.muzzles[i] || this.fallbackMuzzle;
   }
 
   /** フラッシュ開始(色/時間指定可。既定は被弾の白 0.09s) */
@@ -4616,6 +4559,10 @@ class StaticMechModel {
         this.flashOn = false;
       }
     }
+
+    // V9.6: 浮遊ドローン(全武器)。root は scale 1 → worldScale=root.scale.x。twist=照準。
+    animateDrones(this.drones, this.root.scale.x || 1, time,
+      clamp(this.torso.rotation.y, -CONFIG.TORSO_BONE_CLAMP, CONFIG.TORSO_BONE_CLAMP));
   }
 }
 
