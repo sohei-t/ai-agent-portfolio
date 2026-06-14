@@ -24,17 +24,20 @@
   {
     "id": "TEST_001",
     "name": {
-      "ja": "SOHEI",
-      "en": "SOHEI"
+      "ja": "宗平-R2",
+      "en": "SOHEI-R2"
     },
     "role": "player",
     "model": "TEST_001",
     "modelType": "rigged",
-    "hp": 300,
-    "speed": 7.0,
+    "hp": 200,
     "hardpoints": [
+      "heavy",
+      "heavy",
+      "medium",
       "medium"
     ],
+    "speed": 6.5,
     "yaw": 0.0012,
     "scale": 1.0,
     "ability": "shield",
