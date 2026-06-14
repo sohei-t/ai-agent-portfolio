@@ -1,6 +1,20 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V8.7.1)
+// ROBO BATTLE 3D - Prototype (V8.7.2)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
+//
+// V8.7.2 変更点(バグ修正 + UX・実機フィードバック):
+//   1. カメラ📷/ターゲット🎯切替が効かない不具合を修正(V8.7 で右下クラスタへ
+//      移動した際の取りこぼし)。原因: 隣接ボタンの ::after 拡張ヒット領域(±6px)が
+//      JUMP/ABILITY(bottom172)と上辺で重なり、タッチ/スワイプ判定とも競合して
+//      press() のタップが奪われ得た。対策: (a) pointerdown で確実に結線(タッチ/
+//      マウス統一・他要素の touch preventDefault による合成 click 抑止の影響を受けない)、
+//      (b) z-index:5 で最前面化、(c) cam/target の ::after 上辺拡張を 0 にして近接
+//      ボタンとのヒット重なりを解消。PC の F(カメラ)/Tab(ターゲット)は維持。
+//   2. 機体選択/スワイプ時の詳細パネル(#class-info)自動展開を廃止(所持/未所持問わず)。
+//      ロボ全景を優先し、詳細(購入情報含む)は ⓘ ボタンのタップでのみ開く。
+//      未所持機体の購入導線は二重化: (a) ⓘ→詳細→BUY、(b) 未所持選択時は START
+//      ボタンを「🔒購入 N pt」(2 度押しで「購入する? N pt」確認)に切替え、ロボを
+//      隠さず購入可能。購入後は所持化で START が出撃ラベルへ自動復帰。
 //
 // V8.7.1 変更点(V8.7 のハンガー peek 2 件・実機フィードバック):
 //   1. peek の縦画面漏れ修正: ポートレートで status/タイトル/チップが残る問題 →
@@ -2199,6 +2213,7 @@ const I18N = {
     slots: 'SLOTS', abilitySprint: '⚡ スプリント', abilityShield: '🛡 シールド',
     moveHover: '🛸 ホバー(後退ペナルティなし)', moveTrack: '⛓ 履帯', moveBiped: '🦿 二足',
     buyMech: '🔒 購入 {0} pt', buyMechConfirm: '購入する? {0} pt',
+    launchStart: 'START ⚔', // V8.7.2: 所持機体の出撃ラベル(未所持時は buyMech に切替)
     sellMech: '売却 60% (+{0} pt)', sellMechConfirm: '売却する? +{0} pt', sellMechLast: '売却不可(最後の 1 台)',
     rosterFull: '機体は最大 {0} 台 — 先にいずれかを売却',
     needMorePt: 'あと {0} pt 必要',
@@ -2325,6 +2340,7 @@ const I18N = {
     slots: 'SLOTS', abilitySprint: '⚡ SPRINT', abilityShield: '🛡 SHIELD',
     moveHover: '🛸 HOVER (no reverse penalty)', moveTrack: '⛓ TRACKED', moveBiped: '🦿 BIPED',
     buyMech: '🔒 BUY {0} pt', buyMechConfirm: 'PURCHASE? {0} pt',
+    launchStart: 'START ⚔', // V8.7.2: deploy label for owned mech (swaps to buyMech when unowned)
     sellMech: 'SELL 60% (+{0} pt)', sellMechConfirm: 'SELL? +{0} pt', sellMechLast: 'CANNOT SELL (last mech)',
     rosterFull: 'Max {0} mechs — sell one first',
     needMorePt: 'Need {0} more pt',
@@ -6530,8 +6546,19 @@ class InputManager {
     press(fireMain, () => { this.fireAllHeld = true; }, () => { this.fireAllHeld = false; });
     press(jumpBtn, () => { this.jumpQueued = true; }, () => {});
     press(abilityBtn, () => { this.abilityQueued = true; }, () => {});
-    press(targetBtn, () => { this.targetCycleQueued = true; }, () => {});
-    if (camBtn) press(camBtn, () => { this.camCycleQueued = true; }, () => {}); // V7.7
+    // V8.7.2: カメラ/ターゲットは「離散トグル」。V8.7 で右下クラスタへ移動した際に
+    //   タップが効かなくなった事故の恒久対策として pointerdown で確実に結線する。
+    //   pointerdown はタッチ/マウス/ペンを統一で拾い、他要素の touch preventDefault に
+    //   よる合成 click 抑止の影響を受けない。押下フラグを立て、consume が次フレームで処理。
+    const tapCycle = (el, set) => {
+      if (!el) return;
+      el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add('pressed'); set(); });
+      el.addEventListener('pointerup', () => el.classList.remove('pressed'));
+      el.addEventListener('pointercancel', () => el.classList.remove('pressed'));
+      el.addEventListener('pointerleave', () => el.classList.remove('pressed'));
+    };
+    tapCycle(targetBtn, () => { this.targetCycleQueued = true; });
+    tapCycle(camBtn, () => { this.camCycleQueued = true; });
     // V8.4: ブースト移動(押下中だけ true。離す/touchcancel で false)
     if (boostBtn) press(boostBtn, () => { this.boostHeld = true; }, () => { this.boostHeld = false; });
     this._press = press; // V7.1: 動的セグメントの結線に再利用
@@ -10768,6 +10795,37 @@ function buyMech(clsKey) {
   refreshHangarUI();
 }
 
+/**
+ * V8.7.2: START ボタン(未所持時は「🔒 購入 N pt」)からの購入導線。
+ *   詳細パネルの mech-buy-btn と同じ 2 度押し確認・満杯/残高不足チェックを通す。
+ *   1 度目: 確認状態へ(ラベルが「購入する? N pt」化)。2 度目: 実購入 → 所持化で
+ *   START が出撃ラベルに戻る。
+ */
+function buyMechFromStart(clsKey) {
+  const cls = CONFIG.MECH_CLASSES[clsKey];
+  if (!cls || mechOwned(clsKey)) return;
+  if (SAVE.mechsOwned.length >= CONFIG.MECH_MAX_OWNED) {
+    showToast(T('sellFirst', SAVE.mechsOwned.length, CONFIG.MECH_MAX_OWNED));
+    uiSfx();
+    return;
+  }
+  if (SAVE.wallet < cls.price) {
+    $id('hangar-status').textContent = T('insufficientFunds', fmtPt(cls.price - SAVE.wallet));
+    uiSfx();
+    return;
+  }
+  const pm = HANGAR.pendingMech;
+  if (!(pm && pm.type === 'buy' && pm.key === clsKey)) {
+    HANGAR.pendingMech = { type: 'buy', key: clsKey }; // 1 度目: 確認待ちへ
+    $id('hangar-status').textContent = T('buyMechConfirm', fmtPt(cls.price));
+    uiSfx();
+    refreshHangarUI();
+    return;
+  }
+  HANGAR.pendingMech = null;
+  buyMech(clsKey); // 2 度目: 確定購入(内部で refreshHangarUI → START ラベル復帰)
+}
+
 /** 機体を売却(60%)。装備中の武器はロードアウト解除 = 在庫へ戻る */
 function sellMech(clsKey) {
   const cls = CONFIG.MECH_CLASSES[clsKey];
@@ -10862,8 +10920,9 @@ function renderClassTabs() {
       HANGAR.activeSlot = -1;
       HANGAR.pendingBuy = null;
       HANGAR.pendingMech = null;
-      // V7.5: 未所持機体を選んだら詳細(BUY のある場所)を自動で開く
-      if (!owned) HANGAR.detailOpen = true;
+      // V8.7.2: 機体選択時は詳細(#class-info)を自動展開しない。
+      //   所持/未所持を問わずロボ全景を優先し、詳細は ⓘ ボタンでのみ開く。
+      //   未所持の購入導線は START ボタンの「🔒購入 N pt」表示で確保する。
       uiSfx();
       refreshHangarUI();
     });
@@ -10884,8 +10943,8 @@ function selectMechByIndex(dir) {
   HANGAR.activeSlot = -1;
   HANGAR.pendingBuy = null;
   HANGAR.pendingMech = null;
-  // 未所持機体に切り替えたら詳細(BUY のある場所)を自動で開く(チップ選択と同挙動)
-  if (!mechOwned(next)) HANGAR.detailOpen = true;
+  // V8.7.2: スワイプ切替でも詳細は自動展開しない(ロボ全景優先)。
+  //   未所持機体の購入導線は START ボタンの「🔒購入 N pt」表示で確保する。
   uiSfx();
   refreshHangarUI(); // ステータス更新・3D 差し替え・購入状態・武器パネルを通す
 }
@@ -10966,6 +11025,24 @@ function refreshHangarUI() {
   }
   const ciBackdrop = $id('ci-backdrop');
   if (ciBackdrop) ciBackdrop.classList.toggle('show', !!HANGAR.detailOpen);
+
+  // V8.7.2: 未所持機体を選択中は START ボタン自体を購入導線に切り替える。
+  //   詳細パネルを開かずともロボ全景のまま購入でき、ロボを隠さない小さな導線を確保。
+  //   所持機体では従来どおり「START ⚔」で出撃。
+  const launchBtn = $id('launch-btn');
+  if (launchBtn) {
+    if (owned) {
+      launchBtn.textContent = T('launchStart');
+      launchBtn.classList.remove('buy-mode', 'confirm');
+    } else {
+      const confirming = pm && pm.type === 'buy' && pm.key === clsKey;
+      launchBtn.textContent = confirming
+        ? T('buyMechConfirm', fmtPt(cls.price)) // 購入する? N pt(2 度押し確認)
+        : T('buyMech', fmtPt(cls.price));        // 🔒 購入 N pt
+      launchBtn.classList.add('buy-mode');
+      launchBtn.classList.toggle('confirm', !!confirming);
+    }
+  }
 
   // 機体の購入/売却ボタン(2 度押し確認)
   const buyBtn = $id('mech-buy-btn');
@@ -11458,11 +11535,10 @@ async function buildSetup(playerClass) {
 /** 出撃(Game は常に存在 → redeploy のみ) */
 async function deploy() {
   if (HANGAR.deploying || !HANGAR.game) return;
-  // V7.2: 出撃は所有機体のみ
+  // V8.7.2: 未所持機体では START が「🔒 購入 N pt」になっている → 出撃せず購入導線へ。
+  //   詳細パネルの BUY と同じ 2 度押し確認(満杯/残高不足チェック込み)を通す。
   if (!mechOwned(HANGAR.selectedClass)) {
-    $id('hangar-status').textContent = T('mechNotOwnedStatus');
-    showToast(T('mechNotOwnedToast', CONFIG.MECH_CLASSES[HANGAR.selectedClass].name));
-    uiSfx();
+    buyMechFromStart(HANGAR.selectedClass);
     return;
   }
   // 全スロット空での出撃は禁止(最低 1 武器。V7.1: スロット数可変)
