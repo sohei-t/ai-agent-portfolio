@@ -1,5 +1,5 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V9.9)
+// ROBO BATTLE 3D - Prototype (V9.11)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
 //
 // V9.7 変更点(セーブ消失バグ修正 + 購入機体の即戦力化):
@@ -1076,7 +1076,7 @@ const CONFIG = {
   PWR_AI_SEEK_RANGE: 40,  // V8.2: 敵 AI がアイテムへ寄り道する最大距離
   PWR_AI_SEEK_CHANCE: 0.5, // V8.2: 範囲内のとき寄り道する確率(過度に賢くしない)
   PWR_REPAIR_HP: 60,      // REPAIR: 即時回復量
-  PWR_POWER_TIME: 15,     // POWER: 持続(s)
+  PWR_POWER_TIME: 90,     // POWER: 持続(s) V9.10: 15→90(敵と遭遇して使える時間を確保)
   PWR_POWER_MUL: 1.3,     // POWER: 与ダメージ倍率(+30%)
   // V8.4: SPEED パワーアップは廃止(ブースト移動 BOOST_MUL に置換)
   PWR_NUKE_DMG: 60,       // NUKE: 直撃ダメージ
@@ -3393,9 +3393,54 @@ function makeContainerTexture(color) {
 //   マテリアルは共有キャッシュ(機体間で使い回し)
 // ============================================================
 const WPN_MATS = {};
+let WPN_ENV = null;   // 武器材質の金属反射用 簡易スタジオ環境(PMREM)
+// V9.11: 金属が「平坦」に見えていた主因 = 環境反射(envMap)が無いこと。
+//   環境反射 + クリアコート(艶)を全武器材質に与えて質感を底上げ。全 26 種の武器は
+//   この wpnMat 経由なので、ここを強化すれば一括で効く(形状は不変・材質のみ向上)。
 function wpnMat(key, params) {
-  if (!WPN_MATS[key]) WPN_MATS[key] = new THREE.MeshStandardMaterial(params);
+  if (!WPN_MATS[key]) {
+    const p = Object.assign({
+      envMapIntensity: 1.15,
+      clearcoat: 0.55,          // 機械加工金属の艶(ハイライトの芯)
+      clearcoatRoughness: 0.35,
+    }, params);
+    if (WPN_ENV) p.envMap = WPN_ENV;
+    WPN_MATS[key] = new THREE.MeshPhysicalMaterial(p);
+  }
   return WPN_MATS[key];
+}
+
+// キャンバスの上下グラデから簡易環境を作り PMREM 化して返す(武器の金属反射用)。
+//   追加ライブラリ不要。renderer が必要なので初期化後に一度だけ呼ぶ。
+function buildWeaponEnvMap(renderer) {
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = 64;
+  const ctx = c.getContext('2d');
+  const grd = ctx.createLinearGradient(0, 0, 0, 64);
+  grd.addColorStop(0.00, '#aebfd0');  // 上=明るい空(ハイライト源)
+  grd.addColorStop(0.45, '#46525f');
+  grd.addColorStop(0.52, '#1d232a');  // 地平線
+  grd.addColorStop(1.00, '#070809');  // 下=暗い床
+  ctx.fillStyle = grd; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';   // 上端の鋭いハイライト
+  ctx.fillRect(0, 0, c.width, 3);
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = pmrem.fromEquirectangular(tex).texture;
+  pmrem.dispose();
+  tex.dispose();
+  return env;
+}
+
+// 生成した環境マップを WPN_ENV に保存し、既存の武器材質にも後追いで反映する。
+function applyWeaponEnv(env) {
+  WPN_ENV = env;
+  for (const k in WPN_MATS) {
+    WPN_MATS[k].envMap = env;
+    WPN_MATS[k].needsUpdate = true;
+  }
 }
 
 // V9.0: カスタム機体の武器サイズ係数。カスタム機体は 4.1m へ自動正規化(totalScale 大)する
@@ -6220,7 +6265,7 @@ class MinePool {
 // V8.4: SPEED(💨)を廃止(ブースト移動が常時使えるため)。抽選候補は REPAIR/POWER/NUKE
 const PWR_TYPES = [
   { key: 'REPAIR', color: 0x44ff88, icon: '🔧' }, // 即時 +60 HP
-  { key: 'POWER', color: 0xff5040, icon: '💥' },  // 15s 与ダメ +30%
+  { key: 'POWER', color: 0xff5040, icon: '💥' },  // 90s 与ダメ +30%
   { key: 'NUKE', color: 0xffe24a, icon: '☢' },   // 次の 1 発が特殊ミサイル化
 ];
 class PowerupPool {
@@ -7658,6 +7703,10 @@ class Game {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     document.body.appendChild(this.renderer.domElement);
+
+    // V9.11: 武器材質に金属反射を与える環境マップを生成・反映(失敗時は従来見た目で継続)
+    try { applyWeaponEnv(buildWeaponEnvMap(this.renderer)); }
+    catch (e) { console.warn('weapon envMap 生成に失敗:', e); }
 
     this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1000);
   }
