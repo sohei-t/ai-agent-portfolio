@@ -3934,9 +3934,23 @@ function buildGlbWeaponDrone(srcScene, tier, th) {
   model.scale.setScalar(DRONE_GLB_SCALE);
   g.add(model);
   const bb = new THREE.Box3().setFromObject(model);
+  const cy = (bb.min.y + bb.max.y) / 2;
   const muzzle = new THREE.Object3D();
-  muzzle.position.set(0, (bb.min.y + bb.max.y) / 2, bb.max.z + 0.05);
+  muzzle.position.set(0, cy, bb.max.z + 0.05);
   g.add(muzzle);
+  // V9.15: ブースター発火(後方・加算合成の炎。animateDrones でフリッカー)
+  const span = bb.max.x - bb.min.x;
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(span * 0.32, span * 1.5, 14, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0xff8a32), transparent: true, opacity: 0.85,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    }),
+  );
+  flame.rotation.x = -Math.PI / 2;             // 円錐を -Z 方向(後方)へ
+  flame.position.set(0, cy, bb.min.z - span * 0.55);
+  g.add(flame);
+  g.userData.flame = flame;
   return { group: g, muzzle };
 }
 
@@ -4021,6 +4035,13 @@ function animateDrones(drones, worldScale, time, twist) {
     const sway = Math.sin(t * 0.9 + d.phase * 1.3) * 0.07; // 前後の揺れ
     d.obj.position.set(s.x * inv, (s.y + bob) * inv, (s.z + sway) * inv);
     d.obj.rotation.set(Math.sin(t * 1.5 + d.phase) * 0.06, twist, Math.sin(t * 1.1 + d.phase) * 0.05);
+    // V9.15: ブースター発火のフリッカー(高速の揺らぎ)
+    const fl = d.obj.userData && d.obj.userData.flame;
+    if (fl) {
+      const flick = 0.78 + 0.22 * Math.sin(t * 38 + d.phase * 7) + 0.1 * Math.sin(t * 91 + d.phase * 3);
+      fl.scale.set(1, 1, Math.max(0.45, flick));
+      fl.material.opacity = 0.5 + 0.35 * (flick - 0.78);
+    }
   }
 }
 
