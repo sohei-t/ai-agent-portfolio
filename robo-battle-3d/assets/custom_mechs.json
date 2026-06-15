@@ -42,5 +42,51 @@
     "scale": 1.0,
     "ability": "shield",
     "price": 3000
+  },
+  {
+    "id": "YOSHITATSU_V01",
+    "name": {
+      "ja": "ヨシカツ",
+      "en": "YOSHITATSU-V01"
+    },
+    "role": "player",
+    "model": "TEST_002",
+    "modelType": "rigged",
+    "hp": 300,
+    "hardpoints": [
+      "light",
+      "light",
+      "heavy",
+      "heavy"
+    ],
+    "speed": 4.000000000000001,
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 1500,
+    "assetVersion": 1781504672
+  },
+  {
+    "id": "YANMER_V01",
+    "name": {
+      "ja": "ヤンマー",
+      "en": "YANMER-V01"
+    },
+    "role": "player",
+    "model": "YANMER_V01",
+    "modelType": "rigged",
+    "hp": 300,
+    "hardpoints": [
+      "light",
+      "light",
+      "heavy",
+      "heavy"
+    ],
+    "speed": 5.0,
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 2000,
+    "assetVersion": 1781506100
   }
 ]
