@@ -1,5 +1,5 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V9.14)
+// ROBO BATTLE 3D - Prototype (V9.15)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
 //
 // V9.7 変更点(セーブ消失バグ修正 + 購入機体の即戦力化):
@@ -832,7 +832,7 @@ const CONFIG = {
   HOVER_ACCEL_MUL: 1.4,   // 加速度ボーナス(MECH_ACCEL に乗算)
 
   // V7.2: 機体ロスター(購入・所有・売却)
-  MECH_MAX_OWNED: 3,      // 同時所有の上限(編成判断を生む)
+  MECH_MAX_OWNED: 6,      // 同時所有の上限(V9.14: 3→6)
   MECH_SELL_RATIO: 0.6,   // 売却額 = 購入価格 × この率
   NEW_PLAYER_WALLET: 5000, // 新規プレイヤーの初期ポイント(V7.7: 3,000→5,000。修復判定 looksLikeFreshDefault の閾値も自動追従)
   BALANCE_BONUS_75: 2000,  // V7.5.2: 既存セーブへの一回限りバランス調整ボーナス
@@ -3880,7 +3880,13 @@ const DRONE_THEME = {
 // V9.12: Blender製の「軽武器ドローン」glb。武器ごとに専用モデルをプリロードしてクローン使用。
 //   無い武器は _default(汎用) → それも無ければ手続き的版にフォールバック(安全)。
 const WEAPON_DRONE_GLBS = {};   // key → THREE.Object3D(scene)。'_default' は汎用フォールバック
-const WEAPON_DRONE_KEYS = ['pulse', 'mg', 'needle', 'swarm', 'blazer', 'vortex', 'quasar'];
+const WEAPON_DRONE_KEYS = [
+  'pulse', 'mg', 'needle', 'swarm', 'blazer', 'vortex', 'quasar',          // 軽
+  'spread', 'missile', 'arc', 'repulsor', 'minelayer', 'brute', 'lance',   // 中
+  'repeater', 'tachyon', 'helios',
+  'bazooka', 'rail', 'artillery', 'tempest', 'devastator', 'havoc',        // 重
+  'annihilator', 'inferno', 'titan',
+];
 const DRONE_GLB_SCALE = 0.75;   // glb(全長~2.3)→ドローン局所サイズへ正規化。見て微調整可
 async function loadOneDroneGlb(url) {
   const r = await fetch(url, { cache: 'force-cache' });
@@ -3914,7 +3920,7 @@ function buildGlbWeaponDrone(srcScene, tier, th) {
     const mats = (wasArray ? o.material : [o.material]).map((m) => {
       const c = m.clone();
       const nm = (m.name || '').toLowerCase();
-      const isAccent = nm.includes('glow') || (m.emissive && (m.emissiveIntensity || 0) > 0);
+      const isAccent = nm.includes('glow') || nm.includes('accent') || (m.emissive && (m.emissiveIntensity || 0) > 0);
       c.color = (isAccent ? accent : hull).clone();
       c.metalness = 1.0;
       c.roughness = isAccent ? 0.30 : 0.46;        // アクセントは磨き、本体はやや梨地
@@ -3939,8 +3945,8 @@ function buildGlbWeaponDrone(srcScene, tier, th) {
 function buildWeaponDrone(wKey, size) {
   const tier = DRONE_TIERS[size] || DRONE_TIERS.medium;
   const th = DRONE_THEME[wKey] || { hull: 0x2c3138, glow: 0x66ddff };
-  // V9.12: 軽武器は Blender製ドローン glb を使用(武器専用→汎用の順。無ければ下の手続き的版)
-  if (size === 'light') {
+  // V9.14: 全サイズ(軽/中/重)で Blender製ドローン glb を使用(武器専用→汎用。無ければ手続き的)
+  {
     const src = WEAPON_DRONE_GLBS[wKey] || WEAPON_DRONE_GLBS._default;
     if (src) return buildGlbWeaponDrone(src, tier, th);
   }
