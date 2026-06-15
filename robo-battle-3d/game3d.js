@@ -1,5 +1,5 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V9.11)
+// ROBO BATTLE 3D - Prototype (V9.12)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
 //
 // V9.7 変更点(セーブ消失バグ修正 + 購入機体の即戦力化):
@@ -3877,11 +3877,62 @@ const DRONE_THEME = {
   inferno: { hull: 0x3a2a20, glow: 0xff7a30 },   titan: { hull: 0x3a2222, glow: 0xff3a20 },
 };
 
+// V9.12: Blender製の「軽武器ドローン」glb。プリロード後にクローンして使う(未ロード時は手続き的)。
+let WEAPON_DRONE_GLB = null;
+const DRONE_GLB_SCALE = 0.75;   // glb(全長~2.26)→ドローン局所サイズへ正規化。見て微調整可
+async function loadWeaponDroneGlb() {
+  try {
+    const r = await fetch(MODEL_BASE + 'weapon_drone_light.glb', { cache: 'force-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const gltf = await parseModel(new GLTFLoader(), await r.arrayBuffer());
+    WEAPON_DRONE_GLB = gltf ? gltf.scene : null;
+    if (WEAPON_DRONE_GLB) console.log('[drone] Blender軽武器ドローン ロード完了');
+  } catch (e) {
+    console.warn('[drone] 軽武器glbロード失敗 → 手続き的にフォールバック:', e);
+    WEAPON_DRONE_GLB = null;
+  }
+}
+
+// glb をクローンし武器テーマ色で tint して 1 体のドローンに。muzzle は実バウンディングの前端(+Z)。
+function buildGlbWeaponDrone(wKey, tier, th) {
+  const g = new THREE.Group();
+  const model = WEAPON_DRONE_GLB.clone(true);
+  const hull = new THREE.Color(th.hull);
+  const glow = new THREE.Color(th.glow);
+  model.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = true;
+    const wasArray = Array.isArray(o.material);
+    const mats = (wasArray ? o.material : [o.material]).map((m) => {
+      const c = m.clone();
+      const nm = (m.name || '').toLowerCase();
+      const emits = c.emissive && (c.emissiveIntensity || 0) > 0;
+      if (nm.includes('glow') || emits) {        // 発光部 = テーマの glow 色
+        c.color = glow.clone();
+        if (c.emissive) { c.emissive = glow.clone(); c.emissiveIntensity = Math.max(c.emissiveIntensity || 0, 2.2); }
+      } else {                                    // GunMetal / Steel = テーマのハル色
+        c.color = hull.clone();
+      }
+      return c;
+    });
+    o.material = wasArray ? mats : mats[0];
+  });
+  model.scale.setScalar(DRONE_GLB_SCALE);
+  g.add(model);
+  const bb = new THREE.Box3().setFromObject(model);
+  const muzzle = new THREE.Object3D();
+  muzzle.position.set(0, (bb.min.y + bb.max.y) / 2, bb.max.z + 0.05);
+  g.add(muzzle);
+  return { group: g, muzzle };
+}
+
 // ドローン生成(汎用)。ポッド(テーマ色)+ 既存武器バレル(武器ごとに固有形状・色)を細身に
 //   整形して前方へ。サイズティアでポッド径・バレル倍率が変わる。muzzle はバレルの砲口を流用。
 function buildWeaponDrone(wKey, size) {
   const tier = DRONE_TIERS[size] || DRONE_TIERS.medium;
   const th = DRONE_THEME[wKey] || { hull: 0x2c3138, glow: 0x66ddff };
+  // V9.12: 軽武器は Blender製ドローン glb を使用(ロード済みのみ。未ロードは下の手続き的版)
+  if (size === 'light' && WEAPON_DRONE_GLB) return buildGlbWeaponDrone(wKey, tier, th);
   const g = new THREE.Group();
   const add = (mesh) => { mesh.castShadow = true; g.add(mesh); return mesh; };
   const pr = tier.pod;
@@ -12218,6 +12269,7 @@ function buildBootSetup(playerClass) {
 
     // ドックシーン + 武器サムネ + UI 構築(refreshHangarUI が lastClass のロードを開始)
     buildDockScene();
+    loadWeaponDroneGlb();   // V9.12: 軽武器ドローンの glb を非同期プリロード(失敗時は手続き的)
     generateWeaponThumbs();
     renderClassTabs();
     refreshHangarUI();
