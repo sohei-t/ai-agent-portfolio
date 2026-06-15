@@ -22,28 +22,6 @@
     "price": 5000
   },
   {
-    "id": "TEST_001",
-    "name": {
-      "ja": "宗平-R2",
-      "en": "SOHEI-R2"
-    },
-    "role": "player",
-    "model": "TEST_001",
-    "modelType": "rigged",
-    "hp": 200,
-    "hardpoints": [
-      "heavy",
-      "heavy",
-      "medium",
-      "medium"
-    ],
-    "speed": 6.5,
-    "yaw": 0.0012,
-    "scale": 1.0,
-    "ability": "shield",
-    "price": 3000
-  },
-  {
     "id": "YOSHITATSU_V01",
     "name": {
       "ja": "ヨシカツ",
@@ -111,5 +89,28 @@
     "ability": "shield",
     "price": 1500,
     "assetVersion": 1781526735
+  },
+  {
+    "id": "SOHEI001",
+    "name": {
+      "ja": "宗平",
+      "en": "SOHEI-R2"
+    },
+    "role": "player",
+    "model": "TEST_001",
+    "modelType": "rigged",
+    "hp": 360,
+    "hardpoints": [
+      "heavy",
+      "heavy",
+      "medium",
+      "medium"
+    ],
+    "speed": 3.6,
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 1500,
+    "assetVersion": 1781530000
   }
 ]
