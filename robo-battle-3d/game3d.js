@@ -3902,6 +3902,13 @@ async function loadWeaponDroneGlbs() {
     catch (e) { /* 専用が無ければ _default / 手続き的へ */ }
   }));
   console.log('[drone] weapon glb loaded:', Object.keys(WEAPON_DRONE_GLBS));
+  // V9.15: glb 確定後に武器サムネを再生成し、開いている UI を更新
+  try {
+    generateWeaponThumbs();
+    if (typeof refreshHangarUI === 'function') refreshHangarUI();
+    const modal = $id('wpn-modal');
+    if (modal && !modal.classList.contains('hidden') && typeof renderWeaponModal === 'function') renderWeaponModal();
+  } catch (e) { /* UI 未構築時は無視 */ }
 }
 
 // glb をクローンし武器テーマ色で tint して 1 体のドローンに。muzzle は実バウンディングの前端(+Z)。
@@ -11301,30 +11308,41 @@ function generateWeaponThumbs() {
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     r.setSize(W, H);
     r.setClearColor(0x000000, 0); // 透明背景
+    r.toneMapping = THREE.ACESFilmicToneMapping;   // 本編と同じ見た目に
     const sc = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(30, W / H, 0.05, 30);
     sc.add(new THREE.HemisphereLight(0xcfe8ff, 0x404a58, 1.4));
-    const dl = new THREE.DirectionalLight(0xffffff, 2.2);
+    const dl = new THREE.DirectionalLight(0xffffff, 2.4);
     dl.position.set(2, 3, 4);
     sc.add(dl);
+    // V9.15: サムネ用レンダラ専用の反射環境(別GLコンテキストのため WPN_ENV は使えない)
+    const thumbEnv = buildWeaponEnvMap(r);
     const box = new THREE.Box3();
     const center = new THREE.Vector3();
     const size = new THREE.Vector3();
     for (const key of Object.keys(CONFIG.WEAPONS)) {
-      const { group } = buildWeaponModel(key);
+      const w = CONFIG.WEAPONS[key];
+      // V9.15: 武器選択UIもドローンglbで撮影(未ロードは手続き的にフォールバック)
+      const { group } = buildWeaponDrone(key, w.size);
+      if (group.userData && group.userData.flame) group.remove(group.userData.flame); // 炎は静止画では除外
+      group.traverse((o) => {                       // サムネ用 env を適用(反射で金属感)
+        if (!o.isMesh) return;
+        const ms = Array.isArray(o.material) ? o.material : [o.material];
+        ms.forEach((m) => { if ('envMap' in m) { m.envMap = thumbEnv; m.needsUpdate = true; } });
+      });
       sc.add(group);
       box.setFromObject(group);
       box.getCenter(center);
       const diag = box.getSize(size).length();
       // 斜め前から撮影
-      cam.position.set(center.x + diag * 0.65, center.y + diag * 0.42, center.z + diag * 0.95);
+      cam.position.set(center.x + diag * 0.6, center.y + diag * 0.4, center.z + diag * 0.95);
       cam.lookAt(center);
       r.render(sc, cam);
       THUMBS[key] = r.domElement.toDataURL();
       sc.remove(group);
     }
     r.dispose();
-    console.info('[V6.8] 武器サムネイル生成完了:', Object.keys(THUMBS).length);
+    console.info('[V9.15] 武器サムネイル(ドローン)生成完了:', Object.keys(THUMBS).length);
   } catch (err) {
     console.warn('[V6.8] サムネ生成失敗 → テキストフォールバック:', err);
   }
