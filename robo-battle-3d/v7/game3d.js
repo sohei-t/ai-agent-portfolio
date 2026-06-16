@@ -1,4 +1,5 @@
 // ============================================================
+// ROBO BATTLE 3D v7 - P2P 最大4人対戦ベース (v6 V9.18 を複製して開始)
 // ROBO BATTLE 3D - Prototype (V9.18)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
 //
@@ -1240,6 +1241,12 @@ const CONFIG = {
 
   // 敵AI(V6.6: FFA 化。攻撃トークン制は廃止 — ターゲット分散で過集中を自然回避)
   ENEMY_COUNT: 6,         // V7.4: 3→6(計 7 機の本格乱戦)
+  NET_SNAP_HZ: 20,        // v7 M2a: オンライン同期スナップショット送信レート(回/秒)
+  NET_TIME_LIMIT: 300,    // v7 M3: オンライン制限時間(秒)。5 分で打ち切り → 生存者にボーナス
+  NET_SC_KILL: 100,       // v7 M3: スコア = 撃破×100 + ダメージ×0.05 + 生存秒×0.5 + 生存者150
+  NET_SC_DMG: 0.05,
+  NET_SC_SURV_SEC: 0.5,
+  NET_SC_SURVIVOR: 150,   // 時間切れ時に生存していた人へのボーナス
   AI_CLASS_VARIETY: 4,    // V7.4: 1 試合の AI クラスは最大 4 種(glb の DL/parse 抑制)
   EDGE_ARROW_MAX: 4,      // V7.4: 画面外矢印は最寄り 4 機まで(混雑回避)
   AI_SHADOW_MAX_MOBILE: 3, // V7.4: モバイルで影を落とす AI 機体数の上限(性能)
@@ -1968,7 +1975,7 @@ function applyHiddenMechs(ids) {
 // hidden_mechs.json を相対 fetch(存在しない/壊れ/空でも正常動作 = [] を返す)。
 async function fetchHiddenMechs() {
   try {
-    const r = await fetch('./assets/hidden_mechs.json', { cache: 'no-store' }); // V8.10: 登録直後の反映漏れ防止
+    const r = await fetch('../assets/hidden_mechs.json', { cache: 'no-store' }); // V8.10: 登録直後の反映漏れ防止
     if (!r.ok) { console.warn(`[V8.9] hidden_mechs.json HTTP ${r.status} → 全機体表示で続行`); return []; }
     const data = await r.json();
     if (!Array.isArray(data)) { console.warn('[V8.9] hidden_mechs.json は配列でない → 無視(全機体表示)'); return []; }
@@ -2071,7 +2078,7 @@ function rosterForLevel(plv, playerClass) {
 //   enumVals は実行時のゲーム定数から動的に算出(下の getter で公開)
 const CUSTOM_MECH_SCHEMA = {
   version: 1,
-  jsonPath: './assets/custom_mechs.json', // 相対パス(GitHub Pages 対応)
+  jsonPath: '../assets/custom_mechs.json', // 相対パス(GitHub Pages 対応)
   // 各フィールドの仕様(GUI のフォーム生成に使う)
   fields: {
     id: { type: 'string', required: true, pattern: '^[A-Za-z0-9_]{1,32}$', note: '一意・英数とアンダースコア・1〜32 文字。ビルトインと衝突したらスキップ' },
@@ -2127,7 +2134,7 @@ const CUSTOM_MECH_SCHEMA = {
   //   - hiddenFile:   非表示リストの相対パス(機体 ID 配列。表示名/内部キーどちらでも可)
   get builtinMechs() { return BUILTIN_MECHS.map((m) => ({ ...m })); },
   allMechs() { return listAllMechs(); },
-  hiddenFile: './assets/hidden_mechs.json',
+  hiddenFile: '../assets/hidden_mechs.json',
 };
 
 // ---- (1) 汎用層: JSON 取得(相対パス)。正常時は配列(空可)、取得失敗/破損時は null。 ----
@@ -6447,8 +6454,32 @@ class PowerupPool {
     }
   }
 
+  /** v7 M3: ゲストはホストから受信した内容を描画するだけ(生成/取得はしない) */
+  setNetItems(arr) { this._netItems = arr || []; }
+  renderNet(dt) {
+    const game = this.game;
+    const net = this._netItems || [];
+    for (let i = 0; i < this.items.length; i++) {
+      const it = this.items[i];
+      const d = net[i];
+      if (!d) { it.life = 0; it.group.visible = false; continue; }
+      const type = PWR_TYPES[d.ti] || PWR_TYPES[0];
+      it.type = type; it.life = 1; it.baseY = d.y;
+      it.core.rotation.y += dt * 2.2;
+      it.core.rotation.x += dt * 0.9;
+      it.group.position.set(d.x, d.y + Math.sin(game.elapsed * 2.4 + it.phase) * 0.22, d.z);
+      it.coreMat.emissive.setHex(type.color);
+      it.coreMat.emissiveIntensity = 1.8;
+      it.pillarMat.color.setHex(type.color);
+      it.pillarMat.opacity = 0.24;
+      it.group.visible = true;
+    }
+  }
+
   update(dt) {
     const game = this.game;
+    // v7 M3: ゲストはホスト配信を描画するのみ(生成・取得判定はホストが権威)
+    if (game.net && game.net.role === 'guest') { this.renderNet(dt); return; }
     // V8.2: 常時 PWR_MAX 個を維持(消えたら即補充。間を空けない)
     this.topUp();
     for (const it of this.items) {
@@ -6916,7 +6947,7 @@ class BGMManager {
   async init() {
     if (this.fileChecked) return;
     this.fileChecked = true;
-    for (const url of ['./assets/audio/bgm_battle.mp3', './assets/audio/bgm_battle.wav']) {
+    for (const url of ['../assets/audio/bgm_battle.mp3', '../assets/audio/bgm_battle.wav']) {
       try {
         const r = await fetch(url, { method: 'HEAD' });
         if (!r.ok) continue;
@@ -8580,6 +8611,8 @@ class Game {
   initRobots() {
     // V6.6: robots[] に一元化(robots[0] = プレイヤー)。将来の P2P 参加は
     // robots[] に Robot を追加 + マーカー/レーダーを enemies 相当へ載せるだけで成立する
+    // v7 M2a: オンライン対戦時は roster(人間) + AI 補充で robots[] を構築
+    if (this.net) return this.initRobotsOnline();
     const sel = this.setup;
     const playerCls = CONFIG.MECH_CLASSES[sel.playerClass];
     this.player = new Robot(this.scene, playerCls, 'YOU', sel.gltfs.player, true, sel.playerSlots);
@@ -8612,6 +8645,353 @@ class Game {
     }
     this.robots = [this.player, ...this.enemies]; // FFA の一元リスト
     this.allRobots = this.robots;                 // 既存コード互換
+  }
+
+  // ============================================================
+  //  v7 M2a: オンライン対戦のロボット構築(分散ローカル型)
+  //   - robots[i] の並びは match.roster(人間)→ AI 補充 の固定順(全クライアント共通)
+  //   - 自分の機体 = this.player(ローカル操作)。他人/(ゲスト側では)AI = netControlled
+  //   - AI を実シミュレートするのはホストのみ(this.ais は AI 機体ぶんだけ)
+  // ============================================================
+  initRobotsOnline() {
+    const net = this.net;
+    const roster = net.match.roster || [];
+    const fillers = net.match.aiClasses || [];
+    const spawns = net.match.spawns || [];
+    const total = roster.length + fillers.length;
+    const fallbackKey = PLAYER_CLASSES[0];
+    this.robots = [];
+    this.ais = [];
+    this.player = null;
+    const usedNames = Object.create(null);
+    for (let i = 0; i < total; i++) {
+      const human = i < roster.length;
+      const clsKey = human ? roster[i].cls : fillers[i - roster.length];
+      const cls = CONFIG.MECH_CLASSES[clsKey] || CONFIG.MECH_CLASSES[fallbackKey];
+      const isMe = human && roster[i].id === net.selfId;
+      let nm = human ? (roster[i].name || cls.name) : cls.name;
+      usedNames[nm] = (usedNames[nm] || 0) + 1;
+      if (usedNames[nm] > 1) nm = `${nm}-${usedNames[nm]}`;
+      // 自機は自分のロードアウト / 他人は roster 指定 or クラス既定 / AI はクラス AI 装備
+      let slots;
+      if (isMe) slots = (SAVE.loadouts && SAVE.loadouts[clsKey]) ? [...SAVE.loadouts[clsKey]] : [...cls.weapons];
+      else if (human) slots = (roster[i].slots && roster[i].slots.length) ? [...roster[i].slots] : [...cls.weapons];
+      else slots = cls.aiWeapons || cls.weapons;
+      // glb モデルを使用(RB_startOnlineMatch が net.gltfs[i] に事前ロード。失敗時は null=プリミティブ)
+      const gltf = (this.net.gltfs && this.net.gltfs[i]) || null;
+      const r = new Robot(this.scene, cls, isMe ? 'YOU' : nm, gltf, isMe, slots);
+      const sp = spawns[i] || [0, 0, 0];
+      r.reset(sp[0], sp[1], sp[2]);
+      r.netId = i;
+      r.netHuman = human;
+      r.isAI = !human;
+      r.isMe = isMe;
+      // このクライアントがシミュレートしない機体 = netControlled(受信座標で補間描画)
+      r.netControlled = isMe ? false : (net.role === 'host' ? human : true);
+      if (this.isMobile && i >= CONFIG.AI_SHADOW_MAX_MOBILE + roster.length) {
+        r.model.root.traverse((o) => { if (o.isMesh || o.isSkinnedMesh) o.castShadow = false; });
+      }
+      this.robots.push(r);
+      if (isMe) this.player = r;
+    }
+    // 自分が roster に居なければ先頭を自機に(保険)
+    if (!this.player) { this.player = this.robots[0]; this.player.isMe = true; this.player.netControlled = false; }
+    this.enemies = this.robots.filter((r) => r !== this.player); // FFA: 自分以外すべて
+    // AI はホストのみ実体化(ゲストは受信描画)
+    if (net.role === 'host') {
+      for (const r of this.robots) if (r.isAI) this.ais.push(new EnemyAI(r, this));
+    }
+    this.allRobots = this.robots;
+    this._netTargets = this._netTargets || new Map();
+  }
+
+  /** v7 M2a: netControlled な機体を受信座標へ補間(描画は通常の r.update が担当) */
+  updateRemoteRobots(dt) {
+    if (!this._netTargets) return;
+    const k = Math.min(1, dt * 12); // 位置/角度の補間係数(滑らかさ)
+    for (const r of this.robots) {
+      if (!r.netControlled) continue;
+      const t = this._netTargets.get(r.netId);
+      if (!t) continue;
+      const p = r.position;
+      p.x += (t.x - p.x) * k;
+      p.z += (t.z - p.z) * k;
+      r.yaw = lerpAngle(r.yaw, t.a, k);
+      r.torsoYaw = lerpAngle(r.torsoYaw, t.t, k);
+      r.speed01 = t.s || 0;
+      r.speedAbs = t.sa || 0;        // 歩行アニメの再生速度(これが無いと脚が止まる)
+      r.velX = t.vx || 0;            // 静的/ホバー機の前傾・バンク(setMotion 用)
+      r.velZ = t.vz || 0;
+      r.backpedal = !!t.bp;
+      r._prevTorsoYaw = r.torsoYaw;  // 補間由来の見かけ上の旋回でバンク(傾き)が誤発生するのを抑制
+      r.grounded = true;             // 接地維持(r.update が地形高に吸着)
+      // HP/撃破はゲスト側でのみスナップショットから反映(ホストは自分が権威なので上書きしない)
+      if (this.net.role === 'guest') {
+        if (typeof t.hp === 'number') r.hp = t.hp;
+        if (t.alive === false && r.alive) { r.alive = false; r.deathT = 0; this.netDeathFx(r); }
+      }
+    }
+  }
+
+  /** v7 M2b: リモート機体が撃破された瞬間の簡易爆発(ホストの onKO 相当の軽量版) */
+  netDeathFx(robot) {
+    robot.chest(_v1);
+    const pos = _v1.clone();
+    this.particles.spawn(pos, 20, { color: 0xffa040, speed: 12, life: 0.9, gravity: -6, scale: 2.2, boost: 1.6 });
+    this.particles.spawn(pos, 8, { color: 0x222222, speed: 3.5, life: 1.4, gravity: 3.5, scale: 2.4, upBias: 1, blending: 'normal' });
+    this.rings.spawn(pos, { mode: 'ground', scale: 8, life: 0.5, color: 0xffbb66, boost: 1.6, y: getGroundHeight(pos.x, pos.z) + 0.3 });
+    this.lights.spawn(pos, 0xff6622, 50);
+    try { this.sound.playAt('explosion', robot.position, 20); } catch (e) {}
+  }
+
+  /** v7 M2a: スナップショットの送信(ゲスト=自機をホストへ / ホスト=全機を全員へ) */
+  netTick(dt) {
+    const hub = this.net && this.net.hub;
+    if (!hub) return;
+    this._netAcc = (this._netAcc || 0) + dt;
+    if (this._netAcc < (1 / CONFIG.NET_SNAP_HZ)) return;
+    this._netAcc = 0;
+    const enc = (r) => ({
+      x: +r.position.x.toFixed(2), z: +r.position.z.toFixed(2), y: +r.position.y.toFixed(2),
+      a: +r.yaw.toFixed(3), t: +r.torsoYaw.toFixed(3), s: +(r.speed01 || 0).toFixed(2),
+      sa: +(r.speedAbs || 0).toFixed(2),                    // 歩行アニメ速度に必須
+      vx: +(r.velX || 0).toFixed(2), vz: +(r.velZ || 0).toFixed(2), // 静的/ホバー機の傾き用
+      bp: r.backpedal ? 1 : 0,                              // 後ずさり(逆再生)
+      hp: Math.round(r.hp), alive: r.alive,
+    });
+    if (this.net.role === 'guest') {
+      hub.toHost({ t: 'st', id: this.player.netId, d: enc(this.player) });
+    } else {
+      // ホスト: 位置は own/AI=自前 / 人間ゲスト=中継。HP/alive は全機ホスト権威で上書き
+      const snap = {};
+      for (const r of this.robots) {
+        let e;
+        if (r.isMe || r.isAI) e = enc(r);
+        else { const t = this._netTargets.get(r.netId); e = t ? { ...t } : enc(r); }
+        e.hp = Math.round(r.hp); e.alive = r.alive; // M2b: HP はホストが確定
+        snap[r.netId] = e;
+      }
+      // M3: アイテムもホスト権威で同期(パワーアップの種類/位置 + クレートの取得状態)
+      let pw, cr;
+      if (this.powerups) {
+        pw = this.powerups.items.filter((it) => it.life > 0).map((it) => ({
+          ti: PWR_TYPES.indexOf(it.type),
+          x: +it.group.position.x.toFixed(1), z: +it.group.position.z.toFixed(1), y: +it.baseY.toFixed(1),
+        }));
+      }
+      if (this.crates) cr = this.crates.map((c, i) => (c.taken ? i : -1)).filter((i) => i >= 0);
+      hub.broadcast({ t: 'snap', r: snap, pw, cr });
+    }
+  }
+
+  // ============================================================
+  //  v7 M3: 観戦モード + バトルロワイヤル勝敗(最後の1機が勝者)
+  // ============================================================
+  /** カメラの注視対象(観戦中は生存者 / 通常は自機) */
+  camFocusRobot() {
+    if (this.spectating && this.spectateTarget && this.spectateTarget.alive) return this.spectateTarget;
+    return this.player;
+  }
+
+  /** 自機撃破時に観戦モードへ移行(生存者を1機選んで追従) */
+  enterSpectator() {
+    if (!this.net || this.spectating || this._onlineEnded) return;
+    this.spectating = true;
+    this.spectateTarget = this.pickSpectateTarget();
+    this.showSpectateBanner();
+  }
+
+  pickSpectateTarget(after) {
+    const alive = this.robots.filter((r) => r.alive && r !== this.player);
+    if (!alive.length) return null;
+    if (!after) return alive[0];
+    const i = alive.indexOf(after);
+    return alive[(i + 1) % alive.length];
+  }
+
+  /** 観戦更新: 対象が倒れたら次の生存者へ。タップ/ターゲットキーで手動切替 */
+  updateSpectator() {
+    if (!this.spectating) return;
+    if (this.input && this.input.consumeTargetCycle && this.input.consumeTargetCycle()) {
+      this.spectateTarget = this.pickSpectateTarget(this.spectateTarget);
+      this.showSpectateBanner();
+    }
+    if (!this.spectateTarget || !this.spectateTarget.alive) {
+      this.spectateTarget = this.pickSpectateTarget(this.spectateTarget);
+      this.showSpectateBanner();
+    }
+  }
+
+  showSpectateBanner() {
+    let el = document.getElementById('spectate-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'spectate-banner';
+      el.style.cssText = 'position:fixed;top:14%;left:50%;transform:translateX(-50%);z-index:40;'
+        + 'font-family:Orbitron,sans-serif;text-align:center;color:#ff9a9a;pointer-events:none;'
+        + 'text-shadow:0 2px 8px #000;letter-spacing:2px;';
+      document.body.appendChild(el);
+    }
+    const nm = this.spectateTarget ? this.spectateTarget.name : '—';
+    el.innerHTML = `<div style="font-size:20px;font-weight:800">💀 撃破された</div>`
+      + `<div style="font-size:13px;margin-top:4px;color:#bcd">観戦中: <b style="color:#6ef3ff">${nm}</b> ／ 🎯 ボタンで視点切替</div>`;
+    el.style.display = 'block';
+  }
+  hideSpectateBanner() { const el = document.getElementById('spectate-banner'); if (el) el.style.display = 'none'; }
+
+  /** v7 M3: オンラインの残り時間カウントダウン(上部中央) */
+  updateNetTimer() {
+    let el = document.getElementById('net-timer');
+    if (this._onlineEnded) { if (el) el.style.display = 'none'; return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'net-timer';
+      el.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:38;'
+        + 'font-family:Orbitron,sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;'
+        + 'color:#cfe8f5;text-shadow:0 2px 6px #000;pointer-events:none;';
+      document.body.appendChild(el);
+    }
+    const remain = Math.max(0, CONFIG.NET_TIME_LIMIT - this.matchTime);
+    const m = Math.floor(remain / 60);
+    const s = String(Math.floor(remain % 60)).padStart(2, '0');
+    el.textContent = `⏱ ${m}:${s}`;
+    el.style.color = remain <= 30 ? '#ff7a7a' : '#cfe8f5'; // 残り30秒で赤
+    el.style.display = 'block';
+  }
+  hideNetTimer() { const el = document.getElementById('net-timer'); if (el) el.style.display = 'none'; }
+
+  /** v7 M3: 他プレイヤーの表示名を頭上に色付きで出すラベルを生成(オンラインのみ) */
+  createNameLabels() {
+    let layer = document.getElementById('net-name-layer');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = 'net-name-layer';
+      layer.style.cssText = 'position:fixed;inset:0;z-index:9;pointer-events:none;overflow:hidden;';
+      document.body.appendChild(layer);
+    }
+    layer.style.display = 'block';
+    layer.innerHTML = '';
+    const palette = ['#ffd24a', '#6ef3ff', '#7dff9a', '#ff8ad0']; // プレイヤーごとの識別色
+    for (const r of this.robots) {
+      r._nameLabel = null;
+      if (!r.netHuman || r.isMe) continue; // 自分以外の人間プレイヤーのみ
+      const color = palette[r.netId % palette.length];
+      const el = document.createElement('div');
+      el.style.cssText = 'position:absolute;transform:translate(-50%,-100%);font-family:Orbitron,sans-serif;'
+        + 'font-size:13px;font-weight:800;letter-spacing:1px;white-space:nowrap;padding:2px 9px;'
+        + `border-radius:10px;background:rgba(4,10,16,.62);color:${color};border:1px solid ${color};`
+        + `text-shadow:0 1px 3px #000;box-shadow:0 0 10px ${color}66;`;
+      el.textContent = '👤 ' + r.name;
+      layer.appendChild(el);
+      r._nameLabel = el;
+    }
+  }
+
+  /** 名前ラベルを毎フレーム頭上へ追従(オンラインのみ) */
+  updateNameLabels() {
+    if (!this._nameScreen) this._nameScreen = {};
+    for (const r of this.robots) {
+      const el = r._nameLabel;
+      if (!el) continue;
+      if (!r.alive) { el.style.display = 'none'; continue; }
+      _v1.copy(r.position); _v1.y += r.chestY + 2.4; // 頭上
+      this.worldToScreen(_v1, this._nameScreen);
+      if (this._nameScreen.visible) {
+        el.style.display = 'block';
+        el.style.left = `${this._nameScreen.x.toFixed(1)}px`;
+        el.style.top = `${this._nameScreen.y.toFixed(1)}px`;
+      } else {
+        el.style.display = 'none';
+      }
+    }
+  }
+  hideNameLabels() { const el = document.getElementById('net-name-layer'); if (el) el.style.display = 'none'; }
+
+  /**
+   * ホスト: 終了条件を監視。
+   *   (1) 人間プレイヤーが全滅 → 即終了
+   *   (2) 制限時間(NET_TIME_LIMIT)到達 → 終了(生存者にボーナス)
+   * 終了時はランキングを計算して全員へ配信。
+   */
+  checkOnlineEnd() {
+    if (!this.net || this.net.role !== 'host' || this.net.ended) return;
+    const humansAlive = this.robots.filter((r) => r.netHuman && r.alive).length;
+    const timeUp = this.matchTime >= CONFIG.NET_TIME_LIMIT;
+    if (humansAlive === 0 || timeUp) {
+      this.net.ended = true;
+      const ranking = this.computeOnlineRanking(timeUp);
+      try { this.net.hub.broadcast({ t: 'result', ranking, timeUp }); } catch (e) {}
+      this.endOnlineMatch({ ranking, timeUp });
+    }
+  }
+
+  /** ホスト: 人間プレイヤーのランキングを算出(撃破最重視の合算スコア) */
+  computeOnlineRanking(timeUp) {
+    const rows = [];
+    for (const r of this.robots) {
+      if (!r.netHuman) continue; // ランキングは人間プレイヤーのみ
+      const st = (this.net.stats && this.net.stats[r.netId]) || { kills: 0, dmg: 0, pts: 0, deadAt: null };
+      const survSec = st.deadAt != null ? st.deadAt : this.matchTime; // 生存秒数
+      const survivorBonus = (timeUp && r.alive) ? CONFIG.NET_SC_SURVIVOR : 0;
+      const score = Math.round(
+        st.kills * CONFIG.NET_SC_KILL
+        + st.dmg * CONFIG.NET_SC_DMG
+        + survSec * CONFIG.NET_SC_SURV_SEC
+        + (st.pts || 0)            // クレート獲得ポイント(獲得ポイント数として加算)
+        + survivorBonus,
+      );
+      rows.push({ netId: r.netId, name: r.name, kills: st.kills, dmg: Math.round(st.dmg), pts: st.pts || 0, survSec: Math.round(survSec), alive: !!r.alive, survivor: survivorBonus > 0, score });
+    }
+    // 撃破最重視: スコア → 撃破数 → ダメージ の順
+    rows.sort((a, b) => b.score - a.score || b.kills - a.kills || b.dmg - a.dmg);
+    rows.forEach((row, i) => { row.rank = i + 1; });
+    return rows;
+  }
+
+  /** 勝敗 + ランキングのオーバーレイ(ホスト/ゲスト共通)。リマッチは P2P では非表示 */
+  endOnlineMatch(payload) {
+    if (this._onlineEnded) return;
+    this._onlineEnded = true;
+    this.gameOver = true;
+    this.spectating = false;
+    this.hideSpectateBanner();
+    this.hideNetTimer();
+    this.hideNameLabels();
+    if (document.pointerLockElement) document.exitPointerLock();
+    document.body.classList.add('result-open');
+    const ranking = (payload && payload.ranking) || [];
+    const timeUp = !!(payload && payload.timeUp);
+    const myId = this.player ? this.player.netId : -1;
+    const myRank = ranking.find((r) => r.netId === myId);
+    const win = myRank && myRank.rank === 1;
+    this.ui.overlayTitle.textContent = win ? T('victory') : T('defeat');
+    this.ui.overlaySub.textContent = timeUp
+      ? (win ? '⏱ 時間切れ — 1位！' : `⏱ 時間切れ — あなたは ${myRank ? myRank.rank : '—'} 位`)
+      : (win ? '🏆 1位！' : `あなたは ${myRank ? myRank.rank : '—'} 位`);
+    if (this.ui.overlayStats) this.ui.overlayStats.textContent = '';
+    // ランキング表(順位 / 名前 / 撃破 / スコア)
+    if (this.ui.resultBreakdown) {
+      const medal = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : `${n}.`);
+      const rowsHtml = ranking.map((r) => {
+        const me = r.netId === myId;
+        return `<div style="display:flex;gap:8px;align-items:center;padding:5px 8px;border-radius:6px;`
+          + `${me ? 'background:rgba(110,243,255,.14);' : ''}font-size:13px">`
+          + `<span style="width:34px">${medal(r.rank)}</span>`
+          + `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${me ? 'color:#6ef3ff;font-weight:800' : ''}">${r.name}${me ? ' (あなた)' : ''}${r.survivor ? ' 🛡' : ''}</span>`
+          + `<span style="width:64px;text-align:right">💥 ${r.kills}</span>`
+          + `<span style="width:78px;text-align:right;color:#ffd24a;font-weight:700">${r.score}</span>`
+          + `</div>`;
+      }).join('');
+      this.ui.resultBreakdown.innerHTML =
+        `<div style="margin:6px 0 4px;font-size:12px;letter-spacing:2px;color:#8fb3c8">RANKING（撃破×100 + ダメージ×0.05 + 生存秒×0.5 + 生存者+150）</div>`
+        + `<div style="display:flex;gap:8px;font-size:11px;color:#8fb3c8;padding:0 8px 2px">`
+        + `<span style="width:34px">順位</span><span style="flex:1">プレイヤー</span><span style="width:64px;text-align:right">撃破</span><span style="width:78px;text-align:right">スコア</span></div>`
+        + rowsHtml;
+    }
+    this.ui.overlay.classList.toggle('defeat', !win);
+    if (this.ui.restartBtn) this.ui.restartBtn.style.display = 'none'; // オンラインはリマッチ非表示
+    this.ui.overlay.classList.remove('hidden');
+    this.bgm.setMode('title');
   }
 
   /** robot を現在ターゲットにしている AI の数(except 以外) */
@@ -8791,26 +9171,45 @@ class Game {
     });
   }
 
-  /** 回転 + 浮遊 + プレイヤー接触で取得(AI は取らない = リスク・リワード) */
+  /** 回転 + 浮遊 + プレイヤー接触で取得(AI は取らない = リスク・リワード)。
+   *  v7 M3: オンラインはホスト権威 — ホストが全人間プレイヤーの取得を判定し同期。
+   *         ゲストは取得判定せず、taken 状態は applyNetCrates が反映する。 */
   updateCrates(dt) {
-    const p = this.player;
+    const isGuest = this.net && this.net.role === 'guest';
+    // 取得者リスト: オンライン=全人間プレイヤー(ホストのみ判定) / 単独=自機
+    const collectors = this.net ? this.robots.filter((r) => r.netHuman) : [this.player];
     for (const c of this.crates) {
-      if (c.taken) continue;
+      if (c.taken) { c.mesh.visible = false; continue; }
       c.mesh.rotation.y += dt * 1.6;
       c.mesh.position.y = c.baseY + Math.sin(this.elapsed * 2 + c.phase) * 0.18;
-      if (!p.alive || this.gameOver) continue;
-      const dx = p.position.x - c.mesh.position.x;
-      const dz = p.position.z - c.mesh.position.z;
-      if (dx * dx + dz * dz < CONFIG.CRATE_PICK_RADIUS * CONFIG.CRATE_PICK_RADIUS
-        && Math.abs(p.position.y - c.baseY) < 3) {
-        c.taken = true;
-        c.mesh.visible = false;
-        const value = CONFIG.CRATE_MIN + Math.floor(rng() * (CONFIG.CRATE_MAX - CONFIG.CRATE_MIN + 1));
-        this.stats.ptCrates += value;
-        this.dmgTexts.show(c.mesh.position, `+${value}pt`, false);
-        this.particles.spawn(c.mesh.position, 8, { color: 0xffc850, speed: 4, life: 0.5, gravity: -3, scale: 1.2, boost: 2 });
-        this.sound.play('crate');
+      if (this.gameOver || isGuest) continue; // ゲストは取得しない(ホスト権威)
+      for (const p of collectors) {
+        if (!p.alive) continue;
+        const dx = p.position.x - c.mesh.position.x;
+        const dz = p.position.z - c.mesh.position.z;
+        if (dx * dx + dz * dz < CONFIG.CRATE_PICK_RADIUS * CONFIG.CRATE_PICK_RADIUS
+          && Math.abs(p.position.y - c.baseY) < 3) {
+          c.taken = true;
+          c.mesh.visible = false;
+          const value = CONFIG.CRATE_MIN + Math.floor(rng() * (CONFIG.CRATE_MAX - CONFIG.CRATE_MIN + 1));
+          if (this.net) { if (this.net.stats && this.net.stats[p.netId]) this.net.stats[p.netId].pts += value; }
+          else this.stats.ptCrates += value;
+          this.dmgTexts.show(c.mesh.position, `+${value}pt`, p === this.player);
+          this.particles.spawn(c.mesh.position, 8, { color: 0xffc850, speed: 4, life: 0.5, gravity: -3, scale: 1.2, boost: 2 });
+          if (p === this.player) this.sound.play('crate'); else this.sound.playAt('crate', p.position, 20);
+          break;
+        }
       }
+    }
+  }
+
+  /** v7 M3: ゲスト側 — ホストが配信した「取得済みクレート index」を反映 */
+  applyNetCrates(takenIdx) {
+    const set = new Set(takenIdx);
+    for (let i = 0; i < this.crates.length; i++) {
+      const c = this.crates[i];
+      const t = set.has(i);
+      if (c.taken !== t) { c.taken = t; c.mesh.visible = !t; }
     }
   }
 
@@ -9001,6 +9400,18 @@ class Game {
    * @param {Robot|null} attacker 攻撃者(ヘイト/キルログ用。ドラム缶等は null)
    */
   dealDamage(target, dmg, sourcePos, attacker = null) {
+    if (this.net) {
+      if (!this.net.combat) return false; // M2a: 無戦闘
+      if (this.net.role === 'guest') {
+        // M2b: ゲストは自分の命中をホストへ報告(HP 確定はホスト権威)。ローカルは命中演出のみ
+        if (target.alive) {
+          this.net.hub.toHost({ t: 'dmg', target: target.netId, dmg: Math.round(dmg), attacker: attacker ? attacker.netId : -1 });
+          if (target.model && target.model.flash) target.model.flash();
+        }
+        return false; // ローカルでは HP を動かさない(スナップショットで反映)
+      }
+      // ホストはこの先で権威適用(自機/AI の弾 + ゲストからの dmg 報告)
+    }
     if (!target.alive) return false;
     // V7.7: POWER パワーアップ(攻撃者の与ダメ +30%)
     if (attacker && attacker.dmgBoostT > 0) dmg = Math.round(dmg * CONFIG.PWR_POWER_MUL);
@@ -9009,6 +9420,8 @@ class Game {
     if (attacker && attacker !== target) {
       target.lastAttacker = attacker;
       target.lastAttackT = this.elapsed;
+      // v7 M3: オンライン戦績(ホスト権威で与ダメージを netId ごとに集計)
+      if (this.net && this.net.stats && this.net.stats[attacker.netId]) this.net.stats[attacker.netId].dmg += dmg;
     }
     if (target === this.player) {
       this.stats.damageTaken += dmg;
@@ -9760,6 +10173,11 @@ class Game {
   onKO(robot, attacker = null) {
     robot.alive = false;
     robot.deathT = 0;
+    // v7 M3: オンライン戦績(撃破数 + 死亡時刻)をホスト権威で記録
+    if (this.net && this.net.stats) {
+      if (this.net.stats[robot.netId] && this.net.stats[robot.netId].deadAt == null) this.net.stats[robot.netId].deadAt = this.matchTime;
+      if (attacker && attacker !== robot && this.net.stats[attacker.netId]) this.net.stats[attacker.netId].kills++;
+    }
     robot.chest(_v1);
     const pos = _v1.clone(); // 多段爆発用に固定(KO 時のみの割り当て)
 
@@ -9802,16 +10220,21 @@ class Game {
     this.addKillLog(attacker ? `${attacker.name} ▶ ${robot.name}${repairTag}` : T('destroyed', robot.name));
     if (attacker === this.player) this.stats.kills++;
 
-    if (robot === this.player) {
-      // 自機撃破 → その時点で DEFEAT(残存 AI 数は戦績に表示)
-      this.startResult('lose');
-      return;
-    }
-    // AI 撃破: ロック解除 + 残数確認
     if (this.lockTarget === robot) {
       this.lockTarget = null;
       this.locked = false;
       this.lockLost = 0;
+    }
+    // v7 M3: オンラインは観戦モード + バトルロワイヤル勝敗(checkOnlineEnd が判定)。
+    //   自機撃破なら観戦へ。勝敗の showResult は endOnlineMatch が担当
+    if (this.net) {
+      if (robot === this.player) this.enterSpectator();
+      return;
+    }
+    if (robot === this.player) {
+      // 自機撃破 → その時点で DEFEAT(残存 AI 数は戦績に表示)
+      this.startResult('lose');
+      return;
     }
     const remaining = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
     if (remaining === 0) this.startResult('win'); // プレイヤーが最後の 1 機 → VICTORY
@@ -10020,6 +10443,20 @@ class Game {
     // V7.5.2: リザルトの縦パン許可を解除(戦闘中は touch-action:none に戻す)
     document.body.classList.remove('result-open');
 
+    if (this.net) {
+      // ---- v7 M2a: オンラインは match.spawns(全クライアント共通)で配置 ----
+      const spawns = this.net.match.spawns || [];
+      this.player.applyLevel(levelFromXp(SAVE.xp));
+      for (const r of this.robots) {
+        if (r !== this.player) r.applyLevel(1); // HP は M2a では未使用(無戦闘)
+        const sp = spawns[r.netId] || [0, 0, 0];
+        r.reset(sp[0], sp[1], sp[2] || 0);
+      }
+      const psp = spawns[this.player.netId] || [0, 0, 0];
+      this.camYaw = psp[2] || 0;
+      this.camYawTarget = this.camYaw;
+      for (const a of this.ais) a.reset(); // ホストのみ(ゲストは空)
+    } else {
     // ---- V7.8: レベル適用(reset() より先に。reset は hp = maxHp で開始する) ----
     // プレイヤー = 累計 XP 由来 / 敵 = プレイヤー Lv ± ENEMY_LVL_SPREAD(最低 1)
     const plv = levelFromXp(SAVE.xp);
@@ -10059,6 +10496,7 @@ class Game {
       e.reset(x, z, Math.atan2(px - x, pz - z)); // プレイヤー方向を向いて出現
       this.ais[i].reset();
     });
+    }
     this.particles.clear();
     this.beams.clear();
     this.rings.clear();
@@ -10319,12 +10757,13 @@ class Game {
       this.camDist = (this.camDist || preset.dist) + (preset.dist - (this.camDist || preset.dist)) * k;
     }
 
-    // 注視点(プレイヤー + 肩越しオフセット)
+    // 注視点(プレイヤー + 肩越しオフセット)。v7 M3: 観戦中は生存者を注視
+    const focus = this.camFocusRobot();
     const sy = Math.sin(this.camYaw), cy = Math.cos(this.camYaw);
     _v1.set(
-      this.player.position.x + (-cy) * CONFIG.CAM_SHOULDER,
-      this.player.position.y + CONFIG.CAM_LOOK_HEIGHT,
-      this.player.position.z + sy * CONFIG.CAM_SHOULDER,
+      focus.position.x + (-cy) * CONFIG.CAM_SHOULDER,
+      focus.position.y + CONFIG.CAM_LOOK_HEIGHT,
+      focus.position.z + sy * CONFIG.CAM_SHOULDER,
     );
 
     // 理想カメラ位置(後方 + 上方、ピッチ/プリセット距離反映)
@@ -10805,8 +11244,20 @@ class Game {
       this.updateLock(dt);
     }
 
+    // v7 M2a: 他機(netControlled)を受信座標へ補間 → 直後の r.update でアニメ反映
+    if (this.net) this.updateRemoteRobots(dt);
+
     // ロボット本体更新(待機アニメは常時)
     for (const r of this.allRobots) r.update(dt, this.elapsed);
+
+    // v7 M2a: 自機(ホストは AI も)の状態をスナップショット送信
+    if (this.net) {
+      this.netTick(dt);
+      this.updateSpectator();                                  // M3: 観戦対象の維持
+      this.updateNetTimer();                                   // M3: 残り時間カウントダウン
+      this.updateNameLabels();                                 // M3: 他プレイヤー名を頭上に追従
+      if (this.net.role === 'host') this.checkOnlineEnd();     // M3: 勝敗判定(ホスト権威)
+    }
 
     // 着地演出: 土煙 + ズン音 + (プレイヤーのみ)画面シェイク
     for (const r of this.allRobots) {
@@ -10977,7 +11428,7 @@ class Game {
 //   バッファはキャッシュ(再出撃は parse のみ)。
 //   ファイル欠落時は null をキャッシュ → プリミティブ機体でフォールバック。
 // ============================================================
-const MODEL_BASE = './assets/models/';
+const MODEL_BASE = '../assets/models/';
 
 /** モデルキー → glb ファイル名(静的モデルは _static.glb)
  *  V8.5.3: カスタム機体は assetVersion があれば ?v= を付けてキャッシュ回避(別名不要で再取得)。 */
@@ -12265,6 +12716,18 @@ async function deploy() {
 function returnToHangar() {
   $id('overlay').classList.add('hidden');
   document.body.classList.remove('result-open'); // V7.5.2: リザルトの縦パン許可を解除
+  // v7: オンライン対戦中なら部屋を退出してネット状態を解除
+  const g = HANGAR.game;
+  if (g && g.net) {
+    try { g.net.hub && g.net.hub.leave && g.net.hub.leave(); } catch (e) {}
+    g.net = null;
+    g.spectating = false;
+    g._onlineEnded = false;
+    g.hideSpectateBanner();
+    g.hideNetTimer();
+    g.hideNameLabels();
+    if (g.ui && g.ui.restartBtn) g.ui.restartBtn.style.display = ''; // リマッチ表示を復帰
+  }
   HANGAR.activeSlot = -1;
   HANGAR.pendingBuy = null;
   HANGAR.pendingMech = null; // V7.2: 機体売買の確認状態もリセット
@@ -12303,6 +12766,121 @@ function buildBootSetup(playerClass) {
     stage: SAVE.stage, // V7.4: ドック背景も選択ステージで構築
   };
 }
+
+// ============================================================
+//  v7 M2a: オンライン対戦フック(online.js と window 経由で疎結合)
+// ============================================================
+/** ロビーで持ち寄る「自分の機体クラス」 */
+window.RB_getOnlineClass = () => HANGAR.selectedClass;
+
+/** ホストが配信する match(全クライアント共通の配置/編成/ステージ)を組む */
+window.RB_buildOnlineMatch = (roster) => {
+  const total = Math.max(roster.length, CONFIG.ENEMY_COUNT + 1); // 計 7 機(人間 + AI 補充)
+  const fillerCount = Math.max(0, total - roster.length);
+  const aiClasses = [];
+  for (let i = 0; i < fillerCount; i++) aiClasses.push(PLAYER_CLASSES[i % PLAYER_CLASSES.length]);
+  // 出現点: 現ステージの候補から間隔をあけて total 地点。yaw はアリーナ中心(0,0)向き
+  const pts = (STAGE.spawnPoints || CONFIG.SPAWN_POINTS).map((p) => [p[0], p[1]]);
+  for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pts[i], pts[j]] = [pts[j], pts[i]]; }
+  const spawns = [];
+  for (let i = 0; i < total; i++) {
+    const p = pts[i % pts.length] || [0, 0];
+    spawns.push([p[0], p[1], Math.atan2(-p[0], -p[1])]); // 中心を向く
+  }
+  return { roster, aiClasses, spawns, stage: STAGE_KEY, seed: (Math.random() * 1e9) | 0 };
+};
+
+/** match を受けて(ホスト/ゲスト共通)オンライン戦闘に入る */
+window.RB_startOnlineMatch = async (match, netCtx) => {
+  const g = HANGAR.game;
+  if (!g) throw new Error('game not ready');
+  // 出撃オーバーレイ(glb ロード中の待機表示)
+  const ov = $id('deploy-overlay');
+  if (ov) { const t = $id('deploy-text'); if (t) t.textContent = '⚔ オンライン対戦の準備中…'; ov.classList.remove('hidden'); }
+  try {
+    // ---- 各機体の glb を事前ロード(roster → AI 補充の順 = robots[] と一致) ----
+    const roster = match.roster || [];
+    const fillers = match.aiClasses || [];
+    const total = roster.length + fillers.length;
+    const loader = new GLTFLoader();
+    const gltfs = new Array(total).fill(null);
+    for (let i = 0; i < total; i++) {
+      const clsKey = i < roster.length ? roster[i].cls : fillers[i - roster.length];
+      const cls = CONFIG.MECH_CLASSES[clsKey];
+      try {
+        const buf = cls && cls.model ? await getModelBuffer(cls.model) : null;
+        gltfs[i] = buf ? await parseModel(loader, buf) : null; // 失敗・未所持はプリミティブ
+      } catch (e) { gltfs[i] = null; }
+    }
+    g.net = {
+      hub: netCtx.net, role: netCtx.role, selfId: netCtx.selfId, match,
+      combat: true, // M2b: 戦闘同期 ON(撃った側が命中判定 → ホストが HP 確定 → 配信)
+      idToIndex: Object.fromEntries(roster.map((p, i) => [p.id, i])),
+      gltfs,
+    };
+    g._netTargets = new Map();
+    g._netAcc = 0;
+    // M3: 観戦/勝敗フラグをリセット(再戦に備える)
+    g.spectating = false;
+    g.spectateTarget = null;
+    g._onlineEnded = false;
+    g.hideSpectateBanner();
+    if (g.ui && g.ui.restartBtn) g.ui.restartBtn.style.display = '';
+    g.redeploy({ stage: match.stage }); // initRobotsOnline → restart(online) を起動
+    // M3: 戦績集計を netId ごとに初期化(撃破数 / 与ダメージ / 死亡時刻)
+    g.net.stats = {};
+    for (const r of g.robots) g.net.stats[r.netId] = { kills: 0, dmg: 0, pts: 0, deadAt: null };
+    g.createNameLabels(); // M3: 他プレイヤー名を頭上に表示
+    g.exitHangar();
+    $id('hangar').classList.add('hidden');
+    try { g.sound.init(); g.sound.play('ui'); } catch (e) {}
+    console.info(`[v7 M2a] オンライン開始: role=${netCtx.role} 機体数=${g.robots.length} self=${g.player && g.player.netId}`);
+  } finally {
+    if (ov) ov.classList.add('hidden');
+  }
+};
+
+/** ゲーム中のネットデータ(位置同期)を捌く。online.js が start 後に委譲 */
+window.RB_onNetData = (peerId, m) => {
+  const g = HANGAR.game;
+  if (!g || !g.net || !m) return;
+  if (m.t === 'st' && g.net.role === 'host') {
+    const idx = g.net.idToIndex[peerId];
+    if (idx != null && m.d) g._netTargets.set(idx, m.d); // ゲストの自機座標を記録(中継元)
+  } else if (m.t === 'snap' && g.net.role === 'guest') {
+    const myId = g.player ? g.player.netId : -1;
+    for (const k in m.r) {
+      const id = +k; const e = m.r[k];
+      if (id === myId) {
+        // 自機: 位置はローカル優先。HP/撃破のみホスト権威で反映
+        if (g.player && typeof e.hp === 'number') g.player.hp = e.hp;
+        if (g.player && e.alive === false && g.player.alive) {
+          g.player.alive = false; g.player.deathT = 0; g.netDeathFx(g.player);
+          g.enterSpectator(); // M3: 自機撃破 → 観戦モード
+        }
+      } else {
+        g._netTargets.set(id, e); // 他機: 位置 + HP/alive
+      }
+    }
+    // M3: アイテム(パワーアップ/クレート)もホスト配信で同期
+    if (g.powerups && m.pw) g.powerups.setNetItems(m.pw);
+    if (g.crates && m.cr) g.applyNetCrates(m.cr);
+  } else if (m.t === 'dmg' && g.net.role === 'host') {
+    // ホスト: ゲストの命中報告を権威適用(HP を動かし、撃破なら onKO)
+    const tgt = g.robots && g.robots.find((r) => r.netId === m.target);
+    const atk = m.attacker >= 0 && g.robots ? g.robots.find((r) => r.netId === m.attacker) : null;
+    if (tgt && tgt.alive) g.dealDamage(tgt, m.dmg | 0, atk ? atk.position : null, atk || null);
+  } else if (m.t === 'result' && g.net.role === 'guest') {
+    g.endOnlineMatch({ ranking: m.ranking, timeUp: m.timeUp }); // M3: ホストが確定した順位を表示
+  }
+};
+
+/** オンラインを抜けてハンガーへ戻る */
+window.RB_backToHangarFromOnline = () => {
+  const g = HANGAR.game;
+  if (g) g.net = null;
+  try { returnToHangar(); } catch (e) { $id('hangar').classList.remove('hidden'); }
+};
 
 (async () => {
   const statusEl = $id('hangar-status');
