@@ -112,5 +112,28 @@
     "ability": "shield",
     "price": 1500,
     "assetVersion": 1781530000
+  },
+  {
+    "id": "ALIEN_V01",
+    "name": {
+      "ja": "エイリアン兵士",
+      "en": "ALIEN_SOL"
+    },
+    "role": "player",
+    "model": "ALIEN01",
+    "modelType": "rigged",
+    "hp": 200,
+    "hardpoints": [
+      "heavy",
+      "heavy",
+      "medium",
+      "medium"
+    ],
+    "speed": 3.2,
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 1500,
+    "assetVersion": 1781573521
   }
 ]
