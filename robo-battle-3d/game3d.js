@@ -3857,8 +3857,8 @@ function buildWeaponModel(wKey) {
 //   重 = 大きく頭上(両肩の上)/ 中 = 肩の高さ(現バズーカ付近)/ 軽 = 下半身付近に小さめ。
 const DRONE_TIERS = {
   heavy:  { scale: 1.35, pod: 0.42, barrel: 1.05, slots: [{ x: 1.75, y: 3.55, z: 0.05 }, { x: -1.75, y: 3.55, z: 0.05 }] },
-  medium: { scale: 1.00, pod: 0.34, barrel: 0.92, slots: [{ x: 1.95, y: 2.95, z: 0.20 }, { x: -1.95, y: 2.95, z: 0.20 }] },
-  light:  { scale: 0.70, pod: 0.28, barrel: 0.85, slots: [{ x: 1.65, y: 1.40, z: 0.15 }, { x: -1.65, y: 1.40, z: 0.15 }] },
+  medium: { scale: 1.00, pod: 0.34, barrel: 0.92, slots: [{ x: 1.95, y: 2.05, z: 0.20 }, { x: -1.95, y: 2.05, z: 0.20 }] }, // V9.15: 腰の横
+  light:  { scale: 0.70, pod: 0.28, barrel: 0.85, slots: [{ x: 1.55, y: 1.15, z: 0.15 }, { x: -1.55, y: 1.15, z: 0.15 }] }, // V9.15: 膝の横
 };
 // 武器種ごとのテーマ色 { hull: ポッド本体色, glow: 発光(アイ/スラスター)色 }。多彩さ重視。
 const DRONE_THEME = {
