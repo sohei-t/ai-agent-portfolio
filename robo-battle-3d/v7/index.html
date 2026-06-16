@@ -664,6 +664,15 @@
   }
   #restart-btn:active, #hangar-btn:active, #launch-btn:active { transform: scale(0.95); }
   #launch-btn { margin-top: 14px; background: linear-gradient(180deg, #ffd27a, #e89a2e); }
+  #online-btn {
+    margin-top: 10px; padding: 11px 28px;
+    font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 2px;
+    color: #dff8ff; background: rgba(8,20,30,.7);
+    border: 1px solid var(--hud-line); border-radius: 3px;
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    cursor: pointer;
+  }
+  #online-btn:active { transform: scale(0.95); }
 
   /* --- リザルトのポイント内訳(V6.7) --- */
   #result-breakdown {
@@ -1683,6 +1692,7 @@
   <!-- V7.4: ステージセレクタ(JS が生成。V7.5: モバイルは 1 つの巡回ボタン) -->
   <div id="stage-select"></div>
   <button id="launch-btn" type="button">START ⚔</button>
+  <button id="online-btn" type="button">🌐 オンライン対戦 (最大4人)</button>
   <div id="hangar-help"><!-- V7.3: applyStaticI18n() が言語別に挿入 --></div>
   <!-- トースト通知(自動取り外し・購入など) -->
   <div id="hangar-toast"></div>
@@ -1735,6 +1745,9 @@
   </div>
 </div>
 
+<!-- v7: オンライン対戦のシグナリング(window.firebase* / initFirebase を提供。古典スクリプト = モジュールより先に実行) -->
+<script src="./firebase-config.js?v=129"></script>
+
 <!-- Three.js importmap (ローカル同梱 v0.170.0) -->
 <script type="importmap">
 {
@@ -1746,6 +1759,8 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=119"></script>
+<script type="module" src="./game3d.js?v=129"></script>
+<!-- v7: オンライン対戦ロビー(M1b)。game3d.js の後に読み込み、window.RB_* で疎結合に連携 -->
+<script type="module" src="./online.js?v=129"></script>
 </body>
 </html>
