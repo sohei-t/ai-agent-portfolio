@@ -1602,8 +1602,7 @@
   <!-- JUMP(武器パネルの上 / V8.4: クールダウン撤廃 = 連続ジャンプ可) -->
   <button id="jump-btn" class="ctl-btn" type="button">JUMP<div class="cd-overlay" id="jump-cd"></div></button>
 
-  <!-- V8.4: ブースト移動(🚀 押下中だけ ×3。PC: 左Ctrl) -->
-  <button id="boost-btn" class="ctl-btn" type="button">🚀<br>BOOST</button>
+  <!-- V9.17: BOOSTボタンは廃止(移動方向を3秒以上継続で自動ブースト) -->
 
   <!-- アビリティ(B キー / クラス由来。⚡スプリント or 🛡シールド) -->
   <button id="ability-btn" class="ctl-btn" type="button"><span id="ability-icon">⚡</span><div class="cd-overlay" id="ability-cd"></div></button>
@@ -1747,6 +1746,6 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=117"></script>
+<script type="module" src="./game3d.js?v=118"></script>
 </body>
 </html>

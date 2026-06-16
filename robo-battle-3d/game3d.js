@@ -1,5 +1,5 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V9.16)
+// ROBO BATTLE 3D - Prototype (V9.17)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
 //
 // V9.7 変更点(セーブ消失バグ修正 + 購入機体の即戦力化):
@@ -532,7 +532,8 @@ const CONFIG = {
   JUMP_VELOCITY: 14,      // V7.7: 9→14(滞空 ~1.1s・高度 ~3.7 = ボルトを飛び越える回避手段)
   JUMP_COOLDOWN: 0,       // V8.4: クールダウン撤廃(接地していればいつでも連続ジャンプ可)
   OBSTACLE_LAND_TOL: 1.0, // V8.4: 障害物上面に「乗れる」と判定する足元の許容(上面 − これ 以上で着地)
-  BOOST_MUL: 3.0,         // V8.4: ブースト移動(押下中)の速度倍率
+  BOOST_MUL: 3.0,         // V8.4: ブースト移動の速度倍率
+  BOOST_HOLD_TIME: 3.0,   // V9.17: 同方向への移動をこの秒数以上継続でブースト発動(BOOSTボタン廃止)
   AIR_ACCEL_MUL: 0.6,     // V7.7: 空中の移動加速倍率(空中でも進路を変えられる)
   LAND_SHAKE: 0.25,       // 着地時の画面シェイク量
 
@@ -2621,7 +2622,7 @@ const I18N = {
     rbWinBonus: '勝利ボーナス', rbTotal: '獲得合計', rbWallet: 'WALLET',
     returnToHangar: 'ハンガーへ戻る', rematch: 'リマッチ',
     // ---- 操作ヒント(ハンガー下部) ----
-    help1: 'カーソルキー: 移動 ・ Shift+←→: 旋回 ・ Ctrl/🚀: ブースト(正面に3倍速前進) ・ Space/Z/X/C: 武器(スロット順)・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ',
+    help1: 'カーソルキー: 移動(同方向に3秒以上で自動ブースト×3) ・ Shift+←→: 旋回 ・ Space/Z/X/C: 武器(スロット順)・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ',
     help2: '機体は購入制・最大 3 台所有(売却 60%)。スロットには同サイズ(軽/中/重)の武器のみ装備可',
     help3: '出現はランダム ・ 実体弾は横移動で回避可 ・ 撃破で HP 回復(残量2倍)・ 砲撃/チャージ武器には予兆がある',
     // ---- 武器タグ(固有名は英語のまま) ----
@@ -2744,7 +2745,7 @@ const I18N = {
     rbKills: 'KILLS ×{0}', rbDamage: 'DAMAGE', rbSurvival: 'SURVIVAL', rbCrates: 'CRATES',
     rbWinBonus: 'VICTORY BONUS', rbTotal: 'TOTAL EARNED', rbWallet: 'WALLET',
     returnToHangar: 'RETURN TO HANGAR', rematch: 'REMATCH',
-    help1: 'Arrows: move ・ Shift+←→: turn ・ Ctrl/🚀: boost (auto-dash forward x3) ・ Space/Z/X/C: weapons (slot order) ・ Tab/◎: cycle target ・ B: ability ・ V: jump',
+    help1: 'Arrows: move (hold a direction 3s = auto boost x3) ・ Shift+←→: turn ・ Space/Z/X/C: weapons (slot order) ・ Tab/◎: cycle target ・ B: ability ・ V: jump',
     help2: 'Mechs are purchasable, own up to 3 (sell at 60%). Slots accept matching size (L/M/H) weapons only',
     help3: 'Random spawns ・ dodge projectiles by strafing ・ kills repair HP (×2) ・ artillery & charge weapons telegraph',
     wtag_mg: 'Light ・ close-range rapid fire', wtag_pulse: 'Light ・ energy bolt', wtag_needle: 'Light ・ long-range precision',
@@ -7774,6 +7775,7 @@ class Game {
     this.shakeAmp = 0;           // 着地シェイク
     this.lookDelta = { x: 0, y: 0 };
     this.moveInput = { x: 0, y: 0 };
+    this.moveHoldT = 0;          // V9.17: 移動継続時間(BOOST_HOLD_TIME 超でブースト)
 
     // ロックオン状態(複数敵から1機を選択)
     this.lockTarget = null;
@@ -10078,23 +10080,18 @@ class Game {
   // ---------------- 更新 ----------------
   updatePlayer(dt) {
     const player = this.player;
-    if (!player.alive) { player.boosting = false; player.speed01 = 0; return; }
-
-    // V8.4: ブースト移動(押下中だけ effectiveSpeed が ×BOOST_MUL になる)
-    player.boosting = this.input.boostHeld;
+    if (!player.alive) { player.boosting = false; player.speed01 = 0; this.moveHoldT = 0; return; }
 
     // ---- 移動: カメラ向き基準の全方位ストレイフ + 加速度モデル(重量感) ----
     //   移動しても照準(camYaw)は変わらない。後退はさらに減速
     this.input.getMove(this.moveInput);
     const { x: ix, y: iy } = this.moveInput;
     const mag = Math.hypot(ix, iy);
-    if (player.boosting) {
-      // V8.4.1: ブースト中はスティック入力に関係なく「機体の正面(camYaw)」へ自動前進。
-      //   旋回(スワイプ / Shift+←→)で camYaw が変われば進行方向も変わる = 曲がれる。
-      //   正面 = (sin camYaw, cos camYaw)。常に前方なので後退減速は掛からない
-      const wx = Math.sin(this.camYaw), wz = Math.cos(this.camYaw);
-      player.applyMove(wx, wz, player.effectiveSpeed, dt, this.obstacles);
-    } else if (mag > 0.05) {
+    // V9.17: BOOSTボタン廃止。移動入力を BOOST_HOLD_TIME 秒以上継続したら、
+    //   その入力方向に effectiveSpeed が ×BOOST_MUL になる(離すとリセット)。
+    if (mag > 0.5) this.moveHoldT += dt; else this.moveHoldT = 0;
+    player.boosting = (this.moveHoldT >= CONFIG.BOOST_HOLD_TIME);
+    if (mag > 0.05) {
       const sy = Math.sin(this.camYaw), cy = Math.cos(this.camYaw);
       // forward=(sy,cy), right=(-cy,sy) ※ y-up 右手系
       let wx = sy * iy + (-cy) * ix;
