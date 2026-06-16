@@ -1,5 +1,5 @@
 // ============================================================
-// ROBO BATTLE 3D - Prototype (V9.15)
+// ROBO BATTLE 3D - Prototype (V9.16)
 // War Robots 風 TPS メカ 7 機バトルロイヤル / Three.js (ESM)
 //
 // V9.7 変更点(セーブ消失バグ修正 + 購入機体の即戦力化):
@@ -3889,7 +3889,8 @@ const WEAPON_DRONE_KEYS = [
 ];
 const DRONE_GLB_SCALE = 0.75;   // glb(全長~2.3)→ドローン局所サイズへ正規化。見て微調整可
 async function loadOneDroneGlb(url) {
-  const r = await fetch(url, { cache: 'force-cache' });
+  // 既定キャッシュ(サーバ検証つき)。force-cache だと再生成しても古い glb を返し続けるため不可。
+  const r = await fetch(url, { cache: 'no-cache' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const gltf = await parseModel(new GLTFLoader(), await r.arrayBuffer());
   return gltf ? gltf.scene : null;
