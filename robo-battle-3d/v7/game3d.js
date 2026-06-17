@@ -7857,29 +7857,9 @@ class Game {
     try { applyWeaponEnv(buildWeaponEnvMap(this.renderer)); }
     catch (e) { console.warn('weapon envMap 生成に失敗:', e); }
 
-    // V9.17: ハンガーでスワイプ/ドラッグして機体を自由回転(慣性つき)。戦闘中は無効。
-    const dom = this.renderer.domElement;
-    const xOf = (e) => (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
-    const onDown = (e) => {
-      if (!this.inHangar || !DOCK.turntable) return;
-      DOCK.dragging = true; DOCK.lastX = xOf(e); DOCK.spinVel = 0;
-    };
-    const onMove = (e) => {
-      if (!DOCK.dragging || !this.inHangar) return;
-      const x = xOf(e);
-      const d = Math.max(-0.35, Math.min(0.35, (x - DOCK.lastX) * 0.01)); // 1px≈0.01rad・上限あり
-      DOCK.turntable.rotation.y += d;
-      DOCK.spinVel = d;                 // 直近の回転量を慣性に引き継ぐ
-      DOCK.lastX = x;
-      if (e.cancelable) e.preventDefault();
-    };
-    const onUp = () => { DOCK.dragging = false; };
-    dom.addEventListener('mousedown', onDown);
-    dom.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    dom.addEventListener('touchstart', onDown, { passive: true });
-    dom.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onUp);
+    // V9.18: 機体の自由回転は「長押し(👁モード)中だけ」に変更。
+    //   単純な左右スワイプは従来どおり機体切替(selectMechByIndex)に割り当てる。
+    //   実際の回転操作は #hangar-center の長押しジェスチャ側で DOCK を回す(下の init 参照)。
 
     this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1000);
   }
@@ -12795,8 +12775,7 @@ function setMechSize(mult, persist = true) {
   // 既存の戦闘ロボットへ即時反映(プレイ中・再ハンガー後の変更にも対応)
   const g = HANGAR.game;
   if (g && g.robots) for (const r of g.robots) if (r.group) r.group.scale.setScalar(mult);
-  // ドックのプレビュー機体にも反映(ハンガーでの見た目フィードバック)
-  if (typeof DOCK !== 'undefined' && DOCK.turntable) DOCK.turntable.scale.setScalar(mult);
+  // ドックのプレビューは拡大しない(全身が枠に収まるように。サイズは戦闘で反映される)
   refreshSizeBtn();
 }
 function refreshSizeBtn() {
@@ -13086,13 +13065,18 @@ window.RB_backToHangarFromOnline = () => {
       const SWIPE_RATIO = 1.3; // 横移動が縦移動の倍率以上(誤検出防止)
       let lpTimer = null;
       let heldPeek = false;     // この長押しで peek を立てたか(離すときに戻す対象)
-      let gx0 = 0, gy0 = 0, swiping = false, swiped = false, gActive = false;
+      let gx0 = 0, gy0 = 0, gLastX = 0, swiping = false, swiped = false, gActive = false;
+      let rotating = false;     // V9.18: 長押し(👁)中の自由回転モード
+      const isPeek = () => hangarEl.classList.contains('peek');
+
+      // V9.18: 回転モード開始(DOCK を手で回す。離すと spinVel の慣性で回り続ける)
+      const beginRotate = (x) => { rotating = true; gLastX = x; DOCK.dragging = true; DOCK.spinVel = 0; };
 
       const startLP = () => {
         clearTimeout(lpTimer);
         lpTimer = setTimeout(() => {
-          // スワイプ中・スワイプ確定後は peek を立てない
-          if (!swiping && !swiped && !hangarEl.classList.contains('peek')) { setPeek(true); heldPeek = true; }
+          // スワイプ中・スワイプ確定後は peek を立てない。長押し成立 → peek + 回転モードへ
+          if (!swiping && !swiped && !isPeek()) { setPeek(true); heldPeek = true; beginRotate(gLastX); }
         }, 350);
       };
       const cancelLP = () => clearTimeout(lpTimer);
@@ -13103,25 +13087,34 @@ window.RB_backToHangarFromOnline = () => {
 
       // ジェスチャ開始(タッチ/マウス共通)
       const gStart = (x, y) => {
-        gx0 = x; gy0 = y; swiping = false; swiped = false; gActive = true;
-        startLP();
+        gx0 = x; gy0 = y; gLastX = x; swiping = false; swiped = false; gActive = true; rotating = false;
+        // 既に peek(👁ボタンでON)なら即・回転モード。そうでなければ長押し待ち。
+        if (isPeek()) beginRotate(x); else startLP();
       };
-      // 移動: 横スワイプ判定(V8.10: peek 中もスワイプで機体切替可。peek は維持)
       const gMove = (x, y) => {
         if (!gActive) return;
+        // --- 回転モード: 機体をクルクル回す(機体切替はしない) ---
+        if (rotating) {
+          const d = Math.max(-0.35, Math.min(0.35, (x - gLastX) * 0.01)); // 1px≈0.01rad
+          if (DOCK.turntable) DOCK.turntable.rotation.y += d;
+          DOCK.spinVel = d;     // 慣性へ引き継ぎ
+          gLastX = x;
+          return;
+        }
+        gLastX = x;
+        // --- 通常: 横スワイプで機体切替(従来どおり) ---
         const dx = x - gx0, dy = y - gy0;
         if (!swiped && Math.abs(dx) >= SWIPE_DIST && Math.abs(dx) > Math.abs(dy) * SWIPE_RATIO) {
-          // スワイプ確定 → 長押し(peek)をキャンセルして機体切替。
-          //   peek 表示中(全UI非表示の全景)でもそのまま次/前の機体へ。peek は維持される
-          //   (#hangar.peek は親に残り、refreshHangarUI は内部のみ再構築するため)。
           swiping = true; swiped = true;
           cancelLP();
-          // peek 中にスワイプしたら peek を固定(長押し由来でも指を離して消えないよう heldPeek 解除)
-          if (hangarEl.classList.contains('peek')) heldPeek = false;
           selectMechByIndex(dx < 0 ? 1 : -1); // 左スワイプ=次 / 右スワイプ=前
         }
       };
-      const gEnd = () => { gActive = false; endLP(); };
+      const gEnd = () => {
+        gActive = false;
+        if (rotating) { rotating = false; DOCK.dragging = false; } // 慣性は spinVel が継続
+        endLP();
+      };
 
       center.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; gStart(t.clientX, t.clientY); }, { passive: true });
       center.addEventListener('touchmove', (e) => { const t = e.changedTouches[0]; gMove(t.clientX, t.clientY); }, { passive: true });
