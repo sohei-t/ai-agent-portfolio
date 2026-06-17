@@ -135,5 +135,28 @@
     "ability": "shield",
     "price": 1500,
     "assetVersion": 1781573521
+  },
+  {
+    "id": "GAL_001",
+    "name": {
+      "ja": "GAL_001",
+      "en": "GAL_001"
+    },
+    "role": "player",
+    "model": "GAL_001",
+    "modelType": "rigged",
+    "hp": 200,
+    "hardpoints": [
+      "light",
+      "light",
+      "heavy",
+      "heavy"
+    ],
+    "speed": 4.000000000000001,
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 1500,
+    "assetVersion": 1781732394
   }
 ]
