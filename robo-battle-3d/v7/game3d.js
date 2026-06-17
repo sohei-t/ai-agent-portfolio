@@ -4782,6 +4782,23 @@ const CHEST_Y_BASE = 2.7; // 基準胸高(クラス scale で伸縮)
 //   胸高・衝突半径・被弾判定半径を実寸に追従させる。ビルトインは 1
 function mechSizeK(cls) { return (cls && cls.custom) ? (CONFIG.CUSTOM_TARGET_HEIGHT / 3.6) : 1; }
 
+// ============================================================
+// v7: キャラクター表示サイズ倍率(端末ごとのローカル設定)。
+//   遠くの敵が小さくて見えづらい問題への対応。見た目(group.scale)のみ拡大し、
+//   当たり判定(1.7*cls.scale*mechSizeK で別計算)は変えない = 対戦の公平性を維持。
+//   ハンガーの「🔍 サイズ」ボタンで 標準/大きめ/特大 を巡回。
+// ============================================================
+const MECH_SIZE_OPTIONS = [
+  { key: 'STD', label: '標準', mult: 1.0 },
+  { key: 'BIG', label: '大きめ', mult: 1.3 },
+  { key: 'XL', label: '特大', mult: 1.6 },
+];
+let MECH_SIZE_MULT = 1.0;
+try {
+  const v = parseFloat(localStorage.getItem('rb_mech_size'));
+  if (v >= 1 && v <= 2) MECH_SIZE_MULT = v;
+} catch (e) { /* private mode */ }
+
 class Robot {
   /**
    * @param {object} cls  CONFIG.MECH_CLASSES のエントリ
@@ -4800,6 +4817,8 @@ class Robot {
     if (!gltf) this.model.root.scale.setScalar(cls.scale); // プリミティブもクラスでスケール
     this.group = new THREE.Group();
     this.group.add(this.model.root);
+    // v7: 表示サイズ倍率(見た目のみ。当たり判定は不変)。足元原点なので接地は維持される
+    this.group.scale.setScalar(MECH_SIZE_MULT);
     scene.add(this.group);
 
     // クラス由来のステータス
@@ -12768,6 +12787,59 @@ function buildBootSetup(playerClass) {
 }
 
 // ============================================================
+//  v7: キャラクター表示サイズの切替(見た目のみ・端末ローカル設定)
+// ============================================================
+function setMechSize(mult, persist = true) {
+  MECH_SIZE_MULT = mult;
+  if (persist) { try { localStorage.setItem('rb_mech_size', String(mult)); } catch (e) {} }
+  // 既存の戦闘ロボットへ即時反映(プレイ中・再ハンガー後の変更にも対応)
+  const g = HANGAR.game;
+  if (g && g.robots) for (const r of g.robots) if (r.group) r.group.scale.setScalar(mult);
+  // ドックのプレビュー機体にも反映(ハンガーでの見た目フィードバック)
+  if (typeof DOCK !== 'undefined' && DOCK.turntable) DOCK.turntable.scale.setScalar(mult);
+  refreshSizeBtn();
+}
+function refreshSizeBtn() {
+  const btn = document.getElementById('size-btn');
+  if (!btn) return;
+  const opt = MECH_SIZE_OPTIONS.find((o) => Math.abs(o.mult - MECH_SIZE_MULT) < 0.01) || MECH_SIZE_OPTIONS[0];
+  btn.textContent = '🔍 ' + opt.label;
+}
+
+// ============================================================
+//  v7: ハンガーからの本番公開(localhost 限定。devserver.py の /api/deploy)
+// ============================================================
+const IS_LOCALHOST = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+async function onDeployClick() {
+  const btn = document.getElementById('deploy-btn');
+  if (!btn || btn.disabled) return;
+  if (!confirm('本番(GitHub Pages)へ公開します。よろしいですか？\n\n同期 → コミット → 公開まで自動で行います(数分かかることがあります)。')) return;
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '🚀 公開中…';
+  try {
+    const r = await fetch('/api/deploy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'deploy: v7 ハンガーから公開' }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j.ok) {
+      showToast('✅ 本番公開が完了しました');
+      alert('✅ 本番公開が完了しました。\n\n' + String(j.output || '').slice(-1000));
+    } else {
+      alert('❌ 公開に失敗しました (code ' + (j.returncode ?? r.status) + ')\n\n'
+        + String(j.error || j.output || '不明なエラー').slice(-1500));
+    }
+  } catch (e) {
+    alert('❌ デプロイ API を呼べませんでした: ' + (e && e.message || e)
+      + '\n\nゲームを launch_v7.command(devserver.py)で起動していますか？\n'
+      + '(単純な http.server では /api/deploy がありません)');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+// ============================================================
 //  v7 M2a: オンライン対戦フック(online.js と window 経由で疎結合)
 // ============================================================
 /** ロビーで持ち寄る「自分の機体クラス」 */
@@ -12975,6 +13047,23 @@ window.RB_backToHangarFromOnline = () => {
       setLang(LANG === 'ja' ? 'en' : 'ja');
       uiSfx();
     });
+
+    // ---- v7: キャラクター表示サイズ切替(🔍 標準/大きめ/特大) ----
+    setMechSize(MECH_SIZE_MULT, false); // 保存値をドック/ラベルへ反映(再保存しない)
+    const sizeBtn = $id('size-btn');
+    if (sizeBtn) sizeBtn.addEventListener('click', () => {
+      const i = MECH_SIZE_OPTIONS.findIndex((o) => Math.abs(o.mult - MECH_SIZE_MULT) < 0.01);
+      const next = MECH_SIZE_OPTIONS[(i + 1) % MECH_SIZE_OPTIONS.length];
+      setMechSize(next.mult);
+      uiSfx();
+    });
+
+    // ---- v7: 本番公開ボタン(localhost のみ表示) ----
+    const deployBtn = $id('deploy-btn');
+    if (deployBtn && IS_LOCALHOST) {
+      deployBtn.style.display = '';
+      deployBtn.addEventListener('click', () => { uiSfx(); onDeployClick(); });
+    }
 
     // ---- V8.6: 機体全景プレビュー(👁 トグル + 回転台の長押し) ----
     //   ハンガー UI を一時フェードアウトして背後の 3D 機体だけ見せる。

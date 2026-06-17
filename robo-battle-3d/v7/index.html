@@ -789,7 +789,7 @@
   #hangar-title span { font-size: 9px; letter-spacing: 3px; color: #7fa0b4; margin-left: 8px; }
   /* V7.3: 右上 = 言語トグル + WALLET */
   #hangar-top-right { display: flex; align-items: center; gap: 10px; }
-  #lang-btn, #saveio-btn {
+  #lang-btn, #saveio-btn, #size-btn {
     padding: 4px 10px;
     background: rgba(110, 243, 255, 0.08);
     border: 1px solid rgba(110, 243, 255, 0.45);
@@ -797,7 +797,17 @@
     font-family: inherit; font-size: 10px; font-weight: 900; letter-spacing: 1px;
     cursor: pointer;
   }
-  #lang-btn:hover, #saveio-btn:hover { background: rgba(110, 243, 255, 0.2); }
+  #lang-btn:hover, #saveio-btn:hover, #size-btn:hover { background: rgba(110, 243, 255, 0.2); }
+  #deploy-btn {
+    padding: 4px 10px;
+    background: rgba(255, 176, 46, 0.14);
+    border: 1px solid rgba(255, 176, 46, 0.6);
+    color: var(--hud-amber);
+    font-family: inherit; font-size: 10px; font-weight: 900; letter-spacing: 1px;
+    cursor: pointer;
+  }
+  #deploy-btn:hover { background: rgba(255, 176, 46, 0.28); }
+  #deploy-btn:disabled { opacity: 0.5; cursor: default; }
   /* --- V7.8: レベル + XP プログレス(右上・WALLET の隣) --- */
   #hangar-level { display: flex; align-items: center; gap: 6px; }
   #lv-num {
@@ -1653,6 +1663,10 @@
       <button id="hangar-peek-btn" type="button" title="機体の全景を見る">👁</button>
       <!-- V7.7: セーブのエクスポート/インポート(機種変更・ブラウザ移行用) -->
       <button id="saveio-btn" type="button">💾</button>
+      <!-- v7: キャラクター表示サイズ(標準/大きめ/特大。遠くの敵を見やすく) -->
+      <button id="size-btn" type="button" title="キャラクターの表示サイズ">🔍 標準</button>
+      <!-- v7: 本番公開(localhost のみ JS で表示。devserver.py の /api/deploy を叩く) -->
+      <button id="deploy-btn" type="button" title="本番(GitHub Pages)へ公開" style="display:none">🚀 公開</button>
       <!-- V7.3: 言語トグル(JA/EN。セーブに保存) -->
       <button id="lang-btn" type="button">🌐 JA</button>
       <div id="hangar-wallet">💰 0</div>
@@ -1746,7 +1760,7 @@
 </div>
 
 <!-- v7: オンライン対戦のシグナリング(window.firebase* / initFirebase を提供。古典スクリプト = モジュールより先に実行) -->
-<script src="./firebase-config.js?v=129"></script>
+<script src="./firebase-config.js?v=131"></script>
 
 <!-- Three.js importmap (ローカル同梱 v0.170.0) -->
 <script type="importmap">
@@ -1759,8 +1773,8 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=129"></script>
+<script type="module" src="./game3d.js?v=131"></script>
 <!-- v7: オンライン対戦ロビー(M1b)。game3d.js の後に読み込み、window.RB_* で疎結合に連携 -->
-<script type="module" src="./online.js?v=129"></script>
+<script type="module" src="./online.js?v=131"></script>
 </body>
 </html>
