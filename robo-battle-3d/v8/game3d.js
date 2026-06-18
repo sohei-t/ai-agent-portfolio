@@ -10671,7 +10671,7 @@ class Game {
     if (robot === this.player) {
       this.sound.play('lock', 0.8);
       const w = CONFIG.WEAPONS[robot.slots[s]];
-      try { showToast(`🛡 武器装甲 起動: ${w ? w.label : '武器'}`); } catch (e) {}
+      this.showArmorAnnounce(w ? w.label : '武器'); // 大きな中央告知
     }
     console.info('[P3] 武器装甲 起動', robot === this.player ? 'PLAYER' : 'AI', 'slot', s, 'stage', robot.armorStage);
     return true;
@@ -10755,6 +10755,44 @@ class Game {
     }
   }
   hideWeaponArmorHUD() { const el = document.getElementById('wpn-armor-hud'); if (el) el.style.display = 'none'; }
+
+  /** v8 P3: 装甲モード起動の大きな中央告知(プレイヤー・約2秒でフェード) */
+  showArmorAnnounce(label) {
+    let el = document.getElementById('armor-announce');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'armor-announce';
+      el.style.cssText = 'position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);z-index:45;'
+        + 'font-family:Orbitron,sans-serif;text-align:center;pointer-events:none;opacity:0;'
+        + 'transition:opacity .25s;text-shadow:0 2px 10px #000;';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = '<div style="font-size:26px;font-weight:900;color:#ff9a9a;letter-spacing:2px">⚠ 装甲モード 起動</div>'
+      + `<div style="font-size:14px;color:#bfe8ff;margin-top:4px">武器「<b style="color:#66ccff">${label}</b>」がダメージを肩代わり中</div>`;
+    el.style.display = 'block';
+    requestAnimationFrame(() => { el.style.opacity = '1'; });
+    clearTimeout(this._armorAnnT);
+    this._armorAnnT = setTimeout(() => { el.style.opacity = '0'; }, 1900);
+  }
+
+  /** v8 P3: 盾化中の武器が電磁スパーク＋煙を放つ。耐久が減るほど激しく(=壊れそう) */
+  updateArmorFx(dt) {
+    for (const r of this.robots) {
+      if (!r.alive || r.shieldSlot < 0) continue;
+      const s = r.shieldSlot;
+      if (!r.wpnDead || r.wpnDead[s] || !r.wpnDuraMax[s]) continue;
+      const lowK = 1 - (r.wpnDura[s] / r.wpnDuraMax[s]); // 0=満タン → 1=瀕死
+      const rate = (3 + lowK * 16) * fxMul();
+      if (rng() < dt * rate) {
+        r.model.getMuzzleWorld(s, _muzzle);
+        _v5.copy(_muzzle);
+        _v5.x += (rng() - 0.5) * 0.7; _v5.y += (rng() - 0.5) * 0.7; _v5.z += (rng() - 0.5) * 0.7;
+        this.particles.spawn(_v5, 1, { color: rng() < 0.5 ? 0x9fe8ff : 0xffffff, speed: 3 + lowK * 5, life: 0.2, gravity: 0, scale: 0.6 + lowK * 0.7, boost: 2.5 });
+        if (lowK > 0.4 && rng() < 0.55) this.particles.spawn(_v5, 1, { color: 0x33373c, speed: 1, life: 0.7, gravity: 4, scale: 0.9 + lowK, upBias: 1, blending: 'normal' });
+        if (lowK > 0.6 && rng() < 0.35) this.lights.spawn(_v5, 0x9fd0ff, 14);
+      }
+    }
+  }
 
   /** v8 P3: ゲスト側 — ホスト配信の武器装甲状態(破壊/盾化/耐久)を反映 */
   applyNetWeaponState(robot, wd, ss, sd) {
@@ -11946,8 +11984,9 @@ class Game {
     // v8: 延焼 DoT(火炎系武器)
     if (!this.gameOver) this.updateBurns(dt);
 
-    // v8 P3: 武器装甲 HUD(盾化中の武器・耐久バー / 破壊スロットの淡色化)
+    // v8 P3: 武器装甲 HUD(盾化中の武器・耐久バー / 破壊スロットの淡色化)+ 盾化武器の電磁スパーク演出
     this.updateWeaponArmorHUD();
+    if (!this.gameOver) this.updateArmorFx(dt);
 
     // エフェクト・カメラ・HUD
     this.particles.update(dt);
