@@ -1053,6 +1053,7 @@
   .sl-size.sz-light { color: #0a1014; background: #7fe8c8; }
   .sl-size.sz-medium { color: #0a1014; background: #ffd24a; }
   .sl-size.sz-heavy { color: #fff; background: #e0543a; }
+  .sl-size.sz-any { color: #06121a; background: #66ccff; } /* v8 P4: 防具(全スロット可) */
   /* ===== V7.3: 武器選択モーダル(画面中央・全武器カタログ) ===== */
   #wpn-modal { position: absolute; inset: 0; z-index: 30; }
   #wpn-modal.hidden { display: none; }
@@ -1775,7 +1776,7 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=140"></script>
+<script type="module" src="./game3d.js?v=141"></script>
 <!-- v7: オンライン対戦ロビー(M1b)。game3d.js の後に読み込み、window.RB_* で疎結合に連携 -->
 <script type="module" src="./online.js?v=140"></script>
 </body>
