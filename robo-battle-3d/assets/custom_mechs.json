@@ -181,5 +181,29 @@
     "ability": "shield",
     "price": 1500,
     "assetVersion": 1781761762
+  },
+  {
+    "id": "SHI_SA_",
+    "name": {
+      "ja": "SHI-SA-",
+      "en": "SHI-SA-"
+    },
+    "role": "player",
+    "model": "SHI_SA_",
+    "modelType": "static",
+    "hp": 200,
+    "hardpoints": [
+      "medium",
+      "medium",
+      "heavy",
+      "heavy"
+    ],
+    "speed": 3.2,
+    "staticKind": "walk",
+    "yaw": 0.0012,
+    "scale": 1.0,
+    "ability": "shield",
+    "price": 1500,
+    "assetVersion": 1781780248
   }
 ]
