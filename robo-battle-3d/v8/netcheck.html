@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v7 P2P 接続テスト</title>
+<!-- Firebase シグナリング(window.firebase* / initFirebase を提供) -->
+<script src="firebase-config.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #0e1116; color: #d7e0ea; padding: 16px; }
+  h1 { font-size: 16px; letter-spacing: 1px; color: #6ad0ff; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  input, button { font-size: 15px; padding: 9px 12px; border-radius: 8px; border: 1px solid #2a3340; background: #161c24; color: #d7e0ea; }
+  button { cursor: pointer; background: #1d2731; border-color: #3a4654; font-weight: 700; }
+  button:hover { border-color: #6ad0ff; color: #fff; }
+  button.primary { background: rgba(63,217,212,.15); border-color: #3fd9d4; color: #aef0ff; }
+  #code { font-size: 28px; letter-spacing: 6px; color: #ffd24a; font-weight: 800; }
+  .card { border: 1px solid #2a3340; border-radius: 10px; padding: 12px; margin: 10px 0; background: #131a22; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; margin: 2px; }
+  .on { background: rgba(80,255,140,.16); color: #7dffa6; }
+  .off { background: rgba(255,93,93,.16); color: #ff9a9a; }
+  #log { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap;
+         max-height: 40vh; overflow-y: auto; background: #0a0e13; border: 1px solid #222b35; border-radius: 8px; padding: 10px; }
+  .hint { color: #8aa; font-size: 12.5px; }
+</style>
+</head>
+<body>
+  <h1>◣◢ ROBO BATTLE v7 — P2P 接続テスト (最大4人)</h1>
+  <p class="hint">複数の端末/タブで開く → 1人が「部屋を作る」→ 残りが表示されたコードで「参加」。全員 CONNECTED になれば成功。</p>
+
+  <div class="row">
+    <input id="name" placeholder="あなたの名前" value="" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button id="hostBtn" class="primary">🏠 部屋を作る(ホスト)</button>
+    <input id="joinCode" placeholder="6桁コード" inputmode="numeric" maxlength="6" style="width:120px" autocomplete="off">
+    <button id="joinBtn">🔌 参加(ゲスト)</button>
+    <button id="leaveBtn">✖ 退出</button>
+  </div>
+
+  <div class="card">
+    <div>部屋コード: <span id="code">------</span> <span id="role" class="pill off">未接続</span></div>
+    <div style="margin-top:8px">接続: <span id="peers"></span></div>
+    <div style="margin-top:8px">ロビー: <span id="lobby"></span></div>
+  </div>
+
+  <div class="row">
+    <button id="pingBtn">📡 PING 送信</button>
+    <span class="hint">ホスト→全ゲスト / ゲスト→ホスト に ping を送り、相手が pong を返します。</span>
+  </div>
+
+  <div id="log"></div>
+
+<script type="module">
+import { NetHub, MAX_PLAYERS } from './net.js';
+
+const $ = (id) => document.getElementById(id);
+const log = (m) => { const el = $('log'); el.textContent += m + '\n'; el.scrollTop = el.scrollHeight; };
+let net = null;
+
+function renderPeers() {
+  if (!net) { $('peers').textContent = '—'; return; }
+  const ids = [...net.peers.keys()];
+  $('peers').innerHTML = ids.length
+    ? ids.map((id) => { const p = net.peers.get(id); return `<span class="pill ${p.open ? 'on' : 'off'}">${id.slice(0,6)} ${p.open ? 'CONNECTED' : '…'}</span>`; }).join('')
+    : '<span class="hint">相手待ち</span>';
+}
+function renderLobby(s) {
+  const players = s.players || {};
+  const names = [];
+  if (s.room && s.room.host) names.push('🏠 ' + s.room.host.name);
+  for (const id of Object.keys(players)) names.push('• ' + (players[id].name || id.slice(0,6)));
+  $('lobby').textContent = `${names.length}/${MAX_PLAYERS}  ${names.join('  ')}`;
+}
+
+function wire() {
+  net.on('lobby', (s) => { renderLobby(s); renderPeers(); })
+     .on('open', (id) => { log(`✅ OPEN: ${id.slice(0,8)} とつながりました`); renderPeers(); })
+     .on('data', (id, m) => {
+        if (m.type === 'ping') { log(`📥 PING from ${m.from}`); net.send(id, { type: 'pong', from: $('name').value || 'me' }); }
+        else if (m.type === 'pong') { log(`📥 PONG from ${m.from}`); }
+        else log(`📥 ${id.slice(0,6)}: ${JSON.stringify(m)}`);
+     })
+     .on('close', (id) => { log(`⚠️ CLOSE: ${id.slice(0,8)}`); renderPeers(); })
+     .on('error', (w, e) => log(`❌ ${w}: ${e && e.message || e}`));
+}
+
+$('hostBtn').onclick = async () => {
+  try {
+    net = new NetHub(); wire();
+    const code = await net.createRoom($('name').value || 'HOST');
+    $('code').textContent = code;
+    $('role').textContent = 'ホスト'; $('role').className = 'pill on';
+    log(`🏠 部屋を作成: ${code}（このコードを相手に伝える）`);
+  } catch (e) { log('❌ ' + e.message); }
+};
+$('joinBtn').onclick = async () => {
+  try {
+    net = new NetHub(); wire();
+    const code = $('joinCode').value.trim();
+    await net.joinRoom(code, $('name').value || 'GUEST');
+    $('code').textContent = code;
+    $('role').textContent = 'ゲスト'; $('role').className = 'pill on';
+    log(`🔌 参加: ${code}（ホストとの接続を確立中…）`);
+  } catch (e) { log('❌ ' + e.message); }
+};
+$('leaveBtn').onclick = async () => { if (net) { await net.leave(); log('✖ 退出しました'); } net = null; renderPeers(); $('role').textContent = '未接続'; $('role').className = 'pill off'; };
+$('pingBtn').onclick = () => {
+  if (!net) { log('先に部屋を作る/参加してください'); return; }
+  const msg = { type: 'ping', from: $('name').value || 'me' };
+  if (net.isHost) { net.broadcast(msg); log('📡 PING を全ゲストへ'); }
+  else { net.toHost(msg); log('📡 PING をホストへ'); }
+};
+log('準備OK。名前を入れて「部屋を作る」か「参加」してください。');
+</script>
+</body>
+</html>
