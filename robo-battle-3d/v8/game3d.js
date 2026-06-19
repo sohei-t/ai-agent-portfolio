@@ -1155,7 +1155,8 @@ const CONFIG = {
     hailstorm: {
       name: 'HAILSTORM', label: 'HAIL', kind: 'bolt', size: 'heavy', mount: 'arm', price: 6200,
       archetype: 'rapid', family: 'rapid', fxTier: 3,
-      dmgMin: 10, dmgMax: 13, interval: 0.13, heat: 9, range: 55, boltSpeed: 58, boltScale: 0.7,
+      // P5 バランス: VULCAN(4200) と DPS が並んでいたので単発を上げて価格相応に(96 DPS)
+      dmgMin: 11, dmgMax: 14, interval: 0.13, heat: 9, range: 55, boltSpeed: 58, boltScale: 0.7,
       color: 0xffd890, colorE: 0xff9860, sfx: 'repeater', recoil: 0.015, spreadAim: 0.6, tag: '重・連射弾幕',
     },
     arc_cascade: {
@@ -1427,7 +1428,7 @@ const CONFIG = {
   ARTY_ARC_HEIGHT: 16,       // 山なり弾道の頂点高(+距離比例分)
 
   // V7.1: TEMPEST(持続稲妻ビーム)の演出
-  TEMPEST_FX_POOL: 4,        // 同時ビーム数(最大 4 機が全員照射)
+  TEMPEST_FX_POOL: 8,        // v8 P5: 4→8(照射ビーム + 連鎖稲妻 + 枝分かれの同時描画に余裕を持たせる)
   TEMPEST_SEGS: 9,           // 稲妻ポリラインの分割数(ジグザグ)
   TEMPEST_JAG: 0.7,          // ジグザグの最大横ぶれ(u)
 
@@ -2104,8 +2105,9 @@ function aiTierLoadout(cls, lv) {
     });
     return cands.length ? cands[Math.floor(rng() * cands.length)] : base[i];
   });
-  // v8 P4: 高レベル帯の敵は一定確率で 1 スロットを防具化(攻防トレードオフの多様性)
-  if (lv >= 13 && lo.length >= 2 && rng() < 0.3) {
+  // v8 P4/P5: 高レベル帯の敵は一定確率で 1 スロットを防具化(攻防トレードオフの多様性)。
+  //   P5: スロット 3 個以上の機体に限定(2 スロット機は火力が半減して passive すぎるため)。
+  if (lv >= 13 && lo.length >= 3 && rng() < 0.3) {
     const armorKeys = Object.keys(CONFIG.WEAPONS).filter((k) => CONFIG.WEAPONS[k].kind === 'armor');
     if (armorKeys.length) lo[Math.floor(rng() * lo.length)] = armorKeys[Math.floor(rng() * armorKeys.length)];
   }
@@ -4152,6 +4154,11 @@ const DRONE_THEME = {
   tempest: { hull: 0x223a3a, glow: 0x6affe0 },   devastator: { hull: 0x3a2a2a, glow: 0xff6a4a },
   havoc: { hull: 0x342236, glow: 0xff6ad0 },     annihilator: { hull: 0x3a2422, glow: 0xff4a2a },
   inferno: { hull: 0x3a2a20, glow: 0xff7a30 },   titan: { hull: 0x3a2222, glow: 0xff3a20 },
+  // v8 防具/シールド: 素材イメージで本体色を大きく変える(安→高: 鉄/ダイヤ/ミスリル/アダマンタイト)
+  aegis_barrier:   { hull: 0x6a7078, glow: 0xb6c0c8 },  // 鉄: 鈍い鋼グレー + 明るい鋼トリム
+  bulwark_plating: { hull: 0xdfeef6, glow: 0xc4f3ff },  // ダイヤモンド: 明るい氷白 + シアン輝き
+  phase_field:     { hull: 0x8fbdd8, glow: 0xdcefff },  // ミスリル: 淡い銀青の輝き
+  reactive_guard:  { hull: 0x2a1c22, glow: 0xe85040 },  // アダマンタイト: 漆黒 + 深紅トリム
 };
 
 // V9.12: Blender製の「軽武器ドローン」glb。武器ごとに専用モデルをプリロードしてクローン使用。
@@ -4163,6 +4170,15 @@ const WEAPON_DRONE_KEYS = [
   'repeater', 'tachyon', 'helios',
   'bazooka', 'rail', 'artillery', 'tempest', 'devastator', 'havoc',        // 重
   'annihilator', 'inferno', 'titan',
+  // v8 追加 32 種(専用 glb は gen_weapon_drones.py で生成。未生成なら _default にフォールバック)
+  'hornet_rep', 'storm_rep', 'plasma_rep', 'riot_gat', 'vulcan', 'hailstorm',
+  'tempest_rep', 'railstorm', 'omega_rep',
+  'spark_needle', 'shock_coil', 'ion_coil', 'volt_lash', 'thunder_arc', 'arc_cascade',
+  'tesla_storm', 'volt_nova', 'lightning_net', 'storm_bringer', 'zeus_lance',
+  'pyro_stream', 'ember_bolt', 'cinder_stream', 'flame_lance', 'fire_salvo', 'pyre_thrower',
+  'inferno_jet', 'dragon_breath', 'hellfire', 'magma_spray', 'solar_flare', 'phoenix',
+  // v8 防具/シールド(武器スロットに装着 → 武器の代わりにシールド/装甲を表示)
+  'aegis_barrier', 'bulwark_plating', 'phase_field', 'reactive_guard',
 ];
 const DRONE_GLB_SCALE = 0.75;   // glb(全長~2.3)→ドローン局所サイズへ正規化。見て微調整可
 async function loadOneDroneGlb(url) {
@@ -4296,7 +4312,8 @@ function buildDroneLoadout(rig, slots, worldScale, fallbackMuzzle) {
   slots.forEach((key, i) => {
     const w = CONFIG.WEAPONS[key];
     if (!w) { muzzles[i] = fallbackMuzzle || null; return; }
-    if (w.kind === 'armor') { muzzles[i] = fallbackMuzzle || null; return; } // v8 P4: 防具はガンドローンを付けない
+    // v8: 防具(armor)も専用ドローン(シールド/装甲)を武器の代わりに表示する。
+    //   size='any' は DRONE_TIERS に無いので medium 相当で配置(muzzle は発射しないため未使用)。
     const size = DRONE_TIERS[w.size] ? w.size : 'medium';
     const tier = DRONE_TIERS[size];
     const { group, muzzle } = buildWeaponDrone(key, size);
@@ -6407,9 +6424,10 @@ class BoltPool {
             game.rings.spawn(_v1, { mode: 'billboard', scale: 3.6, life: 0.35, color: b.color, boost: 1.8 });
           }
           game.dealDamage(hitTarget, dmg, b.shooter ? b.shooter.position : b.prev, b.shooter);
-          // V7.1 ARC: 12m 以内の別の敵 1 機へ連鎖(稲妻演出 + 40% ダメージ)
+          // V7.1 ARC: 12m 以内の別の敵 1 機へ連鎖(稲妻演出 + 40% ダメージ)。
+          // v8 P5: 連鎖演出を fxTier でスケール(高価な電撃ほど派手・枝分かれ)
           if (b.chain > 0) {
-            game.arcChain(hitTarget, Math.round(dmg * b.chain), b.shooter, b.chainRange);
+            game.arcChain(hitTarget, Math.round(dmg * b.chain), b.shooter, b.chainRange, b.fxTier);
           }
           // v8: 火炎系の延焼付与(ファイヤーボール/ファイヤーアロー)
           if (b.burn) {
@@ -10340,7 +10358,7 @@ class Game {
    * V7.1 ARC BLASTER: 命中対象の chainRange 以内にいる「別の敵」1 機へ連鎖。
    * 稲妻ポリライン(TempestFX を 1 フレーム借用)+ ダメージ + バチッ音。
    */
-  arcChain(fromRobot, chainDmg, shooter, chainRange) {
+  arcChain(fromRobot, chainDmg, shooter, chainRange, fxTier = 2) {
     if (chainDmg <= 0) return;
     let best = null, bestD = Infinity;
     for (const c of this.robots) {
@@ -10349,12 +10367,24 @@ class Game {
       if (d <= chainRange && d < bestD) { bestD = d; best = c; }
     }
     if (!best) return;
-    // 稲妻演出(2 機の胸を結ぶ。hold=8 フレームで残光)
+    // 稲妻演出(2 機の胸を結ぶ。hold=8 フレームで残光)。v8 P5: fxTier で派手さをスケール
+    const ft = fxTier || 2, m = fxMul();
     fromRobot.chest(_v4);
     best.chest(_v5);
     this.tempestFx.draw(_v4, _v5, 0x9fc8ff, 8);
-    this.particles.spawn(_v5, 6, { color: 0x9fc8ff, speed: 5, life: 0.3, gravity: -4, boost: 2 });
-    this.lights.spawn(_v5, 0x9fc8ff, 24);
+    // 高 tier は中間から短い枝分かれを 1〜2 本足す(視覚のみ・ダメージ非依存)
+    const branches = ft >= 5 ? 2 : ft >= 4 ? 1 : 0;
+    for (let k = 0; k < branches; k++) {
+      const t = 0.4 + rng() * 0.3;
+      const a = new THREE.Vector3(
+        _v4.x + (_v5.x - _v4.x) * t, _v4.y + (_v5.y - _v4.y) * t, _v4.z + (_v5.z - _v4.z) * t);
+      const e = new THREE.Vector3(
+        _v5.x + (rng() - 0.5) * 4.5, _v5.y + 1.2 + rng() * 1.2, _v5.z + (rng() - 0.5) * 4.5);
+      this.tempestFx.draw(a, e, 0xbfe4ff, 6);
+    }
+    this.particles.spawn(_v5, Math.max(3, Math.round((2 + ft * 2) * m)),
+      { color: 0x9fc8ff, speed: 4 + ft, life: 0.3, gravity: -4, scale: 0.8 + ft * 0.12, boost: 2 });
+    this.lights.spawn(_v5, 0x9fc8ff, 16 + ft * 5);
     this.sound.playAt('zap', _v5, 14);
     this.dmgTexts.show(_v5, String(chainDmg), best === this.player);
     this.dealDamage(best, chainDmg, fromRobot.position, shooter);
