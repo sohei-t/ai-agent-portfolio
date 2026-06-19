@@ -2280,13 +2280,15 @@ function rosterForLevel(plv, playerClass) {
   let maxTier = plv >= 13 ? 2 : plv >= 6 ? 1 : 0;
   const remain = CONFIG.ENEMY_COUNT - out.length;
   const minKindsNeeded = Math.ceil(remain / cap); // cap2 → 残り 6 なら 3 種以上
+  // v8: 「購入専用(noEnemy)」のカスタム機体は敵抽選から除外(ビルトインは noEnemy なし=従来通り敵に出る)
+  const enemyEligible = (k) => k !== playerClass && !CONFIG.MECH_CLASSES[k].noEnemy;
   let base;
   do {
-    base = PLAYER_CLASSES.filter((k) => k !== playerClass && playerTierOf(k) <= maxTier);
+    base = PLAYER_CLASSES.filter((k) => enemyEligible(k) && playerTierOf(k) <= maxTier);
     if (base.length >= Math.max(2, minKindsNeeded)) break;
     maxTier++;
   } while (maxTier <= 2);
-  if (base.length < 2) base = PLAYER_CLASSES.filter((k) => k !== playerClass); // 最終保険
+  if (base.length < 2) base = PLAYER_CLASSES.filter(enemyEligible); // 最終保険
   // シャッフル
   for (let i = base.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -2340,7 +2342,7 @@ const CUSTOM_MECH_SCHEMA = {
     id: { type: 'string', required: true, pattern: '^[A-Za-z0-9_]{1,32}$', note: '一意・英数とアンダースコア・1〜32 文字。ビルトインと衝突したらスキップ' },
     name: { type: 'i18n', required: true, note: '{ ja, en } 表示名。片方のみでも可(他方へフォールバック)' },
     desc: { type: 'i18n', required: false, note: '{ ja, en } 説明(任意)' },
-    role: { type: 'enum', required: true, enum: ['player', 'enemy'], note: 'player=購入可 / enemy=敵専用' },
+    role: { type: 'enum', required: true, enum: ['player', 'enemy'], note: 'player=購入可(購入専用 or 両方) / enemy=敵専用' },
     model: { type: 'string', required: true, note: 'assets/models/ 配下のモデルキー(拡張子なし)。例 mech_amphib' },
     modelType: { type: 'enum', required: true, enum: ['rigged', 'static'], note: 'rigged=歩行アニメ glb(_walking_glb_url.glb)/ static=_static.glb' },
     staticKind: { type: 'enum', required: false, enum: ['walk', 'hover', 'quad', 'track'], default: 'walk', note: 'static 時の演出種別(modelType=static のみ)' },
@@ -2353,6 +2355,8 @@ const CUSTOM_MECH_SCHEMA = {
     colors: { type: 'object', required: false, note: '{ primary, secondary, dark } 各 0xRRGGBB(プリミティブ代替・敵の目に使用)' },
     // --- player 専用 ---
     price: { type: 'int', required: false, requiredWhen: { role: 'player' }, min: 1500, max: 5500, note: 'player の購入価格(ゲームレンジへクランプ)' },
+    // v8: role='player' のとき、敵としても出現させるか。false/省略=購入専用(敵に出ない)/ true=両方
+    enemySpawn: { type: 'bool', required: false, default: false, note: 'player のみ: true で敵としても出現(両方)。省略/false は購入専用(敵に出ない)' },
     weapons: { type: 'array', required: false, itemRef: 'WEAPONS', note: 'player の初期装備(hardpoints とサイズ整合・在庫に加算)。省略時は自動補完' },
     // --- enemy 専用 ---
     aiStyle: { type: 'enum', required: false, requiredWhen: { role: 'enemy' }, enumRef: 'AI_STYLES', note: 'enemy の AI 個性キー' },
@@ -2428,6 +2432,7 @@ function validateCustomEntry(e) {
   if (!e.hardpoints.every((h) => F.hardpoints.itemEnum.includes(h))) return 'hardpoints は light/medium/heavy のみ';
   if (e.ability !== undefined && !F.ability.enum.includes(e.ability)) return `ability は ${F.ability.enum.join('/')}`;
   if (e.role === 'player' && !Number.isFinite(e.price)) return 'player は price 必須(数値)';
+  if (e.enemySpawn !== undefined && typeof e.enemySpawn !== 'boolean') return 'enemySpawn は真偽値';
   if (e.role === 'enemy') {
     if (typeof e.aiStyle !== 'string' || !AI_STYLES[e.aiStyle]) return `aiStyle は ${Object.keys(AI_STYLES).join('/')} のいずれか`;
   }
@@ -2543,6 +2548,9 @@ function registerCustomMech(e) {
 
   if (e.role === 'player') {
     cls.price = Math.round(clampF(e.price, F.price));
+    // v8: enemySpawn=true なら「両方」(敵にも出る)。省略/false は「購入専用」(敵に出ない)。
+    //   noEnemy=true の機体は rosterForLevel の敵抽選から除外される。
+    cls.noEnemy = !e.enemySpawn;
     CONFIG.MECH_CLASSES[e.id] = cls;
     if (!PLAYER_CLASSES.includes(e.id)) PLAYER_CLASSES.push(e.id);
     // V8.9: hidden 適用は ROSTER_ORIGINALS から再構築するため、custom も原本へ追加
@@ -11084,28 +11092,32 @@ class Game {
     el.style.display = 'block';
   }
 
-  /** v8 P3/P4: 中央の大きな告知(プレイヤー・約2秒でフェード)。isPhase で PHASE 用表示に */
+  /** v8 P3/P4: 画面上部の細いバナー告知(視界を塞がない・1.5秒で消える)。isPhase で PHASE 用表示に */
   showArmorAnnounce(label, isPhase = false) {
     let el = document.getElementById('armor-announce');
     if (!el) {
       el = document.createElement('div');
       el.id = 'armor-announce';
-      el.style.cssText = 'position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);z-index:45;'
+      el.style.cssText = 'position:fixed;top:13%;left:50%;z-index:45;'
         + 'font-family:Orbitron,sans-serif;text-align:center;pointer-events:none;opacity:0;'
-        + 'transition:opacity .25s;text-shadow:0 2px 10px #000;';
+        + 'transform:translate(-50%,-8px);transition:opacity .2s,transform .2s;'
+        + 'padding:5px 14px;border-radius:999px;white-space:nowrap;max-width:92vw;overflow:hidden;'
+        + 'background:rgba(8,14,22,.62);text-shadow:0 1px 4px #000;';
       document.body.appendChild(el);
     }
     if (isPhase) {
-      el.innerHTML = '<div style="font-size:26px;font-weight:900;color:#d8b4ff;letter-spacing:2px">◆ 位相シールド 展開</div>'
-        + '<div style="font-size:14px;color:#e8d8ff;margin-top:4px">数秒間 <b style="color:#c69cff">完全無敵</b></div>';
+      el.style.border = '1px solid rgba(198,156,255,.7)';
+      el.innerHTML = '<span style="font-size:15px;font-weight:900;color:#d8b4ff;letter-spacing:1px">◆ 位相シールド 展開</span>'
+        + '<span style="font-size:12px;color:#e8d8ff;margin-left:8px">数秒間 完全無敵</span>';
     } else {
-      el.innerHTML = '<div style="font-size:26px;font-weight:900;color:#ff9a9a;letter-spacing:2px">⚠ 装甲モード 起動</div>'
-        + `<div style="font-size:14px;color:#bfe8ff;margin-top:4px">武器「<b style="color:#66ccff">${label}</b>」がダメージを肩代わり中</div>`;
+      el.style.border = '1px solid rgba(255,154,154,.7)';
+      el.innerHTML = '<span style="font-size:15px;font-weight:900;color:#ff9a9a;letter-spacing:1px">⚠ 装甲モード</span>'
+        + `<span style="font-size:12px;color:#bfe8ff;margin-left:8px">武器「<b style="color:#66ccff">${label}</b>」が肩代わり中</span>`;
     }
     el.style.display = 'block';
-    requestAnimationFrame(() => { el.style.opacity = '1'; });
+    requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translate(-50%,0)'; });
     clearTimeout(this._armorAnnT);
-    this._armorAnnT = setTimeout(() => { el.style.opacity = '0'; }, 1900);
+    this._armorAnnT = setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translate(-50%,-8px)'; }, 1500);
   }
 
   /** v8 P3: 盾化中の武器が電磁スパーク＋煙を放つ。耐久が減るほど激しく(=壊れそう) */
