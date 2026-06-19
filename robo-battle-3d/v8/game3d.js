@@ -1277,26 +1277,26 @@ const CONFIG = {
     aegis_barrier: {
       name: 'AEGIS BARRIER', label: 'AEGIS', kind: 'armor', size: 'any', mount: 'shoulder', price: 10000,
       archetype: 'special', family: 'armor', fxTier: 3,
-      armor: { type: 'barrier', hp: 180, frontDeg: 70, regen: 26, regenDelay: 3.2 },
-      color: 0x66ccff, colorE: 0x9fe0ff, sfx: 'lock', tag: '前面シールド(再生)',
+      armor: { type: 'barrier', shieldHp: 220, regen: 24, regenDelay: 3.0 },
+      color: 0x66ccff, colorE: 0x9fe0ff, sfx: 'lock', tag: '再生シールド(全方位・無被弾で回復)',
     },
     bulwark_plating: {
       name: 'BULWARK PLATING', label: 'BULWK', kind: 'armor', size: 'any', mount: 'shoulder', price: 11500,
       archetype: 'special', family: 'armor', fxTier: 3,
-      armor: { type: 'plating', hpBoost: 0.25, reduce: 0.18, speedMul: 0.9 },
-      color: 0xc8d2dc, colorE: 0x90e0ff, sfx: 'lock', tag: '重装甲(最大HP+/全方位軽減/速度↓)',
+      armor: { type: 'plating', shieldHp: 420, hpBoost: 0.20, speedMul: 0.9 },
+      color: 0xc8d2dc, colorE: 0x90e0ff, sfx: 'lock', tag: '重装シールド(最大量・最大HP+/速度↓)',
     },
     phase_field: {
       name: 'PHASE FIELD', label: 'PHASE', kind: 'armor', size: 'any', mount: 'shoulder', price: 13000,
       archetype: 'special', family: 'armor', fxTier: 4,
-      armor: { type: 'phase', duration: 3, cd: 18 },
-      color: 0xb98cff, colorE: 0xe0c0ff, sfx: 'lock', tag: '時限バブル(押下で360°無敵・長CD)',
+      armor: { type: 'phase', shieldHp: 300, duration: 3, cd: 18 },
+      color: 0xb98cff, colorE: 0xe0c0ff, sfx: 'lock', tag: 'シールド+時限バブル(押下で360°無敵)',
     },
     reactive_guard: {
       name: 'REACTIVE GUARD', label: 'REACT', kind: 'armor', size: 'any', mount: 'shoulder', price: 15000,
       archetype: 'special', family: 'armor', fxTier: 4,
-      armor: { type: 'reactive', baseChance: 0.25, lowBonus: 0.45, cut: 0.2 },
-      color: 0xffc24d, colorE: 0xff8030, sfx: 'lock', tag: '反応装甲(被弾時に確率で大幅カット+反射)',
+      armor: { type: 'reactive', shieldHp: 340, baseChance: 0.30, lowBonus: 0.30, cut: 0.45 },
+      color: 0xffc24d, colorE: 0xff8030, sfx: 'lock', tag: '反応シールド(被弾時に確率でダメ減=長持ち+反射)',
     },
   },
 
@@ -5450,16 +5450,17 @@ class Robot {
     if (this.alive) {
       this.phaseCd = Math.max(0, this.phaseCd - dt);
       this.phaseT = Math.max(0, this.phaseT - dt);
-      if (this.barrierMax > 0) {
+      // AEGIS のみ再生(無被弾で回復)。破壊後(0)は再生しない。
+      if (this.barrierRegen > 0 && !this.shieldBroken && this.barrierHp > 0 && this.barrierHp < this.barrierMax) {
         this.barrierRegenT = Math.max(0, this.barrierRegenT - dt);
-        if (this.barrierRegenT <= 0 && this.barrierHp < this.barrierMax) {
+        if (this.barrierRegenT <= 0) {
           this.barrierHp = Math.min(this.barrierMax, this.barrierHp + this.barrierRegen * dt);
         }
       }
     }
-    // AEGIS ドーム: 前面に追従・残量で濃淡
+    // AEGIS ドーム: 前面に追従・残量で濃淡(AEGIS 装備時のみ)
     if (this.armorDome) {
-      const on = this.barrierMax > 0 && this.alive && this.barrierHp > 0;
+      const on = this.aegisActive && this.alive && this.barrierHp > 0;
       this.armorDome.visible = on;
       if (on) {
         this.armorDome.position.copy(this.position);
@@ -5588,10 +5589,12 @@ class Robot {
    *   BULWARK は maxHp を _baseMaxHp から再計算(多重適用防止)するため hp 設定前に呼ぶこと。
    */
   initArmor() {
-    // 既定にリセット
-    this.armorReduce = 0; this.armorSpeedMul = 1;
-    this.barrierMax = 0; this.barrierHp = 0; this.barrierFrontDot = -1;
+    // 既定にリセット。v8: 防具は「装備した瞬間から全ダメージを肩代わりするシールドバッファ」。
+    //   barrierHp/barrierMax を統一シールドプールとして使う(全方位・壊れるまで全吸収)。
+    this.armorSpeedMul = 1;
+    this.barrierMax = 0; this.barrierHp = 0;
     this.barrierRegen = 0; this.barrierRegenDelay = 0; this.barrierRegenT = 0; this.barrierAbsorbed = 0;
+    this.shieldBroken = false; this.aegisActive = false; this.armorSlots = [];
     this.phaseSlot = -1; this.phaseDur = 0; this.phaseCdMax = 0; this.phaseT = 0; this.phaseCd = 0;
     this.reactiveChance = 0; this.reactiveLowBonus = 0; this.reactiveCut = 1;
     let hpBoost = 0;
@@ -5599,13 +5602,13 @@ class Robot {
       const w = CONFIG.WEAPONS[this.slots[i]];
       if (!w || w.kind !== 'armor' || !w.armor) continue;
       const a = w.armor;
+      this.armorSlots.push(i);
+      this.barrierMax += a.shieldHp || 0;            // 全防具がシールド量に加算
       if (a.type === 'plating') {
         hpBoost += a.hpBoost || 0;
-        this.armorReduce = clamp(this.armorReduce + (a.reduce || 0), 0, 0.6);
         this.armorSpeedMul *= (a.speedMul || 1);
-      } else if (a.type === 'barrier') {
-        this.barrierMax += a.hp || 0;
-        this.barrierFrontDot = Math.cos((a.frontDeg || 70) * Math.PI / 180);
+      } else if (a.type === 'barrier') {             // AEGIS: 再生シールド
+        this.aegisActive = true;
         this.barrierRegen = Math.max(this.barrierRegen, a.regen || 0);
         this.barrierRegenDelay = Math.max(this.barrierRegenDelay, a.regenDelay || 0);
       } else if (a.type === 'phase') {
@@ -5624,8 +5627,8 @@ class Robot {
 
   /** v8 P4: 防具の見た目メッシュ(AEGIS ドーム / PHASE バブル)を必要に応じ生成・表示制御 */
   _syncArmorMeshes() {
-    // AEGIS BARRIER: 前面ドーム(barrierMax>0 のときのみ常設・残量で濃淡)
-    if (this.barrierMax > 0 && !this.armorDome && this._scene) {
+    // AEGIS BARRIER: 前面ドーム(AEGIS 装備時のみ常設・残量で濃淡)
+    if (this.aegisActive && !this.armorDome && this._scene) {
       const geo = new THREE.SphereGeometry(2.6, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.62);
       this.armorDome = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
         color: 0x66ccff, transparent: true, opacity: 0.16,
@@ -5634,7 +5637,7 @@ class Robot {
       this.armorDome.visible = false;
       this._scene.add(this.armorDome);
     }
-    if (this.armorDome) this.armorDome.visible = this.barrierMax > 0 && this.alive && this.barrierHp > 0;
+    if (this.armorDome) this.armorDome.visible = this.aegisActive && this.alive && this.barrierHp > 0;
     // PHASE FIELD: 無敵バブル(発動中のみ表示)
     if (this.phaseSlot >= 0 && !this.phaseBubble && this._scene) {
       const geo = new THREE.SphereGeometry(3.0, 20, 14);
@@ -10886,10 +10889,9 @@ class Game {
         if (fxOk) { this.reactiveFx(target, sourcePos); target._armorFxT = this.elapsed; }
       }
     }
-    // BULWARK PLATING: 全方位の被ダメ軽減
-    if (target.armorReduce > 0) dmg *= (1 - target.armorReduce);
-    // AEGIS BARRIER: 前方からの被ダメをバリアで吸収(再生式)
-    if (target.barrierMax > 0 && target.barrierHp > 0 && this._barrierFaces(target, sourcePos)) {
+    // シールドバッファ: 装備した瞬間から全方位で全ダメージを肩代わり。0 で破壊。
+    //   (壊れるまで HP には一切通さない = 防具が真の第一防御線)
+    if (target.barrierMax > 0 && target.barrierHp > 0) {
       const absorbed = Math.min(dmg, target.barrierHp);
       target.barrierHp -= absorbed;
       target.barrierAbsorbed += absorbed;
@@ -10897,8 +10899,23 @@ class Game {
       dmg -= absorbed;
       const broke = target.barrierHp <= 0;
       if (fxOk || broke) { this.barrierHitFx(target, sourcePos, broke); target._armorFxT = this.elapsed; }
+      if (broke) this.breakShields(target);
     }
     return Math.max(0, Math.round(dmg));
+  }
+
+  /** v8: シールド破壊 — 盾ドローンを消して告知。AEGIS(再生)も含め 0 で一旦破壊(再生は別途) */
+  breakShields(robot) {
+    if (robot.shieldBroken) return;
+    robot.shieldBroken = true;
+    robot.barrierHp = 0;
+    for (const slot of (robot.armorSlots || [])) this.hideWeaponDrone(robot, slot);
+    try { robot.chest(_v5); this.weaponBreakFx(_v5.clone(), 3); } catch (e) {}
+    if (robot.armorDome) robot.armorDome.visible = false;
+    if (robot === this.player) {
+      try { this.sound.play('lowhp', 0.8); } catch (e) {}
+      this.showArmorAnnounce('シールド 破壊', false);
+    }
   }
 
   /** 攻撃元が AEGIS バリアの前面コーン内か(sourcePos 無しは対象外=DoT 等は素通り) */
@@ -11105,11 +11122,13 @@ class Game {
     let html = '';
     if (hasBarrier) {
       const pct = clamp(p.barrierHp / p.barrierMax, 0, 1) * 100;
-      const regen = p.barrierRegenT > 0; // 被弾直後は再生停止中
+      const broken = p.shieldBroken || p.barrierHp <= 0;
+      const lbl = broken ? '🛡 シールド破壊' : `🛡 シールド ${Math.ceil(p.barrierHp)}`;
+      const col = broken ? '#ff7a6a' : '#88e0ff';
       html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">`
-        + `<span style="color:#88e0ff">🛡 BARRIER</span>`
+        + `<span style="color:${col};min-width:96px">${lbl}</span>`
         + `<span style="width:120px;height:8px;border-radius:4px;background:rgba(0,0,0,.5);border:1px solid #66ccff;overflow:hidden;display:inline-block">`
-        + `<span style="display:block;width:${pct.toFixed(0)}%;height:100%;background:${regen ? '#3a7a96' : '#66ccff'}"></span></span></div>`;
+        + `<span style="display:block;width:${pct.toFixed(0)}%;height:100%;background:#66ccff"></span></span></div>`;
     }
     if (hasPhase) {
       let label, color;
@@ -13490,8 +13509,30 @@ function hideWeaponInfo() {
   WPN_INFO.sticky = false;
 }
 
+// v8: 武器/防具を選択(行タップ)した時点で、購入前でもドックの機体へ仮装着して見せる。
+//   SAVE は変更しない(プレビューのみ)。モーダルを閉じる/装備すると実状態に戻る。
+function previewDockEquip(clsKey, slotIdx, key) {
+  if (!DOCK.mech || DOCK.mechClass !== clsKey || slotIdx < 0) return;
+  const lo = (SAVE.loadouts[clsKey] || []).slice();
+  if (slotIdx >= lo.length) return;
+  lo[slotIdx] = key;
+  try { DOCK.mech.mountWeapons(lo); DOCK._previewActive = true; } catch (e) { /* 構造差は無視 */ }
+}
+function clearDockPreview(clsKey) {
+  if (DOCK.mech && DOCK._previewActive && DOCK.mechClass === clsKey) {
+    try { DOCK.mech.mountWeapons(SAVE.loadouts[clsKey]); } catch (e) {}
+  }
+  DOCK._previewActive = false;
+}
+/** モーダルパネルの位置を既定(右寄せ)へ戻す(前回ドラッグした位置をリセット) */
+function resetWpnModalPos() {
+  const p = $id('wpn-modal-panel');
+  if (p) { p.style.left = ''; p.style.top = ''; p.style.right = ''; p.style.transform = ''; }
+}
+
 function openWeaponModal() {
   HANGAR.showAllSizes = false; // 開くたびに「装備可能な武器のみ」へ戻す
+  resetWpnModalPos();          // v8: ドラッグ位置をリセットして右寄せから
   $id('wpn-modal').classList.remove('hidden');
   renderWeaponModal();
 }
@@ -13499,6 +13540,7 @@ function openWeaponModal() {
 /** モーダルを閉じる(refresh = true でハンガー再描画) */
 function closeWeaponModal(refresh = true) {
   hideWeaponInfo(); // V7.6: 情報ポップアップも一緒に閉じる
+  clearDockPreview(HANGAR.selectedClass); // v8: プレビューを実状態へ戻す
   const modal = $id('wpn-modal');
   if (!modal || modal.classList.contains('hidden')) {
     if (!refresh) return;
@@ -13722,6 +13764,9 @@ function renderWeaponModal() {
       // 追加購入(所持済み武器の在庫 +1)
       const buy2 = row.querySelector('.wl-buy2');
       if (buy2) buy2.addEventListener('click', (e) => { e.stopPropagation(); doBuy(false); });
+      // v8: 行(ボタン以外)をタップ → 購入前でもドック機体に仮装着して見た目を確認
+      //   ボタン類は stopPropagation 済みなので、行本体のタップ時のみ発火する。
+      row.addEventListener('click', () => { previewDockEquip(clsKey, slotIdx, key); });
       list.appendChild(row);
     }
   }
@@ -14165,6 +14210,29 @@ window.RB_backToHangarFromOnline = () => {
     // V7.3: 武器選択モーダルの閉じる操作(背景タップ / ✕)
     $id('wpn-modal-backdrop').addEventListener('click', () => { uiSfx(); closeWeaponModal(); });
     $id('wpn-modal-close').addEventListener('click', () => { uiSfx(); closeWeaponModal(); });
+    // v8: モーダルパネルをヘッダのドラッグで移動可能に(機体を見ながら選べるように)
+    {
+      const head = $id('wpn-modal-head'), panel = $id('wpn-modal-panel');
+      let dragging = false, sx = 0, sy = 0, sl = 0, st = 0;
+      head.addEventListener('pointerdown', (e) => {
+        dragging = true;
+        const r = panel.getBoundingClientRect();
+        panel.style.left = r.left + 'px'; panel.style.top = r.top + 'px';
+        panel.style.right = 'auto'; panel.style.transform = 'none';
+        sx = e.clientX; sy = e.clientY; sl = r.left; st = r.top;
+        try { head.setPointerCapture(e.pointerId); } catch (er) {}
+        e.preventDefault();
+      });
+      head.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const nl = Math.max(4, Math.min(window.innerWidth - panel.offsetWidth - 4, sl + (e.clientX - sx)));
+        const nt = Math.max(4, Math.min(window.innerHeight - 44, st + (e.clientY - sy)));
+        panel.style.left = nl + 'px'; panel.style.top = nt + 'px';
+      });
+      const endDrag = () => { dragging = false; };
+      head.addEventListener('pointerup', endDrag);
+      head.addEventListener('pointercancel', endDrag);
+    }
 
     // V7.6: 武器情報ポップアップ — ⓘ で開いた場合は「外タップ」で閉じる
     document.addEventListener('click', (e) => {
