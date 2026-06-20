@@ -1479,6 +1479,9 @@ const CONFIG = {
     { key: 'MID', pitch: 0.38, dist: 7.0 },  // 中間(既定)
     { key: 'HIGH', pitch: 0.72, dist: 8.2 }, // 俯瞰 45°
   ],
+  // v8 UX: カメラ角度の切替を廃止し固定(角度変更ボタンも廃止)。
+  //   45°(0.72)→ もう一段低め(中間)に変更。低めで臨場感・前方視界を優先。
+  CAM_FIXED: { key: 'ANGLE', pitch: 0.38, dist: 7.0 },
   CAM_PRESET_LERP: 5,     // プリセット切替の補間速度(smooth lerp)
 
   // 敵AI(V6.6: FFA 化。攻撃トークン制は廃止 — ターゲット分散で過集中を自然回避)
@@ -2614,6 +2617,7 @@ async function cloudInit() {
     CLOUD.db = dbMod.getDatabase(app);
     CLOUD.fns = {
       ref: dbMod.ref, get: dbMod.get, set: dbMod.set,
+      update: dbMod.update, increment: dbMod.increment,
       serverTimestamp: dbMod.serverTimestamp,
     };
     return true;
@@ -2621,6 +2625,67 @@ async function cloudInit() {
     console.warn('[V7.8] Firebase 初期化失敗(ローカルのみで続行):', err && err.message);
     return false;
   }
+}
+
+/**
+ * v8: アクセス計測。既存 Firebase(RTDB) に訪問ログを記録する。
+ *   外部解析サービス不要・Cookie 不要。集計は v8stats 配下に置く:
+ *     v8stats/total            … 累計訪問(セッション)数
+ *     v8stats/daily/<YYYY-MM-DD> … 日別訪問数(端末ローカル日付)
+ *     v8stats/uniq/<visitorId> … ユニーク訪問者(ブラウザ単位・最終訪問時刻)
+ *   リロード水増し防止: 同一ブラウザは 30 分に 1 回だけ「訪問」を計上。
+ *   取得は RTDB REST(ユーザーのシェル)で行う。失敗してもゲーム本体には影響させない。
+ */
+async function recordVisit() {
+  try {
+    // 訪問者 ID(ブラウザ単位・端末内のみ。個人情報ではないランダム値)
+    let uid = localStorage.getItem('v8_visitor_id');
+    if (!uid) {
+      uid = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}${Math.floor(Math.random() * 1e9).toString(36)}`;
+      localStorage.setItem('v8_visitor_id', uid);
+    }
+    // 連続リロードを 1 訪問に丸める(30 分窓)
+    const now = Date.now();
+    const last = +(localStorage.getItem('v8_last_visit') || 0);
+    if (last && now - last < 30 * 60 * 1000) return;
+    localStorage.setItem('v8_last_visit', String(now));
+
+    if (!(await cloudInit())) return; // オフライン/ブロック時は黙って諦める
+    const { ref, update, increment, serverTimestamp } = CLOUD.fns;
+    const d = new Date();
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    await update(ref(CLOUD.db, 'v8stats'), {
+      total: increment(1),
+      [`daily/${day}`]: increment(1),
+      [`uniq/${uid}`]: serverTimestamp(),
+    });
+  } catch (err) {
+    // 計測の失敗はゲーム進行に無関係 — ログだけ残す
+    console.warn('[v8] アクセス計測スキップ:', err && err.message);
+  }
+}
+
+// v8 UX: 右側=視点操作エリアのガイド表示制御。
+//   初回に視点ドラッグを行ったら永続的に消す(localStorage)。
+let _lookHintDone = false;
+try { _lookHintDone = localStorage.getItem('v8_look_hint_done') === '1'; } catch (e) {}
+function dismissLookHint() {
+  if (_lookHintDone) {
+    const el = document.getElementById('look-hint');
+    if (el && el.classList.contains('hide')) return; // 既に隠れている
+  }
+  _lookHintDone = true;
+  try { localStorage.setItem('v8_look_hint_done', '1'); } catch (e) {}
+  const el = document.getElementById('look-hint');
+  if (el) el.classList.add('hide');
+}
+/** 出撃のたびに呼ぶ: まだ視点操作を覚えていなければガイドを再表示 */
+function showLookHint() {
+  const el = document.getElementById('look-hint');
+  if (!el) return;
+  el.classList.toggle('hide', _lookHintDone);
 }
 
 // 同期コード: 紛らわしい文字(0/O/1/I/l)を除いた英大文字 + 数字の 8 文字
@@ -7655,6 +7720,7 @@ class InputManager {
         this.lookDX += e.clientX - this.mouseLast.x;
         this.lookDY += e.clientY - this.mouseLast.y;
         this.mouseLast.x = e.clientX; this.mouseLast.y = e.clientY;
+        if (Math.abs(e.movementX) + Math.abs(e.movementY) > 1) dismissLookHint(); // v8 UX
       }
     });
     window.addEventListener('mouseup', () => { this.mouseDown = false; this.mouseFire = false; });
@@ -7745,6 +7811,7 @@ class InputManager {
           this.lookDX += (t.clientX - this.lookLast.x) * CONFIG.TOUCH_LOOK_MUL;
           this.lookDY += (t.clientY - this.lookLast.y) * CONFIG.TOUCH_LOOK_MUL;
           this.lookLast.x = t.clientX; this.lookLast.y = t.clientY;
+          dismissLookHint(); // v8 UX: 視点操作を理解した → ガイドを消す
           handled = true;
         }
       }
@@ -8325,8 +8392,8 @@ class Game {
     // カメラ状態(camYaw = 機体の照準方向と一体)
     this.camYaw = Math.PI;       // 初期: 敵陣(-z)方向
     this.camYawTarget = Math.PI; // 旋回の慣性: 入力は目標値を動かし camYaw が追従
-    // V7.7: カメラプリセット(セーブから復元。pitch/距離は updateCamera が lerp)
-    this.camPreset = CONFIG.CAM_PRESETS.find((p) => p.key === SAVE.camMode) || CONFIG.CAM_PRESETS[1];
+    // v8 UX: カメラ角度は 45° 固定(プリセット切替は廃止)
+    this.camPreset = CONFIG.CAM_FIXED;
     this.camPitch = this.camPreset.pitch;
     this.camDist = this.camPreset.dist;
     this.camPos = new THREE.Vector3();
@@ -10078,6 +10145,7 @@ class Game {
     this.inHangar = false;
     this.bgm.setMode('battle');
     document.body.classList.remove('hangar-open'); // 戦闘 HUD を復帰
+    showLookHint(); // v8 UX: 視点操作ガイド(未習得なら表示)
   }
 
   /** ドックシーンをブルーム込みで描画(RenderPass の scene/camera を差し替え) */
@@ -11536,7 +11604,9 @@ class Game {
     this.slowmoTimer = 0;
     this.pendingResult = null;
     // camYaw/camYawTarget は assignSpawns 由来の初期向き(上で設定済み)を維持
-    this.camPitch = this.camPreset ? this.camPreset.pitch : 0.38; // V7.7: プリセット準拠
+    this.camPreset = CONFIG.CAM_FIXED; // v8: 45° 固定
+    this.camPitch = this.camPreset.pitch;
+    this.camDist = this.camPreset.dist;
     this.recoil = 0;
     this.shakeAmp = 0;
     // V6.4: 戦績 / HUD 演出のリセット
@@ -11738,15 +11808,8 @@ class Game {
     this._acquireLock(next);
   }
 
-  /** V7.7: カメラプリセットを LOW → MID → HIGH で巡回(セーブに保存 + HUD ラベル更新) */
-  cycleCamPreset() {
-    const idx = CONFIG.CAM_PRESETS.findIndex((p) => p.key === (this.camPreset ? this.camPreset.key : 'MID'));
-    this.camPreset = CONFIG.CAM_PRESETS[(idx + 1) % CONFIG.CAM_PRESETS.length];
-    SAVE.camMode = this.camPreset.key;
-    saveSave(SAVE);
-    if (this.ui && this.ui.camLabel) this.ui.camLabel.textContent = this.camPreset.key;
-    this.sound.play('ui', 0.7);
-  }
+  /** v8 UX: カメラ角度は 45° 固定にしたため、切替は無効(no-op)。 */
+  cycleCamPreset() { /* 角度変更は廃止(CAM_FIXED 固定) */ }
 
   updateCamera(dt, snap = false) {
     // ---- 旋回入力 = 機体(照準)ごと回す。自動復帰なし(WR 方式) ----
@@ -14212,6 +14275,7 @@ window.RB_backToHangarFromOnline = () => {
     // ドックシーン + 武器サムネ + UI 構築(refreshHangarUI が lastClass のロードを開始)
     buildDockScene();
     loadWeaponDroneGlbs();  // V9.12: 軽武器ドローン(武器ごと)の glb を非同期プリロード(失敗時は手続き的)
+    recordVisit();          // v8: アクセス計測(Firebase。非ブロッキング・失敗無視)
     generateWeaponThumbs();
     renderClassTabs();
     refreshHangarUI();
@@ -14383,10 +14447,22 @@ window.RB_backToHangarFromOnline = () => {
       center.addEventListener('touchmove', (e) => { const t = e.changedTouches[0]; gMove(t.clientX, t.clientY); }, { passive: true });
       center.addEventListener('touchend', gEnd);
       center.addEventListener('touchcancel', gEnd);
-      center.addEventListener('mousedown', (e) => gStart(e.clientX, e.clientY));
-      center.addEventListener('mousemove', (e) => { if (gActive) gMove(e.clientX, e.clientY); });
-      center.addEventListener('mouseup', gEnd);
-      center.addEventListener('mouseleave', gEnd);
+      // ---- PC(マウス): 中央で押し始めたら window 全体でドラッグを追従 ----
+      //   従来は center の外にカーソルが出ると即 mouseleave で回転が止まり、
+      //   デスクトップだとドラッグが途切れやすかった。押下中だけ window に
+      //   mousemove/mouseup を張り、機体の上で押せば画面端まで自由に回せる。
+      center.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        gStart(e.clientX, e.clientY);
+        const onMove = (ev) => { if (gActive) gMove(ev.clientX, ev.clientY); };
+        const onUp = () => {
+          gEnd();
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      });
       // ハンガーを離れる(出撃)際は必ず全景を解除(戦闘 HUD へ持ち越さない)
       $id('launch-btn').addEventListener('click', () => setPeek(false));
     }
