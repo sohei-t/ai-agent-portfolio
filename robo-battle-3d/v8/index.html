@@ -213,7 +213,7 @@
   #enemy-counter {
     position: absolute;
     top: calc(10px + env(safe-area-inset-top));
-    left: 50%; transform: translateX(-50%);
+    right: calc(12px + env(safe-area-inset-right)); /* v8 UX: 中央 → 右寄せ */
     display: flex; gap: 10px; align-items: center;
     background: var(--hud-bg);
     border: 1px solid var(--hud-enemy-soft);
@@ -231,26 +231,28 @@
   #enemy-counter .ec-icon.dead { color: rgba(120, 120, 130, 0.45); text-shadow: none; }
 
   /* --- 画面下部: プレイヤーHP + ヒートゲージ --- */
+  /* v8 UX: 小型化 + 画面最下部 + 半透明(視界を最大化) */
   #status-panel {
     position: absolute;
-    left: 50%; bottom: calc(14px + env(safe-area-inset-bottom));
+    left: 50%; bottom: calc(2px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
-    width: min(340px, 42vw); /* V7.5: わずかに縮小 */
-    background: var(--hud-bg);
-    border: 1px solid var(--hud-line);
-    border-radius: 4px;
-    padding: 6px 10px;
-    backdrop-filter: blur(4px);
-    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    width: min(264px, 50vw);
+    background: rgba(8, 14, 20, 0.30);
+    border: 1px solid rgba(110, 243, 255, 0.25);
+    border-radius: 3px;
+    padding: 3px 8px 4px;
+    backdrop-filter: blur(2px);
+    opacity: 0.7;
+    clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
   }
-  .bar-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+  .bar-row { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
   .bar-label {
-    width: 44px; flex: none;
-    font-size: 9px; font-weight: 700; letter-spacing: 2px;
+    width: 38px; flex: none;
+    font-size: 8px; font-weight: 700; letter-spacing: 1px;
     color: var(--hud-cyan);
   }
   .bar-track {
-    flex: 1; height: 9px;
+    flex: 1; height: 6px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(110, 243, 255, 0.25);
     overflow: hidden;
@@ -308,6 +310,34 @@
     box-shadow: 0 0 12px rgba(110, 243, 255, 0.5);
     transform: translate(-50%, -50%);
   }
+  /* v8 UX: 右側=視点操作エリアの半透明ガイド(初回ドラッグで .hide → フェード消失) */
+  #look-hint {
+    position: absolute;
+    right: calc(10px + env(safe-area-inset-right));
+    top: 30%;
+    width: 76px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 0.7s ease;
+    animation: lookHintFloat 2.4s ease-in-out infinite;
+  }
+  #look-hint.hide { opacity: 0 !important; animation: none; }
+  #look-hint .lh-arc {
+    font-size: 26px; color: #6ef3ff; line-height: 1;
+    text-shadow: 0 0 8px rgba(110, 243, 255, 0.5);
+  }
+  #look-hint .lh-icon { font-size: 22px; line-height: 1; filter: drop-shadow(0 0 4px rgba(0,0,0,0.6)); }
+  #look-hint .lh-text {
+    font-size: 10px; font-weight: 800; letter-spacing: 1px; line-height: 1.35;
+    color: #cdeeff; text-shadow: 0 1px 3px rgba(0,0,0,0.75);
+  }
+  #look-hint .lh-text span { font-size: 7px; color: #82bad6; letter-spacing: 1px; }
+  @keyframes lookHintFloat {
+    0%, 100% { transform: translateX(0); opacity: 0.3; }
+    50% { transform: translateX(-9px); opacity: 0.62; }
+  }
+
   .ctl-btn {
     position: absolute;
     border-radius: 50%;
@@ -355,63 +385,57 @@
      - ◎ / JUMP / シールドは右縁の縦列(親指の上下スライドで届く)
      - 📐 は設定系のため左上(🔊 の隣)へ移設 → 右クラスタの過密を解消
      - 全要素ペアの矩形間隔 ≥ 8px を 4 ビューポートで機械検証済み */
+  /* v8 UX: FIRE を「自機」とみなし、4 武器を FIRE の四方(上下左右)へ十字配置。
+     その上段に シールド/JUMP/🎯 を 1 列。📷 角度切替は廃止(45°固定)。 */
   #weapon-cluster {
     position: absolute;
-    right: calc(14px + env(safe-area-inset-right));
-    bottom: calc(18px + env(safe-area-inset-bottom));
-    width: 224px; height: 200px;
+    right: env(safe-area-inset-right);
+    bottom: env(safe-area-inset-bottom);
+    width: 210px; height: 282px;
     pointer-events: none;
   }
   #fire-main {
-    right: 6px; bottom: 6px;
-    width: 92px; height: 92px; /* V8.0.1: 70 → 92(+31%) */
-    font-size: 13px; letter-spacing: 2px;
+    right: 63px; bottom: 63px;       /* 中心 (102,102) ・ 78px */
+    width: 78px; height: 78px;
+    font-size: 12px; letter-spacing: 2px;
     color: #fff;
     border: 2px solid rgba(255, 130, 110, 0.85);
     background: radial-gradient(circle at 35% 30%, #ff8a72, #cc2418 60%, #7e120c);
     box-shadow: 0 0 18px rgba(255, 70, 40, 0.4);
+    z-index: 2;
   }
   #fire-main:active, #fire-main.pressed { background: radial-gradient(circle at 35% 30%, #ffb09a, #e23a2c 60%, #8e1a12); }
   .wpn-seg {
-    width: 48px; height: 48px; /* V7.5: 58 → 48 */
+    width: 44px; height: 44px;
     flex-direction: column;
     font-size: 7px; font-weight: 700; letter-spacing: 1px;
     overflow: hidden;
+    z-index: 1;
   }
   .wpn-seg .seg-label { position: relative; }
   .wpn-seg .seg-key { position: relative; font-size: 6px; color: #7fa0b4; letter-spacing: 1px; }
-  /* V8.0.1: FIRE 左の縦アーク(スロット 1→3 が下から上)。
-     スロット 4(BASTION のみ)は最下段の左隣 = アークが上のレーダー帯に届かない */
-  .seg-pos-0 { right: 114px; bottom: 0; }     /* スロット1(左下) */
-  .seg-pos-1 { right: 118px; bottom: 56px; }  /* スロット2(左) */
-  .seg-pos-2 { right: 114px; bottom: 112px; } /* スロット3(左上) */
-  .seg-pos-3 { right: 170px; bottom: 0; }     /* スロット4(最下段の左隣) */
+  /* v8 UX: FIRE 中心 (102,102) のまわりに 4 武器を十字配置(中心からの距離 70px)。
+     0=上 / 1=右 / 2=下 / 3=左(スロット番号 → 方角)。44px・半径22。 */
+  .seg-pos-0 { right: 80px; bottom: 150px; } /* スロット1 = 上(N) 中心(102,172) */
+  .seg-pos-1 { right: 10px; bottom: 80px; }  /* スロット2 = 右(E) 中心(32,102) */
+  .seg-pos-2 { right: 80px; bottom: 10px; }  /* スロット3 = 下(S) 中心(102,32) */
+  .seg-pos-3 { right: 150px; bottom: 80px; } /* スロット4 = 左(W) 中心(172,102) */
   /* V8.7: 右下クラスタを 2 カラムに再配置(全要素ペア交差ゼロ・間隔≥8px を機械検証)。
      下段(bottom124): 🎯(右端) / 📷(その左)  上段(bottom172): JUMP(右端) / シールド(左)
      FIRE は下(bottom6/92)・武器セグは FIRE 左の縦アーク。レーダー帯にも届かない高さ */
+  /* v8 UX: 上段 1 列(十字の上)。右から 🎯 / JUMP / シールド。中心 bottom238。 */
   #target-btn {
-    right: 2px; bottom: 124px;
-    width: 40px; height: 40px;
-    font-size: 16px;
+    right: calc(22px + env(safe-area-inset-right)); bottom: calc(216px + env(safe-area-inset-bottom));
+    width: 44px; height: 44px;
+    font-size: 17px;
     color: var(--hud-amber);
     border-color: rgba(255, 176, 46, 0.55);
     z-index: 5;        /* V8.7.2: タップが隣接ボタンに奪われないよう最前面化 */
   }
   #target-btn:active { color: #fff; }
-  /* V8.7: カメラ視点切替(📷 + LOW/MID/HIGH)を左上から右下クラスタへ移動(🎯 の左) */
-  #cam-btn {
-    right: calc(56px + env(safe-area-inset-right));
-    bottom: calc(124px + env(safe-area-inset-bottom));
-    width: 40px; height: 40px;
-    flex-direction: column;
-    font-size: 13px;
-    color: #9fe0ff;
-    border-color: rgba(110, 200, 255, 0.5);
-    z-index: 5;        /* V8.7.2: タップが隣接ボタンに奪われないよう最前面化 */
-  }
-  /* V8.7.2: カメラ/ターゲットは上に JUMP/ABILITY(bottom172)が近接するため、
-     ::after の上方向ヒット拡張を 0 にして取りこぼし/誤タップを防ぐ(左右下は据え置き) */
-  #target-btn::after, #cam-btn::after { inset: 0 -6px -6px -6px; }
+  /* v8 UX: 📷 カメラ角度切替は廃止(45°固定)。JS 参照保護のため要素は残し非表示 */
+  #cam-btn { display: none !important; }
+  #target-btn::after { inset: -6px; }
   #cam-btn #cam-label {
     font-size: 6.5px; font-weight: 900; letter-spacing: 1px;
     color: #7fc8e8;
@@ -436,11 +460,10 @@
     pointer-events: none;
     background: conic-gradient(rgba(6, 10, 16, 0.78) calc(var(--cd, 0) * 1turn), rgba(0, 0, 0, 0) 0);
   }
-  /* V8.7: JUMP は右下クラスタ上段の右端(🎯 の直上) */
+  /* v8 UX: JUMP は上段の中央(FIRE の真上) */
   #jump-btn {
-    right: calc(2px + env(safe-area-inset-right));
-    bottom: calc(172px + env(safe-area-inset-bottom));
-    width: 48px; height: 48px;
+    right: calc(80px + env(safe-area-inset-right)); bottom: calc(216px + env(safe-area-inset-bottom));
+    width: 44px; height: 44px;
     font-size: 8.5px;
     overflow: hidden;
   }
@@ -462,7 +485,7 @@
   #radar-wrap {
     position: absolute;
     top: calc(10px + env(safe-area-inset-top));
-    right: calc(10px + env(safe-area-inset-right));
+    left: calc(10px + env(safe-area-inset-left)); /* v8 UX: 右上 → 左上 */
     text-align: center;
   }
   #radar {
@@ -472,7 +495,7 @@
     display: block;
     /* V8.0.1: 表示のみ 128 → 108px に縮小(canvas 解像度は 128 のまま)。
        右縁列(JUMP/シールド)とレーダー帯の縦間隔 ≥8px を確保するため */
-    width: 108px; height: 108px;
+    width: 96px; height: 96px; /* v8 UX: 左上移設に合わせ少し小型化 */
   }
   #radar-dist {
     margin-top: 3px;
@@ -485,8 +508,8 @@
   /* --- ミュートトグル(左上)。V7.5: 戦闘中は半透明の極小表示 --- */
   #mute-btn {
     position: absolute;
-    top: calc(10px + env(safe-area-inset-top));
-    left: calc(10px + env(safe-area-inset-left));
+    top: calc(136px + env(safe-area-inset-top)); /* v8 UX: 左上レーダーの下へ */
+    left: calc(14px + env(safe-area-inset-left));
     width: 30px; height: 30px;
     border-radius: 50%;
     pointer-events: auto;
@@ -1557,10 +1580,10 @@
   /* --- アビリティボタン(JUMP の左 / CD 扇形 + 発動中グロー)。V7.5: 60 → 48 --- */
   /* V8.0.1: シールド/スプリントは JUMP の左隣(右縁列の 2 列目) */
   /* V8.7: シールド/スプリントは JUMP の左隣(上段の左) */
+  /* v8 UX: シールド/スプリントは上段の左端(JUMP の左) */
   #ability-btn {
-    right: calc(58px + env(safe-area-inset-right));
-    bottom: calc(172px + env(safe-area-inset-bottom));
-    width: 48px; height: 48px;
+    right: calc(138px + env(safe-area-inset-right)); bottom: calc(216px + env(safe-area-inset-bottom));
+    width: 44px; height: 44px;
     font-size: 16px;
     overflow: hidden;
   }
@@ -1632,6 +1655,13 @@
 <!-- ===== タッチ操作 ===== -->
 <div id="controls">
   <div id="joystick-base"><div id="joystick-knob"></div></div>
+
+  <!-- v8 UX: 右側=視点操作エリアであることを伝える半透明ガイド(初回スワイプで消える) -->
+  <div id="look-hint">
+    <div class="lh-arc">↺</div>
+    <div class="lh-icon">👆</div>
+    <div class="lh-text">ドラッグで<br>視点移動<br><span>DRAG TO LOOK</span></div>
+  </div>
 
   <!-- JUMP(武器パネルの上 / V8.4: クールダウン撤廃 = 連続ジャンプ可) -->
   <button id="jump-btn" class="ctl-btn" type="button">JUMP<div class="cd-overlay" id="jump-cd"></div></button>
@@ -1790,7 +1820,7 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=153"></script>
+<script type="module" src="./game3d.js?v=157"></script>
 <!-- v7: オンライン対戦ロビー(M1b)。game3d.js の後に読み込み、window.RB_* で疎結合に連携 -->
 <script type="module" src="./online.js?v=140"></script>
 </body>
