@@ -12622,6 +12622,7 @@ const DOCK = {
   built: false,
   scene: null, camera: null,
   turntable: null, ring: null,
+  pitchPivot: null, mechHolder: null, // v8: 上下回転(ピッチ)を腰あたりで回すためのピボット
   dragging: false, lastX: 0, spinVel: 0, // V9.17: スワイプ自由回転(慣性つき)
   mech: null, mechClass: null,
   mechIsPlaceholder: false, // V7.2: glb ロード中のプリミティブ仮表示フラグ
@@ -12739,9 +12740,17 @@ function buildDockScene() {
   disc.position.y = 0.03;
   sc.add(disc);
 
-  // ターンテーブル(機体を載せてゆっくり回す)
+  // ターンテーブル(機体を載せてゆっくり回す。rotation.y = 左右回転=ヨー)
   DOCK.turntable = new THREE.Group();
   sc.add(DOCK.turntable);
+  // v8: 上下回転(ピッチ)用ピボット。turntable 直下に置き、原点を機体の重心
+  //   (腰/おへそあたり)へ上げる。pitchPivot.rotation.x で回すと足元ではなく
+  //   重心まわりに傾くので、90°以上倒しても機体が床に潜らない。
+  //   mechHolder は pivot 分だけ下げて機体の足を地面(y=0)へ戻す。
+  DOCK.pitchPivot = new THREE.Group();
+  DOCK.turntable.add(DOCK.pitchPivot);
+  DOCK.mechHolder = new THREE.Group();
+  DOCK.pitchPivot.add(DOCK.mechHolder);
 
   // カメラ: 機体全身が収まる固定位置(わずかに見下ろし)
   const cam = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 60);
@@ -12749,6 +12758,22 @@ function buildDockScene() {
   cam.lookAt(0, 1.75, 0);
   DOCK.scene = sc;
   DOCK.camera = cam;
+}
+
+/** v8: 現在の機体のバウンディングボックス中心(重心の近似=腰/おへそ高さ)に
+ *  ピッチ回転の軸を合わせる。これで上下回転が床に潜らず、その場で前後転する。 */
+function syncDockPitchPivot() {
+  if (!DOCK.pitchPivot || !DOCK.mechHolder || !DOCK.mech || !DOCK.mech.root) return;
+  let h = 1.6; // フォールバック(おおよその腰高さ)
+  try {
+    const box = new THREE.Box3().setFromObject(DOCK.mech.root);
+    if (box.isEmpty && box.isEmpty()) {} else {
+      const c = box.getCenter(new THREE.Vector3());
+      if (isFinite(c.y) && c.y > 0.2 && c.y < 6) h = c.y;
+    }
+  } catch (e) { /* bbox 取得失敗時はフォールバック */ }
+  DOCK.pitchPivot.position.y = h;
+  DOCK.mechHolder.position.y = -h;
 }
 
 /**
@@ -12773,27 +12798,29 @@ async function updateDockMech(classKey) {
     const cached = HANGAR.buffers[cls.model];
     const ready = cached !== undefined && !(cached && typeof cached.then === 'function');
     if (!ready && (DOCK.mechClass !== classKey || !DOCK.mech)) {
-      if (DOCK.mech) DOCK.turntable.remove(DOCK.mech.root);
+      if (DOCK.mech) DOCK.mechHolder.remove(DOCK.mech.root);
       DOCK.mech = new MechModel({ ...cls.colors, eye: 0x66ddff });
       DOCK.mech.root.scale.setScalar(cls.scale);
       DOCK.mech.mountWeapons(SAVE.loadouts[classKey]);
-      DOCK.turntable.add(DOCK.mech.root);
+      DOCK.mechHolder.add(DOCK.mech.root);
       DOCK.mechClass = classKey;
       DOCK.mechIsPlaceholder = true; // glb ロード完了後に差し替える
+      syncDockPitchPivot();
     }
     const buf = await getModelBuffer(cls.model); // V7.2: 遅延ロード(進捗表示つき)
     if (seq !== DOCK.loadSeq) return; // より新しい呼び出しが来たら破棄
     const gltf = buf ? await parseModel(new GLTFLoader(), buf) : null;
     if (seq !== DOCK.loadSeq) return;
-    if (DOCK.mech) DOCK.turntable.remove(DOCK.mech.root);
+    if (DOCK.mech) DOCK.mechHolder.remove(DOCK.mech.root);
     // V7.2: 静的 glb は StaticMechModel(ドックでも浮遊/履帯の見た目)
     DOCK.mech = gltf
       ? (cls.staticModel ? new StaticMechModel(gltf, cls) : new GlbMechModel(gltf, cls))
       : new MechModel({ ...cls.colors, eye: 0x66ddff });
     if (!gltf) DOCK.mech.root.scale.setScalar(cls.scale);
-    DOCK.turntable.add(DOCK.mech.root);
+    DOCK.mechHolder.add(DOCK.mech.root);
     DOCK.mechClass = classKey;
     DOCK.mechIsPlaceholder = false; // glb 確定(取得失敗時はプリミティブが確定形)
+    syncDockPitchPivot();
   }
   if (seq !== DOCK.loadSeq) return;
   // 装備は常に現在の SAVE.loadouts をそのまま装着(再マウント省略ガード廃止)
@@ -14280,7 +14307,7 @@ window.RB_backToHangarFromOnline = () => {
       const setPeek = (on) => {
         hangarEl.classList.toggle('peek', on);
         // 全景を抜けたら上下回転(ピッチ)を戻す → 通常ハンガーは正面ビューに復帰
-        if (!on && DOCK.turntable) DOCK.turntable.rotation.x = 0;
+        if (!on && DOCK.pitchPivot) DOCK.pitchPivot.rotation.x = 0;
       };
       // 👁 タップで ON/OFF(モバイルで長押しが使いにくい場合の保険)
       peekBtn.addEventListener('click', (e) => {
@@ -14330,10 +14357,9 @@ window.RB_backToHangarFromOnline = () => {
         if (rotating) {
           const d = Math.max(-0.35, Math.min(0.35, (x - gLastX) * 0.01)); // 1px≈0.01rad
           const p = Math.max(-0.35, Math.min(0.35, (y - gLastY) * 0.01)); // 縦: 上下回転
-          if (DOCK.turntable) {
-            DOCK.turntable.rotation.y += d;
-            DOCK.turntable.rotation.x += p; // ピッチ(クランプなし=真上/真下まで見られる)
-          }
+          if (DOCK.turntable) DOCK.turntable.rotation.y += d;
+          // ピッチは腰高さのピボットで回す(クランプなし=真上/真下まで見られる)
+          if (DOCK.pitchPivot) DOCK.pitchPivot.rotation.x += p;
           DOCK.spinVel = d;     // 横回転だけ慣性へ引き継ぎ
           gLastX = x; gLastY = y;
           return;
