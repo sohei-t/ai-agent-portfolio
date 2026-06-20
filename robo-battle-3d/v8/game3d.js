@@ -2667,27 +2667,6 @@ async function recordVisit() {
   }
 }
 
-// v8 UX: 右側=視点操作エリアのガイド表示制御。
-//   初回に視点ドラッグを行ったら永続的に消す(localStorage)。
-let _lookHintDone = false;
-try { _lookHintDone = localStorage.getItem('v8_look_hint_done') === '1'; } catch (e) {}
-function dismissLookHint() {
-  if (_lookHintDone) {
-    const el = document.getElementById('look-hint');
-    if (el && el.classList.contains('hide')) return; // 既に隠れている
-  }
-  _lookHintDone = true;
-  try { localStorage.setItem('v8_look_hint_done', '1'); } catch (e) {}
-  const el = document.getElementById('look-hint');
-  if (el) el.classList.add('hide');
-}
-/** 出撃のたびに呼ぶ: まだ視点操作を覚えていなければガイドを再表示 */
-function showLookHint() {
-  const el = document.getElementById('look-hint');
-  if (!el) return;
-  el.classList.toggle('hide', _lookHintDone);
-}
-
 // 同期コード: 紛らわしい文字(0/O/1/I/l)を除いた英大文字 + 数字の 8 文字
 const SYNC_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function genSyncCode() {
@@ -7675,6 +7654,7 @@ class InputManager {
     this.joyVec = { x: 0, y: 0 };   // x: 右+, y: 前+
     this.lookId = null;
     this.lookLast = { x: 0, y: 0 };
+    this.lookOrigin = { x: 0, y: 0 }; // v8: 視点パッドのノブ追従用の基準点
 
     // マウスドラッグ(ポインターロック失敗時のフォールバック)
     this.mouseDown = false;
@@ -7682,6 +7662,8 @@ class InputManager {
 
     this.joyBase = document.getElementById('joystick-base');
     this.joyKnob = document.getElementById('joystick-knob');
+    this.lookBase = document.getElementById('lookpad-base'); // v8: 視点専用パッド(右下)
+    this.lookKnob = document.getElementById('lookpad-knob');
     const fireMain = document.getElementById('fire-main');
     // V7.1: 武器セグメントは動的生成(Game.applyLoadoutHUD)→ bindSeg() で後から結線
     const jumpBtn = document.getElementById('jump-btn');
@@ -7713,6 +7695,7 @@ class InputManager {
         this.mouseDown = true;
         this.mouseFire = true;
         this.mouseLast.x = e.clientX; this.mouseLast.y = e.clientY;
+        if (this.lookBase) this.lookBase.classList.add('active'); // v8: 視点パッド点灯
       }
     });
     window.addEventListener('mousemove', (e) => {
@@ -7720,10 +7703,12 @@ class InputManager {
         this.lookDX += e.clientX - this.mouseLast.x;
         this.lookDY += e.clientY - this.mouseLast.y;
         this.mouseLast.x = e.clientX; this.mouseLast.y = e.clientY;
-        if (Math.abs(e.movementX) + Math.abs(e.movementY) > 1) dismissLookHint(); // v8 UX
       }
     });
-    window.addEventListener('mouseup', () => { this.mouseDown = false; this.mouseFire = false; });
+    window.addEventListener('mouseup', () => {
+      this.mouseDown = false; this.mouseFire = false;
+      if (this.lookBase) this.lookBase.classList.remove('active'); // v8: 視点パッド消灯
+    });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
 
     // ---- 武器パネル / JUMP(タッチ + マウス両対応・押しっぱなし) ----
@@ -7786,6 +7771,8 @@ class InputManager {
         } else if (this.lookId === null) {
           this.lookId = t.identifier;
           this.lookLast.x = t.clientX; this.lookLast.y = t.clientY;
+          this.lookOrigin.x = t.clientX; this.lookOrigin.y = t.clientY;
+          if (this.lookBase) this.lookBase.classList.add('active'); // v8: 視点パッド点灯
           claimed = true;
         }
       }
@@ -7811,7 +7798,14 @@ class InputManager {
           this.lookDX += (t.clientX - this.lookLast.x) * CONFIG.TOUCH_LOOK_MUL;
           this.lookDY += (t.clientY - this.lookLast.y) * CONFIG.TOUCH_LOOK_MUL;
           this.lookLast.x = t.clientX; this.lookLast.y = t.clientY;
-          dismissLookHint(); // v8 UX: 視点操作を理解した → ガイドを消す
+          // v8: ノブを基準点からのドラッグ量ぶん動かす(左スティックと同じ手応え)
+          if (this.lookKnob) {
+            const R = 50;
+            let dx = t.clientX - this.lookOrigin.x, dy = t.clientY - this.lookOrigin.y;
+            const len = Math.hypot(dx, dy);
+            if (len > R) { dx = dx / len * R; dy = dy / len * R; }
+            this.lookKnob.style.transform = `translate(-50%,-50%) translate(${dx}px,${dy}px)`;
+          }
           handled = true;
         }
       }
@@ -7828,6 +7822,8 @@ class InputManager {
           this.joyKnob.style.transform = 'translate(-50%,-50%)';
         } else if (t.identifier === this.lookId) {
           this.lookId = null;
+          if (this.lookBase) this.lookBase.classList.remove('active'); // v8: 視点パッド消灯
+          if (this.lookKnob) this.lookKnob.style.transform = 'translate(-50%,-50%)';
         }
       }
     };
@@ -9990,13 +9986,13 @@ class Game {
       // alpha: LOS 可視性 / spotT: spotted 記憶タイマー(V6.7)
       return { root, fill: root.querySelector('.em-hp-fill'), alpha: 0, spotT: 99, los: false };
     });
-    this.counterIcons = this.enemies.map(() => {
-      const span = document.createElement('span');
-      span.className = 'ec-icon';
-      span.textContent = '▼';
-      counter.insertBefore(span, this.ui.timer);
-      return span;
-    });
+    // v8 UX: 残数は「▼ N」の数値バッジでコンパクト表示(機数ぶんの三角を廃止)
+    if (this.ecCount) this.ecCount.remove();
+    this.ecCount = document.createElement('span');
+    this.ecCount.className = 'ec-count';
+    this.ecCount.textContent = `▼ ${this.enemies.length}`;
+    counter.insertBefore(this.ecCount, this.ui.timer);
+    this.counterIcons = []; // 旧実装(三角アイコン配列)の後片付けループ互換
   }
 
   /**
@@ -10145,7 +10141,6 @@ class Game {
     this.inHangar = false;
     this.bgm.setMode('battle');
     document.body.classList.remove('hangar-open'); // 戦闘 HUD を復帰
-    showLookHint(); // v8 UX: 視点操作ガイド(未習得なら表示)
   }
 
   /** ドックシーンをブルーム込みで描画(RenderPass の scene/camera を差し替え) */
@@ -12111,10 +12106,11 @@ class Game {
     //   マーカーは「LOS が通っている時だけ」表示(遮蔽に隠れた敵は見えない)。
     //   LOS が切れても SPOTTED_TIME 秒は半透明で記憶表示(V6.7 spotted)。
     //   残数カウンター(上部 ▼)は常時表示で全体状況は把握できる。
+    let aliveEnemies = 0; // v8 UX: 残数バッジ(▼ N)用
     for (let i = 0; i < this.enemies.length; i++) {
       const e = this.enemies[i];
       const m = this.markers[i];
-      this.counterIcons[i].classList.toggle('dead', !e.alive);
+      if (e.alive) aliveEnemies++;
       if (!e.alive) { m.alpha = 0; m.los = false; m.root.style.display = 'none'; continue; }
       const los = player.alive && this.hasLOS(player, e);
       m.los = los; // レーダーのブリップ明暗にも使う
@@ -12146,6 +12142,9 @@ class Game {
         m.root.style.display = 'none';
       }
     }
+
+    // v8 UX: 残数を「▼ N」のコンパクト数値で更新(三角を機数ぶん並べない)
+    if (this.ecCount) this.ecCount.textContent = `▼ ${aliveEnemies}`;
 
     // ---- V7.0: 画面外の敵への方向矢印(小型・控えめ・HP 残量重視) ----
     this.updateEdgeArrows();
