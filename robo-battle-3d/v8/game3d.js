@@ -10939,6 +10939,13 @@ class Game {
     if (!target) return dmg;
     // 連射武器でのエフェクト/SFX 過多を防ぐスロットル(被ダメ計算自体は毎回行う)
     const fxOk = (this.elapsed - (target._armorFxT || -1)) > 0.09;
+    // v8: PHASE FIELD は自動発動(操作簡素化。専用ボタンを廃止したため、シールドが
+    //   尽きて瀕死(HP50%未満)のとき被弾すると自動で無敵化 = AI と同じ緊急回避ロジック)。
+    if (target.phaseSlot >= 0 && target.phaseCd <= 0 && target.phaseT <= 0 && dmg > 0
+        && target.hp / target.maxHp < 0.5
+        && !(target.barrierMax > 0 && target.barrierHp > 0)) {
+      this.activatePhase(target);
+    }
     // PHASE FIELD: 完全無敵(全弾無効)
     if (target.phaseT > 0) {
       if (fxOk) { this.phaseHitFx(target); target._armorFxT = this.elapsed; }
