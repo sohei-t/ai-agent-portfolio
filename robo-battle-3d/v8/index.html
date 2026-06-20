@@ -752,10 +752,18 @@
   #hangar.peek > #hangar-toast, #hangar.peek > #wpn-modal {
     opacity: 1 !important;
   }
-  /* 操作可能にする要素(👁 で戻す・中央で長押し継続・トースト/モーダルは通知) */
+  /* 操作可能にする要素(👁 で戻す・中央で長押し継続・トーストは通知) */
   #hangar.peek #hangar-center,
-  #hangar.peek > #hangar-toast, #hangar.peek > #wpn-modal,
+  #hangar.peek > #hangar-toast,
   #hangar.peek #hangar-peek-btn { pointer-events: auto !important; }
+  /* 武器モーダル: 全画面コンテナ/背景は「透過」のまま(👁・中央へクリックを通す)。
+     v8 修正: コンテナを auto にすると透明な全画面が 👁 や中央を覆って操作不能に
+     なる(リロード必須バグ)。コンテナ/背景は none を維持し、右ドックのパネルと
+     その子だけ操作可にする。これでパネルで武器選択/✕ しつつ機体も回せる。 */
+  #hangar.peek > #wpn-modal,
+  #hangar.peek #wpn-modal-backdrop { pointer-events: none !important; }
+  #hangar.peek #wpn-modal-panel,
+  #hangar.peek #wpn-modal-panel * { pointer-events: auto !important; }
   /* 👁 ボタンとその中身(絵文字)は見せる */
   #hangar.peek #hangar-peek-btn, #hangar.peek #hangar-peek-btn * { opacity: 1 !important; }
   /* トースト/武器モーダルの中身も見せる(開いていれば操作できる) */
@@ -1782,7 +1790,7 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=151"></script>
+<script type="module" src="./game3d.js?v=152"></script>
 <!-- v7: オンライン対戦ロビー(M1b)。game3d.js の後に読み込み、window.RB_* で疎結合に連携 -->
 <script type="module" src="./online.js?v=140"></script>
 </body>

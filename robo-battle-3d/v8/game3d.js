@@ -14277,7 +14277,11 @@ window.RB_backToHangarFromOnline = () => {
       const hangarEl = $id('hangar');
       const peekBtn = $id('hangar-peek-btn');
       const center = $id('hangar-center');
-      const setPeek = (on) => hangarEl.classList.toggle('peek', on);
+      const setPeek = (on) => {
+        hangarEl.classList.toggle('peek', on);
+        // 全景を抜けたら上下回転(ピッチ)を戻す → 通常ハンガーは正面ビューに復帰
+        if (!on && DOCK.turntable) DOCK.turntable.rotation.x = 0;
+      };
       // 👁 タップで ON/OFF(モバイルで長押しが使いにくい場合の保険)
       peekBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -14291,18 +14295,19 @@ window.RB_backToHangarFromOnline = () => {
       const SWIPE_RATIO = 1.3; // 横移動が縦移動の倍率以上(誤検出防止)
       let lpTimer = null;
       let heldPeek = false;     // この長押しで peek を立てたか(離すときに戻す対象)
-      let gx0 = 0, gy0 = 0, gLastX = 0, swiping = false, swiped = false, gActive = false;
+      let gx0 = 0, gy0 = 0, gLastX = 0, gLastY = 0, swiping = false, swiped = false, gActive = false;
       let rotating = false;     // V9.18: 長押し(👁)中の自由回転モード
       const isPeek = () => hangarEl.classList.contains('peek');
 
       // V9.18: 回転モード開始(DOCK を手で回す。離すと spinVel の慣性で回り続ける)
-      const beginRotate = (x) => { rotating = true; gLastX = x; DOCK.dragging = true; DOCK.spinVel = 0; };
+      // v8: 縦ドラッグで上下回転(ピッチ)もできるよう gLastY も記録
+      const beginRotate = (x, y) => { rotating = true; gLastX = x; gLastY = y; DOCK.dragging = true; DOCK.spinVel = 0; };
 
       const startLP = () => {
         clearTimeout(lpTimer);
         lpTimer = setTimeout(() => {
           // スワイプ中・スワイプ確定後は peek を立てない。長押し成立 → peek + 回転モードへ
-          if (!swiping && !swiped && !isPeek()) { setPeek(true); heldPeek = true; beginRotate(gLastX); }
+          if (!swiping && !swiped && !isPeek()) { setPeek(true); heldPeek = true; beginRotate(gLastX, gLastY); }
         }, 350);
       };
       const cancelLP = () => clearTimeout(lpTimer);
@@ -14313,18 +14318,24 @@ window.RB_backToHangarFromOnline = () => {
 
       // ジェスチャ開始(タッチ/マウス共通)
       const gStart = (x, y) => {
-        gx0 = x; gy0 = y; gLastX = x; swiping = false; swiped = false; gActive = true; rotating = false;
+        gx0 = x; gy0 = y; gLastX = x; gLastY = y; swiping = false; swiped = false; gActive = true; rotating = false;
         // 既に peek(👁ボタンでON)なら即・回転モード。そうでなければ長押し待ち。
-        if (isPeek()) beginRotate(x); else startLP();
+        if (isPeek()) beginRotate(x, y); else startLP();
       };
       const gMove = (x, y) => {
         if (!gActive) return;
         // --- 回転モード: 機体をクルクル回す(機体切替はしない) ---
+        //   横ドラッグ=左右回転(ヨー・慣性つき) / 縦ドラッグ=上下回転(ピッチ)
+        //   → 上下左右 自由に回して 360° 全方位から機体を確認できる。
         if (rotating) {
           const d = Math.max(-0.35, Math.min(0.35, (x - gLastX) * 0.01)); // 1px≈0.01rad
-          if (DOCK.turntable) DOCK.turntable.rotation.y += d;
-          DOCK.spinVel = d;     // 慣性へ引き継ぎ
-          gLastX = x;
+          const p = Math.max(-0.35, Math.min(0.35, (y - gLastY) * 0.01)); // 縦: 上下回転
+          if (DOCK.turntable) {
+            DOCK.turntable.rotation.y += d;
+            DOCK.turntable.rotation.x += p; // ピッチ(クランプなし=真上/真下まで見られる)
+          }
+          DOCK.spinVel = d;     // 横回転だけ慣性へ引き継ぎ
+          gLastX = x; gLastY = y;
           return;
         }
         gLastX = x;
