@@ -24,9 +24,18 @@ async function initFirebase() {
     if (firebaseInitialized) return true;
 
     try {
-        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
-        const { getDatabase, ref, set, get, update, remove, push, onValue, off } =
-            await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
+        // v8: SDK はローカル同梱(lib/firebase)を優先。外出先などで gstatic.com が
+        //   ブロック/到達不可でもオンライン対戦が動くようにする(ページと同一オリジン)。
+        //   万一ローカルが読めない場合のみ gstatic にフォールバック。
+        const importFb = async (name) => {
+            try { return await import(`./lib/firebase/firebase-${name}.js`); }
+            catch (e) {
+                console.warn(`[Firebase] ローカルSDK(${name})読込失敗 → gstaticへフォールバック:`, e && e.message);
+                return await import(`https://www.gstatic.com/firebasejs/10.7.0/firebase-${name}.js`);
+            }
+        };
+        const { initializeApp } = await importFb('app');
+        const { getDatabase, ref, set, get, update, remove, push, onValue, off } = await importFb('database');
 
         firebaseApp = initializeApp(firebaseConfig);
         firebaseDB = getDatabase(firebaseApp);

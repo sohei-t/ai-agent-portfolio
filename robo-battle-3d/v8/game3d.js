@@ -2611,8 +2611,14 @@ const CLOUD = { db: null, fns: null };
 async function cloudInit() {
   if (CLOUD.db) return true;
   try {
-    const appMod = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
-    const dbMod = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
+    // v8: SDK はローカル同梱(lib/firebase)を優先 → gstatic ブロック時もクラウド保存が動く。
+    //   読めない場合のみ gstatic にフォールバック。
+    const importFb = async (name) => {
+      try { return await import(`./lib/firebase/firebase-${name}.js`); }
+      catch (e) { return await import(`https://www.gstatic.com/firebasejs/10.7.0/firebase-${name}.js`); }
+    };
+    const appMod = await importFb('app');
+    const dbMod = await importFb('database');
     const app = appMod.initializeApp(FIREBASE_CONFIG);
     CLOUD.db = dbMod.getDatabase(app);
     CLOUD.fns = {
