@@ -1,0 +1,376 @@
+[
+  {
+    "id": "cracked_cleaver",
+    "name": {
+      "ja": "刃こぼれの大鉈",
+      "en": "Cracked Cleaver"
+    },
+    "category": "melee",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "right",
+      "pos": [
+        0,
+        0,
+        0.035
+      ],
+      "rot": [
+        90,
+        0,
+        0
+      ],
+      "scale": 1.621
+    },
+    "stats": {
+      "damage": 12,
+      "cooldownMs": 700,
+      "range": 1.3,
+      "arcDeg": 100
+    },
+    "growth": {
+      "damagePerLevel": 3,
+      "cooldownDeltaMsPerLevel": -40,
+      "cooldownFloorMs": 420,
+      "arcDegPerLevel": 5,
+      "arcDegCap": 135
+    },
+    "evolution": {
+      "id": "executioners_edge",
+      "name": {
+        "ja": "処刑人の刃",
+        "en": "Executioner's Edge"
+      },
+      "requires": {
+        "level": 8,
+        "passiveId": "whetstone"
+      },
+      "bonusEffects": [
+        "bleed_dot_5pct_3s",
+        "arc_180deg",
+        "guaranteed_crit_below_20pct_hp"
+      ]
+    },
+    "unlockCost": 0,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "thrown_hatchets",
+    "name": {
+      "ja": "投げ斧",
+      "en": "Thrown Hatchets"
+    },
+    "category": "melee",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "right",
+      "pos": [
+        0,
+        0,
+        0.03
+      ],
+      "rot": [
+        90,
+        0,
+        0
+      ],
+      "scale": 3
+    },
+    "stats": {
+      "damage": 10,
+      "cooldownMs": 800,
+      "range": 4
+    },
+    "growth": {
+      "damagePerLevel": 2,
+      "cooldownDeltaMsPerLevel": -40,
+      "cooldownFloorMs": 480,
+      "countDeltaPerLevelStep": 1,
+      "countLevelStep": 3,
+      "countCap": 3
+    },
+    "evolution": null,
+    "unlockCost": 0,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "rusty_revolver",
+    "name": {
+      "ja": "錆びたリボルバー",
+      "en": "Rusty Revolver"
+    },
+    "category": "ranged",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "right",
+      "pos": [
+        0,
+        0,
+        0.03
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 3
+    },
+    "stats": {
+      "damage": 9,
+      "cooldownMs": 500,
+      "range": 6
+    },
+    "growth": {
+      "damagePerLevel": 2,
+      "cooldownDeltaMsPerLevel": -30,
+      "cooldownFloorMs": 320,
+      "pierceDeltaPerLevelStep": 1,
+      "pierceLevelStep": 2,
+      "pierceCap": 4
+    },
+    "evolution": {
+      "id": "deadeye_peacemaker",
+      "name": {
+        "ja": "無双の平定者",
+        "en": "Deadeye Peacemaker"
+      },
+      "requires": {
+        "level": 8,
+        "passiveId": "quickdraw_loader"
+      },
+      "bonusEffects": [
+        "infinite_pierce",
+        "execute_below_15pct",
+        "projectile_speed_up_50pct"
+      ]
+    },
+    "unlockCost": 0,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "static_coil_gun",
+    "name": {
+      "ja": "静電コイル銃",
+      "en": "Static Coil Gun"
+    },
+    "category": "ranged",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "left",
+      "pos": [
+        0,
+        0,
+        0.03
+      ],
+      "rot": [
+        0,
+        90,
+        0
+      ],
+      "scale": 0.528
+    },
+    "stats": {
+      "damage": 6,
+      "cooldownMs": 1100,
+      "range": 5
+    },
+    "growth": {
+      "damagePerLevel": 1.5,
+      "cooldownDeltaMsPerLevel": -50,
+      "cooldownFloorMs": 650,
+      "chainDeltaPerLevelStep": 1,
+      "chainLevelStep": 2,
+      "chainCap": 5
+    },
+    "evolution": {
+      "id": "stormcaller_array",
+      "name": {
+        "ja": "嵐呼びの陣",
+        "en": "Stormcaller Array"
+      },
+      "requires": {
+        "level": 8,
+        "passiveId": "conductive_coil"
+      },
+      "bonusEffects": [
+        "chain_8",
+        "damage_up_30pct",
+        "double_hit_on_repeat",
+        "stun_15pct"
+      ]
+    },
+    "unlockCost": 0,
+    "enabled": true,
+    "assetVersion": 1783406404
+  },
+  {
+    "id": "ember_wand",
+    "name": {
+      "ja": "燃え杭の杖",
+      "en": "Ember Wand"
+    },
+    "category": "aoe",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "left",
+      "pos": [
+        0,
+        0,
+        0.03
+      ],
+      "rot": [
+        90,
+        0,
+        0
+      ],
+      "scale": 1.852
+    },
+    "stats": {
+      "damage": 7,
+      "cooldownMs": 900,
+      "range": 8
+    },
+    "growth": {
+      "damagePerLevel": 2,
+      "cooldownDeltaMsPerLevel": -50,
+      "cooldownFloorMs": 550,
+      "radiusDeltaPerLevel": 0.15,
+      "radiusCap": 2.5
+    },
+    "evolution": {
+      "id": "cataclysm_orb",
+      "name": {
+        "ja": "大災禍の残り火",
+        "en": "Cataclysm Orb"
+      },
+      "requires": {
+        "level": 8,
+        "passiveId": "volatile_core"
+      },
+      "bonusEffects": [
+        "radius_4m",
+        "burn_floor_5s_reignite",
+        "chain_secondary_explosion"
+      ]
+    },
+    "unlockCost": 0,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "bramble_ward",
+    "name": {
+      "ja": "荊棘の輪",
+      "en": "Bramble Ward"
+    },
+    "category": "aoe",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "left",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        90,
+        0
+      ],
+      "scale": 0.529
+    },
+    "stats": {
+      "damage": 5,
+      "cooldownMs": 300
+    },
+    "growth": {
+      "damagePerLevel": 1,
+      "countDeltaPerLevelStep": 1,
+      "countLevelStep": 2,
+      "countCap": 6,
+      "radiusDeltaPerLevel": 0.1,
+      "rotationSpeedDeltaPerLevel": 0.15
+    },
+    "evolution": null,
+    "unlockCost": 0,
+    "enabled": true,
+    "assetVersion": 1783406404
+  },
+  {
+    "id": "sky_lance_turret",
+    "name": {
+      "ja": "天穿ちの砲台",
+      "en": "Sky Lance Turret"
+    },
+    "category": "ranged",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "right",
+      "pos": [
+        0,
+        0,
+        0.03
+      ],
+      "rot": [
+        90,
+        0,
+        0
+      ],
+      "scale": 1.95
+    },
+    "stats": {
+      "damage": 14,
+      "cooldownMs": 3500,
+      "range": 5
+    },
+    "growth": {
+      "damagePerLevel": 2.5,
+      "cooldownDeltaMsPerLevel": -150,
+      "cooldownFloorMs": 2200
+    },
+    "evolution": null,
+    "unlockCost": 400,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "guardian_aegis_pulse",
+    "name": {
+      "ja": "守護のパルス",
+      "en": "Guardian Aegis Pulse"
+    },
+    "category": "aoe",
+    "modelSource": "blender_headless",
+    "attach": {
+      "side": "left",
+      "pos": [
+        0,
+        0,
+        0.03
+      ],
+      "rot": [
+        0,
+        -90,
+        0
+      ],
+      "scale": 3
+    },
+    "stats": {
+      "damage": 8,
+      "cooldownMs": 2000
+    },
+    "growth": {
+      "damagePerLevel": 2,
+      "cooldownDeltaMsPerLevel": -80,
+      "cooldownFloorMs": 1400,
+      "radiusDeltaPerLevel": 0.2,
+      "radiusCap": 3.6
+    },
+    "evolution": null,
+    "unlockCost": 400,
+    "enabled": true,
+    "assetVersion": 1783288945
+  }
+]

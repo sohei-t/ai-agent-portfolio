@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#120e0b" />
+    <title>3-Adventure — Voidmaw Descent</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #120e0b; overscroll-behavior: none; }
+      #app { position: fixed; inset: 0; overflow: hidden; }
+      #game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      #ui-root { position: absolute; inset: 0; }
+      #loading-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #e8dcc8; font-family: ui-monospace, monospace; }
+    </style>
+    <script type="module" crossorigin src="./assets/index-D31Q0-1V.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-vendor-Bm0pO2S9.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-CXYTKoEr.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+      <div id="ui-root"></div>
+      <noscript>This game requires JavaScript.</noscript>
+    </div>
+  </body>
+</html>
