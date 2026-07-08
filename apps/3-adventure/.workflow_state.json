@@ -1,0 +1,39 @@
+{
+  "project_name": "3-adventure",
+  "project_path": "/Users/sohei/Desktop/AI-Apps/3-adventure/3-adventure-agent/repo/project/public",
+  "workflow_type": "creative_webapp",
+  "status": "in_progress",
+  "created_at": "2026-07-08T15:37:52.388587",
+  "updated_at": "2026-07-08T15:37:52.388777",
+  "current_phase": 6,
+  "phases": [
+    {
+      "phase_number": 6,
+      "phase_name": "ポートフォリオ公開",
+      "status": "in_progress",
+      "started_at": "2026-07-08T15:37:52.388768",
+      "completed_at": null,
+      "agents_used": [
+        "portfolio_publisher"
+      ],
+      "outputs": {},
+      "error_message": null
+    }
+  ],
+  "portfolio": {
+    "published": false,
+    "app_name": null,
+    "app_url": null,
+    "commit_hash": null,
+    "last_published_at": null,
+    "security_check_passed": false,
+    "agent_review_passed": false,
+    "pending_pr_url": null,
+    "pending_pr_number": null,
+    "pending_pr_branch": null,
+    "pending_pr_created_at": null,
+    "pending_pr_commit": null
+  },
+  "modifications": [],
+  "metadata": {}
+}

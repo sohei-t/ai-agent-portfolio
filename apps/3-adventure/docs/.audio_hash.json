@@ -1,0 +1,14 @@
+{
+  "00-intro": "12865a18ac89feeee59890a158192dc516288ec2",
+  "10-spec-world": "5966500f3465d363ff2e14483f5389ed4964d4fc",
+  "11-spec-characters": "85ebfb92b7440584f9329875b14291e59d546fb1",
+  "12-spec-weapons": "24af74baa4baaeefc29ffce8f6a2572d00594910",
+  "13-spec-enemies": "73634d038ba45aa278e2c28d2db16e9ce7614825",
+  "14-spec-meta": "74eedebd1a05df35e28d71234bc7a95bf21843f8",
+  "15-spec-architecture": "25dc8b8cd6f21b3158569697c68056ee36dbc239",
+  "20-guide-start": "2a50a78230e7584279fab58a41f9c1496fe21865",
+  "21-guide-controls": "527d618806fe8715c9e2d227758283d64b32793a",
+  "22-guide-strategy": "951e8298adf17ec4fb94a5c41f15c2ed230150d5",
+  "23-guide-assetstudio": "9f73555c72feca38e75a074e83f1b41a86c25be5",
+  "30-faq": "a8fb6d810d995cab4fed98b5d01b1292d68ff0f1"
+}
