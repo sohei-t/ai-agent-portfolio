@@ -1,0 +1,86 @@
+[
+  {
+    "id": "whetstone",
+    "name": {
+      "ja": "砥石のかけら",
+      "en": "Whetstone Shard"
+    },
+    "effect": {
+      "type": "weapon_damage_pct",
+      "perStack": 8
+    },
+    "maxStack": 5,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "quickdraw_loader",
+    "name": {
+      "ja": "早撃ちの弾帯",
+      "en": "Quickdraw Loader"
+    },
+    "effect": {
+      "type": "weapon_cooldown_pct",
+      "perStack": 6
+    },
+    "maxStack": 5,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "volatile_core",
+    "name": {
+      "ja": "不安定核",
+      "en": "Volatile Core"
+    },
+    "effect": {
+      "type": "aoe_radius_pct",
+      "perStack": 10
+    },
+    "maxStack": 5,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "conductive_coil",
+    "name": {
+      "ja": "導電コイル",
+      "en": "Conductive Coil"
+    },
+    "effect": {
+      "type": "chain_count_flat",
+      "perStack": 1
+    },
+    "maxStack": 3,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "iron_heart",
+    "name": {
+      "ja": "鋼の心臓",
+      "en": "Iron Heart"
+    },
+    "effect": {
+      "type": "max_hp_flat",
+      "perStack": 15
+    },
+    "maxStack": 5,
+    "enabled": true,
+    "assetVersion": 1783288945
+  },
+  {
+    "id": "swift_boots",
+    "name": {
+      "ja": "迅速の靴",
+      "en": "Swift Boots"
+    },
+    "effect": {
+      "type": "move_speed_pct",
+      "perStack": 6
+    },
+    "maxStack": 4,
+    "enabled": true,
+    "assetVersion": 1783288945
+  }
+]
