@@ -1,0 +1,311 @@
+[
+  {
+    "id": "wanderer_rell",
+    "name": {
+      "ja": "レル",
+      "en": "Rell, the Drifter"
+    },
+    "role": "player",
+    "model": "wanderer_rell",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 100,
+      "moveSpeed": 4.2,
+      "baseDamage": 1.0
+    },
+    "ability": "none",
+    "startingWeapon": "rusty_revolver",
+    "scale": 1.0,
+    "unlockCost": 0,
+    "enemyConfig": null,
+    "enabled": true,
+    "assetVersion": 1783321887
+  },
+  {
+    "id": "smith_brynn",
+    "name": {
+      "ja": "ブリン・アッシュコール",
+      "en": "Brynn Ashcoal"
+    },
+    "role": "player",
+    "model": "smith_brynn",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 150,
+      "moveSpeed": 3.4,
+      "baseDamage": 1.15
+    },
+    "ability": "knockback_resist_30pct",
+    "startingWeapon": "cracked_cleaver",
+    "scale": 1.05,
+    "unlockCost": 250,
+    "enemyConfig": null,
+    "enabled": true,
+    "assetVersion": 1783321887
+  },
+  {
+    "id": "alchemist_wisp",
+    "name": {
+      "ja": "ウィスプ・キャロウメア",
+      "en": "Wisp Callowmere"
+    },
+    "role": "player",
+    "model": "alchemist_wisp",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 80,
+      "moveSpeed": 5.0,
+      "baseDamage": 0.9
+    },
+    "ability": "keen_mind_xp_15pct",
+    "startingWeapon": "ember_wand",
+    "scale": 0.9,
+    "unlockCost": 500,
+    "enemyConfig": null,
+    "enabled": true,
+    "assetVersion": 1783321887
+  },
+  {
+    "id": "shambler",
+    "name": {
+      "ja": "シャンブラー",
+      "en": "Shambler"
+    },
+    "role": "enemy",
+    "model": "shambler",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 8,
+      "moveSpeed": 1.8,
+      "baseDamage": 1.0
+    },
+    "ability": "none",
+    "startingWeapon": null,
+    "scale": 1.0,
+    "unlockCost": 0,
+    "enemyConfig": {
+      "attackDamage": 4,
+      "attackCooldownMs": 600,
+      "spawnStartTimeSec": 0,
+      "xpValue": 1,
+      "behavior": "melee_chase",
+      "dropTable": [
+        {
+          "type": "xp_gem_small",
+          "chance": 1.0
+        },
+        {
+          "type": "gold",
+          "chance": 0.12,
+          "min": 1,
+          "max": 3
+        },
+        {
+          "type": "chest",
+          "chance": 0.01
+        }
+      ]
+    },
+    "enabled": true,
+    "assetVersion": 1783321887
+  },
+  {
+    "id": "skitterling",
+    "name": {
+      "ja": "スキッタリング",
+      "en": "Skitterling"
+    },
+    "role": "enemy",
+    "model": "skitterling",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 3,
+      "moveSpeed": 3.6,
+      "baseDamage": 1.0
+    },
+    "ability": "none",
+    "startingWeapon": null,
+    "scale": 0.7,
+    "unlockCost": 0,
+    "enemyConfig": {
+      "attackDamage": 2,
+      "attackCooldownMs": 400,
+      "spawnStartTimeSec": 30,
+      "xpValue": 1,
+      "behavior": "melee_chase",
+      "dropTable": [
+        {
+          "type": "xp_gem_small",
+          "chance": 1.0
+        },
+        {
+          "type": "chest",
+          "chance": 0.01
+        }
+      ]
+    },
+    "enabled": true,
+    "assetVersion": 1783321887
+  },
+  {
+    "id": "brute",
+    "name": {
+      "ja": "ブルート",
+      "en": "Brute"
+    },
+    "role": "enemy",
+    "model": "brute",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 60,
+      "moveSpeed": 1.0,
+      "baseDamage": 1.0
+    },
+    "ability": "none",
+    "startingWeapon": null,
+    "scale": 1.4,
+    "unlockCost": 0,
+    "enemyConfig": {
+      "attackDamage": 15,
+      "attackCooldownMs": 1200,
+      "spawnStartTimeSec": 90,
+      "xpValue": 3,
+      "behavior": "melee_chase",
+      "dropTable": [
+        {
+          "type": "xp_gem_medium",
+          "chance": 1.0
+        },
+        {
+          "type": "gold",
+          "chance": 0.4,
+          "min": 2,
+          "max": 5
+        },
+        {
+          "type": "chest",
+          "chance": 0.08
+        }
+      ]
+    },
+    "enabled": true,
+    "assetVersion": 1783321887
+  },
+  {
+    "id": "spitter",
+    "name": {
+      "ja": "スピッター",
+      "en": "Spitter"
+    },
+    "role": "enemy",
+    "model": "spitter",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 15,
+      "moveSpeed": 1.4,
+      "baseDamage": 1.0
+    },
+    "ability": "none",
+    "startingWeapon": null,
+    "scale": 1.0,
+    "unlockCost": 0,
+    "enemyConfig": {
+      "attackDamage": 6,
+      "attackCooldownMs": 2000,
+      "spawnStartTimeSec": 150,
+      "xpValue": 2,
+      "behavior": "ranged_kite",
+      "dropTable": [
+        {
+          "type": "xp_gem_medium",
+          "chance": 1.0
+        },
+        {
+          "type": "gold",
+          "chance": 0.25,
+          "min": 1,
+          "max": 3
+        },
+        {
+          "type": "chest",
+          "chance": 0.01
+        }
+      ]
+    },
+    "enabled": true,
+    "assetVersion": 1783406404
+  },
+  {
+    "id": "elite_warden",
+    "name": {
+      "ja": "エリート・ウォーデン",
+      "en": "Elite Warden"
+    },
+    "role": "enemy",
+    "model": "elite_warden",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 220,
+      "moveSpeed": 2.2,
+      "baseDamage": 1.0
+    },
+    "ability": "none",
+    "startingWeapon": null,
+    "scale": 1.6,
+    "unlockCost": 0,
+    "enemyConfig": {
+      "attackDamage": 20,
+      "attackCooldownMs": 1000,
+      "spawnStartTimeSec": 180,
+      "xpValue": 8,
+      "behavior": "elite_charge",
+      "dropTable": [
+        {
+          "type": "xp_gem_large",
+          "chance": 1.0
+        },
+        {
+          "type": "chest",
+          "chance": 1.0
+        },
+        {
+          "type": "gold",
+          "chance": 1.0,
+          "min": 3,
+          "max": 6
+        }
+      ]
+    },
+    "enabled": true,
+    "assetVersion": 1783406404
+  },
+  {
+    "id": "boss_voidmaw",
+    "name": {
+      "ja": "ヴォイドモウ",
+      "en": "Voidmaw, the Devourer"
+    },
+    "role": "boss",
+    "model": "boss_voidmaw",
+    "modelType": "rigged",
+    "stats": {
+      "hp": 3000,
+      "moveSpeed": 1.6,
+      "baseDamage": 1.0
+    },
+    "ability": "none",
+    "startingWeapon": null,
+    "scale": 3.0,
+    "unlockCost": 0,
+    "enemyConfig": {
+      "attackDamage": 25,
+      "attackCooldownMs": 4000,
+      "spawnStartTimeSec": 600,
+      "xpValue": 0,
+      "behavior": "boss_pattern",
+      "dropTable": []
+    },
+    "enabled": true,
+    "assetVersion": 1783406404
+  }
+]

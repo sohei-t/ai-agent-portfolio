@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>3-Adventure — Voidmaw Descent | プロジェクト解説</title>
+<meta name="description" content="3-Adventure: a low-poly 3D survivor game built with three.js + TypeScript. Manifest-driven character/weapon pipeline powered by Meshy + Blender.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #120e0b;
+    --bg-alt: #1a1410;
+    --panel: #1c1611;
+    --panel-2: #221a13;
+    --ember: #ff7a3d;
+    --ember-dim: #d9622a;
+    --ember-glow: rgba(255, 122, 61, 0.35);
+    --teal: #5fd6c6;
+    --parchment: #e8dcc8;
+    --ash: #9a8f7c;
+    --ash-dim: #6e6455;
+    --border: rgba(232, 220, 200, 0.14);
+    --border-bright: rgba(255, 122, 61, 0.45);
+    --font-display: 'Rye', 'Hiragino Mincho ProN', serif;
+    --font-mono: 'Space Mono', ui-monospace, 'SF Mono', monospace;
+    --font-body: 'Space Mono', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    --maxw: 1080px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--parchment);
+    font-family: var(--font-body);
+    line-height: 1.9;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* --- atmosphere: ember field + void crack --- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(255, 122, 61, 0.12), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 105% 20%, rgba(95, 214, 198, 0.08), transparent 55%),
+      radial-gradient(ellipse 1200px 800px at 50% 110%, rgba(255, 122, 61, 0.08), transparent 60%);
+  }
+
+  .ember-field {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .ember-field span {
+    position: absolute;
+    bottom: -5%;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--ember);
+    box-shadow: 0 0 6px 2px var(--ember-glow);
+    opacity: 0;
+    animation: drift 14s linear infinite;
+  }
+  @keyframes drift {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    8% { opacity: 0.9; }
+    90% { opacity: 0.4; }
+    100% { transform: translateY(-115vh) translateX(var(--dx, 40px)); opacity: 0; }
+  }
+
+  main, header, footer { position: relative; z-index: 1; }
+
+  /* --- lang switcher --- */
+  .lang-switcher {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 100;
+    display: flex;
+    gap: 0.4rem;
+    background: rgba(18, 14, 11, 0.85);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(6px);
+    padding: 0.35rem;
+    border-radius: 999px;
+  }
+  .lang-btn {
+    padding: 0.4rem 0.9rem;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: transparent;
+    color: var(--ash);
+    transition: all 0.25s ease;
+  }
+  .lang-btn:hover { color: var(--parchment); }
+  .lang-btn.active {
+    background: linear-gradient(135deg, var(--ember) 0%, var(--ember-dim) 100%);
+    color: #1a1108;
+  }
+
+  .lang-ja, .lang-en { display: none; }
+  body.lang-ja .lang-ja { display: block; }
+  body.lang-en .lang-en { display: block; }
+  body.lang-ja span.lang-ja, body.lang-ja li.lang-ja-i { display: inline; }
+  body.lang-en span.lang-en, body.lang-en li.lang-en-i { display: inline; }
+
+  /* --- quick nav --- */
+  .quicknav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(18, 14, 11, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .quicknav-inner {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0.7rem 1.5rem;
+    display: flex;
+    gap: 1.2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .quicknav-inner::-webkit-scrollbar { display: none; }
+  .quicknav a {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--ash);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+  .quicknav a:hover { color: var(--ember); }
+
+  /* --- hero --- */
+  .hero {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 5rem 1.5rem 4rem;
+    text-align: center;
+    animation: riseIn 1s ease both;
+  }
+  .hero .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.25em;
+    color: var(--ember);
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 7vw, 4.6rem);
+    letter-spacing: 0.02em;
+    margin: 0.8rem 0 0.6rem;
+    color: var(--parchment);
+    text-shadow: 0 0 30px var(--ember-glow);
+  }
+  .hero .tagline {
+    font-size: 1.05rem;
+    color: var(--ash);
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .hero .badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 2rem;
+  }
+  .hero .badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border-bright);
+    border-radius: 999px;
+    color: var(--ember);
+    letter-spacing: 0.04em;
+  }
+
+  @keyframes riseIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* --- sections --- */
+  section.block {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 3.6rem 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .block-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .block-num {
+    font-family: var(--font-mono);
+    color: var(--ember);
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+  .block h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 4vw, 2.1rem);
+    color: var(--parchment);
+    letter-spacing: 0.01em;
+  }
+  .lede {
+    color: var(--ash);
+    max-width: 720px;
+    margin-bottom: 1.8rem;
+  }
+  .lede strong { color: var(--parchment); }
+
+  /* --- lore panel --- */
+  .lore-panel {
+    background: linear-gradient(160deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--ember);
+    padding: 1.8rem 2rem;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+  }
+
+  /* --- how to play --- */
+  .howto-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.4rem;
+  }
+  .howto-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.4rem 1.5rem;
+  }
+  .howto-card h3 {
+    font-family: var(--font-mono);
+    color: var(--teal);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.7rem;
+    text-transform: uppercase;
+  }
+  .howto-card ul { list-style: none; }
+  .howto-card li {
+    position: relative;
+    padding-left: 1.1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.92rem;
+  }
+  .howto-card li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--ember);
+  }
+
+  /* --- character cards --- */
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.4rem;
+  }
+  .char-card {
+    background: linear-gradient(165deg, var(--panel) 0%, var(--bg-alt) 100%);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.6rem;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .char-card::after {
+    content: '';
+    position: absolute;
+    top: -40%; right: -40%;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle, var(--ember-glow), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .char-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--border-bright);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+  }
+  .char-card:hover::after { opacity: 1; }
+  .char-card .role {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: var(--ember);
+    text-transform: uppercase;
+  }
+  .char-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    margin: 0.4rem 0 0.6rem;
+    color: var(--parchment);
+  }
+  .char-card .desc { font-size: 0.88rem; color: var(--ash); margin-bottom: 1rem; }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 0.3rem 0;
+    border-top: 1px dashed var(--border);
+  }
+  .stat-row span:first-child { color: var(--ash-dim); }
+  .stat-row span:last-child { color: var(--parchment); }
+  .unlock-tag {
+    display: inline-block;
+    margin-top: 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-bright);
+    color: var(--teal);
+  }
+
+  /* --- weapon table --- */
+  .weapon-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 4px; }
+  table.weapons {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 620px;
+  }
+  table.weapons th, table.weapons td {
+    padding: 0.7rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  table.weapons th {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--ember);
+    text-transform: uppercase;
+    background: var(--panel);
+  }
+  table.weapons tr:last-child td { border-bottom: none; }
+  table.weapons tr:hover td { background: rgba(255, 122, 61, 0.05); }
+  .cat-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+  }
+  .cat-melee { background: rgba(255, 122, 61, 0.15); color: var(--ember); }
+  .cat-ranged { background: rgba(95, 214, 198, 0.15); color: var(--teal); }
+  .cat-aoe { background: rgba(232, 220, 200, 0.15); color: var(--parchment); }
+  .ext-note { font-size: 0.78rem; color: var(--ash-dim); margin-top: 0.9rem; }
+
+  .passive-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.2rem; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--ash);
+  }
+
+  /* --- stat highlight strip --- */
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 1.6rem;
+  }
+  .stat-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.2rem;
+    text-align: center;
+    border-radius: 4px;
+  }
+  .stat-box .num {
+    font-family: var(--font-mono);
+    font-size: 1.7rem;
+    color: var(--ember);
+    display: block;
+  }
+  .stat-box .label {
+    font-size: 0.78rem;
+    color: var(--ash);
+    margin-top: 0.3rem;
+  }
+
+  /* --- pipeline diagram --- */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 2rem 0;
+  }
+  .pipe-step {
+    flex: 1 1 140px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.1rem 1rem;
+    text-align: center;
+    position: relative;
+  }
+  .pipe-step .k {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--teal);
+    letter-spacing: 0.05em;
+  }
+  .pipe-step .v { font-size: 0.85rem; margin-top: 0.4rem; }
+  .pipe-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    color: var(--ember);
+    font-size: 1.1rem;
+  }
+  .pipeline-note {
+    background: var(--bg-alt);
+    border-left: 3px solid var(--teal);
+    padding: 1.2rem 1.5rem;
+    font-size: 0.9rem;
+    color: var(--ash);
+  }
+  .pipeline-note strong { color: var(--parchment); }
+  .pipeline-note code {
+    font-family: var(--font-mono);
+    background: rgba(95, 214, 198, 0.12);
+    color: var(--teal);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.85em;
+  }
+
+  /* --- tech badges --- */
+  .tech-grid { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+  .tech-badge {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 0.5rem 1.1rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--parchment);
+    transition: all 0.25s ease;
+  }
+  .tech-badge:hover { border-color: var(--border-bright); color: var(--ember); transform: translateY(-2px); }
+
+  /* --- audio --- */
+  .audio-panel {
+    background: linear-gradient(160deg, var(--panel-2), var(--bg-alt));
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    padding: 2rem;
+    text-align: center;
+  }
+  .audio-panel h3 {
+    font-family: var(--font-display);
+    color: var(--ember);
+    font-size: 1.3rem;
+    margin-bottom: 0.6rem;
+  }
+  .audio-panel p { color: var(--ash); font-size: 0.9rem; margin-bottom: 1.2rem; }
+  audio { width: 100%; max-width: 560px; }
+
+  .learn-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--teal);
+    text-decoration: none;
+    border: 1px solid var(--border-bright);
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    transition: all 0.25s;
+  }
+  .learn-more:hover { background: rgba(95, 214, 198, 0.1); transform: translateX(4px); }
+
+  footer {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+    text-align: center;
+    color: var(--ash-dim);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--ash); }
+  footer .credit-note { margin-top: 0.8rem; font-family: var(--font-mono); font-size: 0.72rem; }
+
+  @media (max-width: 640px) {
+    .howto-grid { grid-template-columns: 1fr; }
+    .pipeline { flex-direction: column; }
+    .pipe-arrow { transform: rotate(90deg); padding: 0.3rem 0; }
+    .quicknav-inner { gap: 0.8rem; }
+  }
+</style>
+</head>
+<body class="lang-ja">
+
+<div class="ember-field" id="emberField"></div>
+
+<div class="lang-switcher">
+  <button class="lang-btn active" data-lang="ja" onclick="switchLang('ja')">🇯🇵 日本語</button>
+  <button class="lang-btn" data-lang="en" onclick="switchLang('en')">🇺🇸 English</button>
+</div>
+
+<nav class="quicknav">
+  <div class="quicknav-inner">
+    <a href="#world">世界観</a>
+    <a href="#howto">遊び方</a>
+    <a href="#characters">キャラクター</a>
+    <a href="#weapons">武器</a>
+    <a href="#enemies">敵とボス</a>
+    <a href="#pipeline">アセットパイプライン</a>
+    <a href="#quality">品質</a>
+    <a href="#audio">音声解説</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="eyebrow lang-ja">3D LOW-POLY SURVIVOR ACTION</div>
+  <div class="eyebrow lang-en">3D LOW-POLY SURVIVOR ACTION</div>
+  <h1>3-Adventure<br>— Voidmaw Descent —</h1>
+  <p class="tagline lang-ja">見捨てられた荒野に「ヴォイド」の裂け目が生まれた。住人はホロウと化し、生存者はただ一人、10分間の黙示録を駆け抜ける。</p>
+  <p class="tagline lang-en">A rift called the Void has torn open a forsaken wasteland. Its people are turning Hollow, and one survivor must fight through ten minutes of apocalypse.</p>
+  <div class="badges">
+    <span class="badge">three.js</span>
+    <span class="badge">TypeScript</span>
+    <span class="badge">Mobile-friendly</span>
+    <span class="badge">247/247 tests</span>
+  </div>
+</header>
+
+<main>
+
+<section class="block" id="world">
+  <div class="block-head"><span class="block-num">01</span><h2 class="lang-ja">世界観</h2><h2 class="lang-en">The World</h2></div>
+  <div class="lore-panel">
+    <p class="lang-ja">見捨てられた荒野に「ヴォイド」と呼ばれる裂け目が生じ、住人たちは徐々に浸食され、敵性生物「ホロウ」と化していく。プレイヤーは荒野の生存者として、裂け目の中枢に巣食う怪物 <strong style="color:var(--ember)">Voidmaw（ヴォイドモウ）</strong> の撃破を目指す。既存IPを参照しない、オリジナルのポストアポカリプス×ウェスタン世界。</p>
+    <p class="lang-en">In a forsaken wasteland, a rift called the <strong style="color:var(--ember)">Void</strong> has torn open, and its residents are slowly consumed into hostile creatures called the <strong>Hollow</strong>. As a wasteland survivor, you fight toward <strong style="color:var(--ember)">Voidmaw</strong>, the devourer nesting at the rift's core — an entirely original post-apocalyptic western setting, not based on any existing franchise.</p>
+  </div>
+</section>
+
+<section class="block" id="howto">
+  <div class="block-head"><span class="block-num">02</span><h2 class="lang-ja">遊び方</h2><h2 class="lang-en">How to Play</h2></div>
+  <p class="lede lang-ja">1ラン<strong>10分</strong>。ボスを撃破すればクリア、HPが0になれば死亡——どちらの結末でも、獲得したゴールドは永続保存され、次のランを強くする。</p>
+  <p class="lede lang-en">Each run lasts <strong>10 minutes</strong>. Defeat the boss to clear, or fall to 0 HP and die — either way, the gold you earned is saved permanently and strengthens your next run.</p>
+  <div class="howto-grid">
+    <div class="howto-card">
+      <h3 class="lang-ja">📱 スマホ</h3>
+      <h3 class="lang-en">📱 Mobile</h3>
+      <ul>
+        <li class="lang-ja">画面右下のバーチャルスティックで移動</li>
+        <li class="lang-en">Move with the virtual joystick, bottom-right</li>
+        <li class="lang-ja">攻撃・武器発動はすべて自動</li>
+        <li class="lang-en">Attacks fire automatically — no attack button</li>
+        <li class="lang-ja">縦・横どちらの向きでもプレイ可能</li>
+        <li class="lang-en">Playable in both portrait and landscape</li>
+      </ul>
+    </div>
+    <div class="howto-card">
+      <h3 class="lang-ja">🖥 PC</h3>
+      <h3 class="lang-en">🖥 Desktop</h3>
+      <ul>
+        <li class="lang-ja">WASD / 矢印キーで移動</li>
+        <li class="lang-en">Move with WASD or arrow keys</li>
+        <li class="lang-ja">攻撃は自動、レベルアップ時に武器・パッシブを選択</li>
+        <li class="lang-en">Attacks are automatic; choose a weapon or passive on level-up</li>
+        <li class="lang-ja">ブラウザだけで完結、インストール不要</li>
+        <li class="lang-en">Runs entirely in the browser — no install required</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="characters">
+  <div class="block-head"><span class="block-num">03</span><h2 class="lang-ja">プレイアブルキャラクター</h2><h2 class="lang-en">Playable Characters</h2></div>
+  <p class="lede lang-ja">差別化は移動速度・HP・固有アビリティに留めたバランス設計の3体。ゴールドを貯めて仲間を増やせる。</p>
+  <p class="lede lang-en">Three characters, deliberately balanced around move speed, HP, and one unique ability each. Earn gold to unlock the rest.</p>
+  <div class="char-grid">
+    <div class="char-card">
+      <div class="role lang-ja">バランス型・初期解放</div>
+      <div class="role lang-en">Balanced · Unlocked from start</div>
+      <h3>Rell, the Drifter <span style="font-family:var(--font-body);font-size:0.75rem;color:var(--ash)">レル</span></h3>
+      <p class="desc lang-ja">荒野を渡り歩くスカベンジャー。初期武器は錆びたリボルバー。基準となる能力値で、何にでも噛み合う。</p>
+      <p class="desc lang-en">A wandering scavenger with the rusty revolver. The baseline stat block that pairs well with anything.</p>
+      <div class="stat-row"><span>HP</span><span>100</span></div>
+      <div class="stat-row"><span>Move Speed</span><span>4.2</span></div>
+      <div class="stat-row"><span>Base Damage</span><span>×1.00</span></div>
+      <div class="stat-row"><span class="lang-ja">固有アビリティ</span><span class="lang-en">Ability</span><span class="lang-ja">なし</span></div>
+      <span class="unlock-tag lang-ja">初期解放</span>
+      <span class="unlock-tag lang-en">Free</span>
+    </div>
+    <div class="char-card">
+      <div class="role lang-ja">タフな近接特化</div>
+      <div class="role lang-en">Tanky melee specialist</div>
+      <h3>Brynn Ashcoal <span style="font-family:var(--font-body);font-size:0.75rem;color:var(--ash)">ブリン・アッシュコール</span></h3>
+      <p class="desc lang-ja">すすで汚れたエプロン姿の鍛冶戦士。初期武器は刃こぼれの大鉈。打たれ強く、ノックバックにも動じない。</p>
+      <p class="desc lang-en">A soot-stained blacksmith-warrior wielding the Cracked Cleaver. Tough, and barely flinches when knocked back.</p>
+      <div class="stat-row"><span>HP</span><span>150</span></div>
+      <div class="stat-row"><span>Move Speed</span><span>3.4</span></div>
+      <div class="stat-row"><span>Base Damage</span><span>×1.15</span></div>
+      <div class="stat-row"><span class="lang-ja">固有アビリティ</span><span class="lang-en">Ability</span><span class="lang-ja">被ノックバック時間 -30%</span></div>
+      <div class="stat-row lang-en"><span></span><span>-30% knockback duration</span></div>
+      <span class="unlock-tag">250 gold</span>
+    </div>
+    <div class="char-card">
+      <div class="role lang-ja">俊敏なグラスキャノン</div>
+      <div class="role lang-en">Nimble glass cannon</div>
+      <h3>Wisp Callowmere <span style="font-family:var(--font-body);font-size:0.75rem;color:var(--ash)">ウィスプ・キャロウメア</span></h3>
+      <p class="desc lang-ja">見習い錬金術師。初期武器は燃え杭の杖。打たれ弱いが、経験値の吸収がずば抜けて速い。</p>
+      <p class="desc lang-en">An apprentice alchemist with the Ember Wand. Fragile, but levels up remarkably fast.</p>
+      <div class="stat-row"><span>HP</span><span>80</span></div>
+      <div class="stat-row"><span>Move Speed</span><span>5.0</span></div>
+      <div class="stat-row"><span>Base Damage</span><span>×0.90</span></div>
+      <div class="stat-row"><span class="lang-ja">固有アビリティ</span><span class="lang-en">Ability</span><span class="lang-ja">XP獲得量 +15%</span></div>
+      <div class="stat-row lang-en"><span></span><span>+15% XP gain</span></div>
+      <span class="unlock-tag lang-ja">500 gold + ボス初撃破</span>
+      <span class="unlock-tag lang-en">500 gold + first boss kill</span>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="weapons">
+  <div class="block-head"><span class="block-num">04</span><h2 class="lang-ja">武器とパッシブ</h2><h2 class="lang-en">Weapons &amp; Passives</h2></div>
+  <p class="lede lang-ja">近接・遠隔・範囲、各カテゴリ揃った<strong>8種の武器</strong>。Lv8到達＋対応パッシブの所持で、それぞれ専用の<strong>進化形態</strong>に自動アップグレードする。</p>
+  <p class="lede lang-en"><strong>8 weapons</strong> spanning melee, ranged, and area-of-effect. Reach Lv8 while holding the matching passive, and a weapon auto-upgrades into its own dedicated <strong>evolved form</strong>.</p>
+  <div class="weapon-table-wrap">
+    <table class="weapons">
+      <thead>
+        <tr>
+          <th class="lang-ja">武器</th><th class="lang-en">Weapon</th>
+          <th class="lang-ja">分類</th><th class="lang-en">Type</th>
+          <th class="lang-ja">攻撃パターン</th><th class="lang-en">Behavior</th>
+          <th class="lang-ja">進化先</th><th class="lang-en">Evolution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>刃こぼれの大鉈 <span style="color:var(--ash);font-size:0.8em">Cracked Cleaver</span></td>
+          <td><span class="cat-tag cat-melee">MELEE</span></td>
+          <td class="lang-ja">扇状に薙ぎ払う近接攻撃</td><td class="lang-en">Wide arcing melee sweep</td>
+          <td class="lang-ja">処刑人の刃</td><td class="lang-en">Executioner's Edge</td>
+        </tr>
+        <tr>
+          <td>投げ斧 <span style="color:var(--ash);font-size:0.8em">Thrown Hatchets</span></td>
+          <td><span class="cat-tag cat-melee">MELEE</span></td>
+          <td class="lang-ja">往復するブーメラン軌道</td><td class="lang-en">Boomerang arc, hits on the return</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>錆びたリボルバー <span style="color:var(--ash);font-size:0.8em">Rusty Revolver</span></td>
+          <td><span class="cat-tag cat-ranged">RANGED</span></td>
+          <td class="lang-ja">最寄りの敵へ自動照準・貫通1体</td><td class="lang-en">Auto-aims nearest enemy, pierces 1</td>
+          <td class="lang-ja">無双の平定者</td><td class="lang-en">Deadeye Peacemaker</td>
+        </tr>
+        <tr>
+          <td>静電コイル銃 <span style="color:var(--ash);font-size:0.8em">Static Coil Gun</span></td>
+          <td><span class="cat-tag cat-ranged">RANGED</span></td>
+          <td class="lang-ja">最大3体まで連鎖する電撃</td><td class="lang-en">Chain lightning, up to 3 targets</td>
+          <td class="lang-ja">嵐呼びの陣</td><td class="lang-en">Stormcaller Array</td>
+        </tr>
+        <tr>
+          <td>燃え杭の杖 <span style="color:var(--ash);font-size:0.8em">Ember Wand</span></td>
+          <td><span class="cat-tag cat-aoe">AOE</span></td>
+          <td class="lang-ja">跳弾する残り火弾、着弾地点に燃焼床</td><td class="lang-en">Bouncing ember bolt, leaves burning ground</td>
+          <td class="lang-ja">大災禍の残り火</td><td class="lang-en">Cataclysm Orb</td>
+        </tr>
+        <tr>
+          <td>荊棘の輪 <span style="color:var(--ash);font-size:0.8em">Bramble Ward</span></td>
+          <td><span class="cat-tag cat-aoe">AOE</span></td>
+          <td class="lang-ja">プレイヤー周囲を常時回転する棘の蔓</td><td class="lang-en">Thorn vines orbiting the player, always on</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td class="lang-ja">天穿ちの砲台 <span style="color:var(--ash);font-size:0.8em">Sky Lance Turret</span></td>
+          <td><span class="cat-tag cat-ranged">RANGED</span></td>
+          <td class="lang-ja">設置型タレット、貫通する槍弾を自動連射</td><td class="lang-en">Deployable turret, auto-fires piercing lances</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td class="lang-ja">守護のパルス <span style="color:var(--ash);font-size:0.8em">Guardian Aegis Pulse</span></td>
+          <td><span class="cat-tag cat-aoe">AOE</span></td>
+          <td class="lang-ja">プレイヤー中心の定期的な波動、弱敵をノックバック</td><td class="lang-en">Periodic pulse around the player, knocks back weak foes</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="ext-note lang-ja">※ 下2種（天穿ちの砲台・守護のパルス）は初期解放武器ではなく、ショップで解放後のみ抽選プールに登場する拡張武器。</p>
+  <p class="ext-note lang-en">The bottom two (Sky Lance Turret, Guardian Aegis Pulse) are unlockable extension weapons that only enter the level-up pool after being purchased in the shop.</p>
+
+  <div class="passive-chips">
+    <span class="chip">砥石のかけら / Whetstone Shard</span>
+    <span class="chip">早撃ちの弾帯 / Quickdraw Loader</span>
+    <span class="chip">不安定核 / Volatile Core</span>
+    <span class="chip">導電コイル / Conductive Coil</span>
+    <span class="chip">鋼の心臓 / Iron Heart</span>
+    <span class="chip">迅速の靴 / Swift Boots</span>
+  </div>
+  <p class="lede lang-ja" style="margin-top:1rem; margin-bottom:0">6種のパッシブアイテムが、ダメージ・クールダウン・範囲・貫通/連鎖・最大HP・移動速度をそれぞれ最大5〜75%まで底上げする。</p>
+  <p class="lede lang-en" style="margin-top:1rem; margin-bottom:0">Six passives stack up to boost damage, cooldown, area, pierce/chain count, max HP, and move speed — each capped between 3 and 5 stacks.</p>
+</section>
+
+<section class="block" id="enemies">
+  <div class="block-head"><span class="block-num">05</span><h2 class="lang-ja">敵とボス</h2><h2 class="lang-en">Enemies &amp; the Boss</h2></div>
+  <p class="lede lang-ja">シャンブラー・スキッタリング・ブルート・スピッター・エリート・ウォーデンの5種に加え、10分ちょうどに現れる最終ボス <strong>Voidmaw, the Devourer</strong>。3:00 / 6:00 / 9:00には大量の敵が押し寄せる<strong>Hordeイベント</strong>が発生する。</p>
+  <p class="lede lang-en">Five enemy types — Shambler, Skitterling, Brute, Spitter, Elite Warden — plus the final boss, <strong>Voidmaw, the Devourer</strong>, arriving at exactly 10:00. <strong>Horde events</strong> at 3:00, 6:00, and 9:00 flood the screen with a burst of enemies.</p>
+  <div class="stat-strip">
+    <div class="stat-box"><span class="num">139</span><span class="label lang-ja">8分時点の同時出現数</span><span class="label lang-en">Enemies on screen at 8:00</span></div>
+    <div class="stat-box"><span class="num">150</span><span class="label lang-ja">敵プールの上限</span><span class="label lang-en">Enemy pool cap</span></div>
+    <div class="stat-box"><span class="num">3</span><span class="label lang-ja">Hordeイベント回数</span><span class="label lang-en">Horde events per run</span></div>
+    <div class="stat-box"><span class="num">10:00</span><span class="label lang-ja">ボス出現・クリアタイム</span><span class="label lang-en">Boss arrival / clear time</span></div>
+  </div>
+</section>
+
+<section class="block" id="meta">
+  <div class="block-head"><span class="block-num">06</span><h2 class="lang-ja">メタ進行</h2><h2 class="lang-en">Meta Progression</h2></div>
+  <p class="lede lang-ja">ランで得たゴールドは、クリアでも死亡でも必ず永続セーブに反映される。ブラウザの LocalStorage に保存された強化ショップで、最大HP・移動速度・初期武器ダメージ・XP/ゴールド獲得量・開始レベル・そして「1ラン1回だけ死亡を無効化する」買い切りアイテムまで強化できる。</p>
+  <p class="lede lang-en">Gold earned during a run is always saved permanently — whether you clear or die. A persistent shop (stored in the browser's LocalStorage) lets you upgrade max HP, move speed, starting weapon damage, XP/gold gain, starting level, and even a one-time "revive once per run" purchase.</p>
+</section>
+
+<section class="block" id="pipeline">
+  <div class="block-head"><span class="block-num">07</span><h2 class="lang-ja">最大の特徴：マニフェスト駆動アセットパイプライン</h2><h2 class="lang-en">The Standout Feature: Manifest-Driven Asset Pipeline</h2></div>
+  <p class="lede lang-ja">このゲームのキャラクター・武器は、コードではなく <code style="font-family:var(--font-mono);color:var(--teal)">characters.json</code> / <code style="font-family:var(--font-mono);color:var(--teal)">weapons.json</code> / <code style="font-family:var(--font-mono);color:var(--teal)">passives.json</code> というマニフェストファイルによって定義されている。ステータス、モデル参照、アンロック条件——すべてがマニフェスト側のデータであり、TypeScriptのソースコードには一切ハードコードされていない。</p>
+  <p class="lede lang-en">This game's characters and weapons aren't defined in code — they live in manifest files: <code style="font-family:var(--font-mono);color:var(--teal)">characters.json</code>, <code style="font-family:var(--font-mono);color:var(--teal)">weapons.json</code>, <code style="font-family:var(--font-mono);color:var(--teal)">passives.json</code>. Stats, model references, unlock conditions — all of it is data, none of it is hardcoded in the TypeScript source.</p>
+
+  <div class="pipeline">
+    <div class="pipe-step"><div class="k lang-ja">コンセプト</div><div class="k lang-en">CONCEPT</div><div class="v lang-ja">英語プロンプトを設計</div><div class="v lang-en">Design an English prompt</div></div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="k">MESHY API</div><div class="v lang-ja">Text-to-3Dでモデル生成</div><div class="v lang-en">Text-to-3D model generation</div></div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="k">BLENDER</div><div class="v lang-ja">リギング・書き出しを自動処理</div><div class="v lang-en">Automated rigging &amp; export cleanup</div></div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="k lang-ja">マニフェスト登録</div><div class="k lang-en">MANIFEST</div><div class="v lang-ja">JSONに追記するだけ</div><div class="v lang-en">Just append to the JSON</div></div>
+  </div>
+
+  <div class="pipeline-note">
+    <p class="lang-ja"><strong>tools/asset-studio</strong> が Meshy APIとBlenderを自動でつなぐパイプラインとして機能し、新しいキャラクターや武器を<strong>コード変更なし・ゲームロジックの再デプロイなしで</strong>追加・削除できる。ロースペック端末向けの代替として、GLBモデルが未生成のエンティティは procedural fallback（手続き型ジオメトリ）で描画されるため、パイプラインが完了していない段階でもゲームは正しく動作する。</p>
+    <p class="lang-en"><strong>tools/asset-studio</strong> automatically chains the Meshy API and Blender into one pipeline, so new characters and weapons can be added or retired <strong>without touching game-logic code or redeploying it</strong>. Entities without a generated GLB model render through a procedural-geometry fallback, so the game runs correctly even mid-pipeline.</p>
+  </div>
+</section>
+
+<section class="block" id="quality">
+  <div class="block-head"><span class="block-num">08</span><h2 class="lang-ja">技術スタックと品質</h2><h2 class="lang-en">Tech Stack &amp; Quality</h2></div>
+  <div class="tech-grid">
+    <span class="tech-badge">three.js</span>
+    <span class="tech-badge">TypeScript</span>
+    <span class="tech-badge">Vite</span>
+    <span class="tech-badge">Vitest</span>
+    <span class="tech-badge">Playwright</span>
+    <span class="tech-badge">GLTF / DRACO</span>
+    <span class="tech-badge">Web Audio API</span>
+  </div>
+  <div class="stat-strip">
+    <div class="stat-box"><span class="num">247/247</span><span class="label lang-ja">ユニット・統合テスト合格</span><span class="label lang-en">Unit &amp; integration tests passing</span></div>
+    <div class="stat-box"><span class="num">86.65%</span><span class="label lang-ja">全体カバレッジ</span><span class="label lang-en">Overall coverage</span></div>
+    <div class="stat-box"><span class="num">63</span><span class="label lang-ja">E2Eテストケース（3ビューポート）</span><span class="label lang-en">E2E cases across 3 viewports</span></div>
+    <div class="stat-box"><span class="num">2×</span><span class="label lang-ja">独立レビューでLGTM取得</span><span class="label lang-en">Independent review rounds reaching LGTM</span></div>
+  </div>
+</section>
+
+<section class="block" id="audio">
+  <div class="block-head"><span class="block-num">09</span><h2 class="lang-ja">音声解説</h2><h2 class="lang-en">Audio Walkthrough</h2></div>
+  <div class="audio-panel">
+    <h3 class="lang-ja">🎧 音声でこのプロジェクトを聴く</h3>
+    <h3 class="lang-en">🎧 Listen to the Project Walkthrough</h3>
+    <p class="lang-ja">世界観・遊び方・技術的な見どころを、音声で短く解説します。</p>
+    <p class="lang-en">A short spoken walkthrough covering the world, how to play, and the technical highlights.</p>
+    <audio controls>
+      <source src="explanation.mp3" type="audio/mpeg">
+      <span class="lang-ja">お使いのブラウザは音声再生に対応していません。</span>
+      <span class="lang-en">Your browser does not support audio playback.</span>
+    </audio>
+    <div>
+      <a class="learn-more" href="./docs/index.html">
+        <span class="lang-ja">📖 仕様書・操作手順の全文はこちら →</span>
+        <span class="lang-en">📖 Full spec &amp; operating manual →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p class="lang-ja">3-Adventure は Claude Code のマルチエージェント・ワークフローで開発されました。</p>
+  <p class="lang-en">3-Adventure was built with Claude Code's multi-agent development workflow.</p>
+  <p class="credit-note">© 2026 · three.js + TypeScript · <a href="./README.md">README</a></p>
+</footer>
+
+<script>
+  function switchLang(lang) {
+    document.body.className = 'lang-' + lang;
+    document.documentElement.lang = lang === 'ja' ? 'ja' : 'en';
+    document.querySelectorAll('.lang-btn').forEach(function (btn) {
+      btn.classList.remove('active');
+      if (btn.dataset.lang === lang) btn.classList.add('active');
+    });
+    localStorage.setItem('preferred-lang', lang);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    switchLang(localStorage.getItem('preferred-lang') || 'ja');
+
+    // ember particle field
+    var field = document.getElementById('emberField');
+    var n = window.innerWidth < 640 ? 14 : 26;
+    for (var i = 0; i < n; i++) {
+      var s = document.createElement('span');
+      s.style.left = (Math.random() * 100) + '%';
+      s.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px');
+      s.style.animationDelay = (Math.random() * 14) + 's';
+      s.style.animationDuration = (10 + Math.random() * 8) + 's';
+      s.style.opacity = String(0.3 + Math.random() * 0.5);
+      field.appendChild(s);
+    }
+  });
+</script>
+</body>
+</html>
