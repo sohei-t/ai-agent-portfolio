@@ -3,15 +3,15 @@
   "project_path": "/Users/sohei/Desktop/AI-Apps/3-adventure/3-adventure-agent/repo/project/public",
   "workflow_type": "creative_webapp",
   "status": "in_progress",
-  "created_at": "2026-07-07T17:44:10.719670",
-  "updated_at": "2026-07-08T15:17:26.969014",
+  "created_at": "2026-07-08T15:37:52.388587",
+  "updated_at": "2026-07-08T15:46:29.936906",
   "current_phase": 6,
   "phases": [
     {
       "phase_number": 6,
       "phase_name": "ポートフォリオ公開",
       "status": "in_progress",
-      "started_at": "2026-07-08T15:17:26.968996",
+      "started_at": "2026-07-08T15:46:29.936886",
       "completed_at": null,
       "agents_used": [
         "portfolio_publisher"
@@ -28,11 +28,11 @@
     "last_published_at": null,
     "security_check_passed": true,
     "agent_review_passed": true,
-    "pending_pr_url": "https://github.com/sohei-t/ai-agent-portfolio/pull/56",
-    "pending_pr_number": 56,
-    "pending_pr_branch": "apps/3-adventure-20260707-2019",
-    "pending_pr_created_at": "2026-07-07T20:20:13.154001",
-    "pending_pr_commit": "75b6d7c4"
+    "pending_pr_url": "https://github.com/sohei-t/ai-agent-portfolio/pull/58",
+    "pending_pr_number": 58,
+    "pending_pr_branch": "apps/3-adventure-20260708-1537",
+    "pending_pr_created_at": "2026-07-08T15:41:07.924837",
+    "pending_pr_commit": "e05b172c"
   },
   "modifications": [],
   "metadata": {}
