@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism Cascade Arena｜仕様・操作ガイド</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280;
+    --brand:#0ea5a4; --brand-d:#0f766e; --line:#e5e7eb; --code:#0f172a;
+    --accent:#eef9f8; --shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    color:var(--ink); background:var(--bg); line-height:1.75; padding-bottom:84px;
+  }
+  a{color:var(--brand-d);text-decoration:none}
+  header.top{
+    position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;
+    background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;
+    padding:12px 18px;box-shadow:var(--shadow);
+  }
+  header.top h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.02em}
+  header.top .sub{font-size:12px;opacity:.9;margin-left:2px}
+  .menu-btn{display:none;background:rgba(255,255,255,.18);border:0;color:#fff;
+    font-size:18px;border-radius:8px;padding:6px 10px;cursor:pointer}
+  .wrap{display:flex;max-width:1180px;margin:0 auto;gap:0}
+  aside{
+    width:268px;flex:0 0 268px;background:var(--panel);border-right:1px solid var(--line);
+    height:calc(100vh - 49px);position:sticky;top:49px;overflow-y:auto;padding:14px 0;
+  }
+  nav .group{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;
+    text-transform:uppercase;padding:14px 18px 6px}
+  nav a.item{display:block;padding:8px 18px 8px 26px;color:var(--ink);font-size:14px;
+    border-left:3px solid transparent;cursor:pointer}
+  nav a.item:hover{background:var(--accent)}
+  nav a.item.active{background:var(--accent);border-left-color:var(--brand);
+    color:var(--brand-d);font-weight:700}
+  nav a.item .n{color:var(--muted);font-size:11px;margin-right:7px;font-variant-numeric:tabular-nums}
+  main{flex:1;min-width:0;padding:26px 34px 60px}
+  .page{display:none;animation:fade .25s ease}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .crumb{font-size:12px;color:var(--muted);margin-bottom:6px}
+  h2.title{font-size:25px;margin:.1em 0 .5em;border-bottom:2px solid var(--brand);
+    padding-bottom:.3em;display:inline-block}
+  h3{font-size:17px;margin:1.6em 0 .5em;color:var(--brand-d)}
+  p{margin:.6em 0}
+  ul,ol{margin:.5em 0;padding-left:1.4em}
+  li{margin:.3em 0}
+  code{background:#eef2f5;color:#b91c4f;padding:1px 6px;border-radius:5px;font-size:.9em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);color:#e2e8f0;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:13px;line-height:1.6;box-shadow:var(--shadow)}
+  pre code{background:none;color:inherit;padding:0}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14px;background:var(--panel);
+    border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+  th,td{border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--accent);color:var(--brand-d);font-weight:700}
+  .note{background:#fff7ed;border:1px solid #fed7aa;border-left:4px solid #fb923c;
+    padding:10px 14px;border-radius:8px;margin:1em 0;font-size:14px}
+  .tip{background:var(--accent);border:1px solid #99f6e4;border-left:4px solid var(--brand);
+    padding:10px 14px;border-radius:8px;margin:1em 0;font-size:14px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:1em 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;
+    box-shadow:var(--shadow)}
+  .card h4{margin:.1em 0 .4em;font-size:15px;color:var(--brand-d)}
+  .pager{display:flex;justify-content:space-between;margin-top:34px;gap:12px}
+  .pager button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 16px;cursor:pointer;font-size:14px;color:var(--ink);text-align:left;
+    box-shadow:var(--shadow);transition:.15s}
+  .pager button:hover:not(:disabled){border-color:var(--brand);color:var(--brand-d)}
+  .pager button:disabled{opacity:.4;cursor:default}
+  .pager .dir{display:block;font-size:11px;color:var(--muted)}
+  .pager .nxt{text-align:right}
+  .audiobar{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--panel);
+    border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.07);
+    display:flex;align-items:center;gap:14px;padding:10px 18px;
+  }
+  .audiobar .pp{width:46px;height:46px;border-radius:50%;border:0;cursor:pointer;flex:0 0 auto;
+    background:var(--brand);color:#fff;font-size:18px;box-shadow:var(--shadow)}
+  .audiobar .pp:hover{background:var(--brand-d)}
+  .audiobar .pp:disabled{background:#cbd5e1;cursor:default}
+  .audiobar .meta{flex:0 0 auto;min-width:170px}
+  .audiobar .meta .lbl{font-size:11px;color:var(--muted)}
+  .audiobar .meta .nm{font-size:14px;font-weight:700}
+  .audiobar audio{flex:1;min-width:120px;height:38px}
+  .audiobar .speed{flex:0 0 auto;background:var(--accent);border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;font-size:12px;color:var(--brand-d);cursor:pointer}
+  .auto-tag{font-size:11px;color:var(--muted);flex:0 0 auto}
+  .auto-tag b{color:var(--brand-d)}
+  @media (max-width:820px){
+    .menu-btn{display:inline-block}
+    .wrap{display:block}
+    aside{position:fixed;left:0;top:49px;bottom:0;z-index:50;transform:translateX(-100%);
+      transition:.25s;box-shadow:var(--shadow);height:auto}
+    aside.open{transform:none}
+    main{padding:18px 18px 60px}
+    .cards{grid-template-columns:1fr}
+    .audiobar .meta{display:none}
+    .audiobar audio{min-width:80px}
+  }
+  .scrim{display:none;position:fixed;inset:49px 0 0 0;background:rgba(0,0,0,.35);z-index:45}
+  .scrim.show{display:block}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <button class="menu-btn" id="menuBtn" aria-label="メニュー">☰</button>
+  <div>
+    <h1>Prism Cascade Arena｜仕様・操作ガイド</h1>
+    <div class="sub">ローカル対CPU連鎖パズル</div>
+  </div>
+</header>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="wrap">
+  <aside id="aside">
+    <nav id="nav"></nav>
+  </aside>
+  <main id="main">
+<section class="page" data-page="intro">
+  <div class="crumb">はじめに</div>
+  <h2 class="title">ゲーム概要</h2>
+  <p><b>Prism Cascade Arena</b>は、2個1組のプリズムで連鎖を作り、評価型CPUと戦うローカルブラウザゲームです。</p><div class="tip">外部API・第三者素材を使わず、CanvasとWeb Audioで独自表現します。</div>
+</section>
+<section class="page" data-page="rules">
+  <div class="crumb">仕様書</div>
+  <h2 class="title">ルールと勝敗</h2>
+  <ul><li>同色4個以上を上下左右につなぐと消去</li><li>落下後の再消去で連鎖</li><li>得点からおじゃま攻撃を生成</li><li>新しい組を出せない側が敗北</li></ul>
+</section>
+<section class="page" data-page="architecture">
+  <div class="crumb">仕様書</div>
+  <h2 class="title">構成とCPU</h2>
+  <p>純粋TypeScript engineと、Canvas描画、DOM UI、Web Worker CPU、Web Audioを分離しています。</p><p>CPUは全列と4回転を試し、消去、連鎖、高さ、凹凸、穴、危険度を評価します。</p>
+</section>
+<section class="page" data-page="controls">
+  <div class="crumb">操作手順書</div>
+  <h2 class="title">操作方法</h2>
+  <table><tr><th>操作</th><th>キー</th></tr><tr><td>移動</td><td>左右矢印</td></tr><tr><td>高速・即時落下</td><td>下矢印・Space</td></tr><tr><td>回転</td><td>Z / X</td></tr><tr><td>一時停止</td><td>P / Escape</td></tr></table><p>タッチ端末ではアリーナ下のボタンを使います。</p>
+</section>
+<section class="page" data-page="accessibility">
+  <div class="crumb">操作手順書</div>
+  <h2 class="title">設定とアクセシビリティ</h2>
+  <p>初級・中級・上級を開始前に選べます。音はSOUNDボタンで切替できます。ピースは色に加えて輪郭と内部線で識別できます。</p>
+</section>
+  </main>
+</div>
+
+<div class="audiobar">
+  <button class="pp" id="pp" aria-label="再生/一時停止">▶</button>
+  <div class="meta"><div class="lbl">音声解説</div><div class="nm" id="trackName">—</div></div>
+  <audio id="player" preload="none"></audio>
+  <button class="speed" id="speed" title="再生速度">1.0×</button>
+  <span class="auto-tag" id="autoTag">ページ遷移で<b>自動再生</b></span>
+</div>
+
+<script>
+const HAS_AUDIO = false;
+const PAGES = [{"g": "はじめに", "id": "intro", "n": "", "t": "ゲーム概要"}, {"g": "仕様書", "id": "rules", "n": "1.1", "t": "ルールと勝敗"}, {"g": "仕様書", "id": "architecture", "n": "1.2", "t": "構成とCPU"}, {"g": "操作手順書", "id": "controls", "n": "2.1", "t": "操作方法"}, {"g": "操作手順書", "id": "accessibility", "n": "2.2", "t": "設定とアクセシビリティ"}];
+const byId = Object.fromEntries(PAGES.map((p,i)=>[p.id,{...p,i}]));
+
+// ---- サイドバー生成 ----
+const nav = document.getElementById("nav");
+let lastG = null;
+PAGES.forEach(p=>{
+  if(p.g!==lastG){ const g=document.createElement("div"); g.className="group"; g.textContent=p.g; nav.appendChild(g); lastG=p.g; }
+  const a=document.createElement("a"); a.className="item"; a.dataset.id=p.id;
+  a.innerHTML = (p.n?`<span class="n">${p.n}</span>`:"") + escapeHtml(p.t);
+  a.onclick = ()=>{ go(p.id,true); closeMenu(); };
+  nav.appendChild(a);
+});
+
+const player = document.getElementById("player");
+const pp = document.getElementById("pp");
+const trackName = document.getElementById("trackName");
+const speedBtn = document.getElementById("speed");
+const autoTag = document.getElementById("autoTag");
+const SPEEDS=[1.0,1.25,1.5,0.85], AUDIO_DIR="assets/audio/";
+let spIdx=0, current=null;
+
+if(!HAS_AUDIO){
+  pp.disabled=true; speedBtn.style.display="none";
+  autoTag.innerHTML="（音声なし）";
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function go(id, userAction){
+  const p = byId[id]; if(!p){ id = PAGES[0] ? PAGES[0].id : null; if(!id) return; }
+  current = id;
+  document.querySelectorAll(".page").forEach(s=>s.classList.toggle("active", s.dataset.page===id));
+  document.querySelectorAll("nav a.item").forEach(a=>a.classList.toggle("active", a.dataset.id===id));
+  renderPager(byId[id].i);
+  document.getElementById("main").scrollTo?.(0,0); window.scrollTo(0,0);
+  trackName.textContent = byId[id].t;
+  if(HAS_AUDIO){
+    player.src = AUDIO_DIR + id + ".mp3";
+    player.playbackRate = SPEEDS[spIdx];
+    const pr = player.play();
+    if(pr && pr.catch) pr.catch(()=>{ pp.textContent="▶"; });
+  }
+  if(location.hash.slice(1)!==id) history.replaceState(null,"","#"+id);
+}
+
+function renderPager(i){
+  document.querySelectorAll(".pager").forEach(e=>e.remove());
+  const sec=document.querySelector(".page.active"); if(!sec) return;
+  const prev=PAGES[i-1], next=PAGES[i+1];
+  const bar=document.createElement("div"); bar.className="pager";
+  const mk=(p,cls,dir)=>{
+    const b=document.createElement("button"); if(cls) b.className=cls;
+    if(p){ b.onclick=()=>go(p.id,true); b.innerHTML=`<span class="dir">${dir}</span>${escapeHtml(p.t)}`; }
+    else { b.disabled=true; b.innerHTML=`<span class="dir">${dir}</span>—`; }
+    return b;
+  };
+  bar.appendChild(mk(prev,"","◀ 前へ"));
+  bar.appendChild(mk(next,"nxt","次へ ▶"));
+  sec.appendChild(bar);
+}
+
+pp.onclick = ()=>{ if(!HAS_AUDIO) return; if(player.paused){ player.play(); } else { player.pause(); } };
+player.onplay = ()=> pp.textContent="⏸";
+player.onpause = ()=> pp.textContent="▶";
+player.onended = ()=> pp.textContent="▶";
+speedBtn.onclick = ()=>{ spIdx=(spIdx+1)%SPEEDS.length; player.playbackRate=SPEEDS[spIdx];
+  speedBtn.textContent=SPEEDS[spIdx].toFixed(2).replace(/0$/,"")+"×"; };
+
+const aside=document.getElementById("aside"), scrim=document.getElementById("scrim");
+function closeMenu(){ aside.classList.remove("open"); scrim.classList.remove("show"); }
+document.getElementById("menuBtn").onclick=()=>{ aside.classList.toggle("open"); scrim.classList.toggle("show"); };
+scrim.onclick=closeMenu;
+
+window.addEventListener("hashchange", ()=>{ const id=location.hash.slice(1); if(id&&byId[id]&&id!==current) go(id,false); });
+const start = (location.hash.slice(1) && byId[location.hash.slice(1)]) ? location.hash.slice(1) : (PAGES[0]&&PAGES[0].id);
+if(start) go(start,false);
+</script>
+</body>
+</html>
