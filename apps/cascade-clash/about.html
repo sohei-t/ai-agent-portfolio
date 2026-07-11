@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cascade Clash - プロジェクト解説 / Project Overview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* 言語切り替えボタン */
+        .lang-switcher {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 0.5rem;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            background: transparent;
+            color: #667eea;
+        }
+
+        .lang-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        /* 言語別コンテンツの表示制御 */
+        .lang-ja, .lang-en {
+            display: none;
+        }
+
+        body.lang-ja .lang-ja {
+            display: block;
+        }
+
+        body.lang-en .lang-en {
+            display: block;
+        }
+
+        /* インライン要素用 */
+        body.lang-ja span.lang-ja,
+        body.lang-ja p.lang-ja {
+            display: inline;
+        }
+
+        body.lang-en span.lang-en,
+        body.lang-en p.lang-en {
+            display: inline;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 3rem 0;
+            animation: fadeInDown 1s ease;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 2rem 0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 1s ease 0.5s both;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section h2 {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            transform: translateY(0);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .tech-badge {
+            background: #f3f4f6;
+            color: #667eea;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tech-badge:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .audio-player {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            text-align: center;
+            color: white;
+        }
+
+        .audio-player h3 {
+            margin-bottom: 1rem;
+        }
+
+        .audio-player audio {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 1rem;
+        }
+
+        .play-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #22d3c8 0%, #667eea 100%);
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.3rem;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(34, 211, 200, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .play-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 14px 36px rgba(34, 211, 200, 0.55);
+        }
+
+        .ai-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+            color: #333;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-top: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .main-content {
+                padding: 1.5rem;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .lang-switcher {
+                top: 0.5rem;
+                right: 0.5rem;
+                padding: 0.3rem;
+            }
+
+            .lang-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .play-btn {
+                font-size: 1.1rem;
+                padding: 0.85rem 2rem;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body class="lang-ja">
+    <!-- 言語切り替えボタン -->
+    <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="ja" onclick="switchLang('ja')">🇯🇵 日本語</button>
+        <button class="lang-btn" data-lang="en" onclick="switchLang('en')">🇺🇸 English</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Cascade Clash</h1>
+            <p class="lang-ja">CPU対戦型・落ちもの連鎖パズル</p>
+            <p class="lang-en">A CPU-opponent falling-block chain puzzle game</p>
+            <div class="ai-badge">🤖 AI Generated</div>
+        </div>
+
+        <div class="main-content">
+            <div class="cta-row" style="text-align: center; margin-bottom: 2.5rem;">
+                <a href="./index.html" class="play-btn">
+                    <span class="lang-ja">▶ プレイする</span>
+                    <span class="lang-en">▶ Play Now</span>
+                </a>
+                <a href="./docs/index.html" class="play-btn" style="background: transparent; border: 1px solid currentColor; margin-left: 0.75rem;">
+                    <span class="lang-ja">📖 ドキュメント</span>
+                    <span class="lang-en">📖 Documentation</span>
+                </a>
+            </div>
+
+            <div class="section">
+                <h2 class="lang-ja">📋 プロジェクト概要</h2>
+                <h2 class="lang-en">📋 Project Overview</h2>
+                <div class="lang-ja">
+                    <p>
+                        Cascade Clash は、プレイヤーと CPU が同じ画面で連鎖パズルを戦わせる対戦型ゲームです。
+                        自分のフィールドで連鎖を組みつつ、相手フィールドの CPU が繰り出す一手を見て、
+                        削り合いのタイミングを読む駆け引きが楽しめます。
+                    </p>
+                    <p style="margin-top: 1rem;">
+                        要件定義から実装・テスト・ドキュメント生成まで、Claude Code の AIエージェントシステムが
+                        一貫して開発を担当しました。実行時の外部依存ゼロ、音・画像とも外部素材や課金APIを使わずに
+                        完成させています。
+                    </p>
+                </div>
+                <div class="lang-en">
+                    <p>
+                        Cascade Clash pits you against a CPU opponent in a real-time chain-puzzle duel on a shared screen.
+                        Build your own cascades while reading the CPU's moves on the opposing field, timing your
+                        attacks and counters to outscore your rival.
+                    </p>
+                    <p style="margin-top: 1rem;">
+                        The entire project — requirements, implementation, testing, and documentation — was built end to end
+                        by Claude Code's AI agent system, with zero runtime dependencies and no paid APIs for audio or art.
+                    </p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="lang-ja">✨ 主要機能</h2>
+                <h2 class="lang-en">✨ Key Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>🤖 <span class="lang-ja">CPU対戦</span><span class="lang-en">CPU Opponent</span></h3>
+                        <p class="lang-ja">初級・中級・上級の3難易度。評価関数ベースの思考ルーチンで手加減から本気モードまで対応</p>
+                        <p class="lang-en">3 difficulty tiers (Easy/Normal/Hard) powered by a weighted evaluation-function AI</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>⚡ <span class="lang-ja">連鎖・通式スコア</span><span class="lang-en">Chain / Tsu-style Scoring</span></h3>
+                        <p class="lang-ja">消去・重力落下・再判定を繰り返すカスケードループ。通(Tsu)式のレバレッジ攻撃システム（連鎖パワー×色ボーナス×グループボーナス）でスコアを算出し、攻撃ポイントに応じておじゃま（ブロッカー）を送信</p>
+                        <p class="lang-en">Clear → gravity → re-check cascade loop. Scoring uses a Tsu-style leverage attack system (chain power × color bonus × group bonus) that converts into garbage-blocker attacks</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🧊 <span class="lang-ja">相殺・予告アイコン</span><span class="lang-en">Offset &amp; Forecast Icons</span></h3>
+                        <p class="lang-ja">送信予定のブロッカーは相手からの送信待ちブロッカーと相殺（オフセット）。待機中の量は5段階の予告アイコン（小雫/カプセル/クリスタル/スター/ムーン）で可視化</p>
+                        <p class="lang-en">Outgoing blockers are offset against the opponent's own pending attack. Pending amounts are visualized with 5-tier forecast icons (drop / capsule / crystal / star / moon)</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>✂️ <span class="lang-ja">分離落下</span><span class="lang-en">Split-cell Landing</span></h3>
+                        <p class="lang-ja">ピースがロックされる瞬間、上下2セルの連結が解除され、各セルが独立に自列の最下段へ着地する</p>
+                        <p class="lang-en">The instant a piece locks, its two cells separate and each independently settles into its own column under gravity</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>💎 <span class="lang-ja">ゼリー演出</span><span class="lang-en">Jelly Visuals &amp; FX</span></h3>
+                        <p class="lang-ja">大型プレイフィールド、ゼリー質感のプロシージャル描画（squash&amp;stretch）、連鎖段数エスカレーション演出、攻撃光弾、相殺スパーク、オーロラ背景</p>
+                        <p class="lang-en">Enlarged playfield, procedurally-rendered jelly pieces with squash-and-stretch animation, chain-tier escalation effects, attack projectiles, offset sparks, and an aurora backdrop</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>📱 <span class="lang-ja">レスポンシブ操作</span><span class="lang-en">Responsive Controls</span></h3>
+                        <p class="lang-ja">キーボード操作とタッチ操作の両対応。画面幅に応じてレイアウトが切り替わる</p>
+                        <p class="lang-en">Full keyboard and touch controls, with layout that adapts to viewport width</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🔊 <span class="lang-ja">合成サウンド</span><span class="lang-en">Synthesized Audio</span></h3>
+                        <p class="lang-ja">Web Audio API による波形合成の効果音。外部音源ファイル・課金APIは不使用</p>
+                        <p class="lang-en">All sound effects are synthesized in real time via the Web Audio API — no external audio files, no paid TTS/audio API</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="lang-ja">🧮 スコア・ブロッカーの数値仕様</h2>
+                <h2 class="lang-en">🧮 Scoring &amp; Blocker Formulas</h2>
+                <div class="lang-ja">
+                    <p>
+                        2026-07-11 のユーザーフィードバックにより、旧来の基本点テーブル方式から
+                        <strong>通(Tsu)式のレバレッジ攻撃システム</strong>へ全面改訂しました
+                        （リサーチ出典: Puyo Nexus Wiki の Scoring / Nuisance queue 記事。数値・テーブルは本プロジェクト独自定義です）。
+                    </p>
+                    <pre style="background:#f3f4f6; padding:1rem; border-radius: 8px; overflow-x:auto; margin-top:0.8rem;"><code>段スコア = (10 × その段の消去数) × clamp(連鎖パワー + 色ボーナス + グループボーナス, 1, 999)
+攻撃ポイント = 段スコア合計 + 繰り越し
+送信ブロッカー数 = floor(攻撃ポイント ÷ 70)（端数は次回へ繰り越し）</code></pre>
+                    <ul style="line-height: 2; font-size: 1.05rem; margin-top: 1rem;">
+                        <li><strong>連鎖パワー</strong>: 段数に応じたレバレッジ曲線 [0, 8, 16, 32, 64, 96, 128, 160, ...]（6段目以降は+32ずつ）</li>
+                        <li><strong>1回投下の上限</strong>: 相手盤面へ1回で降下するブロッカーは最大30個（超過分はキューに残留）</li>
+                        <li><strong>相殺</strong>: 自分の新規攻撃ポイントは、まず相手からの送信待ちブロッカーとの相殺に充当される</li>
+                    </ul>
+                </div>
+                <div class="lang-en">
+                    <p>
+                        Following user feedback on 2026-07-11, scoring was fully revised from the old base-point table
+                        into a <strong>Tsu-style leverage attack system</strong>
+                        (research source: the Puyo Nexus Wiki Scoring / Nuisance queue articles; all numbers and tables here are this project's own original definitions).
+                    </p>
+                    <pre style="background:#f3f4f6; padding:1rem; border-radius: 8px; overflow-x:auto; margin-top:0.8rem;"><code>step score = (10 x cells cleared this step) x clamp(chain power + color bonus + group bonus, 1, 999)
+attack points = sum of step scores + carryover
+blockers sent = floor(attack points / 70)  (remainder carries over)</code></pre>
+                    <ul style="line-height: 2; font-size: 1.05rem; margin-top: 1rem;">
+                        <li><strong>Chain power</strong>: a leverage curve by chain depth [0, 8, 16, 32, 64, 96, 128, 160, ...] (+32 per step from step 6 on)</li>
+                        <li><strong>Per-drop cap</strong>: at most 30 blockers actually fall per drop event (overflow stays queued)</li>
+                        <li><strong>Offset</strong>: your new attack points are first applied to cancel the opponent's pending attack on you</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="lang-ja">🧠 CPUアルゴリズム</h2>
+                <h2 class="lang-en">🧠 CPU Algorithm</h2>
+                <div class="lang-ja">
+                    <p>
+                        CPU は探索木を使う minimax 型ではなく、<strong>盤面候補を仮想シミュレーションし、
+                        重み付き評価関数でスコアリングする方式</strong>を採用しています。
+                    </p>
+                    <ul style="line-height: 2; font-size: 1.05rem; margin-top: 1rem;">
+                        <li><strong>候補生成</strong>: 列とピース回転の組み合わせ（最大22候補程度）を仮想的に落下させ、着地形を算出</li>
+                        <li><strong>評価関数</strong>: 消去数スコア・連鎖予測スコア・高さペナルティ・凹凸ペナルティ・危険度ペナルティを加重合算</li>
+                        <li><strong>非ブロッキング思考</strong>: 候補評価を複数フレームに分割して実行し、思考中も自分の描画・入力処理を止めない</li>
+                        <li><strong>難易度差</strong>: 初級はノイズと誤選択率を大きく、上級はノイズ0・即断の高速思考に調整</li>
+                    </ul>
+                </div>
+                <div class="lang-en">
+                    <p>
+                        Rather than a minimax search tree, the CPU uses a <strong>candidate simulation + weighted evaluation-function
+                        approach</strong>.
+                    </p>
+                    <ul style="line-height: 2; font-size: 1.05rem; margin-top: 1rem;">
+                        <li><strong>Candidate generation</strong>: virtually drops each column/rotation combination (up to ~22 candidates) to compute the resulting board</li>
+                        <li><strong>Evaluation function</strong>: weighted sum of clear-count, predicted-chain, height penalty, bumpiness penalty, and danger-line penalty</li>
+                        <li><strong>Non-blocking thinking</strong>: candidate evaluation is spread across multiple frames so rendering/input never stalls</li>
+                        <li><strong>Difficulty tuning</strong>: Easy adds noise and a mis-pick chance; Hard runs near-zero noise with fast, decisive picks</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="lang-ja">🛠 技術スタック</h2>
+                <h2 class="lang-en">🛠 Tech Stack</h2>
+                <div class="tech-stack">
+                    <span class="tech-badge">Vanilla TypeScript</span>
+                    <span class="tech-badge">Vite</span>
+                    <span class="tech-badge">Canvas 2D</span>
+                    <span class="tech-badge">Web Audio API</span>
+                    <span class="tech-badge">Vitest</span>
+                    <span class="tech-badge">Playwright</span>
+                </div>
+                <p class="lang-ja" style="margin-top: 1.2rem; color: #555;">
+                    UIフレームワークを使わない Vanilla TypeScript + Canvas 2D 実装。実行時（production）の npm 依存はゼロで、
+                    ビルド・テストツールのみ devDependencies として使用しています。
+                </p>
+                <p class="lang-en" style="margin-top: 1.2rem; color: #555;">
+                    No UI framework — pure Vanilla TypeScript rendered on Canvas 2D. Zero production runtime dependencies;
+                    everything else (Vite, Vitest, Playwright, ESLint) lives under devDependencies only.
+                </p>
+            </div>
+
+            <div class="section" style="background: #fff8e6; border: 1px solid #ffe0a3; border-radius: 12px; padding: 1.5rem 1.8rem;">
+                <h3 class="lang-ja" style="color: #b8860b; margin-bottom: 0.8rem;">🎧 音声解説について</h3>
+                <h3 class="lang-en" style="color: #b8860b; margin-bottom: 0.8rem;">🎧 About the Audio Narration</h3>
+                <p class="lang-ja">
+                    このプロジェクトでは、課金APIを使う音声合成（Google Cloud TTS）を方針上使用していないため、
+                    音声解説（explanation.mp3）は現時点で未生成です。読み上げ用のスクリプトは
+                    <code>audio_script.txt</code> として同梱しており、将来ユーザーが承認すれば
+                    documenter_agent.py で音声化できます。
+                </p>
+                <p class="lang-en">
+                    Per project policy, no paid TTS API call was made, so the audio narration (explanation.mp3) has not
+                    been generated yet. The narration script is included as <code>audio_script.txt</code> and can be
+                    converted to audio later via documenter_agent.py, if a user approves the paid API call.
+                </p>
+            </div>
+
+            <div class="section">
+                <h2 class="lang-ja">📊 品質・テスト</h2>
+                <h2 class="lang-en">📊 Quality &amp; Testing</h2>
+                <ul class="lang-ja" style="line-height: 2; font-size: 1.1rem;">
+                    <li>✅ <strong>テスト件数</strong>: 416件（ユニット + Playwright E2E）、全件合格</li>
+                    <li>📈 <strong>行カバレッジ</strong>: 96.96%（目標80-90%を上回って達成）</li>
+                    <li>🎨 <strong>デザイン</strong>: テンプレート流用のない、本プロジェクト専用のオリジナルUI/配色</li>
+                    <li>♻️ <strong>実行時依存</strong>: ゼロ（production dependencies なし）</li>
+                </ul>
+                <ul class="lang-en" style="line-height: 2; font-size: 1.1rem;">
+                    <li>✅ <strong>Test count</strong>: 416 tests (unit + Playwright E2E), 100% passing</li>
+                    <li>📈 <strong>Line coverage</strong>: 96.96% (exceeds the 80-90% target)</li>
+                    <li>🎨 <strong>Design</strong>: an original UI/color system built specifically for this project, not a generic template</li>
+                    <li>♻️ <strong>Runtime dependencies</strong>: zero (no production dependencies)</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2 class="lang-ja">🤖 AI開発プロセス</h2>
+                <h2 class="lang-en">🤖 AI Development Process</h2>
+                <ol class="lang-ja" style="line-height: 2; font-size: 1.1rem;">
+                    <li><strong>要件分析</strong>: Requirements Analyst が要件を整理・明確化</li>
+                    <li><strong>計画立案</strong>: Planner が WBS（作業分解構造）を作成</li>
+                    <li><strong>テスト設計</strong>: Test Designer がテストコードを先行作成（TDD）</li>
+                    <li><strong>並列開発</strong>: 複数の Developer エージェントが同時開発</li>
+                    <li><strong>品質保証</strong>: Evaluator が品質チェック、Fixer が修正</li>
+                    <li><strong>文書生成</strong>: Documenter が解説とマニュアルを自動生成</li>
+                </ol>
+                <ol class="lang-en" style="line-height: 2; font-size: 1.1rem;">
+                    <li><strong>Requirements Analysis</strong>: Requirements Analyst organizes and clarifies requirements</li>
+                    <li><strong>Planning</strong>: Planner creates WBS (Work Breakdown Structure)</li>
+                    <li><strong>Test Design</strong>: Test Designer creates test code first (TDD)</li>
+                    <li><strong>Parallel Development</strong>: Multiple Developer agents work simultaneously</li>
+                    <li><strong>Quality Assurance</strong>: Evaluator checks quality, Fixer makes corrections</li>
+                    <li><strong>Documentation</strong>: Documenter auto-generates explanations and manuals</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 言語切り替え機能
+        function switchLang(lang) {
+            // body のクラスを切り替え
+            document.body.className = 'lang-' + lang;
+
+            // html の lang 属性を更新
+            document.documentElement.lang = lang === 'ja' ? 'ja' : 'en';
+
+            // ボタンのアクティブ状態を更新
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.lang === lang) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // LocalStorage に保存
+            localStorage.setItem('preferred-lang', lang);
+        }
+
+        // ページ読み込み時に保存された言語を復元（デフォルト: 日本語）
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('preferred-lang') || 'ja';
+            switchLang(savedLang);
+        });
+    </script>
+</body>
+</html>

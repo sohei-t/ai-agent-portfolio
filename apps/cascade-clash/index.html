@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Cascade Clash — CPU対戦型・落ちもの連鎖パズル" />
+    <meta name="color-scheme" content="dark" />
+    <!--
+      REVIEW_FINDINGS.md P4-3: minimal CSP. This app makes no external network requests (no
+      fonts/CDN/analytics/API calls — SPEC.md/API_DESIGN.md: all rendering is Canvas 2D, all
+      audio is Web Audio API waveform synthesis, no external asset loading), so every fetch
+      directive is locked to 'self' and object/frame embedding is disabled outright.
+      vite.e2e.config.ts's viteSingleFile()-based E2E build inlines JS/CSS directly into this
+      document (needed because the sandboxed test runner opens the built file via file://, where
+      external <script src>/<link> module resolution is blocked by the browser) and therefore
+      relaxes this same meta tag's script-src/style-src to add 'unsafe-inline' for that build
+      only, via an html-transform plugin — the production build (`npm run build`, vite.config.ts)
+      keeps this strict tag completely untouched.
+    -->
+    <!-- frame-ancestors はmeta経由では無効（ブラウザが警告を出す）ため、metaからは除外。
+         公開時はHTTPレスポンスヘッダー側で frame-ancestors 'none' を設定すること（REVIEW_FINDINGS.md 参照） -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='54' r='38' fill='%2322d3c8'/%3E%3Ccircle cx='38' cy='42' r='10' fill='white' opacity='0.85'/%3E%3C/svg%3E" />
+    <title>Cascade Clash</title>
+    <script type="module" crossorigin src="./assets/index-wrdhgQEm.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Ddkt1295.css">
+  </head>
+  <body>
+    <!--
+      feedback(UX): アーケード風の背景（動くグラデーション/オーロラ・薄い星空）と、盤面Canvas
+      同士をまたぐ演出（攻撃送信の光弾・結果画面の紙吹雪）専用のオーバーレイCanvas。
+      #appより背面（z-index: -1）に敷く固定レイヤーで、data-testid契約・フォーカス/クリック
+      判定には一切関与しない（aria-hidden + pointer-events:none）。src/render/overlay-fx.tsが
+      描画を担当し、main.tsがrequestAnimationFrameで毎フレームupdate/renderする。
+    -->
+    <canvas id="canvas-overlay-fx" aria-hidden="true"></canvas>
+    <div id="app" data-testid="app-root">
+      <!-- ============================================================ -->
+      <!-- 画面A: Title Screen -->
+      <!-- ============================================================ -->
+      <section id="screen-title" class="screen title-screen" data-testid="screen-title">
+        <h1 class="title-screen__logo">Cascade<br />Clash</h1>
+        <p class="title-screen__tagline">connect four &middot; trigger the cascade &middot; clash the cpu</p>
+        <div class="title-screen__actions">
+          <button type="button" class="btn btn--primary" data-testid="btn-start">ゲーム開始</button>
+          <button type="button" class="btn btn--secondary" data-testid="btn-help">操作説明</button>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 画面B: Difficulty Select -->
+      <!-- ============================================================ -->
+      <section id="screen-difficulty" class="screen difficulty-screen" data-testid="screen-difficulty" hidden>
+        <h2 class="section-heading">難易度を選んでください</h2>
+        <div class="difficulty-cards">
+          <button type="button" class="difficulty-card" data-testid="btn-difficulty-easy">
+            <span class="difficulty-card__name">初級</span>
+            <span class="difficulty-card__desc">CPUの判断にばらつきがあります。じっくり操作を覚えたい方に。</span>
+          </button>
+          <button type="button" class="difficulty-card" data-testid="btn-difficulty-normal">
+            <span class="difficulty-card__name">中級</span>
+            <span class="difficulty-card__desc">安定した判断で連鎖を組み立ててきます。手応えのある対戦に。</span>
+          </button>
+          <button type="button" class="difficulty-card" data-testid="btn-difficulty-hard">
+            <span class="difficulty-card__name">上級</span>
+            <span class="difficulty-card__desc">高速・高精度。隙のない連鎖とブロッカー攻撃を仕掛けてきます。</span>
+          </button>
+        </div>
+        <button type="button" class="btn btn--ghost btn--danger-adjacent" data-testid="btn-difficulty-back">戻る</button>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 画面C: Match Screen -->
+      <!-- ============================================================ -->
+      <section id="screen-match" class="screen match-screen" data-testid="screen-match" hidden>
+        <!--
+          REVIEW_FINDINGS.md P4-7: visually-hidden live region announcing score/danger/cascade/
+          win-loss changes to screen reader users (盤面はCanvas描画のためテキストとして
+          読み上げられない). aria-live="polite" so frequent updates (score ticking up) don't
+          interrupt whatever the user is currently doing; src/main.ts writes a short Japanese
+          sentence here only when one of these values actually changes (see
+          buildStatusAnnouncement()/updateStatusAnnouncer() there).
+        -->
+        <div
+          class="visually-hidden"
+          role="status"
+          aria-live="polite"
+          data-testid="match-status-announcer"
+        ></div>
+        <div class="match-topbar">
+          <button
+            type="button"
+            class="sound-toggle"
+            data-testid="btn-sound-toggle"
+            aria-pressed="true"
+            aria-label="効果音をオフにする"
+          >
+            <span aria-hidden="true" data-sound-icon>♪</span>
+          </button>
+          <div class="match-topbar__spacer"></div>
+          <button type="button" class="btn btn--secondary match-pause-btn" data-testid="btn-pause">一時停止</button>
+        </div>
+
+        <div class="fields-row">
+          <!-- Player field -->
+          <div class="field-panel field-panel--player">
+            <div class="field-panel__header">
+              <span class="field-panel__label field-panel__label--player">YOU</span>
+              <span class="field-panel__score" data-testid="score-player">0</span>
+            </div>
+            <div class="field-panel__side">
+              <div class="field-panel__board-wrap">
+                <canvas
+                  id="canvas-player"
+                  data-testid="board-player"
+                  aria-label="プレイヤーの盤面"
+                  role="img"
+                ></canvas>
+              </div>
+              <div class="next-piece-box">
+                <span class="next-piece-box__label">NEXT</span>
+                <canvas id="canvas-next-player" data-testid="next-piece-player" width="22" height="44"></canvas>
+              </div>
+            </div>
+            <div class="field-panel__meta">
+              <span>MAX CASCADE <span data-testid="cascade-max-player">0</span></span>
+              <span class="danger-warning" data-testid="warning-danger-player" hidden>WARNING</span>
+            </div>
+          </div>
+
+          <!-- CPU field -->
+          <div class="field-panel field-panel--cpu">
+            <div class="field-panel__header">
+              <span class="field-panel__label field-panel__label--cpu">CPU</span>
+              <span class="field-panel__score" data-testid="score-cpu">0</span>
+            </div>
+            <div class="field-panel__side">
+              <div class="field-panel__board-wrap">
+                <canvas
+                  id="canvas-cpu"
+                  data-testid="board-cpu"
+                  aria-label="CPUの盤面"
+                  role="img"
+                ></canvas>
+              </div>
+              <div class="next-piece-box">
+                <span class="next-piece-box__label">NEXT</span>
+                <canvas id="canvas-next-cpu" data-testid="next-piece-cpu" width="22" height="44"></canvas>
+              </div>
+            </div>
+            <div class="field-panel__meta">
+              <span>MAX CASCADE <span data-testid="cascade-max-cpu">0</span></span>
+              <span class="danger-warning" data-testid="warning-danger-cpu" hidden>WARNING</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Touch controls (mobile only, SPEC.md 3.3節 / 7.2節: 44px以上) -->
+        <div class="touch-controls" data-testid="touch-controls">
+          <button type="button" class="touch-btn" data-testid="touch-move-left" aria-label="左移動">◀</button>
+          <button type="button" class="touch-btn" data-testid="touch-rotate-ccw" aria-label="反時計回り回転">↺</button>
+          <button type="button" class="touch-btn" data-testid="touch-rotate-cw" aria-label="時計回り回転">↻</button>
+          <button type="button" class="touch-btn" data-testid="touch-move-right" aria-label="右移動">▶</button>
+          <button type="button" class="touch-btn" data-testid="touch-soft-drop" aria-label="ソフトドロップ">▼</button>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 画面P: Pause Menu (overlay on top of Match Screen) -->
+      <!-- ============================================================ -->
+      <div
+        id="screen-pause"
+        class="overlay"
+        data-testid="screen-pause"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="screen-pause-heading"
+        tabindex="-1"
+        hidden
+      >
+        <div class="overlay-panel">
+          <h2 class="section-heading" id="screen-pause-heading">一時停止</h2>
+          <div class="pause-menu__actions">
+            <button type="button" class="btn btn--primary" data-testid="btn-resume">再開</button>
+            <button type="button" class="btn btn--secondary" data-testid="btn-retry">リトライ</button>
+            <button type="button" class="btn btn--secondary" data-testid="btn-pause-help">操作説明</button>
+            <button type="button" class="btn btn--ghost btn--danger-adjacent" data-testid="btn-pause-title">タイトルへ</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- 画面H: Help Screen (overlay, reachable from title or pause) -->
+      <!-- ============================================================ -->
+      <div
+        id="screen-help"
+        class="overlay"
+        data-testid="screen-help"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="screen-help-heading"
+        tabindex="-1"
+        hidden
+      >
+        <div class="overlay-panel overlay-panel--wide">
+          <h2 class="section-heading" id="screen-help-heading">操作説明</h2>
+          <div class="help-tables">
+            <div class="help-table-wrap">
+              <table class="help-table" data-testid="help-keyboard-table">
+                <caption>キーボード操作</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">操作</th>
+                    <th scope="col">キー</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>左移動</td><td><kbd>←</kbd></td></tr>
+                  <tr><td>右移動</td><td><kbd>→</kbd></td></tr>
+                  <tr><td>時計回り回転</td><td><kbd>X</kbd> / <kbd>↑</kbd></td></tr>
+                  <tr><td>反時計回り回転</td><td><kbd>Z</kbd></td></tr>
+                  <tr><td>ソフトドロップ</td><td><kbd>↓</kbd>（押下中加速）</td></tr>
+                  <tr><td>ハードドロップ</td><td><kbd>Space</kbd></td></tr>
+                  <tr><td>一時停止</td><td><kbd>P</kbd></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="help-table-wrap">
+              <table class="help-table" data-testid="help-touch-table">
+                <caption>タッチ操作</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">操作</th>
+                    <th scope="col">ボタン</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>左移動</td><td>◀ ボタン タップ/長押し、または盤面を左スワイプ</td></tr>
+                  <tr><td>右移動</td><td>▶ ボタン タップ/長押し、または盤面を右スワイプ</td></tr>
+                  <tr><td>時計回り回転</td><td>↻ ボタン タップ、または盤面をタップ</td></tr>
+                  <tr><td>反時計回り回転</td><td>↺ ボタン タップ</td></tr>
+                  <tr><td>ソフトドロップ</td><td>▼ ボタン 長押し、または盤面を下スワイプ</td></tr>
+                  <tr><td>一時停止</td><td>「一時停止」ボタン タップ</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <button type="button" class="btn btn--secondary" data-testid="btn-help-back">戻る</button>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- 画面R: Result Screen -->
+      <!-- ============================================================ -->
+      <section
+        id="screen-result"
+        class="screen result-screen"
+        data-testid="screen-result"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="screen-result-heading"
+        tabindex="-1"
+        hidden
+      >
+        <h2 class="result-screen__title" data-testid="result-winner" id="screen-result-heading">勝利</h2>
+        <div class="result-compare">
+          <div class="result-compare__col">
+            <div class="result-compare__label">YOU</div>
+            <div class="result-compare__score" data-testid="result-score-player">0</div>
+            <div class="result-compare__cascade">MAX CASCADE <span data-testid="result-max-cascade-player">0</span></div>
+          </div>
+          <div class="result-compare__col">
+            <div class="result-compare__label">CPU</div>
+            <div class="result-compare__score" data-testid="result-score-cpu">0</div>
+            <div class="result-compare__cascade">MAX CASCADE <span data-testid="result-max-cascade-cpu">0</span></div>
+          </div>
+        </div>
+        <div class="result-screen__actions">
+          <button type="button" class="btn btn--primary" data-testid="btn-result-retry">もう一度</button>
+          <button type="button" class="btn btn--secondary" data-testid="btn-result-title">タイトルへ</button>
+        </div>
+      </section>
+    </div>
+
+    <!--
+      REVIEW_FINDINGS.md P4-12: fatal-error fallback UI. Shown by src/main.ts in place of #app
+      when a hard boot-time failure occurs (currently: a canvas 2D rendering context could not be
+      obtained on one of the board canvases, e.g. an environment without Canvas 2D support or a
+      browser blocking it). #app itself is hidden so the broken, half-usable UI underneath is
+      never left visible alongside this message. role="alert" gives this an implicit
+      aria-live="assertive" so screen reader users are told immediately, without needing to have
+      focus anywhere in particular first (unlike the dialogs in P4-6, there is no "return to X"
+      concept here — the app failed to start at all).
+    -->
+    <div
+      id="fatal-error-fallback"
+      class="overlay"
+      data-testid="error-fallback"
+      data-error-kind="canvas"
+      role="alert"
+      hidden
+    >
+      <div class="overlay-panel">
+        <h2 class="section-heading">起動できませんでした</h2>
+        <p data-testid="error-fallback-message">
+          お使いのブラウザは、このゲームの描画に必要な機能（Canvas 2D）に対応していないか、
+          利用がブロックされています。別のブラウザでの利用をお試しください。
+        </p>
+      </div>
+    </div>
+
+    <!--
+      REVIEW_FINDINGS.md P4-12: non-fatal notice for Web Audio initialization failure. Unlike the
+      canvas fallback above, this is not blocking -- the game remains fully playable without sound
+      -- so it renders as a small dismissible banner rather than replacing the whole screen.
+      role="status" (implicit aria-live="polite") announces it once without interrupting play.
+    -->
+    <div class="audio-warning-banner" data-testid="audio-warning-banner" role="status" hidden>
+      <span>効果音を初期化できませんでした。音声なしでプレイを続けます。</span>
+      <button type="button" data-testid="audio-warning-dismiss" aria-label="この通知を閉じる">×</button>
+    </div>
+
+  </body>
+</html>
