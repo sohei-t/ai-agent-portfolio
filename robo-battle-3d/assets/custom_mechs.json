@@ -1,27 +1,5 @@
 [
   {
-    "id": "image_8c9506",
-    "name": {
-      "ja": "ドム",
-      "en": "DOM"
-    },
-    "role": "player",
-    "model": "image_8c9506b",
-    "modelType": "rigged",
-    "hp": 305,
-    "speed": 3.4,
-    "hardpoints": [
-      "heavy",
-      "heavy",
-      "medium",
-      "medium"
-    ],
-    "yaw": 0.0012,
-    "scale": 1.0,
-    "ability": "shield",
-    "price": 5000
-  },
-  {
     "id": "YOSHITATSU_V01",
     "name": {
       "ja": "ヨシカツ",
@@ -68,29 +46,6 @@
     "assetVersion": 1781506100
   },
   {
-    "id": "HIROKO_V01",
-    "name": {
-      "ja": "ひろこ",
-      "en": "HIROKO-V01"
-    },
-    "role": "player",
-    "model": "HIROKO_V01",
-    "modelType": "rigged",
-    "hp": 360,
-    "hardpoints": [
-      "light",
-      "light",
-      "medium",
-      "medium"
-    ],
-    "speed": 7.0,
-    "yaw": 0.0012,
-    "scale": 1.0,
-    "ability": "shield",
-    "price": 1500,
-    "assetVersion": 1781526735
-  },
-  {
     "id": "SOHEI001",
     "name": {
       "ja": "宗平",
@@ -112,98 +67,5 @@
     "ability": "shield",
     "price": 1500,
     "assetVersion": 1781530000
-  },
-  {
-    "id": "ALIEN_V01",
-    "name": {
-      "ja": "エイリアン兵士",
-      "en": "ALIEN_SOL"
-    },
-    "role": "player",
-    "model": "ALIEN01",
-    "modelType": "rigged",
-    "hp": 200,
-    "hardpoints": [
-      "heavy",
-      "heavy",
-      "medium",
-      "medium"
-    ],
-    "speed": 3.2,
-    "yaw": 0.0012,
-    "scale": 1.0,
-    "ability": "shield",
-    "price": 1500,
-    "assetVersion": 1781573521
-  },
-  {
-    "id": "GAL_001",
-    "name": {
-      "ja": "GAL_001",
-      "en": "GAL_001"
-    },
-    "role": "player",
-    "model": "GAL_001",
-    "modelType": "rigged",
-    "hp": 200,
-    "hardpoints": [
-      "light",
-      "light",
-      "heavy",
-      "heavy"
-    ],
-    "speed": 4.000000000000001,
-    "yaw": 0.0012,
-    "scale": 1.0,
-    "ability": "shield",
-    "price": 1500,
-    "assetVersion": 1781732394
-  },
-  {
-    "id": "HACHIWARE",
-    "name": {
-      "ja": "HACHIWARE",
-      "en": "HACHIWARE"
-    },
-    "role": "player",
-    "model": "HACHIWARE",
-    "modelType": "static",
-    "hp": 200,
-    "hardpoints": [
-      "light",
-      "light",
-      "medium",
-      "medium"
-    ],
-    "speed": 5.2,
-    "yaw": 0.0012,
-    "scale": 1.0,
-    "ability": "shield",
-    "price": 1500,
-    "assetVersion": 1781761762
-  },
-  {
-    "id": "SHI_SA_",
-    "name": {
-      "ja": "SHI-SA-",
-      "en": "SHI-SA-"
-    },
-    "role": "player",
-    "model": "SHI_SA_",
-    "modelType": "static",
-    "hp": 200,
-    "hardpoints": [
-      "medium",
-      "medium",
-      "heavy",
-      "heavy"
-    ],
-    "speed": 3.2,
-    "staticKind": "walk",
-    "yaw": 0.0012,
-    "scale": 1.0,
-    "ability": "shield",
-    "price": 1500,
-    "assetVersion": 1781780248
   }
 ]
