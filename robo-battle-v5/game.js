@@ -63,14 +63,14 @@ const KO_SETTINGS = {
 
 // Charge beam constants
 const CHARGE_BEAM = {
-    maxChargeTime: 3000,      // 3 seconds for max charge
+    maxChargeTime: 1500,      // V5.1: 1.5 seconds for max charge (2x faster)
     maxDamageMultiplier: 3,   // 3x damage at max charge
     minChargeTime: 100,       // Minimum time to register as charged
     sizeMultiplierMax: 2.0,   // Beam size at max charge
     chargeThresholds: {
-        low: 0.33,            // 1 second - yellow glow
-        mid: 0.66,            // 2 seconds - orange glow
-        max: 1.0              // 3 seconds - red glow + MAX indicator
+        low: 0.33,            // 0.5 second - yellow glow
+        mid: 0.66,            // 1 second - orange glow
+        max: 1.0              // 1.5 seconds - red glow + MAX indicator
     }
 };
 
@@ -357,6 +357,7 @@ const GameState = {
     RESULT: 'result',
     ENDING: 'ending',   // V5: Special ending screen for multi-round victory
     PAUSED: 'paused',
+    HOW_TO_PLAY: 'how_to_play',  // PC 操作方法ページ(タイトルの「操作方法」から開く)
     // Online mode states
     ONLINE_LOBBY: 'online_lobby',
     ONLINE_WAITING: 'online_waiting',
@@ -2266,7 +2267,7 @@ class Robot {
     shoot(beams) {
         if (this.beamCooldown > 0) return null;
 
-        // 1発ずつルール: 自分のビームが画面上にあれば撃てない
+        // 1発ずつルール - one beam at a time per robot
         const owner = this.isPlayer ? 'player' : 'enemy';
         const existingBeam = beams.find(b => b.owner === owner && b.active && !b.isCloneBeam);
         if (existingBeam) return null;
@@ -2277,18 +2278,19 @@ class Robot {
         this.beamCooldown = ROBOT.beamCooldown;
         this.state = 'attack';
 
-        // V4.2: Calculate beam Y position (normal position)
-        let beamY = this.y + this.height / 2 - BEAM.height / 2;
+        const direction = this.facingRight ? 1 : -1;
+        const baseX = this.facingRight ? this.x + this.width : this.x - BEAM.width;
+        const beamY = this.y + this.height / 2 - BEAM.height / 2;
 
+        // Fire 1 beam (V5.1: rapid fire handled separately in game loop for mobile)
         const beam = new Beam(
-            this.facingRight ? this.x + this.width : this.x - BEAM.width,
+            baseX,
             beamY,
-            this.facingRight ? 1 : -1,
+            direction,
             this.beamDamage,
             owner,
             0  // No charge
         );
-
         beams.push(beam);
 
         // V4.1: Shadow clones fire when owner fires
@@ -2309,7 +2311,7 @@ class Robot {
         const handY = this.y + this.height / 2;
         ParticleSystem.charge(handX, handY, this.isPlayer);
 
-        return beam;
+        return beams[beams.length - 1];
     }
 
     // V4: Fire equipped weapon (called alongside default beam)
@@ -5499,9 +5501,11 @@ class InputSystem {
         this.touchActions = {
             shoot: false,
             jump: false,
-            guard: false  // V4.2: Guard action
+            guard: false,  // V4.2: Guard action
+            rapidfire: false  // V5.1: Rapid fire action (lower right zone)
         };
         this.prevTouchShoot = false;  // Previous frame's touch state
+        this.rapidFireCooldown = 0;  // V5.1: Cooldown for rapid fire
 
         // Multi-touch tracking: Map of touchId → 'beam' or 'jump' or 'guard'
         // This allows tracking which finger is doing which action
@@ -5665,30 +5669,28 @@ class InputSystem {
         if (eventType === 'start') {
             for (const touch of e.changedTouches) {
                 const x = touch.clientX;
-                const y = touch.clientY;
                 const touchId = touch.identifier;
 
                 // Create touch feedback effect
                 this.createTouchFeedback(touch.clientX, touch.clientY);
 
+                // V5.1: Controls - left = JUMP, right upper = CHARGE, right lower = RAPID FIRE
+                const y = touch.clientY;
                 if (x < midPointX) {
-                    // V4.2: Left half split vertically (GUARD upper, JUMP lower)
-                    if (y < midPointY) {
-                        // Left upper = Guard (less frequent)
-                        this.activeTouches.set(touchId, 'guard');
-                        this.touchActions.guard = true;
-                        console.log('[Touch] Left upper zone - GUARD (id:', touchId, ')');
-                    } else {
-                        // Left lower = Jump (frequent use)
-                        this.activeTouches.set(touchId, 'jump');
-                        this.touchActions.jump = true;
-                        console.log('[Touch] Left lower zone - JUMP (id:', touchId, ')');
-                    }
-                } else {
-                    // Right half = Beam (symmetric with JUMP at bottom)
-                    this.activeTouches.set(touchId, 'beam');
+                    // Left half = Jump
+                    this.activeTouches.set(touchId, 'jump');
+                    this.touchActions.jump = true;
+                    console.log('[Touch] Left zone - JUMP (id:', touchId, ')');
+                } else if (y < midPointY) {
+                    // Upper right = Charge beam (hold and release)
+                    this.activeTouches.set(touchId, 'charge');
                     this.touchActions.shoot = true;
-                    console.log('[Touch] Right zone - BEAM (id:', touchId, ')');
+                    console.log('[Touch] Upper right zone - CHARGE (id:', touchId, ')');
+                } else {
+                    // Lower right = Rapid fire (continuous while held)
+                    this.activeTouches.set(touchId, 'rapidfire');
+                    this.touchActions.rapidfire = true;
+                    console.log('[Touch] Lower right zone - RAPID FIRE (id:', touchId, ')');
                 }
             }
         } else if (eventType === 'end') {
@@ -5701,26 +5703,29 @@ class InputSystem {
                     this.activeTouches.delete(touchId);
 
                     // Check if any other touches are still active for this action
-                    let hasOtherBeamTouch = false;
+                    let hasOtherChargeTouch = false;
                     let hasOtherJumpTouch = false;
-                    let hasOtherGuardTouch = false;  // V4.2
+                    let hasOtherGuardTouch = false;
+                    let hasOtherRapidFireTouch = false;  // V5.1
                     for (const [id, a] of this.activeTouches) {
-                        if (a === 'beam') hasOtherBeamTouch = true;
+                        if (a === 'charge') hasOtherChargeTouch = true;
                         if (a === 'jump') hasOtherJumpTouch = true;
-                        if (a === 'guard') hasOtherGuardTouch = true;  // V4.2
+                        if (a === 'guard') hasOtherGuardTouch = true;
+                        if (a === 'rapidfire') hasOtherRapidFireTouch = true;  // V5.1
                     }
 
                     // Only reset the action if no other touches are active for it
-                    if (action === 'beam' && !hasOtherBeamTouch) {
-                        // Beam released - this triggers charge beam fire
+                    // V5.1: Handle charge (upper right) release
+                    if (action === 'charge' && !hasOtherChargeTouch) {
+                        // Charge released - this triggers charge beam fire
                         // Set shoot to false after a brief delay to allow detection
                         setTimeout(() => {
-                            // Double-check no new beam touches were added
-                            let stillHasBeamTouch = false;
+                            // Double-check no new charge touches were added
+                            let stillHasChargeTouch = false;
                             for (const [id, a] of this.activeTouches) {
-                                if (a === 'beam') stillHasBeamTouch = true;
+                                if (a === 'charge') stillHasChargeTouch = true;
                             }
-                            if (!stillHasBeamTouch) {
+                            if (!stillHasChargeTouch) {
                                 this.touchActions.shoot = false;
                             }
                         }, 50);
@@ -5747,6 +5752,19 @@ class InputSystem {
                             }
                             if (!stillHasGuardTouch) {
                                 this.touchActions.guard = false;
+                            }
+                        }, 50);
+                    }
+
+                    // V5.1: Handle rapid fire release
+                    if (action === 'rapidfire' && !hasOtherRapidFireTouch) {
+                        setTimeout(() => {
+                            let stillHasRapidFireTouch = false;
+                            for (const [id, a] of this.activeTouches) {
+                                if (a === 'rapidfire') stillHasRapidFireTouch = true;
+                            }
+                            if (!stillHasRapidFireTouch) {
+                                this.touchActions.rapidfire = false;
                             }
                         }, 50);
                     }
@@ -5842,7 +5860,8 @@ class InputSystem {
                 shootUp: this.shootState.justReleased,
                 shootHeld: this.shootState.held,
                 kick: false,  // Kick disabled on mobile for simplicity
-                guard: this.touchActions.guard  // V4.2: Guard from mobile touch
+                guard: this.touchActions.guard,  // V4.2: Guard from mobile touch
+                rapidfire: this.touchActions.rapidfire  // V5.1: Rapid fire from lower right zone
             };
         }
 
@@ -6181,14 +6200,21 @@ class Game {
             case GameState.ITEM_CONFIG:
                 this.handleItemConfigClick(x, y);
                 break;
+            case GameState.HOW_TO_PLAY:
+                // 操作方法ページ: どこをクリック/タップしてもタイトルへ戻る
+                SoundManager.playMenuSelect();
+                this.state = GameState.TITLE;
+                this.inputCooldown = 400;
+                break;
             default:
                 console.log(`[DEBUG] Unknown state: ${this.state}`);
         }
     }
 
+    // V5.1: Updated for 3 menu items (removed SETTINGS)
     handleTitleClick(x, y) {
-        // Menu items: VS CPU, ONLINE BATTLE, HOW TO PLAY, SETTINGS
-        const menuItems = 4;
+        // Menu items: VS CPU, ONLINE BATTLE, HOW TO PLAY
+        const menuItems = 3;
         const startY = 400;
         const itemHeight = 40;
 
@@ -6209,9 +6235,9 @@ class Game {
                         this.onlineLobbySelection = 0;
                         break;
                     case 2: // How to Play
-                    case 3: // Settings
-                        this.isOnlineMode = false;
-                        this.state = GameState.SETUP;
+                        this.state = GameState.HOW_TO_PLAY;
+                        this.howToReady = false;
+                        this.inputCooldown = 300;
                         break;
                 }
                 return;
@@ -6219,113 +6245,111 @@ class Game {
         }
     }
 
+    // V5.1: Completely redesigned click handler for new SETTINGS layout
+    // Selection indices: 0=START BATTLE, 1=DIFFICULTY, 2=ITEMS MODE, 3=ITEM CONFIG, 4=MATCH FORMAT, 5=BACK
     handleSetupClick(x, y) {
-        // V5: Updated Y positions to match renderSetup (reduced spacing)
-        const startY = 115;
-        const paramSpacing = 50;
+        const contentX = 40;
+        const contentWidth = GAME_WIDTH - 80;
 
-        // Parameter sliders (JUMP, WALK, BEAM, KICK)
-        for (let i = 0; i < 4; i++) {
-            const sliderY = startY + i * paramSpacing - 15;
-            // Left arrow area (decrease)
-            if (x >= 200 && x <= 280 && y >= sliderY && y <= sliderY + 30) {
-                this.setupSelection = i;
-                this.adjustSetup(-1);
-                return;
-            }
-            // Slider bar area (click to set value)
-            if (x >= 300 && x <= 500 && y >= sliderY && y <= sliderY + 30) {
-                this.setupSelection = i;
-                return;
-            }
-            // Right arrow area (increase)
-            if (x >= 520 && x <= 600 && y >= sliderY && y <= sliderY + 30) {
-                this.setupSelection = i;
-                this.adjustSetup(1);
-                return;
-            }
-        }
+        // ========== START BATTLE Button (Top) ==========
+        const startBtnY = 70;
+        const startBtnHeight = 55;
 
-        // Stage selection (V5: Updated position)
-        const stageY = startY + 4 * paramSpacing + 15 - 15;
-        if (y >= stageY && y <= stageY + 30) {
-            this.setupSelection = 4;
-            if (x >= 200 && x <= 350) this.adjustSetup(-1);
-            if (x >= 400 && x <= 600) this.adjustSetup(1);
-            return;
-        }
-
-        // Difficulty selection (V5: Updated position)
-        const diffY = stageY + 38;
-        if (y >= diffY && y <= diffY + 30) {
-            this.setupSelection = 5;
-            if (x >= 200 && x <= 350) this.adjustSetup(-1);
-            if (x >= 400 && x <= 600) this.adjustSetup(1);
-            return;
-        }
-
-        // V5: Calculate button selections based on Items Mode (must match renderSetup and updateSetup)
-        // Shifted indices due to MATCH FORMAT at index 7
-        const itemConfigSelectionIdx = 8;  // Only used when Items Mode is ON
-        const startButtonSelectionIdx = this.settings.itemsMode ? 9 : 8;
-        const backButtonSelectionIdx = this.settings.itemsMode ? 10 : 9;
-
-        // Items Mode toggle Y position (V5: Updated position)
-        const itemsY = diffY + 38;
-
-        // Items Mode toggle (normal range - CONFIG button is now far away)
-        if (y >= itemsY - 15 && y <= itemsY + 25) {
-            this.setupSelection = 6;
-            this.adjustSetup(1);
-            return;
-        }
-
-        // V5: Match Format large button (like ITEM CONFIG)
-        const matchBtnWidth = 350;
-        const matchBtnHeight = 45;
-        const matchBtnX = GAME_WIDTH / 2 - matchBtnWidth / 2;
-        const matchBtnY = itemsY + 30;  // Below ITEMS MODE
-
-        if (x >= matchBtnX && x <= matchBtnX + matchBtnWidth &&
-            y >= matchBtnY && y <= matchBtnY + matchBtnHeight) {
-            console.log('[DEBUG] MATCH FORMAT button clicked!');
+        if (x >= contentX && x <= contentX + contentWidth &&
+            y >= startBtnY && y <= startBtnY + startBtnHeight) {
+            console.log('[DEBUG] START BATTLE clicked!');
             SoundManager.playMenuSelect();
-            this.setupSelection = 7;
-            this.adjustSetup(1);  // Cycle through formats
+            this.setupSelection = 0;
+
+            if (this.isOnlineMode) {
+                // Online mode: Handle Ready button
+                if (!this.myReady) {
+                    this.myReady = true;
+                    console.log('[Online] I am ready! Sending params:', this.settings.playerParams);
+                    this.onlineController.sendReady(this.settings.playerParams);
+
+                    if (this.opponentReady && this.isHost) {
+                        console.log('[Online] Both ready - starting battle!');
+                        this.startOnlineBattle();
+                    } else if (!this.opponentReady && this.readyCountdownStart === 0) {
+                        this.readyCountdownStart = Date.now();
+                        console.log('[Online] I am ready first - starting 10s countdown');
+                    }
+                }
+            } else {
+                // Offline mode: Start battle directly
+                this.startBattle();
+            }
             return;
         }
 
-        // Button positions (must match renderSetup)
-        const btnY = GAME_HEIGHT - 50;
-        const btnHeight = 50;
+        // ========== Settings Group ==========
+        const settingsY = 145;
+        const rowHeight = 60;
+        const rowStartY = settingsY + 40;
 
-        // V4.4: ITEM CONFIG button - positioned RIGHT ABOVE the BACK/START buttons
-        if (this.settings.itemsMode) {
-            const configBtnWidth = 400;   // Almost full width
-            const configBtnHeight = 55;   // Very tall for easy tapping
-            const configBtnX = GAME_WIDTH / 2 - configBtnWidth / 2;  // Centered
-            const configBtnY = btnY - 70;  // 70px above BACK/START row
+        // Row 1: DIFFICULTY (index 1)
+        const diffRowY = rowStartY;
+        if (y >= diffRowY && y <= diffRowY + rowHeight) {
+            this.setupSelection = 1;
+            // Check if clicked on left or right side for value change
+            if (x >= contentX && x <= GAME_WIDTH / 2) {
+                this.adjustSetup(-1);
+            } else {
+                this.adjustSetup(1);
+            }
+            SoundManager.playMenuSelect();
+            return;
+        }
 
-            if (x >= configBtnX && x <= configBtnX + configBtnWidth &&
-                y >= configBtnY && y <= configBtnY + configBtnHeight) {
-                console.log('[DEBUG] ITEM CONFIG SETTING clicked! v0109-1105');
+        // Row 2: ITEMS MODE (index 2)
+        const itemsRowY = rowStartY + rowHeight;
+        if (y >= itemsRowY && y <= itemsRowY + rowHeight) {
+            this.setupSelection = 2;
+            this.adjustSetup(1);  // Toggle ON/OFF
+            SoundManager.playMenuSelect();
+            return;
+        }
+
+        // Row 3: ITEM CONFIG (index 3) - only clickable when ITEMS MODE is ON
+        const configRowY = rowStartY + rowHeight * 2;
+        if (y >= configRowY && y <= configRowY + rowHeight) {
+            if (this.settings.itemsMode) {
+                console.log('[DEBUG] ITEM CONFIG clicked!');
                 SoundManager.playMenuSelect();
-                this.setupSelection = itemConfigSelectionIdx;
+                this.setupSelection = 3;
                 this.itemConfigSelection = 0;
                 this.itemConfigScrollOffset = 0;
                 this.state = GameState.ITEM_CONFIG;
-                return;
             }
+            return;
         }
 
-        // BACK button
-        const backBtnX = GAME_WIDTH / 2 - 220;  // 180
-        const backBtnWidth = 100;
+        // Row 4: MATCH FORMAT (index 4)
+        const matchRowY = rowStartY + rowHeight * 3;
+        if (y >= matchRowY && y <= matchRowY + rowHeight) {
+            this.setupSelection = 4;
+            // Check if clicked on left or right side for value change
+            if (x >= contentX && x <= GAME_WIDTH / 2) {
+                this.adjustSetup(-1);
+            } else {
+                this.adjustSetup(1);
+            }
+            SoundManager.playMenuSelect();
+            return;
+        }
 
-        if (x >= backBtnX && x <= backBtnX + backBtnWidth && y >= btnY && y <= btnY + btnHeight) {
+        // ========== BACK Button ==========
+        const backBtnY = settingsY + 290 + 15;  // settingsHeight + 15
+        const backBtnWidth = 120;
+        const backBtnHeight = 45;
+        const backBtnX = contentX;
+
+        if (x >= backBtnX && x <= backBtnX + backBtnWidth &&
+            y >= backBtnY && y <= backBtnY + backBtnHeight) {
             console.log('[DEBUG] BACK clicked! Returning to title');
             SoundManager.playMenuSelect();
-            this.setupSelection = backButtonSelectionIdx;
+            this.setupSelection = 5;
             // Reset ready state when leaving
             this.myReady = false;
             this.opponentReady = false;
@@ -6337,45 +6361,6 @@ class Game {
             return;
         }
 
-        // START BATTLE / READY button
-        const startBtnX = GAME_WIDTH / 2 - 100;  // 300
-        const startBtnWidth = 200;
-
-        console.log(`[DEBUG] START/READY button area: x=${startBtnX}-${startBtnX+startBtnWidth}, y=${btnY}-${btnY+btnHeight}`);
-        console.log(`[DEBUG] Click position: x=${x.toFixed(0)}, y=${y.toFixed(0)}`);
-        console.log(`[DEBUG] In button? x: ${x >= startBtnX && x <= startBtnX + startBtnWidth}, y: ${y >= btnY && y <= btnY + btnHeight}`);
-
-        if (x >= startBtnX && x <= startBtnX + startBtnWidth && y >= btnY && y <= btnY + btnHeight) {
-            this.setupSelection = startButtonSelectionIdx;
-
-            if (this.isOnlineMode) {
-                // Online mode: Handle Ready button
-                if (!this.myReady) {
-                    console.log('[DEBUG] READY clicked!');
-                    SoundManager.playMenuSelect();
-                    this.myReady = true;
-                    console.log('[Online] I am ready! Sending params:', this.settings.playerParams);
-                    this.onlineController.sendReady(this.settings.playerParams);
-
-                    // If opponent is already ready, start battle (host only)
-                    if (this.opponentReady && this.isHost) {
-                        console.log('[Online] Both ready - starting battle!');
-                        this.startOnlineBattle();
-                    }
-                    // If opponent is not ready, start countdown
-                    else if (!this.opponentReady && this.readyCountdownStart === 0) {
-                        this.readyCountdownStart = Date.now();
-                        console.log('[Online] I am ready first - starting 10s countdown');
-                    }
-                }
-            } else {
-                // Offline mode: Start battle directly
-                console.log('[DEBUG] START BATTLE clicked! Calling startBattle()');
-                SoundManager.playMenuSelect();
-                this.startBattle();
-            }
-            return;
-        }
         console.log('[DEBUG] Click not on any interactive element');
     }
 
@@ -6713,6 +6698,22 @@ class Game {
             case GameState.TITLE:
                 this.updateTitle(deltaTime);
                 break;
+            case GameState.HOW_TO_PLAY:
+                this.updateHowToPlay(deltaTime);
+                break;
+            case GameState.PAUSED: {
+                // 一時停止中: ESC / P をいったん離して、もう一度押すと再開
+                const pauseKey = this.input.keys['Escape'] || this.input.keys['KeyP'];
+                if (!pauseKey) {
+                    this.pauseReady = true;
+                } else if (this.pauseReady && this.inputCooldown <= 0) {
+                    this.pauseReady = false;
+                    this.pauseLock = true;
+                    this.state = GameState.BATTLE;
+                    this.inputCooldown = 300;
+                }
+                break;
+            }
             case GameState.SETUP:
                 this.updateSetup(deltaTime);
                 break;
@@ -6741,6 +6742,7 @@ class Game {
         }
     }
 
+    // V5.1: Updated for 3 menu items (removed SETTINGS)
     updateTitle(deltaTime) {
         const input = this.input.getInput();
 
@@ -6751,7 +6753,7 @@ class Game {
             this.inputCooldown = 200;
         }
         if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
-            this.menuSelection = Math.min(3, this.menuSelection + 1);
+            this.menuSelection = Math.min(2, this.menuSelection + 1);  // V5.1: Changed from 3 to 2
             this.inputCooldown = 200;
         }
 
@@ -6768,15 +6770,130 @@ class Game {
                     this.onlineLobbySelection = 0;
                     break;
                 case 2: // How to Play
-                case 3: // Settings
-                    this.isOnlineMode = false;
-                    this.state = GameState.SETUP;
+                    this.state = GameState.HOW_TO_PLAY;
+                    this.howToReady = false;
                     break;
             }
             this.inputCooldown = 200;
         }
     }
 
+    // PC 操作方法ページ: いったんキーを離してから、もう一度押すとタイトルへ戻る
+    // (開いたときの決定キー押しっぱなしで即閉じしないため howToReady で 1 回離すのを待つ)
+    updateHowToPlay(deltaTime) {
+        const k = this.input.keys;
+        const input = this.input.getInput();
+        const pressed = input.shoot || input.jump || k['Enter'] || k['Space'] || k['Escape'];
+        if (!pressed) {
+            this.howToReady = true;
+            return;
+        }
+        if (this.howToReady && this.inputCooldown <= 0) {
+            this.howToReady = false;
+            SoundManager.playMenuSelect();
+            this.state = GameState.TITLE;
+            this.inputCooldown = 400;
+        }
+    }
+
+    renderHowToPlay() {
+        const ctx = this.ctx;
+        const JP = "'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif";
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+        gradient.addColorStop(0, '#0d0221');
+        gradient.addColorStop(1, '#1a0a30');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // 見出し
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = `bold 30px ${JP}`;
+        ctx.fillStyle = '#ffd27a';
+        ctx.fillText('PC 操作方法', GAME_WIDTH / 2, 62);
+        ctx.font = '14px Courier New';
+        ctx.fillStyle = '#8fb0c4';
+        ctx.fillText('HOW TO PLAY (KEYBOARD)', GAME_WIDTH / 2, 86);
+
+        // キーの絵(キーキャップ)を描いて、次の x 位置を返す
+        const drawKey = (label, x, y) => {
+            ctx.font = 'bold 16px Courier New';
+            const w = Math.max(34, ctx.measureText(label).width + 18);
+            ctx.fillStyle = 'rgba(110, 243, 255, 0.12)';
+            ctx.fillRect(x, y - 21, w, 30);
+            ctx.strokeStyle = '#6ef3ff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y - 21, w, 30);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x + w / 2, y);
+            return x + w + 6;
+        };
+        const drawWord = (text, x, y) => {
+            ctx.font = `14px ${JP}`;
+            ctx.fillStyle = '#8fb0c4';
+            ctx.textAlign = 'left';
+            ctx.fillText(text, x + 4, y - 1);
+            return x + ctx.measureText(text).width + 14;
+        };
+
+        // [やりたいこと, キー(配列 = キーキャップ / 文字列 = つなぎ言葉), 補足]
+        const rows = [
+            ['移動', [['A', 'D'], 'または', ['←', '→']], ''],
+            ['ジャンプ', [['W'], 'または', ['↑'], 'または', ['Space']], ''],
+            ['ガード', [['S'], 'または', ['↓']], '地上で押している間だけ守る(動けません)'],
+            ['ビーム', [['Z'], 'または', ['J']], '押し続けてチャージ → 離すと発射'],
+            ['キック', [['X'], 'または', ['K']], '近くの敵に当たる'],
+            ['一時停止', [['Esc'], 'または', ['P']], 'もう一度押すと再開'],
+        ];
+        const top = 134;
+        const rowH = 56;
+        rows.forEach(([label, keys, note], i) => {
+            const y = top + i * rowH;
+            // 行の区切り線
+            ctx.fillStyle = 'rgba(110, 243, 255, 0.14)';
+            ctx.fillRect(70, y + 32, GAME_WIDTH - 140, 1);
+            // やりたいこと
+            ctx.textAlign = 'left';
+            ctx.font = `bold 20px ${JP}`;
+            ctx.fillStyle = '#6ef3ff';
+            ctx.fillText(label, 90, y);
+            // キー
+            let x = 250;
+            keys.forEach((part) => {
+                if (Array.isArray(part)) part.forEach((key) => { x = drawKey(key, x, y); });
+                else x = drawWord(part, x, y);
+            });
+            // 補足
+            if (note) {
+                ctx.textAlign = 'left';
+                ctx.font = `13px ${JP}`;
+                ctx.fillStyle = '#c8dce6';
+                ctx.fillText(note, 250, y + 24);
+            }
+        });
+
+        // ヒント
+        ctx.textAlign = 'center';
+        ctx.font = `14px ${JP}`;
+        ctx.fillStyle = '#ffe9b8';
+        ctx.fillText('ヒント: 敵のすぐ近くでビームのキーを離すと、自動でキックになります', GAME_WIDTH / 2, 478);
+        ctx.fillStyle = '#8fb0c4';
+        ctx.font = `12px ${JP}`;
+        ctx.fillText('スマホ: 本体を傾けて移動 ・ 左側タップ = ジャンプ ・ 右上 = チャージ ・ 右下 = 連射', GAME_WIDTH / 2, 506);
+
+        // 戻る案内(ゆっくり点滅)
+        const blink = 0.55 + 0.45 * Math.sin(Date.now() / 350);
+        ctx.globalAlpha = blink;
+        ctx.font = `bold 16px ${JP}`;
+        ctx.fillStyle = '#ffff00';
+        ctx.fillText('SPACE / ENTER / クリック でタイトルへ戻る', GAME_WIDTH / 2, 560);
+        ctx.globalAlpha = 1;
+    }
+
+    // V5.1: Completely redesigned navigation for new SETTINGS layout
+    // Selection indices: 0=START BATTLE, 1=DIFFICULTY, 2=ITEMS MODE, 3=ITEM CONFIG, 4=MATCH FORMAT, 5=BACK
     updateSetup(deltaTime) {
         const input = this.input.getInput();
 
@@ -6785,11 +6902,8 @@ class Game {
             const elapsed = Date.now() - this.readyCountdownStart;
             if (elapsed >= this.READY_TIMEOUT) {
                 console.log('[Online] Countdown timeout - starting battle!');
-                // Timeout reached - auto-start battle
                 if (this.isHost) {
-                    // Host handles the start
                     if (!this.myReady) {
-                        // I wasn't ready, but opponent was - set myself as ready
                         this.myReady = true;
                         this.onlineController.sendReady(this.settings.playerParams);
                     }
@@ -6801,27 +6915,35 @@ class Game {
 
         if (this.inputCooldown > 0) return;
 
-        // Navigate parameters (only if not ready in online mode)
+        // Navigate settings (only if not ready in online mode)
         if (!this.isOnlineMode || !this.myReady) {
-            // V5: Reorganized navigation order (added MATCH FORMAT at index 7)
-            // 0-6: Parameters and settings
-            // 7: MATCH FORMAT
-            // 8: ITEM CONFIG (when Items Mode ON) or START BATTLE (when OFF)
-            // 9: START BATTLE (when Items Mode ON) or BACK (when OFF)
-            // 10: BACK (when Items Mode ON)
-            const maxSelection = this.settings.itemsMode ? 10 : 9;
+            // V5.1: New navigation order
+            // 0: START BATTLE, 1: DIFFICULTY, 2: ITEMS MODE, 3: ITEM CONFIG, 4: MATCH FORMAT, 5: BACK
+            const maxSelection = 5;
 
             if (input.moveY < -0.5 || this.input.keys['ArrowUp']) {
-                this.setupSelection = Math.max(0, this.setupSelection - 1);
+                let newSelection = this.setupSelection - 1;
+                // Skip ITEM CONFIG (index 3) if ITEMS MODE is OFF
+                if (newSelection === 3 && !this.settings.itemsMode) {
+                    newSelection = 2;
+                }
+                this.setupSelection = Math.max(0, newSelection);
                 this.inputCooldown = 150;
+                SoundManager.playMenuSelect();
             }
             if (input.moveY > 0.5 || this.input.keys['ArrowDown']) {
-                this.setupSelection = Math.min(maxSelection, this.setupSelection + 1);
+                let newSelection = this.setupSelection + 1;
+                // Skip ITEM CONFIG (index 3) if ITEMS MODE is OFF
+                if (newSelection === 3 && !this.settings.itemsMode) {
+                    newSelection = 4;
+                }
+                this.setupSelection = Math.min(maxSelection, newSelection);
                 this.inputCooldown = 150;
+                SoundManager.playMenuSelect();
             }
 
-            // V5: Adjust values (now for items 0-7 including MATCH FORMAT)
-            if (this.setupSelection <= 7) {
+            // Adjust values for DIFFICULTY (1), ITEMS MODE (2), MATCH FORMAT (4)
+            if (this.setupSelection === 1 || this.setupSelection === 2 || this.setupSelection === 4) {
                 if (input.moveX < -0.5 || this.input.keys['ArrowLeft']) {
                     this.adjustSetup(-1);
                     this.inputCooldown = 150;
@@ -6833,58 +6955,72 @@ class Game {
             }
         }
 
-        // V5: ITEM CONFIG button (selection 8 when Items Mode is ON, shifted from 7)
-        if (this.settings.itemsMode && this.setupSelection === 8 &&
-            (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys[' '])) {
-            SoundManager.playMenuSelect();
-            this.itemConfigSelection = 0;
-            this.itemConfigScrollOffset = 0;
-            this.state = GameState.ITEM_CONFIG;
-            this.inputCooldown = 200;
-            return;
-        }
+        // Handle Enter/Space key press
+        if (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys[' ']) {
+            switch (this.setupSelection) {
+                case 0: // START BATTLE
+                    if (this.isOnlineMode) {
+                        if (!this.myReady) {
+                            this.myReady = true;
+                            console.log('[Online] I am ready! Sending params:', this.settings.playerParams);
+                            this.onlineController.sendReady(this.settings.playerParams);
+                            SoundManager.playMenuSelect();
 
-        // V5: Start battle / Ready button
-        // Selection 9 when Items Mode ON, Selection 8 when OFF (shifted from 8/7)
-        const startButtonSelection = this.settings.itemsMode ? 9 : 8;
-        if (this.setupSelection === startButtonSelection &&
-            (input.shoot || input.jump || this.input.keys['Enter'] || this.input.keys[' '])) {
-            if (this.isOnlineMode) {
-                // Online mode: Handle Ready button
-                if (!this.myReady) {
-                    this.myReady = true;
-                    console.log('[Online] I am ready! Sending params:', this.settings.playerParams);
-                    this.onlineController.sendReady(this.settings.playerParams);
+                            if (this.opponentReady && this.isHost) {
+                                console.log('[Online] Both ready - starting battle!');
+                                this.startOnlineBattle();
+                            } else if (!this.opponentReady && this.readyCountdownStart === 0) {
+                                this.readyCountdownStart = Date.now();
+                                console.log('[Online] I am ready first - starting 10s countdown');
+                            }
+                        }
+                    } else {
+                        SoundManager.playMenuSelect();
+                        this.startBattle();
+                    }
+                    this.inputCooldown = 200;
+                    break;
+
+                case 1: // DIFFICULTY - toggle
+                case 2: // ITEMS MODE - toggle
+                case 4: // MATCH FORMAT - toggle
+                    this.adjustSetup(1);
                     SoundManager.playMenuSelect();
+                    this.inputCooldown = 200;
+                    break;
 
-                    // If opponent is already ready, start battle (host only)
-                    if (this.opponentReady && this.isHost) {
-                        console.log('[Online] Both ready - starting battle!');
-                        this.startOnlineBattle();
+                case 3: // ITEM CONFIG - enter config screen
+                    if (this.settings.itemsMode) {
+                        SoundManager.playMenuSelect();
+                        this.itemConfigSelection = 0;
+                        this.itemConfigScrollOffset = 0;
+                        this.state = GameState.ITEM_CONFIG;
+                        this.inputCooldown = 200;
                     }
-                    // If opponent is not ready, start countdown
-                    else if (!this.opponentReady && this.readyCountdownStart === 0) {
-                        this.readyCountdownStart = Date.now();
-                        console.log('[Online] I am ready first - starting 10s countdown');
-                    }
-                }
-            } else {
-                // Offline mode: Start battle directly
-                this.startBattle();
+                    break;
+
+                case 5: // BACK
+                    SoundManager.playMenuSelect();
+                    this.myReady = false;
+                    this.opponentReady = false;
+                    this.opponentParams = null;
+                    this.readyCountdownStart = 0;
+                    this.state = GameState.TITLE;
+                    this.menuSelection = 0;
+                    SoundManager.playBGM('title');
+                    this.inputCooldown = 200;
+                    break;
             }
-            this.inputCooldown = 200;
         }
 
-        // Back to title
+        // ESC key - back to title
         if (this.input.keys['Escape']) {
             console.log('[DEBUG] ESC pressed! Returning to title');
             SoundManager.playMenuSelect();
-            // Reset ready state when leaving
             this.myReady = false;
             this.opponentReady = false;
             this.opponentParams = null;
             this.readyCountdownStart = 0;
-
             this.state = GameState.TITLE;
             this.menuSelection = 0;
             SoundManager.playBGM('title');
@@ -6892,46 +7028,32 @@ class Game {
         }
     }
 
+    // V5.1: Redesigned for new selection indices
+    // 0=START BATTLE, 1=DIFFICULTY, 2=ITEMS MODE, 3=ITEM CONFIG, 4=MATCH FORMAT, 5=BACK
     adjustSetup(direction) {
-        const params = this.settings.playerParams;
-        const total = params.jump + params.walk + params.beam + params.kick;
-
         switch (this.setupSelection) {
-            case 0: // JUMP
-                if (direction > 0 && total < 20 && params.jump < 10) params.jump++;
-                if (direction < 0 && params.jump > 1) params.jump--;
+            case 0: // START BATTLE - no value to adjust
                 break;
-            case 1: // WALK
-                if (direction > 0 && total < 20 && params.walk < 10) params.walk++;
-                if (direction < 0 && params.walk > 1) params.walk--;
-                break;
-            case 2: // BEAM
-                if (direction > 0 && total < 20 && params.beam < 10) params.beam++;
-                if (direction < 0 && params.beam > 1) params.beam--;
-                break;
-            case 3: // KICK
-                if (direction > 0 && total < 20 && params.kick < 10) params.kick++;
-                if (direction < 0 && params.kick > 1) params.kick--;
-                break;
-            case 4: // Stage
-                this.settings.stage = (this.settings.stage + direction + STAGES.length) % STAGES.length;
-                break;
-            case 5: // Difficulty
+            case 1: // DIFFICULTY
                 const difficulties = ['easy', 'normal', 'hard'];
                 const currentIdx = difficulties.indexOf(this.settings.difficulty);
                 const newIdx = (currentIdx + direction + 3) % 3;
                 this.settings.difficulty = difficulties[newIdx];
                 break;
-            case 6: // Items Mode
+            case 2: // ITEMS MODE - toggle
                 this.settings.itemsMode = !this.settings.itemsMode;
                 break;
-            case 7: // V5: Match Format
+            case 3: // ITEM CONFIG - no value to adjust (screen transition)
+                break;
+            case 4: // MATCH FORMAT
                 // Cycle through 1, 2, 3 (1本先取, 2本先取, 3本先取)
                 if (direction > 0) {
                     this.settings.matchFormat = this.settings.matchFormat >= 3 ? 1 : this.settings.matchFormat + 1;
                 } else {
                     this.settings.matchFormat = this.settings.matchFormat <= 1 ? 3 : this.settings.matchFormat - 1;
                 }
+                break;
+            case 5: // BACK - no value to adjust
                 break;
         }
     }
@@ -7077,7 +7199,9 @@ class Game {
         this.autoContinueTimer = 0;
         console.log(`[V5] New match started - Format: ${this.settings.matchFormat}本先取`);
 
-        this.currentStage = this.settings.stage;
+        // V5.1: Random stage selection (no longer user-selectable)
+        this.currentStage = Math.floor(Math.random() * STAGES.length);
+        console.log(`[V5.1] Random stage selected: ${STAGES[this.currentStage].displayName}`);
         const stage = STAGES[this.currentStage];
 
         // Create player
@@ -7375,8 +7499,13 @@ class Game {
         }
 
         // Pause
-        if (this.input.keys['Escape'] || this.input.keys['KeyP']) {
+        // pauseLock: 再開に使ったキーを離すまでは、再び一時停止にしない(押しっぱなしで即再停止を防ぐ)
+        const pauseKeyDown = this.input.keys['Escape'] || this.input.keys['KeyP'];
+        if (!pauseKeyDown) {
+            this.pauseLock = false;
+        } else if (!this.pauseLock) {
             this.state = GameState.PAUSED;
+            this.pauseReady = false;  // いったんキーを離すまで再開判定しない(押しっぱなしで即再開を防ぐ)
             this.inputCooldown = 200;
             return;
         }
@@ -7536,6 +7665,40 @@ class Game {
                         // V4.3: Pass activeBeasts and enemy target for beast summon
                         this.player.fireWeapon(this.weaponProjectiles, this.activeBeasts, this.enemy);
                     }
+                }
+            }
+
+            // V5.1: Rapid fire mechanics (lower right zone on mobile)
+            if (input.rapidfire && !this.player.isCharging) {
+                // Count player beams currently on screen
+                const playerBeamCount = this.beams.filter(b => b.owner === 'player' && b.active).length;
+
+                // Only fire if less than 2 player beams on screen (balanced)
+                if (playerBeamCount < 2 && this.player.beamCooldown <= 0) {
+                    // Face enemy before firing
+                    if (this.enemy) {
+                        this.player.facingRight = this.enemy.x > this.player.x;
+                    }
+
+                    // Fire a single beam (rapid mode)
+                    const direction = this.player.facingRight ? 1 : -1;
+                    const baseX = this.player.facingRight ? this.player.x + this.player.width : this.player.x - BEAM.width;
+                    const beamY = this.player.y + this.player.height / 2 - BEAM.height / 2;
+
+                    const beam = new Beam(baseX, beamY, direction, this.player.beamDamage, 'player', 0);
+                    this.beams.push(beam);
+
+                    // V5.1: Rapid fire cooldown (400ms - steady rhythm with max 2 beams)
+                    this.player.beamCooldown = 400;
+                    this.player.state = 'attack';
+
+                    // Play beam shoot sound
+                    SoundManager.playBeamShoot();
+
+                    // Charge particle effect at hand
+                    const handX = this.player.facingRight ? this.player.x + this.player.width : this.player.x;
+                    const handY = this.player.y + this.player.height / 2;
+                    ParticleSystem.charge(handX, handY, true);
                 }
             }
 
@@ -9113,6 +9276,9 @@ class Game {
             case GameState.TITLE:
                 this.renderTitle();
                 break;
+            case GameState.HOW_TO_PLAY:
+                this.renderHowToPlay();
+                break;
             case GameState.SETUP:
                 this.renderSetup();
                 break;
@@ -9199,261 +9365,374 @@ class Game {
         ctx.fillText('VS', GAME_WIDTH / 2, 330);
 
         // Menu
-        const menuItems = ['VS CPU', 'ONLINE BATTLE', 'HOW TO PLAY', 'SETTINGS'];
+        // V5.1: Removed SETTINGS from title menu (settings are now in SETUP screen)
+        const menuItems = ['VS CPU', 'ONLINE BATTLE', '操作方法 / HOW TO PLAY'];
         const startY = 400;
+        const JP = "'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif";
 
         for (let i = 0; i < menuItems.length; i++) {
             const isSelected = i === this.menuSelection;
+            const y = startY + i * 40;
+            if (i === 2) {
+                // 操作方法: 選んでいなくても目立つよう、オレンジの枠をゆっくり明滅させる
+                const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 400);
+                ctx.save();
+                ctx.shadowColor = '#ffb02e';
+                ctx.shadowBlur = 8 + 14 * pulse;
+                ctx.fillStyle = `rgba(255, 176, 46, ${0.14 + 0.12 * pulse})`;
+                ctx.fillRect(240, y - 24, 320, 36);
+                ctx.strokeStyle = '#ffd27a';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(240, y - 24, 320, 36);
+                ctx.restore();
+                ctx.font = `bold ${isSelected ? 20 : 18}px ${JP}`;
+                ctx.fillStyle = isSelected ? '#ffff00' : '#ffe9b8';
+                ctx.fillText((isSelected ? '> ' : '') + menuItems[i], GAME_WIDTH / 2, y);
+                continue;
+            }
             ctx.font = isSelected ? 'bold 20px Courier New' : '18px Courier New';
             ctx.fillStyle = isSelected ? '#ffff00' : '#888888';
-            ctx.fillText((isSelected ? '> ' : '  ') + menuItems[i], GAME_WIDTH / 2, startY + i * 40);
+            ctx.fillText((isSelected ? '> ' : '  ') + menuItems[i], GAME_WIDTH / 2, y);
         }
 
-        // Instructions
-        ctx.font = '14px Courier New';
-        ctx.fillStyle = '#666666';
-        ctx.fillText('Use Arrow Keys / WASD to navigate, SPACE to select', GAME_WIDTH / 2, GAME_HEIGHT - 30);
+        // Instructions(メニューは ↑↓ で選び、SPACE / ENTER で決定)
+        ctx.font = `14px ${JP}`;
+        ctx.fillStyle = '#9fb4c0';
+        ctx.fillText('↑ ↓ キーで選ぶ ・ SPACE / ENTER で決定(クリックでもOK)', GAME_WIDTH / 2, GAME_HEIGHT - 30);
     }
 
+    // V5.1: Completely redesigned SETTINGS screen
+    // Selection indices: 0=START BATTLE, 1=DIFFICULTY, 2=ITEMS MODE, 3=ITEM CONFIG, 4=MATCH FORMAT, 5=BACK
     renderSetup() {
         const ctx = this.ctx;
-        const params = this.settings.playerParams;
-        const total = params.jump + params.walk + params.beam + params.kick;
 
         // Background
         ctx.fillStyle = '#0d0221';
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-        // Title
-        ctx.font = 'bold 24px Courier New';
-        ctx.fillStyle = '#ffffff';
+        // Title with neon effect
+        ctx.font = 'bold 28px Courier New';
+        ctx.fillStyle = '#ff00ff';
         ctx.textAlign = 'center';
-        ctx.fillText('ROBOT CUSTOMIZATION', GAME_WIDTH / 2, 50);
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 15;
+        ctx.fillText('⚙ GAME SETTINGS', GAME_WIDTH / 2, 45);
+        ctx.shadowBlur = 0;
 
-        // Points remaining
-        ctx.font = '18px Courier New';
-        ctx.fillStyle = total <= 20 ? '#00ff00' : '#ff0000';
-        ctx.fillText(`Points: ${total}/20`, GAME_WIDTH / 2, 80);
-
-        // Parameters (V5: Reduced spacing to fit all options)
-        const paramNames = ['JUMP', 'WALK', 'BEAM', 'KICK'];
-        const paramValues = [params.jump, params.walk, params.beam, params.kick];
-        const startY = 115;
-        const paramSpacing = 50;  // V5: Reduced from 60 to 50
-
-        for (let i = 0; i < 4; i++) {
-            const isSelected = i === this.setupSelection;
-            const y = startY + i * paramSpacing;
-
-            // Label
-            ctx.font = isSelected ? 'bold 18px Courier New' : '16px Courier New';
-            ctx.fillStyle = isSelected ? '#ffff00' : '#ffffff';
-            ctx.textAlign = 'left';
-            ctx.fillText(paramNames[i], 200, y);
-
-            // Value bar
-            const barX = 300;
-            const barWidth = 200;
-            const barHeight = 20;
-
-            ctx.fillStyle = '#333';
-            ctx.fillRect(barX, y - 15, barWidth, barHeight);
-
-            const fillColor = isSelected ? '#ffff00' : '#00ff00';
-            ctx.fillStyle = fillColor;
-            ctx.fillRect(barX + 2, y - 13, (barWidth - 4) * (paramValues[i] / 10), barHeight - 4);
-
-            ctx.strokeStyle = isSelected ? '#ffff00' : '#666';
-            ctx.lineWidth = isSelected ? 2 : 1;
-            ctx.strokeRect(barX, y - 15, barWidth, barHeight);
-
-            // Value
-            ctx.textAlign = 'right';
-            ctx.fillStyle = isSelected ? '#ffff00' : '#ffffff';
-            ctx.fillText(paramValues[i].toString(), 550, y);
-
-            // Arrows
-            if (isSelected) {
-                ctx.fillText('< >', 590, y);
-            }
-        }
-
-        // Stage selection (V5: Adjusted spacing)
-        const stageY = startY + 4 * paramSpacing + 15;
-        const isStageSelected = this.setupSelection === 4;
-        ctx.font = isStageSelected ? 'bold 18px Courier New' : '16px Courier New';
-        ctx.fillStyle = isStageSelected ? '#ffff00' : '#ffffff';
-        ctx.textAlign = 'left';
-        ctx.fillText('STAGE', 200, stageY);
+        // Instructions hint (top right)
+        ctx.font = '12px Courier New';
+        ctx.fillStyle = '#ffff00';
         ctx.textAlign = 'right';
-        const stageName = `${this.settings.stage + 1}. ${STAGES[this.settings.stage].displayName}`;
-        ctx.fillText(stageName, 550, stageY);
-        if (isStageSelected) ctx.fillText('< >', 590, stageY);
+        ctx.fillText('↑↓: 選択 / ←→: 変更 / Enter: 決定', GAME_WIDTH - 50, 25);
 
-        // Difficulty (V5: Reduced spacing)
-        const diffY = stageY + 38;
-        const isDiffSelected = this.setupSelection === 5;
-        ctx.font = isDiffSelected ? 'bold 18px Courier New' : '16px Courier New';
-        ctx.fillStyle = isDiffSelected ? '#ffff00' : '#ffffff';
-        ctx.textAlign = 'left';
-        ctx.fillText('DIFFICULTY', 200, diffY);
-        ctx.textAlign = 'right';
-        ctx.fillText(this.settings.difficulty.toUpperCase(), 550, diffY);
-        if (isDiffSelected) ctx.fillText('< >', 590, diffY);
+        const contentX = 40;
+        const contentWidth = GAME_WIDTH - 80;
 
-        // Items Mode toggle (V5: Reduced spacing)
-        const itemsY = diffY + 38;
-        const isItemsSelected = this.setupSelection === 6;
-        ctx.font = isItemsSelected ? 'bold 18px Courier New' : '16px Courier New';
-        ctx.fillStyle = isItemsSelected ? '#ffff00' : '#ffffff';
-        ctx.textAlign = 'left';
-        ctx.fillText('ITEMS MODE', 200, itemsY);
-        ctx.textAlign = 'right';
+        // ========== START BATTLE Button (Top) ==========
+        const startBtnY = 70;
+        const startBtnHeight = 55;
+        const isStartSelected = this.setupSelection === 0;
 
-        // Show ON/OFF with color coding
-        if (this.settings.itemsMode) {
-            ctx.fillStyle = isItemsSelected ? '#00ff00' : '#00cc00';
-            ctx.fillText('ON', 550, itemsY);
-        } else {
-            ctx.fillStyle = isItemsSelected ? '#ff6666' : '#888888';
-            ctx.fillText('OFF', 550, itemsY);
-        }
-        if (isItemsSelected) {
-            ctx.fillStyle = isItemsSelected ? '#ffff00' : '#ffffff';
-            ctx.fillText('< >', 590, itemsY);
-        }
-
-        // Items Mode description (when selected)
-        if (isItemsSelected) {
-            ctx.font = '12px Courier New';
-            ctx.fillStyle = '#9900ff';
-            ctx.textAlign = 'center';
-            ctx.fillText('ワープゾーン・デスゾーン・回復アイテム・特殊武器が出現！', GAME_WIDTH / 2, itemsY + 22);
-        }
-
-        // V5: Match Format as large button (like ITEM CONFIG)
-        const matchBtnWidth = 350;
-        const matchBtnHeight = 45;
-        const matchBtnX = GAME_WIDTH / 2 - matchBtnWidth / 2;
-        const matchBtnY = itemsY + 30;  // Below ITEMS MODE
-        const isMatchSelected = this.setupSelection === 7;
-
-        // Button background
-        ctx.fillStyle = isMatchSelected ? '#663300' : '#442200';
-        ctx.fillRect(matchBtnX, matchBtnY, matchBtnWidth, matchBtnHeight);
-        ctx.strokeStyle = isMatchSelected ? '#ff9900' : '#ff6600';
-        ctx.lineWidth = isMatchSelected ? 3 : 2;
-        ctx.strokeRect(matchBtnX, matchBtnY, matchBtnWidth, matchBtnHeight);
-
-        // Button text
-        ctx.font = 'bold 16px Courier New';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        const matchLabels = ['1本先取', '2本先取', '3本先取'];
-        const matchDesc = this.settings.matchFormat === 1 ? '（1回勝負）' :
-                         this.settings.matchFormat === 2 ? '（先に2勝）' :
-                         '（先に3勝）';
-        ctx.fillText(`◀ MATCH FORMAT: ${matchLabels[this.settings.matchFormat - 1]} ${matchDesc} ▶`,
-                     matchBtnX + matchBtnWidth / 2, matchBtnY + 28);
-
-        // Buttons row position (used for both CONFIG and BACK/START)
-        const btnY = GAME_HEIGHT - 50;
-
-        // V4.4: ITEM CONFIG button - positioned RIGHT ABOVE the BACK/START buttons with maximum visibility
-        // V5: Calculate button selections based on Items Mode (shifted by 1 for MATCH FORMAT)
-        const itemConfigSelection = 8;  // Only used when Items Mode is ON (shifted from 7)
-        const startButtonSelection = this.settings.itemsMode ? 9 : 8;
-        const backButtonSelection = this.settings.itemsMode ? 10 : 9;
-
-        if (this.settings.itemsMode) {
-            // V4.4: Large, obvious button positioned above BACK/START row
-            const isConfigSelected = this.setupSelection === itemConfigSelection;
-
-            // Full-width button above the BACK/START buttons
-            const configBtnWidth = 400;   // Almost full width
-            const configBtnHeight = 55;   // Very tall for easy tapping
-            const configBtnX = GAME_WIDTH / 2 - configBtnWidth / 2;  // Centered
-            const configBtnY = btnY - 70;  // 70px above BACK/START row
-
-            // Bright, obvious button style
-            ctx.fillStyle = isConfigSelected ? '#0066ff' : '#004499';
-            ctx.fillRect(configBtnX, configBtnY, configBtnWidth, configBtnHeight);
-            ctx.strokeStyle = isConfigSelected ? '#00ffff' : '#0099ff';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(configBtnX, configBtnY, configBtnWidth, configBtnHeight);
-
-            // Large, clear text
-            ctx.font = 'bold 18px Courier New';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-
-            // Count enabled items
-            const enabledCount = Object.values(this.settings.enabledItems).filter(v => v).length;
-            const totalCount = Object.keys(this.settings.enabledItems).length;
-            // DEBUG: Timestamp v0109-1105
-            ctx.fillText(`▶ ITEM CONFIG SETTING (${enabledCount}/${totalCount}) ◀`, configBtnX + configBtnWidth / 2, configBtnY + 35);
-
-            // V4.4: Show hint for online mode guests
-            if (this.isOnlineMode && !this.isHost) {
-                ctx.font = '10px Courier New';
-                ctx.fillStyle = '#ffff00';
-                ctx.textAlign = 'center';
-                ctx.fillText('※ ホストの設定が使用されます', GAME_WIDTH / 2, configBtnY - 8);
-            }
-        }
-
-        // BACK button (left side) - V4.1: Dynamic selection
-        const backBtnX = GAME_WIDTH / 2 - 220;
-        const isBackSelected = this.setupSelection === backButtonSelection;
-        ctx.fillStyle = isBackSelected ? '#666666' : '#444444';
-        ctx.fillRect(backBtnX, btnY, 100, 50);
-        ctx.strokeStyle = isBackSelected ? '#ffffff' : '#888888';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(backBtnX, btnY, 100, 50);
-        ctx.font = 'bold 16px Courier New';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.fillText('BACK', backBtnX + 50, btnY + 32);
-
-        // START BATTLE / READY button (right side) - V4.1: Dynamic selection
-        const startBtnX = GAME_WIDTH / 2 - 100;
-        const isStartSelected = this.setupSelection === startButtonSelection;
-
+        // V5.1: Different style for online mode
         if (this.isOnlineMode) {
-            // Online mode: Show READY button
             if (this.myReady) {
-                // Already ready - show waiting state
+                // Already ready - green glow
                 ctx.fillStyle = '#006600';
-                ctx.fillRect(startBtnX, btnY, 200, 50);
+                ctx.fillRect(contentX, startBtnY, contentWidth, startBtnHeight);
                 ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(startBtnX, btnY, 200, 50);
-                ctx.font = 'bold 20px Courier New';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(contentX, startBtnY, contentWidth, startBtnHeight);
+                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 20;
+                ctx.strokeRect(contentX, startBtnY, contentWidth, startBtnHeight);
+                ctx.shadowBlur = 0;
+
+                ctx.font = 'bold 24px Courier New';
                 ctx.fillStyle = '#00ff00';
                 ctx.textAlign = 'center';
-                ctx.fillText('READY!', GAME_WIDTH / 2, btnY + 32);
+                ctx.fillText('✓ READY!', GAME_WIDTH / 2, startBtnY + 36);
             } else {
-                // Not ready yet - show READY button
-                ctx.fillStyle = isStartSelected ? '#0088ff' : '#0066cc';
-                ctx.fillRect(startBtnX, btnY, 200, 50);
-                ctx.strokeStyle = isStartSelected ? '#00ffff' : '#00aaff';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(startBtnX, btnY, 200, 50);
-                ctx.font = 'bold 20px Courier New';
-                ctx.fillStyle = '#ffffff';
+                // Not ready - show READY button
+                const gradient = ctx.createLinearGradient(contentX, startBtnY, contentX, startBtnY + startBtnHeight);
+                gradient.addColorStop(0, isStartSelected ? '#008800' : '#006600');
+                gradient.addColorStop(1, isStartSelected ? '#006600' : '#004400');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(contentX, startBtnY, contentWidth, startBtnHeight);
+
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(contentX, startBtnY, contentWidth, startBtnHeight);
+
+                if (isStartSelected) {
+                    ctx.shadowColor = '#00ff00';
+                    ctx.shadowBlur = 30;
+                    ctx.strokeRect(contentX, startBtnY, contentWidth, startBtnHeight);
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.font = 'bold 24px Courier New';
+                ctx.fillStyle = '#00ff00';
                 ctx.textAlign = 'center';
-                ctx.fillText('READY', GAME_WIDTH / 2, btnY + 32);
+                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 10;
+                ctx.fillText('▶▶ READY ◀◀', GAME_WIDTH / 2, startBtnY + 36);
+                ctx.shadowBlur = 0;
+            }
+        } else {
+            // Offline mode: START BATTLE
+            const gradient = ctx.createLinearGradient(contentX, startBtnY, contentX, startBtnY + startBtnHeight);
+            gradient.addColorStop(0, isStartSelected ? '#008800' : '#006600');
+            gradient.addColorStop(1, isStartSelected ? '#006600' : '#004400');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(contentX, startBtnY, contentWidth, startBtnHeight);
+
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(contentX, startBtnY, contentWidth, startBtnHeight);
+
+            if (isStartSelected) {
+                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 30;
+                ctx.strokeRect(contentX, startBtnY, contentWidth, startBtnHeight);
+                ctx.shadowBlur = 0;
             }
 
-            // Show Ready status above buttons
-            const statusY = btnY - 60;
-            ctx.font = '16px Courier New';
+            ctx.font = 'bold 24px Courier New';
+            ctx.fillStyle = '#00ff00';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#00ff00';
+            ctx.shadowBlur = 10;
+            ctx.fillText('▶▶ START BATTLE ◀◀', GAME_WIDTH / 2, startBtnY + 36);
+            ctx.shadowBlur = 0;
+        }
+
+        // ========== Settings Group ==========
+        const settingsY = 145;
+        const settingsHeight = 290;
+
+        // Settings group border
+        ctx.strokeStyle = '#660066';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(contentX, settingsY, contentWidth, settingsHeight);
+        ctx.fillStyle = 'rgba(102, 0, 102, 0.1)';
+        ctx.fillRect(contentX, settingsY, contentWidth, settingsHeight);
+
+        // Settings header
+        ctx.fillStyle = '#330033';
+        ctx.fillRect(contentX, settingsY, contentWidth, 30);
+        ctx.strokeStyle = '#660066';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(contentX, settingsY + 30);
+        ctx.lineTo(contentX + contentWidth, settingsY + 30);
+        ctx.stroke();
+
+        ctx.font = '14px Courier New';
+        ctx.fillStyle = '#ff00ff';
+        ctx.textAlign = 'center';
+        ctx.fillText('─ SETTINGS ─', GAME_WIDTH / 2, settingsY + 20);
+
+        // Setting rows
+        const rowHeight = 60;
+        const rowStartY = settingsY + 40;
+
+        // Helper function for drawing setting rows
+        const drawSettingRow = (index, y, name, desc, value, valueColor, isDisabled = false) => {
+            const isSelected = this.setupSelection === index;
+            const rowY = y;
+
+            // Row background and selection highlight
+            if (isSelected && !isDisabled) {
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.2)';
+                ctx.fillRect(contentX + 1, rowY, contentWidth - 2, rowHeight);
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(contentX + 1, rowY, contentWidth - 2, rowHeight);
+            }
+
+            // Separator line (except for last row)
+            if (index < 4) {
+                ctx.strokeStyle = '#330033';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(contentX, rowY + rowHeight);
+                ctx.lineTo(contentX + contentWidth, rowY + rowHeight);
+                ctx.stroke();
+            }
+
+            // Indicator circle
+            const circleX = contentX + 30;
+            const circleY = rowY + 22;
+            ctx.beginPath();
+            ctx.arc(circleX, circleY, 8, 0, Math.PI * 2);
+            if (!isDisabled) {
+                ctx.fillStyle = '#ff00ff';
+                ctx.fill();
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Setting name
+            ctx.font = 'bold 18px Courier New';
+            ctx.fillStyle = isDisabled ? '#666' : '#ffffff';
+            ctx.textAlign = 'left';
+            ctx.fillText(name, contentX + 50, rowY + 26);
+
+            // Description
+            ctx.font = '13px Courier New';
+            ctx.fillStyle = isDisabled ? '#444' : '#888';
+            ctx.fillText(desc, contentX + 50, rowY + 48);
+
+            // Value with arrows
+            ctx.textAlign = 'right';
+            if (!isDisabled) {
+                ctx.font = 'bold 18px Courier New';
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillText('◀', contentWidth - 20, rowY + 26);
+                ctx.fillStyle = valueColor || '#00ffff';
+                ctx.fillText(value, contentWidth - 40, rowY + 26);
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillText('▶', contentWidth + 30, rowY + 26);
+            } else {
+                ctx.font = '18px Courier New';
+                ctx.fillStyle = '#555';
+                ctx.fillText(value, contentWidth, rowY + 26);
+            }
+        };
+
+        // Helper function for ITEM CONFIG row (special case with arrow only)
+        const drawItemConfigRow = (index, y) => {
+            const isSelected = this.setupSelection === index;
+            const isDisabled = !this.settings.itemsMode;
+            const rowY = y;
+
+            // Row background and selection highlight
+            if (isSelected && !isDisabled) {
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.2)';
+                ctx.fillRect(contentX + 1, rowY, contentWidth - 2, rowHeight);
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(contentX + 1, rowY, contentWidth - 2, rowHeight);
+            }
+
+            // Separator line
+            ctx.strokeStyle = '#330033';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(contentX, rowY + rowHeight);
+            ctx.lineTo(contentX + contentWidth, rowY + rowHeight);
+            ctx.stroke();
+
+            // Indicator circle
+            const circleX = contentX + 30;
+            const circleY = rowY + 22;
+            ctx.beginPath();
+            ctx.arc(circleX, circleY, 8, 0, Math.PI * 2);
+            if (!isDisabled) {
+                ctx.fillStyle = '#ff00ff';
+                ctx.fill();
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Setting name
+            ctx.font = 'bold 18px Courier New';
+            ctx.fillStyle = isDisabled ? '#666' : '#ffffff';
+            ctx.textAlign = 'left';
+            ctx.fillText('ITEM CONFIG', contentX + 50, rowY + 26);
+
+            // Description
+            ctx.font = '13px Courier New';
+            ctx.fillStyle = isDisabled ? '#444' : '#888';
+            ctx.fillText('出現アイテムの詳細設定', contentX + 50, rowY + 48);
+
+            // Value - count and arrow
+            ctx.textAlign = 'right';
+            const enabledCount = Object.values(this.settings.enabledItems).filter(v => v).length;
+            const totalCount = Object.keys(this.settings.enabledItems).length;
+
+            if (!isDisabled) {
+                ctx.font = '18px Courier New';
+                ctx.fillStyle = '#00ffff';
+                ctx.fillText(`(${enabledCount}/${totalCount})`, contentWidth - 20, rowY + 26);
+                ctx.fillStyle = '#ff00ff';
+                ctx.fillText('→', contentWidth + 30, rowY + 26);
+            } else {
+                ctx.fillStyle = '#555';
+                ctx.fillText(`(${enabledCount}/${totalCount})`, contentWidth, rowY + 26);
+            }
+        };
+
+        // Row 1: DIFFICULTY
+        const diffLabels = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD' };
+        drawSettingRow(1, rowStartY, 'DIFFICULTY', 'CPU AIの強さを設定',
+            diffLabels[this.settings.difficulty], '#00ffff');
+
+        // Row 2: ITEMS MODE
+        const itemsModeValue = this.settings.itemsMode ? 'ON' : 'OFF';
+        const itemsModeColor = this.settings.itemsMode ? '#00ff00' : '#ff6666';
+        drawSettingRow(2, rowStartY + rowHeight, 'ITEMS MODE',
+            'アイテム・ワープゾーン・デスゾーン出現', itemsModeValue, itemsModeColor);
+
+        // Row 3: ITEM CONFIG
+        drawItemConfigRow(3, rowStartY + rowHeight * 2);
+
+        // Row 4: MATCH FORMAT
+        const matchLabels = ['1本先取', '2本先取', '3本先取'];
+        const matchDescText = this.settings.matchFormat === 1 ? '1回勝負で決着' :
+                              this.settings.matchFormat === 2 ? '先に2勝した方が勝ち' :
+                              '先に3勝した方が勝ち';
+        drawSettingRow(4, rowStartY + rowHeight * 3, 'MATCH FORMAT', matchDescText,
+            matchLabels[this.settings.matchFormat - 1], '#ff9900');
+
+        // ========== BACK Button ==========
+        const backBtnY = settingsY + settingsHeight + 15;
+        const backBtnWidth = 120;
+        const backBtnHeight = 45;
+        const backBtnX = contentX;
+        const isBackSelected = this.setupSelection === 5;
+
+        ctx.fillStyle = isBackSelected ? '#444' : '#333';
+        ctx.fillRect(backBtnX, backBtnY, backBtnWidth, backBtnHeight);
+        ctx.strokeStyle = isBackSelected ? '#ffffff' : '#666';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(backBtnX, backBtnY, backBtnWidth, backBtnHeight);
+
+        if (isBackSelected) {
+            ctx.shadowColor = '#ffffff';
+            ctx.shadowBlur = 10;
+            ctx.strokeRect(backBtnX, backBtnY, backBtnWidth, backBtnHeight);
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.font = 'bold 16px Courier New';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('← BACK', backBtnX + backBtnWidth / 2, backBtnY + 28);
+
+        // ========== Online Mode Status ==========
+        if (this.isOnlineMode) {
+            const statusY = backBtnY + 10;
+
+            ctx.font = '14px Courier New';
             ctx.textAlign = 'center';
 
             // My status
             ctx.fillStyle = this.myReady ? '#00ff00' : '#ff6666';
             const myStatus = this.myReady ? '● YOU: READY' : '○ YOU: WAITING';
-            ctx.fillText(myStatus, GAME_WIDTH / 2 - 100, statusY);
+            ctx.fillText(myStatus, GAME_WIDTH / 2 - 80, statusY);
 
             // Opponent status
             ctx.fillStyle = this.opponentReady ? '#00ff00' : '#ff6666';
@@ -9464,31 +9743,24 @@ class Game {
             if (this.readyCountdownStart > 0) {
                 const elapsed = Date.now() - this.readyCountdownStart;
                 const remaining = Math.max(0, Math.ceil((this.READY_TIMEOUT - elapsed) / 1000));
-                ctx.font = 'bold 24px Courier New';
+                ctx.font = 'bold 20px Courier New';
                 ctx.fillStyle = remaining <= 3 ? '#ff0000' : '#ffff00';
-                ctx.fillText(`Battle starts in ${remaining}...`, GAME_WIDTH / 2, statusY - 30);
+                ctx.fillText(`Battle starts in ${remaining}...`, GAME_WIDTH / 2, statusY + 30);
             }
-        } else {
-            // Offline mode: Show START BATTLE button
-            ctx.fillStyle = isStartSelected ? '#0088ff' : '#0066cc';
-            ctx.fillRect(startBtnX, btnY, 200, 50);
-            ctx.strokeStyle = isStartSelected ? '#00ffff' : '#00aaff';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(startBtnX, btnY, 200, 50);
-            ctx.font = 'bold 20px Courier New';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.fillText('START BATTLE', GAME_WIDTH / 2, btnY + 32);
+
+            // Host hint for item config
+            if (!this.isHost) {
+                ctx.font = '10px Courier New';
+                ctx.fillStyle = '#ffff00';
+                ctx.fillText('※ ホストの設定が使用されます', GAME_WIDTH / 2, backBtnY - 8);
+            }
         }
 
         // Instructions
-        ctx.font = '14px Courier New';
-        ctx.fillStyle = '#666666';
-        if (this.isOnlineMode) {
-            ctx.fillText('Arrow Keys to adjust, READY when done!', GAME_WIDTH / 2, GAME_HEIGHT - 20);
-        } else {
-            ctx.fillText('Arrow Keys to adjust, ESC to go back', GAME_WIDTH / 2, GAME_HEIGHT - 20);
-        }
+        ctx.font = '12px Courier New';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText('タップまたはクリックで選択・変更', GAME_WIDTH / 2, GAME_HEIGHT - 15);
     }
 
     // V4.5: Item Configuration Screen - Single column scrollable layout with large text
