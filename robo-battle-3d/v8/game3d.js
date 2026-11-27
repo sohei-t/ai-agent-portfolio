@@ -2946,6 +2946,19 @@ const I18N = {
     returnToHangar: 'ハンガーへ戻る', rematch: 'リマッチ',
     // ---- 操作ヒント(ハンガー下部) ----
     help1: 'カーソルキー: 移動(同方向に3秒以上で自動ブースト×3) ・ Shift+←→: 旋回 ・ Space/Z/X/C: 武器(スロット順)・ Tab/◎: ターゲット切替 ・ B: アビリティ ・ V: ジャンプ',
+    controlsBtn: 'PC操作方法',
+    controlsFoot: 'スマホ/タブレットでは画面上のスティックとボタンで操作します。',
+    ctlRows: [
+      ['移動', '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> または <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>'],
+      ['ブースト(3倍速)', '移動キーを 3 秒押し続けると自動で発動<span class="ctl-sub">キーを離すと解除</span>'],
+      ['向きを変える(旋回)', '<kbd>Shift</kbd> + <kbd>←</kbd><kbd>→</kbd><span class="ctl-sub">マウスの左ボタンを押したまま動かしても旋回できます</span>'],
+      ['武器を撃つ', '<kbd>Space</kbd> <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd><span class="ctl-sub">武器スロット 1〜4 の順。数字キー <kbd>1</kbd>〜<kbd>4</kbd> でも可</span>'],
+      ['全武器を一斉発射', 'マウスの左クリック(押しっぱなし)'],
+      ['ターゲット切替', '<kbd>Tab</kbd>'],
+      ['ジャンプ', '<kbd>V</kbd>'],
+      ['アビリティ', '<kbd>B</kbd>'],
+      ['カメラ切替', '<kbd>F</kbd>'],
+    ],
     help2: '機体は購入制・最大 3 台所有(売却 60%)。スロットには同サイズ(軽/中/重)の武器のみ装備可',
     help3: '出現はランダム ・ 実体弾は横移動で回避可 ・ 撃破で HP 回復(残量2倍)・ 砲撃/チャージ武器には予兆がある',
     // ---- 武器タグ(固有名は英語のまま) ----
@@ -3069,6 +3082,19 @@ const I18N = {
     rbWinBonus: 'VICTORY BONUS', rbTotal: 'TOTAL EARNED', rbWallet: 'WALLET',
     returnToHangar: 'RETURN TO HANGAR', rematch: 'REMATCH',
     help1: 'Arrows: move (hold a direction 3s = auto boost x3) ・ Shift+←→: turn ・ Space/Z/X/C: weapons (slot order) ・ Tab/◎: cycle target ・ B: ability ・ V: jump',
+    controlsBtn: 'PC CONTROLS',
+    controlsFoot: 'On phones/tablets, use the on-screen stick and buttons.',
+    ctlRows: [
+      ['Move', '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>'],
+      ['Boost (x3 speed)', 'Keep holding a move key for 3 seconds<span class="ctl-sub">Release to cancel</span>'],
+      ['Turn', '<kbd>Shift</kbd> + <kbd>←</kbd><kbd>→</kbd><span class="ctl-sub">or drag with the left mouse button held</span>'],
+      ['Fire weapons', '<kbd>Space</kbd> <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd><span class="ctl-sub">Slots 1-4 in order. Number keys <kbd>1</kbd>-<kbd>4</kbd> also work</span>'],
+      ['Fire all weapons', 'Left mouse button (hold)'],
+      ['Cycle target', '<kbd>Tab</kbd>'],
+      ['Jump', '<kbd>V</kbd>'],
+      ['Ability', '<kbd>B</kbd>'],
+      ['Camera', '<kbd>F</kbd>'],
+    ],
     help2: 'Mechs are purchasable, own up to 3 (sell at 60%). Slots accept matching size (L/M/H) weapons only',
     help3: 'Random spawns ・ dodge projectiles by strafing ・ kills repair HP (×2) ・ artillery & charge weapons telegraph',
     wtag_mg: 'Light ・ close-range rapid fire', wtag_pulse: 'Light ・ energy bolt', wtag_needle: 'Light ・ long-range precision',
@@ -3150,8 +3176,17 @@ function applyStaticI18n() {
   set('restart-btn', T('rematch'));
   const ec = document.querySelector('#enemy-counter .ec-label');
   if (ec) ec.textContent = T('enemyLabel');
-  const help = document.getElementById('hangar-help');
-  if (help) help.innerHTML = `${T('help1')}<br>${T('help2')}<br>${T('help3')}`;
+  // 左下ヒント: 操作説明は ⌨ ボタン → モーダルへ集約(小さい文字の 1 行ヒントは廃止)
+  const tips = document.getElementById('hangar-tips');
+  if (tips) tips.innerHTML = `${T('help2')}<br>${T('help3')}`;
+  set('controls-btn', `⌨ ${T('controlsBtn')}`);
+  set('ctl-modal-title', `⌨ ${T('controlsBtn')}`);
+  set('ctl-modal-foot', T('controlsFoot'));
+  const ctlTable = document.getElementById('ctl-table');
+  if (ctlTable) {
+    const rows = (I18N[LANG] && I18N[LANG].ctlRows) || [];
+    ctlTable.innerHTML = rows.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join('');
+  }
   const langBtn = document.getElementById('lang-btn');
   if (langBtn) langBtn.textContent = `🌐 ${LANG.toUpperCase()}`;
   // V7.5.2: セクションラベル(機体列 / 武器列の区別)
@@ -14477,6 +14512,19 @@ window.RB_backToHangarFromOnline = () => {
       });
       // ハンガーを離れる(出撃)際は必ず全景を解除(戦闘 HUD へ持ち越さない)
       $id('launch-btn').addEventListener('click', () => setPeek(false));
+    }
+
+    // ---- PC 操作方法モーダル(タイトル画面の ⌨ ボタン / Esc・背景クリックで閉じる) ----
+    {
+      const modal = $id('ctl-modal');
+      const btn = $id('controls-btn');
+      if (modal && btn) {
+        const close = () => modal.classList.add('hidden');
+        btn.addEventListener('click', () => { uiSfx(); modal.classList.remove('hidden'); });
+        $id('ctl-modal-close').addEventListener('click', () => { uiSfx(); close(); });
+        $id('ctl-modal-backdrop').addEventListener('click', () => { uiSfx(); close(); });
+        window.addEventListener('keydown', (e) => { if (e.code === 'Escape') close(); });
+      }
     }
 
     // ---- V7.7: セーブ移行モーダル(💾 エクスポート/インポート) ----

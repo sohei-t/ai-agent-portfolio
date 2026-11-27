@@ -1570,8 +1570,65 @@
     font-size: 9px; letter-spacing: 1px; line-height: 1.8;
     color: #7fa0b4;
     text-align: left;
-    max-width: 46vw;
+    max-width: 54vw;
+    display: flex; align-items: center; gap: 12px;
   }
+  /* PC 操作方法ボタン(タイトル画面左下・目立つアンバー + 明滅) → #ctl-modal を開く */
+  #controls-btn {
+    flex: none;
+    padding: 9px 16px;
+    background: linear-gradient(180deg, rgba(255, 210, 122, 0.28), rgba(232, 134, 46, 0.22));
+    border: 2px solid #ffd27a;
+    border-radius: 3px;
+    color: #ffe9b8;
+    font-family: inherit; font-size: 13px; font-weight: 900; letter-spacing: 2px;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(255, 176, 46, 0.55);
+    animation: controlsPulse 1.8s ease-in-out infinite;
+  }
+  #controls-btn:hover { background: rgba(255, 190, 80, 0.45); color: #fff; }
+  #controls-btn:active { transform: scale(0.95); }
+  @keyframes controlsPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 176, 46, 0.35); }
+    50% { box-shadow: 0 0 22px rgba(255, 176, 46, 0.95); }
+  }
+  @media (prefers-reduced-motion: reduce) { #controls-btn { animation: none; } }
+  /* PC 操作方法モーダル */
+  #ctl-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; }
+  #ctl-modal.hidden { display: none; }
+  #ctl-modal-backdrop { position: absolute; inset: 0; background: rgba(2, 4, 7, 0.78); }
+  #ctl-modal-panel {
+    position: relative;
+    width: min(560px, 94vw);
+    max-height: 88vh; overflow-y: auto;
+    background: rgba(6, 10, 16, 0.97);
+    border: 1px solid rgba(255, 210, 122, 0.6);
+    box-shadow: 0 0 30px rgba(255, 176, 46, 0.22);
+    padding: 18px 20px;
+  }
+  #ctl-modal-title { font-size: 15px; font-weight: 900; letter-spacing: 3px; color: #ffd27a; margin-bottom: 12px; }
+  #ctl-modal-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 34px; height: 34px;
+    background: none; border: 1px solid rgba(255, 210, 122, 0.45);
+    color: #ffd27a; font-family: inherit; font-size: 14px; cursor: pointer;
+  }
+  #ctl-table { width: 100%; border-collapse: collapse; }
+  #ctl-table th, #ctl-table td {
+    padding: 8px 6px; text-align: left; vertical-align: middle;
+    border-bottom: 1px solid rgba(110, 243, 255, 0.14);
+    font-size: 13px; line-height: 1.7; color: #dff8ff;
+  }
+  #ctl-table th { width: 34%; font-weight: 900; color: var(--hud-cyan); white-space: nowrap; }
+  #ctl-table .ctl-sub { display: block; font-size: 11px; color: #8fb0c4; }
+  #ctl-table kbd {
+    display: inline-block; min-width: 22px; padding: 1px 7px; margin: 0 1px;
+    background: rgba(110, 243, 255, 0.1);
+    border: 1px solid rgba(110, 243, 255, 0.55); border-bottom-width: 2px; border-radius: 4px;
+    color: #fff; font-family: inherit; font-size: 12px; font-weight: 900; text-align: center;
+  }
+  #ctl-modal-foot { margin-top: 12px; font-size: 11px; color: #8fb0c4; line-height: 1.7; }
 
   /* --- アビリティボタン(JUMP の左 / CD 扇形 + 発動中グロー)。V7.5: 60 → 48 --- */
   /* V8.0.1: シールド/スプリントは JUMP の左隣(右縁列の 2 列目) */
@@ -1750,7 +1807,11 @@
   <div id="stage-select"></div>
   <button id="launch-btn" type="button">START ⚔</button>
   <button id="online-btn" type="button">🌐 オンライン対戦 (最大4人)</button>
-  <div id="hangar-help"><!-- V7.3: applyStaticI18n() が言語別に挿入 --></div>
+  <div id="hangar-help">
+    <!-- PC 操作方法(モバイルは #hangar-help ごと非表示)。文言は applyStaticI18n() が言語別に挿入 -->
+    <button id="controls-btn" type="button" aria-haspopup="dialog">⌨ PC操作方法</button>
+    <div id="hangar-tips"></div>
+  </div>
   <!-- トースト通知(自動取り外し・購入など) -->
   <div id="hangar-toast"></div>
 
@@ -1774,6 +1835,17 @@
 <div id="deploy-overlay" class="hidden">
   <div id="deploy-spinner"></div>
   <div id="deploy-text">⚔ 出撃準備中…</div>
+</div>
+
+<!-- ===== PC 操作方法モーダル(タイトル画面の ⌨ ボタンで開く。中身は renderControlsHelp() が生成) ===== -->
+<div id="ctl-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="ctl-modal-title">
+  <div id="ctl-modal-backdrop"></div>
+  <div id="ctl-modal-panel">
+    <button id="ctl-modal-close" type="button" aria-label="close">✕</button>
+    <div id="ctl-modal-title">⌨ PC操作方法</div>
+    <table id="ctl-table"></table>
+    <div id="ctl-modal-foot"></div>
+  </div>
 </div>
 
 <!-- ===== V7.7: セーブ移行モーダル(💾 コードのコピー / 貼り付けて復元) ===== -->
@@ -1816,7 +1888,7 @@
 <!-- V7.2 キャッシュバスティング: リリースごとに ?v=NN を上げること(例: V7.4 → ?v=74)。
      GitHub Pages の CDN キャッシュで新旧 JS が混在して LOADING で固まる事故の恒久対策。
      lib/ 配下は game3d.js からの相対 import で解決されるためクエリ不要 -->
-<script type="module" src="./game3d.js?v=161"></script>
+<script type="module" src="./game3d.js?v=162"></script>
 <!-- v7: オンライン対戦ロビー(M1b)。game3d.js の後に読み込み、window.RB_* で疎結合に連携 -->
 <script type="module" src="./online.js?v=140"></script>
 </body>
