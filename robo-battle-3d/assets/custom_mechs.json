@@ -2,8 +2,8 @@
   {
     "id": "YOSHITATSU_V01",
     "name": {
-      "ja": "ヨシカツ",
-      "en": "YOSHITATSU-V01"
+      "ja": "A",
+      "en": "A"
     },
     "role": "player",
     "model": "TEST_002",
@@ -25,8 +25,8 @@
   {
     "id": "YANMER_V01",
     "name": {
-      "ja": "ヤンマー",
-      "en": "YANMER-V01"
+      "ja": "B",
+      "en": "B"
     },
     "role": "player",
     "model": "YANMER_V01",
@@ -48,8 +48,8 @@
   {
     "id": "SOHEI001",
     "name": {
-      "ja": "宗平",
-      "en": "SOHEI-R2"
+      "ja": "C",
+      "en": "C"
     },
     "role": "player",
     "model": "TEST_001",
