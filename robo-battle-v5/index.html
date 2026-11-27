@@ -128,29 +128,35 @@
             pointer-events: none;
         }
 
-        /* V4.1: Left zone split into upper (JUMP) and lower (CROUCH) */
-        .zone-hint-left-upper {
+        /* V5.1: Left/right zones with upper/lower split on right */
+        .zone-hint-left {
             left: 10px;
             top: 10%;
-            bottom: 50%;
-            width: 60px;
-            color: rgba(0, 255, 100, 0.8);
-        }
-
-        .zone-hint-left-lower {
-            left: 10px;
-            top: 50%;
             bottom: 10%;
-            width: 60px;
-            color: rgba(255, 200, 0, 0.8);
+            width: 80px;
+            color: rgba(0, 255, 100, 0.8);
+            font-size: 18px;
+            font-weight: bold;
         }
 
-        .zone-hint-right {
+        .zone-hint-right-upper {
             right: 10px;
             top: 10%;
+            bottom: 55%;
+            width: 80px;
+            color: rgba(100, 200, 255, 0.8);
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .zone-hint-right-lower {
+            right: 10px;
+            top: 55%;
             bottom: 10%;
-            width: 60px;
+            width: 80px;
             color: rgba(255, 100, 50, 0.8);
+            font-size: 16px;
+            font-weight: bold;
         }
 
         .zone-divider {
@@ -167,12 +173,12 @@
             );
         }
 
-        /* V4.1: Horizontal divider for left zone (JUMP/CROUCH split) */
+        /* V5.1: Horizontal divider for right side zones */
         .zone-divider-horizontal {
             position: absolute;
             top: 50%;
-            left: 5%;
-            right: 50%;
+            right: 5%;
+            left: 52%;
             height: 2px;
             background: linear-gradient(90deg,
                 transparent 0%,
@@ -358,30 +364,10 @@
             letter-spacing: 1px;
         }
 
-        /* V4.2: GUARD hint - Left side, UPPER portion (less frequent use) */
-        #hint-guard {
-            left: 15px;
-            top: 25%;
-            transform: translateY(-50%);
-        }
-
-        #hint-guard .control-hint-circle {
-            background: rgba(0, 150, 255, 0.25);
-            border-color: rgba(0, 200, 255, 0.7);
-        }
-
-        #hint-guard .control-hint-circle svg {
-            fill: rgba(255, 255, 255, 0.85);
-        }
-
-        #hint-guard .control-hint-label {
-            color: rgba(0, 200, 255, 0.9);
-        }
-
-        /* V4.2: JUMP hint - Left side, LOWER portion (frequent use) */
+        /* V5.1: JUMP hint - Left side, centered (simplified controls) */
         #hint-jump {
             left: 15px;
-            top: 75%;
+            top: 50%;
             transform: translateY(-50%);
         }
 
@@ -398,24 +384,45 @@
             color: rgba(0, 255, 100, 0.9);
         }
 
-        /* V4.2: BEAM hint - Right side, LOWER portion (frequent use, symmetric with JUMP) */
-        #hint-beam {
+        /* V5.1: CHARGE hint - Right side upper */
+        #hint-charge {
             right: 15px;
-            top: 75%;
+            top: 30%;
             transform: translateY(-50%);
         }
 
-        #hint-beam .control-hint-circle {
-            background: rgba(255, 100, 0, 0.25);
-            border-color: rgba(255, 150, 0, 0.7);
+        #hint-charge .control-hint-circle {
+            background: rgba(100, 200, 255, 0.25);
+            border-color: rgba(100, 200, 255, 0.7);
         }
 
-        #hint-beam .control-hint-circle svg {
+        #hint-charge .control-hint-circle svg {
             stroke: rgba(255, 255, 255, 0.85);
             fill: none;
         }
 
-        #hint-beam .control-hint-label {
+        #hint-charge .control-hint-label {
+            color: rgba(100, 200, 255, 0.9);
+        }
+
+        /* V5.1: RAPID hint - Right side lower */
+        #hint-rapid {
+            right: 15px;
+            top: 70%;
+            transform: translateY(-50%);
+        }
+
+        #hint-rapid .control-hint-circle {
+            background: rgba(255, 100, 0, 0.25);
+            border-color: rgba(255, 150, 0, 0.7);
+        }
+
+        #hint-rapid .control-hint-circle svg {
+            stroke: rgba(255, 255, 255, 0.85);
+            fill: none;
+        }
+
+        #hint-rapid .control-hint-label {
             color: rgba(255, 150, 0, 0.9);
         }
 
@@ -453,13 +460,13 @@
         <canvas id="gameCanvas" width="800" height="600"></canvas>
     </div>
 
-    <!-- V4.2: Mobile zone guide (Left: GUARD upper/JUMP lower, Right: BEAM lower) -->
+    <!-- V5.1: Mobile zone guide (Left: JUMP, Right Upper: CHARGE, Right Lower: RAPID) -->
     <div id="mobile-zone-guide">
-        <div class="zone-hint zone-hint-left-upper">🛡️ GUARD</div>
-        <div class="zone-divider-horizontal"></div>
-        <div class="zone-hint zone-hint-left-lower">JUMP ↑</div>
+        <div class="zone-hint zone-hint-left">JUMP ↑</div>
         <div class="zone-divider"></div>
-        <div class="zone-hint zone-hint-right">BEAM</div>
+        <div class="zone-divider-horizontal"></div>
+        <div class="zone-hint zone-hint-right-upper">CHARGE</div>
+        <div class="zone-hint zone-hint-right-lower">RAPID</div>
     </div>
 
     <!-- Gyro permission dialog (iOS requires user gesture) -->
@@ -487,29 +494,33 @@
         <span class="control-hint-label">JUMP</span>
     </div>
 
-    <!-- V4.2: GUARD hint - Left side, lower portion -->
-    <div id="hint-guard" class="control-hint">
+    <!-- V5.1: CHARGE hint - Upper right -->
+    <div id="hint-charge" class="control-hint">
         <div class="control-hint-circle">
-            <!-- Shield SVG -->
-            <svg width="32" height="32" viewBox="0 0 32 32">
-                <path d="M16 2 L28 6 L28 14 C28 22 22 28 16 30 C10 28 4 22 4 14 L4 6 Z"/>
+            <!-- Charge indicator SVG -->
+            <svg width="36" height="36" viewBox="0 0 36 36" stroke-width="3">
+                <circle cx="18" cy="18" r="12"/>
+                <circle cx="18" cy="18" r="6"/>
+                <line x1="18" y1="2" x2="18" y2="8"/>
             </svg>
         </div>
-        <span class="control-hint-label">GUARD</span>
+        <span class="control-hint-label">CHARGE</span>
     </div>
 
-    <div id="hint-beam" class="control-hint">
+    <!-- V5.1: RAPID hint - Lower right -->
+    <div id="hint-rapid" class="control-hint">
         <div class="control-hint-circle">
-            <!-- Crosshair/Target SVG -->
-            <svg width="36" height="36" viewBox="0 0 36 36" stroke-width="3">
-                <circle cx="18" cy="18" r="8"/>
-                <line x1="18" y1="2" x2="18" y2="10"/>
-                <line x1="18" y1="26" x2="18" y2="34"/>
-                <line x1="2" y1="18" x2="10" y2="18"/>
-                <line x1="26" y1="18" x2="34" y2="18"/>
+            <!-- Rapid fire indicator SVG -->
+            <svg width="36" height="36" viewBox="0 0 36 36" stroke-width="2">
+                <line x1="8" y1="10" x2="28" y2="10"/>
+                <line x1="8" y1="18" x2="28" y2="18"/>
+                <line x1="8" y1="26" x2="28" y2="26"/>
+                <polygon points="28,6 34,10 28,14" fill="rgba(255,255,255,0.85)"/>
+                <polygon points="28,14 34,18 28,22" fill="rgba(255,255,255,0.85)"/>
+                <polygon points="28,22 34,26 28,30" fill="rgba(255,255,255,0.85)"/>
             </svg>
         </div>
-        <span class="control-hint-label">BEAM</span>
+        <span class="control-hint-label">RAPID</span>
     </div>
 
     <!-- Firebase (for online mode signaling) -->
@@ -517,6 +528,6 @@
     <!-- Online mode (WebRTC P2P) -->
     <script src="online-mode.js?v=16"></script>
     <!-- Main game -->
-    <script src="game.js?v=47"></script>
+    <script src="game.js?v=53"></script>
 </body>
 </html>
